@@ -150,6 +150,9 @@ class CapabilityBuildLifecycleService:
             spec_hash=spec_hash, route_snapshot_hash=route_hash, provider_id=self.generation_adapter.provider_id,
             provider_request_id=generated.provider_receipt.request_id, provider_response_id=generated.provider_receipt.response_id,
             provider_operation="GENERATION", creation_reason="PROVIDER_GENERATION",
+            lesson_snapshot_hash=generated.provider_receipt.lesson_snapshot_hash,
+            applied_lesson_ids=generated.provider_receipt.applied_lesson_ids,
+            generation_context_hash=generated.provider_receipt.generation_context_hash,
         )
         self.revision_store.save_provider_attempt(spec.ref, build_run_id, replace(generated.provider_receipt, candidate_revision_created=True))
         shutil.rmtree(pathlib.Path(generated.source_path).parent, ignore_errors=True)
@@ -178,6 +181,9 @@ class CapabilityBuildLifecycleService:
                 provider_request_id=repaired.provider_receipt.request_id, provider_response_id=repaired.provider_receipt.response_id,
                 provider_operation="REPAIR", creation_reason="ACTION_POLICY_AUTHORIZED_REPAIR",
                 parent_revision_id=revision.revision_id,
+                lesson_snapshot_hash=repaired.provider_receipt.lesson_snapshot_hash,
+                applied_lesson_ids=repaired.provider_receipt.applied_lesson_ids,
+                generation_context_hash=repaired.provider_receipt.generation_context_hash,
             )
             self.revision_store.save_provider_attempt(spec.ref, build_run_id, replace(repaired.provider_receipt, candidate_revision_created=True))
             shutil.rmtree(pathlib.Path(repaired.source_path).parent, ignore_errors=True)

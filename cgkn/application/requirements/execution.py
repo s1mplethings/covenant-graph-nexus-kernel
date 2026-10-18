@@ -14,6 +14,7 @@ from cgkn.execution.contracts import utc_now
 from cgkn.executors.llm import WORKER_SCHEMA, validate_worker_proposal
 from cgkn.executors.protocol import ExecutorDescriptor
 from cgkn.providers import CompletionClient, ModelRoleConfig, parse_json_object
+from cgkn.application.learning import GenerationRequest, ProductionGenerationClient, default_production_client
 
 from .policy import DependencyPolicy
 
@@ -63,8 +64,9 @@ class ObligationWorkUnitExecutor:
         ("filesystem.read", "filesystem.write"), supports_cost_reporting=True,
     )
 
-    def __init__(self, root: pathlib.Path, client: CompletionClient, config: ModelRoleConfig):
-        self.root, self.client, self.config = root.resolve(), client, config
+    def __init__(self, root: pathlib.Path, client: CompletionClient | ProductionGenerationClient, config: ModelRoleConfig):
+        self.generation = client if isinstance(client, ProductionGenerationClient) else default_production_client(client)
+        self.root, self.client, self.config = root.resolve(), self.generation.client, config
 
     def execute(self, request: BlockExecutionRequest) -> BlockExecutionResult:
         started, clock = utc_now(), time.perf_counter()
@@ -104,12 +106,20 @@ class ObligationWorkUnitExecutor:
                 attempt_prompt = serialized
                 if rejection:
                     attempt_prompt = json.dumps(prompt | {"interface_contract_evidence": rejection}, ensure_ascii=False, sort_keys=True)
-                completion = self.client.complete(
+                effective_prompt = json.loads(attempt_prompt)
+                generated = self.generation.generate(GenerationRequest(
+                    task_class="project.codegen", operation="REPAIR" if rejection else "GENERATION",
+                    project_id=request.project_id, capability_ref=request.component_ref, provider_id=self.config.model,
                     system=("Implement only the supplied WorkUnitContract. Obligation objects, DependencyPolicy, TestPlan, FailureEvidence, and ExecutableInterfaceContracts are authoritative public requirements. "
                             "You MUST preserve exact positional and optional argument shapes. Do not introduce aliases or alternate invocation styles unless explicitly allowed. Forbidden interfaces must not appear. Do not reinterpret positional arguments as options. "
                             "You may change only declared target source files; never modify obligations, contracts, Oracles, or canonical tests. Return bounded JSON file actions only."),
-                    user=attempt_prompt, schema_name="cgkn_obligation_worker", schema=WORKER_SCHEMA, config=self.config,
-                )
+                    goal=effective_prompt, contract={"work_unit_contract": unit, "obligations": prompt["obligations"], "interfaces": prompt["executable_interface_contracts"]},
+                    state=current, failure_evidence={"interface_contract_evidence": rejection} if rejection else prompt.get("failure_evidence", {}),
+                    schema_name="cgkn_obligation_worker", schema=WORKER_SCHEMA, model_config=self.config,
+                    dependency_risk_policy=prompt["dependency_policy"], allowed_actions=("write_file", "patch_file", "read_file"),
+                    forbidden_actions=("contract_change", "oracle_change", "test_change"), run_id=request.run_id,
+                ))
+                completion = generated.completion
                 attempts.append({"request_id": completion.request_id, "usage": dict(completion.usage), "transport_attempts": completion.attempts})
                 usage = self._usage(attempts, len(serialized), len(rejection))
                 proposal = validate_worker_proposal(parse_json_object(completion.text), request.node_id)

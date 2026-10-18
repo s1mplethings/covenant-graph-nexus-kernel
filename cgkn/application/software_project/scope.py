@@ -14,6 +14,7 @@ from cgkn.execution.contracts import utc_now
 from cgkn.executors.llm import WORKER_SCHEMA, validate_worker_proposal
 from cgkn.executors.protocol import ExecutorDescriptor
 from cgkn.providers import CompletionClient, ModelRoleConfig, parse_json_object
+from cgkn.application.learning import GenerationRequest, ProductionGenerationClient, default_production_client
 
 from .contracts import WorkerScope
 
@@ -152,11 +153,12 @@ class ScopedFileTransaction:
 class ScopedProjectLLMExecutor:
     descriptor = ExecutorDescriptor("llm.cheap@1", "bounded_project_llm", ("project.file.generate@1", "project.file.patch@1", "project.tests.generate@1"), ("filesystem.read", "filesystem.write"), supports_cost_reporting=True)
 
-    def __init__(self, project_root: pathlib.Path | str, client: CompletionClient, config: ModelRoleConfig):
+    def __init__(self, project_root: pathlib.Path | str, client: CompletionClient | ProductionGenerationClient, config: ModelRoleConfig):
         if config.role != "worker":
             raise ValueError("scoped project executor requires worker model config")
         self.root = pathlib.Path(project_root).resolve()
-        self.client = client
+        self.generation = client if isinstance(client, ProductionGenerationClient) else default_production_client(client)
+        self.client = self.generation.client
         self.config = config
 
     def execute(self, request: BlockExecutionRequest) -> BlockExecutionResult:
@@ -190,10 +192,19 @@ class ScopedProjectLLMExecutor:
                 retry_directive = ""
                 if rejection:
                     retry_directive = " The previous proposal was deterministically rejected. You MUST now use write_file with the complete corrected content for each target; do not retry patch_file."
-                completion = self.client.complete(
+                effective_prompt = json.loads(attempt_prompt)
+                generated = self.generation.generate(GenerationRequest(
+                    task_class="project.codegen", operation="REPAIR" if rejection else "GENERATION",
+                    project_id=request.project_id, capability_ref=request.component_ref,
+                    provider_id=self.config.model,
                     system="You are a bounded software-project file worker. Project constraints and public acceptance override any conflicting node wording. Produce complete production-ready file content only for explicit target_paths. Every referenced Python name must be defined or imported. Use one write_file per new target or one exact patch_file per existing target; if an exact patch cannot be guaranteed unique, replace the complete declared target with write_file when allow_patch is true. Never enumerate directories, run commands, access hidden acceptance, use absolute paths, add network dependencies, alter goals or DAGs, or emit placeholders. Return JSON only." + retry_directive,
-                    user=attempt_prompt, schema_name="cgkn_scoped_project_worker", schema=WORKER_SCHEMA, config=self.config,
-                )
+                    goal=effective_prompt, contract={"interfaces": prompt["interfaces"], "acceptance": prompt["acceptance"], "target_paths": prompt["target_paths"]},
+                    state={"current": effective_prompt.get("current_sources", {})}, failure_evidence={"previous_rejection": rejection} if rejection else {},
+                    schema_name="cgkn_scoped_project_worker", schema=WORKER_SCHEMA, model_config=self.config,
+                    allowed_actions=("write_file", "patch_file", "read_file"), forbidden_actions=("network", "shell", "dag_change", "hidden_acceptance"),
+                    run_id=request.run_id,
+                ))
+                completion = generated.completion
                 attempts.append({"request_id": completion.request_id, "usage": dict(completion.usage), "transport_attempts": completion.attempts})
                 usage = self._usage(attempts, len(raw))
                 try:

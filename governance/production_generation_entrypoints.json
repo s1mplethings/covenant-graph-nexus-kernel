@@ -1,0 +1,23 @@
+{
+  "kind": "ProductionGenerationEntrypointAudit",
+  "schema_version": "1.0",
+  "iteration": "ITER-LESSON-AWARE-END-TO-END-PRODUCTION-025",
+  "audit_status": "COMPLETE",
+  "entries": [
+    {"entrypoint_id":"capability-initial","module":"cgkn.application.capability_builder.service","function/class":"CapabilityBuilderService.generate_candidate","task_class":"capability.build","operation":"GENERATION","production":true,"lesson_policy":"ENABLED","provider_role":"worker","migration_status":"PRODUCTION_GENERATION_CLIENT"},
+    {"entrypoint_id":"capability-repair","module":"cgkn.application.capability_builder.service","function/class":"CapabilityBuilderService._complete_existing","task_class":"capability.build","operation":"REPAIR","production":true,"lesson_policy":"ENABLED_FROZEN_RUN_SNAPSHOT","provider_role":"worker","migration_status":"PRODUCTION_GENERATION_CLIENT"},
+    {"entrypoint_id":"software-project-compose","module":"cgkn.application.software_project.service","function/class":"SoftwareProjectAgentComposer.decide","task_class":"project.compose","operation":"COMPOSITION","production":true,"lesson_policy":"ENABLED","provider_role":"agent","migration_status":"PRODUCTION_GENERATION_CLIENT"},
+    {"entrypoint_id":"software-project-worker","module":"cgkn.application.software_project.scope","function/class":"ScopedProjectLLMExecutor.execute","task_class":"project.codegen","operation":"GENERATION_OR_REPAIR","production":true,"lesson_policy":"ENABLED","provider_role":"worker","migration_status":"PRODUCTION_GENERATION_CLIENT"},
+    {"entrypoint_id":"obligation-project-worker","module":"cgkn.application.requirements.execution","function/class":"ObligationWorkUnitExecutor.execute","task_class":"project.codegen","operation":"GENERATION_OR_REPAIR","production":true,"lesson_policy":"ENABLED","provider_role":"worker","migration_status":"PRODUCTION_GENERATION_CLIENT"},
+    {"entrypoint_id":"direct-agent","module":"cgkn.application.requirements.direct","function/class":"DirectAgentService.run_csv.apply_provider","task_class":"project.direct","operation":"GENERATION_OR_REPAIR","production":true,"lesson_policy":"ENABLED","provider_role":"agent","migration_status":"PRODUCTION_GENERATION_CLIENT"},
+    {"entrypoint_id":"repository-codegen","module":"cgkn.application.repository_codegen.service","function/class":"RepositoryCodegenService.run","task_class":"repository.codegen","operation":"GENERATION_OR_REPAIR","production":true,"lesson_policy":"ENABLED","provider_role":"worker","migration_status":"PRODUCTION_GENERATION_CLIENT"},
+    {"entrypoint_id":"agent-composer","module":"cgkn.agent.composer","function/class":"AgentComposer.decide","task_class":"agent.composition","operation":"COMPOSITION","production":true,"lesson_policy":"ENABLED","provider_role":"agent","migration_status":"PRODUCTION_GENERATION_CLIENT"},
+    {"entrypoint_id":"bounded-llm-executor","module":"cgkn.executors.llm","function/class":"LLMExecutor.execute","task_class":"block.execution","operation":"GENERATION","production":true,"lesson_policy":"ENABLED","provider_role":"worker","migration_status":"PRODUCTION_GENERATION_CLIENT"},
+    {"entrypoint_id":"formal-compatibility-generation","module":"scripts.run_local_pipeline_impl","function/class":"provider_text","task_class":"compatibility.project.codegen","operation":"GENERATION_OR_REPAIR","production":true,"lesson_policy":"ENABLED_EXCEPT_CLASSIFIED_NON_PRODUCTION_STAGES","provider_role":"formal_provider","migration_status":"GENERATION_CONTEXT_ASSEMBLER_ADAPTER"},
+    {"entrypoint_id":"provider-benchmark","module":"cgkn.application.provider_evaluation.service","function/class":"ProviderEvaluationService._run_case","task_class":"provider.benchmark","operation":"BENCHMARK","production":false,"lesson_policy":"DISABLED_BY_POLICY","provider_role":"benchmark","migration_status":"EXPLICIT_NOOP"},
+    {"entrypoint_id":"requirements-strategy-recorder","module":"cgkn.application.requirements.comparison","function/class":"RecordingClient.complete","task_class":"strategy.comparison","operation":"BENCHMARK","production":false,"lesson_policy":"DELEGATE_FROZEN_OR_DISABLED","provider_role":"benchmark_recorder","migration_status":"ALLOWLIST_RECORDING_ONLY"},
+    {"entrypoint_id":"grok-structured-probe","module":"scripts.run_grok_structured_probe","function/class":"main","task_class":"provider.probe","operation":"PROVIDER_PROBE","production":false,"lesson_policy":"DISABLED_BY_POLICY","provider_role":"probe","migration_status":"ALLOWLIST_DIAGNOSTIC"}
+  ],
+  "direct_complete_authority": "cgkn.application.learning.integration.ProductionGenerationClient",
+  "contains_credentials": false
+}

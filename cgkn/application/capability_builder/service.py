@@ -21,6 +21,7 @@ from cgkn.executors.llm import WORKER_SCHEMA, validate_worker_proposal
 from cgkn.application.software_project.contracts import WorkerScope
 from cgkn.application.software_project.scope import ScopedFileTransaction
 from cgkn.application.materialization import materialize_json
+from cgkn.application.learning import GenerationRequest, ProductionGenerationClient, default_production_client
 
 from .contracts import CapabilityBuildReceipt, CapabilityPackage, CapabilityRisk, CapabilitySpec
 from .lifecycle_contracts import ActionDecision, FailureDomain, ProviderAttemptReceipt, RecommendedAction
@@ -256,10 +257,11 @@ class CapabilityBuilderService:
     directly into a Provider call.
     """
 
-    def __init__(self, client: CompletionClient, config: ModelRoleConfig, *, provider_id: str, mode: str, store: CapabilityStore):
+    def __init__(self, client: CompletionClient | ProductionGenerationClient, config: ModelRoleConfig, *, provider_id: str, mode: str, store: CapabilityStore):
         if config.role != "worker" or config.model != provider_id or mode not in {"SELECTED", "SINGLE_PROVIDER_MODE"}:
             raise ValueError("capability builder requires one frozen worker route")
-        self.client, self.config, self.provider_id, self.mode, self.store = client, config, provider_id, mode, store
+        self.generation = client if isinstance(client, ProductionGenerationClient) else default_production_client(client)
+        self.client, self.config, self.provider_id, self.mode, self.store = self.generation.client, config, provider_id, mode, store
 
     def build(self, candidate_root: pathlib.Path | str, spec: CapabilitySpec) -> CapabilityBuildReceipt:
         from .lifecycle import CapabilityBuildLifecycleService
@@ -282,11 +284,17 @@ class CapabilityBuilderService:
         self._scaffold(root, spec)
         started_at, attempt_id = utc_now(), f"provider.{uuid.uuid4().hex}"
         try:
-            completion = self.client.complete(
+            prompt = self._prompt(root, spec, json.dumps(dict(failure_evidence or {}), ensure_ascii=False, sort_keys=True))
+            generated = self.generation.generate(GenerationRequest(
+                task_class="capability.build", operation=operation, project_id="", capability_ref=spec.ref,
+                provider_id=self.provider_id,
                 system="You implement one bounded Python capability. Patch only executor.py, use only the standard library and the supplied runtime contract, preserve the required execute signature, and return JSON only.",
-                user=json.dumps(self._prompt(root, spec, json.dumps(dict(failure_evidence or {}), ensure_ascii=False, sort_keys=True)), ensure_ascii=False, sort_keys=True),
-                schema_name="capability_candidate_patch", schema=WORKER_SCHEMA, config=self.config,
-            )
+                goal=prompt, contract=spec.as_dict(), state=prompt["current_sources"],
+                failure_evidence=dict(failure_evidence or {}), schema_name="capability_candidate_patch",
+                schema=WORKER_SCHEMA, model_config=self.config, allowed_actions=("patch_file",),
+                forbidden_actions=("network", "shell", "contract_change", "validator_change"),
+            ))
+            completion = generated.completion
             proposal = validate_worker_proposal(parse_json_object(completion.text), spec.ref)
             if proposal["needs_escalation"]:
                 raise ValueError(str(proposal["escalation_reason"]))
@@ -297,6 +305,7 @@ class CapabilityBuilderService:
                 attempt_id, operation, self.provider_id, str(completion.model), str(completion.request_id),
                 str(completion.request_id), route_snapshot_hash, started_at, utc_now(), "PASS", "", False,
                 {}, usage, usage.get("estimated_cost", "UNKNOWN"), False,
+                generated.lesson_snapshot_hash, generated.applied_lesson_ids, generated.generation_context_hash,
             )
             return CandidateGenerationResult(str(root), receipt)
         except Exception as exc:
@@ -331,18 +340,24 @@ class CapabilityBuilderService:
     def _complete_existing(self, root: pathlib.Path, spec: CapabilitySpec, route_snapshot_hash: str, failure_evidence: Mapping[str, Any]) -> CandidateGenerationResult:
         started_at, attempt_id = utc_now(), f"provider.{uuid.uuid4().hex}"
         try:
-            completion = self.client.complete(
+            prompt = self._prompt(root, spec, json.dumps(dict(failure_evidence), ensure_ascii=False, sort_keys=True))
+            generated = self.generation.generate(GenerationRequest(
+                task_class="capability.build", operation="REPAIR", project_id="", capability_ref=spec.ref,
+                provider_id=self.provider_id,
                 system="Repair one bounded Python capability. Patch only executor.py and return JSON only.",
-                user=json.dumps(self._prompt(root, spec, json.dumps(dict(failure_evidence), ensure_ascii=False, sort_keys=True)), ensure_ascii=False, sort_keys=True),
-                schema_name="capability_candidate_patch", schema=WORKER_SCHEMA, config=self.config,
-            )
+                goal=prompt, contract=spec.as_dict(), state=prompt["current_sources"],
+                failure_evidence=dict(failure_evidence), schema_name="capability_candidate_patch",
+                schema=WORKER_SCHEMA, model_config=self.config, allowed_actions=("patch_file",),
+                forbidden_actions=("network", "shell", "contract_change", "validator_change"),
+            ))
+            completion = generated.completion
             proposal = validate_worker_proposal(parse_json_object(completion.text), spec.ref)
             if proposal["needs_escalation"]:
                 raise ValueError(str(proposal["escalation_reason"]))
             transaction = ScopedFileTransaction(root, WorkerScope(("executor.py", "tests/test_capability.py", "capability.json"), ("executor.py",), protected_paths=("admission.json",), max_actions=1, max_write_files=1, allow_create=False, allow_patch=True))
             transaction.apply(proposal["actions"])
             usage = dict(completion.usage)
-            receipt = ProviderAttemptReceipt(attempt_id, "REPAIR", self.provider_id, str(completion.model), str(completion.request_id), str(completion.request_id), route_snapshot_hash, started_at, utc_now(), "PASS", "", False, {}, usage, usage.get("estimated_cost", "UNKNOWN"), False)
+            receipt = ProviderAttemptReceipt(attempt_id, "REPAIR", self.provider_id, str(completion.model), str(completion.request_id), str(completion.request_id), route_snapshot_hash, started_at, utc_now(), "PASS", "", False, {}, usage, usage.get("estimated_cost", "UNKNOWN"), False, generated.lesson_snapshot_hash, generated.applied_lesson_ids, generated.generation_context_hash)
             return CandidateGenerationResult(str(root), receipt)
         except Exception as exc:
             name = type(exc).__name__.upper()

@@ -8,6 +8,7 @@ from typing import Any, Mapping
 from cgkn.orchestration.capability_tree import CapabilityTree, _thaw
 from cgkn.orchestration.tree_edits import TreeEdit
 from cgkn.providers import CompletionClient, ModelRoleConfig, ProviderCompletion, parse_json_object
+from cgkn.application.learning import GenerationRequest, ProductionGenerationClient, default_production_client
 
 from .composer_contract import parse_tree_edit
 
@@ -97,13 +98,24 @@ def parse_agent_decision(value: Mapping[str, Any], completion: ProviderCompletio
 
 
 class AgentComposer:
-    def __init__(self, client: CompletionClient, config: ModelRoleConfig):
+    def __init__(self, client: CompletionClient | ProductionGenerationClient, config: ModelRoleConfig):
         if config.role != "agent":
             raise ValueError("AgentComposer requires agent model config")
-        self.client, self.config = client, config
+        self.generation = client if isinstance(client, ProductionGenerationClient) else default_production_client(client)
+        self.client, self.config = self.generation.client, config
 
     def decide(self, context: AgentDecisionContext) -> AgentDecision:
         raw_context = json.dumps(context.as_dict(), ensure_ascii=False, sort_keys=True)
-        completion = self.client.complete(system="""You are the CGKN composition Agent. Decide only validated CapabilityTree edits and whether to run, finish, or escalate. Never write files, execute shell/network, change the project goal, package, deliver, or reveal hidden reasoning. Return concise JSON only.
-Canonical edit syntax is exact: add_node payload is {\"capability_ref\": str, \"parent_id\": str, \"depends_on\": [str], \"config\": object}; update_config payload is {\"config\": object}; retry_node payload is {}. Executor selection belongs in config.executor_ref. Copy config keys and values exactly from capability_catalog; do not invent aliases or absolute paths. Use capability_ref, depends_on, and executor_ref exactly; never substitute capability, dependencies, tool, runner, model, command, instruction, target_file, or file_path. For this MVP, every added node must have a non-empty known capability_ref. A request_run decision must create or retain at least one executable node.""", user=raw_context, schema_name="cgkn_agent_decision", schema=AGENT_SCHEMA, config=self.config)
+        generated = self.generation.generate(GenerationRequest(
+            task_class="agent.composition", operation="COMPOSITION", project_id=context.project_id,
+            capability_ref="agent.compose@1", provider_id=self.config.model,
+            system="""You are the CGKN composition Agent. Decide only validated CapabilityTree edits and whether to run, finish, or escalate. Never write files, execute shell/network, change the project goal, package, deliver, or reveal hidden reasoning. Return concise JSON only.
+Canonical edit syntax is exact: add_node payload is {\"capability_ref\": str, \"parent_id\": str, \"depends_on\": [str], \"config\": object}; update_config payload is {\"config\": object}; retry_node payload is {}. Executor selection belongs in config.executor_ref. Copy config keys and values exactly from capability_catalog; do not invent aliases or absolute paths. Use capability_ref, depends_on, and executor_ref exactly; never substitute capability, dependencies, tool, runner, model, command, instruction, target_file, or file_path. For this MVP, every added node must have a non-empty known capability_ref. A request_run decision must create or retain at least one executable node.""",
+            goal=context.as_dict(), contract={"goal": context.goal, "known_capabilities": list(context.known_capabilities)},
+            state=context.run_summary, failure_evidence=context.failure_details,
+            schema_name="cgkn_agent_decision", schema=AGENT_SCHEMA, model_config=self.config,
+            allowed_actions=("tree_edit", "request_run", "finish", "escalate"),
+            forbidden_actions=("file_write", "shell", "network", "goal_change", "delivery"), run_id=context.run_id,
+        ))
+        completion = generated.completion
         return parse_agent_decision(parse_json_object(completion.text), completion, raw_context)

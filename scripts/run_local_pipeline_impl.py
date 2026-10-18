@@ -8503,6 +8503,19 @@ def provider_text(
     response_format: dict[str, Any] | None = None,
     request_metrics_path: pathlib.Path | None = None,
 ) -> str:
+    lesson_metadata: dict[str, Any] = {}
+    non_production_stage = any(token in stage.lower() for token in ("benchmark", "diagnostic", "probe"))
+    if not non_production_stage:
+        from cgkn.application.learning import lesson_aware_messages
+
+        messages, lesson_metadata = lesson_aware_messages(
+            messages, task_class="compatibility.project.codegen", operation="REPAIR" if last_error else "GENERATION",
+            project_id=str(component or "compatibility-project"), capability_ref=str(target_file or component), provider_id=str(model),
+        )
+        append_provider_event_log(
+            phase_log_path,
+            {"event": "lesson_context_frozen", "stage": stage, "component": component, "target_file": target_file, **lesson_metadata},
+        )
     try:
         context_budget_receipt = enforce_provider_request_context_budget(
             messages,

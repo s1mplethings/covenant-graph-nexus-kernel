@@ -27,6 +27,7 @@ from cgkn.providers import (
 )
 from cgkn.runtime import DAGRunner
 from cgkn.state import FileRunStore
+from cgkn.application.learning import GenerationRequest, ProductionGenerationClient, default_production_client
 
 from .acceptance import ExternalAcceptanceExecutor
 from .bundle import SoftwareProjectBundle
@@ -40,20 +41,23 @@ from .snapshot import ProjectSnapshotExecutor, snapshot_project
 class SoftwareProjectAgentComposer:
     """Application prompt adapter; canonical AgentDecision/TreeEdit remains authoritative."""
 
-    def __init__(self, client: CompletionClient, config: ModelRoleConfig):
+    def __init__(self, client: CompletionClient | ProductionGenerationClient, config: ModelRoleConfig):
         if config.role != "agent":
             raise ValueError("software project composer requires agent model config")
-        self.client, self.config = client, config
+        self.generation = client if isinstance(client, ProductionGenerationClient) else default_production_client(client)
+        self.client, self.config = self.generation.client, config
         self.last_provider_payload: dict[str, Any] = {}
 
     def decide(self, context: AgentDecisionContext) -> AgentDecision:
         raw = json.dumps(context.as_dict(), ensure_ascii=False, sort_keys=True)
-        completion = self.client.complete(
+        generated = self.generation.generate(GenerationRequest(
+            task_class="project.compose", operation="COMPOSITION", project_id=context.project_id,
+            capability_ref="agent.project.compose@1", provider_id=self.config.model,
             system=(
                 "You are the CGKN high-capability software-project composition Agent. Return only one JSON AgentDecision with validated TreeEdits. "
                 "You decide the project file structure and dependencies, but never output source file content, execute commands, or claim tests passed. "
                 "For a new project, create one workspace.inspect node, one project.file.generate node per principal source or documentation file, a project.tests.generate node for each public test file, then compile, pytest, runtime smoke, snapshot, and external acceptance nodes. "
-                "Generation or patch node config must contain executor_ref='llm.cheap@1', goal, target_paths (one path, or two tightly bound tiny files), allowed_paths (target paths plus only explicit relevant read paths), file_purpose, interfaces, acceptance, allowed_effects=['filesystem.write'], max_actions<=4, max_write_files<=2, max_total_output_bytes<=64000, allow_create, allow_patch, allow_delete=false, protected_paths. "
+                "Generation or patch node config must contain executor_ref='llm.cheap@1', goal, target_paths (one path, or up to three tightly bound cohesive files), allowed_paths (target paths plus only explicit relevant read paths), file_purpose, interfaces, acceptance, allowed_effects=['filesystem.write'], max_actions<=4, max_write_files<=3, max_total_output_bytes<=64000, allow_create, allow_patch, allow_delete=false, protected_paths. "
                 "Inspect uses local.file@1 action=list_files path='.'. Compile uses local.command@1 with argv command. Pytest uses local.python-test@1 and pytest_args. Smoke uses local.command@1. Snapshot uses project.snapshot@1. Acceptance uses project.acceptance@1 and only the public case_id. "
                 "Dependencies must ensure every source is generated before tests, all file nodes before compile, compile before pytest and smoke, those before snapshot, and snapshot before acceptance. "
                 "On a failed run, add or update only the smallest patch node and retry the failed node/subgraph. Finish only after the external acceptance node succeeded. "
@@ -61,11 +65,13 @@ class SoftwareProjectAgentComposer:
                 "update_config payload is exactly {config: object}; it cannot contain capability_ref. If you update a node that already succeeded, also emit exactly one retry_node edit for the earliest changed node so the canonical DAG invalidates its downstream closure. Do not update downstream nodes when their config is unchanged. "
                 "Allowed operations are canonical TreeEdits only; use exact capability_ref and executor_ref names from the catalog. Never mention or request hidden test paths or values."
             ),
-            user=raw,
-            schema_name="cgkn_software_project_agent_decision",
-            schema=AGENT_SCHEMA,
-            config=self.config,
-        )
+            goal=context.as_dict(), contract={"capability_catalog": context.capability_catalog},
+            state=context.as_dict(), failure_evidence={}, schema_name="cgkn_software_project_agent_decision",
+            schema=AGENT_SCHEMA, model_config=self.config,
+            allowed_actions=("add_node", "update_config", "retry_node", "request_run", "finish", "escalate"),
+            forbidden_actions=("source_write", "shell", "network", "hidden_acceptance"),
+        ))
+        completion = generated.completion
         self.last_provider_payload = parse_json_object(completion.text)
         normalized = self._normalize_decision(self.last_provider_payload, context)
         decision = parse_agent_decision(normalized, completion, raw)

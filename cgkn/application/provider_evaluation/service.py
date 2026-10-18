@@ -10,6 +10,7 @@ from scripts import provider_api_budget
 from jsonschema import Draft202012Validator
 
 from cgkn.providers import CompletionClient, GatewayCompletionClient, GatewayCompletionError, ModelRoleConfig, parse_json_object
+from cgkn.application.learning import GenerationRequest, disabled_generation_client
 
 from .contracts import ProviderBenchmarkCase, ProviderBenchmarkReceipt, canonical_hash
 from .suite import BenchmarkValidation, benchmark_cases, evaluate, system_prompt
@@ -99,13 +100,13 @@ class ProviderEvaluationService:
         error_class = "NONE"
         schema_valid = False
         try:
-            completion = client.complete(
-                system=system,
-                user=user,
-                schema_name="cgkn_provider_benchmark",
-                schema=case.expected_output_contract,
-                config=config,
-            )
+            completion = disabled_generation_client(client).generate(GenerationRequest(
+                task_class="provider.benchmark", operation="BENCHMARK", project_id=case.case_id,
+                capability_ref="", provider_id=provider_id, system=system, goal=json.loads(user),
+                contract=case.expected_output_contract, state={}, failure_evidence={},
+                schema_name="cgkn_provider_benchmark", schema=case.expected_output_contract,
+                model_config=config, lesson_policy="DISABLED_BY_POLICY", run_id=run_id,
+            )).completion
             actual_model = (
                 actual_model_hint
                 if completion.model == provider_id and actual_model_hint != "UNAVAILABLE"

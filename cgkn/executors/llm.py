@@ -7,6 +7,7 @@ from typing import Any, Mapping
 from cgkn.execution import BlockExecutionRequest, BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode
 from cgkn.execution.contracts import utc_now
 from cgkn.providers import CompletionClient, ModelRoleConfig, parse_json_object
+from cgkn.application.learning import GenerationRequest, ProductionGenerationClient, default_production_client
 
 from .protocol import ExecutorDescriptor
 
@@ -95,10 +96,11 @@ def validate_worker_proposal(value: Mapping[str, Any], node_id: str) -> dict[str
 class LLMExecutor:
     descriptor = ExecutorDescriptor("llm.cheap@1", "bounded_llm", ("*",), ("filesystem.read", "filesystem.write"))
 
-    def __init__(self, project_root: pathlib.Path | str, client: CompletionClient, config: ModelRoleConfig):
+    def __init__(self, project_root: pathlib.Path | str, client: CompletionClient | ProductionGenerationClient, config: ModelRoleConfig):
         if config.role != "worker":
             raise ValueError("LLMExecutor requires worker model config")
-        self.actions, self.client, self.config = BoundedFileActions(project_root), client, config
+        self.generation = client if isinstance(client, ProductionGenerationClient) else default_production_client(client)
+        self.actions, self.client, self.config = BoundedFileActions(project_root), self.generation.client, config
 
     def execute(self, request: BlockExecutionRequest) -> BlockExecutionResult:
         started, clock = utc_now(), time.perf_counter()
@@ -108,7 +110,17 @@ class LLMExecutor:
         raw_prompt = json.dumps(prompt, ensure_ascii=False, sort_keys=True)
         usage: dict[str, Any] = {}
         try:
-            completion = self.client.complete(system="You are a bounded CGKN worker. Propose only read/list/write/patch actions. Never propose shell, network, goals, DAG edits, tests, delivery, or hidden reasoning. Return JSON only.", user=raw_prompt, schema_name="cgkn_worker_proposal", schema=WORKER_SCHEMA, config=self.config)
+            generated = self.generation.generate(GenerationRequest(
+                task_class="block.execution", operation="GENERATION", project_id=request.project_id,
+                capability_ref=request.component_ref, provider_id=self.config.model,
+                system="You are a bounded CGKN worker. Propose only read/list/write/patch actions. Never propose shell, network, goals, DAG edits, tests, delivery, or hidden reasoning. Return JSON only.",
+                goal=prompt, contract={"constraints": prompt["constraints"], "acceptance": prompt["acceptance"], "allowed_actions": prompt["allowed_actions"]},
+                state={"dependency_results": prompt["dependency_results"]}, failure_evidence={},
+                schema_name="cgkn_worker_proposal", schema=WORKER_SCHEMA, model_config=self.config,
+                allowed_actions=tuple(sorted(ALLOWED_ACTIONS)), forbidden_actions=("shell", "network", "goal_change", "dag_edit", "test_change", "delivery"),
+                run_id=request.run_id,
+            ))
+            completion = generated.completion
             usage = dict(completion.usage) | {"model": completion.model, "request_id": completion.request_id, "provider_attempts": completion.attempts, "context_chars": len(raw_prompt), "dependency_count": len(context["dependency_results"])}
             proposal = validate_worker_proposal(parse_json_object(completion.text), request.node_id)
             if proposal["needs_escalation"]:

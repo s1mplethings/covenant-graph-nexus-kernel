@@ -13,6 +13,7 @@ from typing import Any, Mapping
 from cgkn.application.software_project.scope import ScopedFileTransaction, ScopeViolation
 from cgkn.executors.llm import WORKER_SCHEMA, validate_worker_proposal
 from cgkn.providers import CompletionClient, ModelRoleConfig, parse_json_object
+from cgkn.application.learning import GenerationRequest, ProductionGenerationClient, default_production_client
 
 from .csv import compile_csv_cleaner
 from .execution import _ScopeAdapter, validate_dependency_actions
@@ -54,10 +55,11 @@ class DirectAgentService:
 
     TARGETS = ("csv_cleaner/__init__.py", "csv_cleaner/__main__.py", "csv_cleaner/core.py", "README.md")
 
-    def __init__(self, repository_root: pathlib.Path, client: CompletionClient, agent: ModelRoleConfig):
+    def __init__(self, repository_root: pathlib.Path, client: CompletionClient | ProductionGenerationClient, agent: ModelRoleConfig):
         if agent.role != "agent":
             raise ValueError("direct execution requires an agent role")
-        self.root, self.client, self.agent = repository_root.resolve(), client, agent
+        self.generation = client if isinstance(client, ProductionGenerationClient) else default_production_client(client)
+        self.root, self.client, self.agent = repository_root.resolve(), self.generation.client, agent
 
     def run_csv(self, workspace: pathlib.Path, run_root: pathlib.Path) -> DirectAgentResult:
         started = time.perf_counter(); run_id = f"csv-direct-{uuid.uuid4().hex[:10]}"
@@ -91,12 +93,18 @@ class DirectAgentService:
 
         def apply_provider(request: Mapping[str, Any], targets: tuple[str, ...]) -> None:
             nonlocal provider_calls, tokens
-            completion = self.client.complete(
+            generated = self.generation.generate(GenerationRequest(
+                task_class="project.direct", operation="REPAIR" if request.get("repair_round") else "GENERATION",
+                project_id="csv_cleaner", capability_ref="agent.direct.project@1", provider_id=self.agent.model,
                 system=("You are the bounded high-capability Direct Agent. Implement or repair only the declared scope from canonical obligations and WorkUnit contracts. "
                         "Use supplied failure evidence and current sources. Do not inspect hidden acceptance, add behavior, change policy, or claim validation. Return JSON actions only."),
-                user=json.dumps(request, ensure_ascii=False, sort_keys=True), schema_name="cgkn_direct_agent_execute", schema=WORKER_SCHEMA,
-                config=self.agent,
-            )
+                goal=dict(request), contract={"obligations": request.get("obligations", {}), "work_units": request.get("work_unit_contracts", [])},
+                state=request.get("current_sources", {}), failure_evidence=request.get("failure_evidence", {}),
+                schema_name="cgkn_direct_agent_execute", schema=WORKER_SCHEMA, model_config=self.agent,
+                dependency_risk_policy=request.get("dependency_policy", {}), allowed_actions=("write_file", "patch_file", "read_file"),
+                forbidden_actions=("hidden_acceptance", "policy_change", "contract_change"), run_id=run_id,
+            ))
+            completion = generated.completion
             provider_calls += 1
             tokens += int(completion.usage.get("total_tokens", 0))
             proposal = validate_worker_proposal(parse_json_object(completion.text), "DIRECT-AGENT")

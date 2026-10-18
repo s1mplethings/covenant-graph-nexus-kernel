@@ -1,0 +1,37 @@
+{
+  "kind": "LessonAwareProjectProductionStatus",
+  "schema_version": "1.0",
+  "iteration": "ITER-LESSON-AWARE-END-TO-END-PRODUCTION-025",
+  "status": "REAL_SINGLE_PASS",
+  "run_id": "folder-manifest-beb6588e7e54",
+  "project_id": "folder_manifest_cli",
+  "goal_hash": "sha256:a2affbc3aa80ce6376c062176d36acfdd21192ff0425f5851948bd299496c8c6",
+  "contract_hash": "sha256:da2820227fd84a5b416ccc910b084cb8bee5f4556f727a80b458a49c8b6d71db",
+  "obligation_hash": "sha256:6263cde6338fb9266d2747e3fd7a11d534938695f6e0334d440dbcb886f9a0b3",
+  "project_dag_hash": "sha256:e23c9ad16c42fb8eafc009472d4b3b42d693d6a413ed0bc5f9756edd5d4cca5c",
+  "required_capabilities": ["project.python.pyproject.render@1"],
+  "missing_capabilities": ["project.python.pyproject.render@1"],
+  "grown_capabilities": ["project.python.pyproject.render@1"],
+  "reused_capabilities": ["project.python.pyproject.render@1"],
+  "self_growth": {"status":"PASS","provider_calls":1,"candidate_revisions":1,"admitted":true,"registry_reuse_growth_calls":0},
+  "resume": {
+    "original_dag": true,
+    "whole_replans": 0,
+    "reused_nodes": ["project-contract-compile","project-contract-tests-compile","project-core-generate","project-docs-render"],
+    "rerun_nodes": ["project-capabilities-resolve","project-metadata-render","project-compile","project-pytest","project-oracle","project-snapshot","project-hidden-acceptance","project-package"]
+  },
+  "generation": {
+    "provider": "grok-4.7",
+    "provider_calls": 2,
+    "repair_rounds": 0,
+    "lesson_snapshot_hashes": ["sha256:0ad90021a6dbcb2c67dd300f7cb6840486e26dde1208695a54d4702a2d61c5c4"],
+    "applied_project_lesson_ids": ["lesson.8b9ec450388e3194ce6c7c9d","lesson.be6c2bbccc9aafd6f5993723"],
+    "applied_capability_lesson_ids": ["lesson.4e478d6f77bd4a17e0ba1554","lesson.acfb007cf8352b8166245dc6"]
+  },
+  "verification": {"project_tests":"PASS:6","oracle":"PASS","hidden_acceptance":"PASS","snapshot":"PASS","runtime_smoke":"PASS"},
+  "delivery": {"authority":"scripts/local_packager.py","status":"PASS","package_sha256":"sha256:a4e6f08449e3b61aa8a94e58b515cd5b18cb4df350760cb74b43cdcfe9438541","package_ref":"artifacts/ITER-LESSON-AWARE-END-TO-END-PRODUCTION-025/project_runs/folder-manifest-beb6588e7e54/delivery/final_project_bundle.zip"},
+  "learning": {"structured_events":3,"feedback_support_increments":2,"contradictions":0,"new_candidates":0},
+  "manual_candidate_edits": 0,
+  "unsafe_admissions": 0,
+  "contains_credentials": false
+}

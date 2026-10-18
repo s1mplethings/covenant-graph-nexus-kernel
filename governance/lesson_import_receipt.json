@@ -1,0 +1,13 @@
+{
+  "kind": "LessonImportReceipt",
+  "schema_version": "1.0",
+  "iteration": "ITER-LESSON-AWARE-END-TO-END-PRODUCTION-025",
+  "status": "PASS",
+  "importer": "deterministic-v0",
+  "source_policy": "STRUCTURED_GOVERNANCE_ONLY",
+  "validated_count": 4,
+  "policy_count": 4,
+  "idempotent": true,
+  "catalog_hash": "sha256:51f640e5352175d4123c87caf61b42a7d824815829dea6d9ac01f06be8ee8470",
+  "contains_credentials": false
+}

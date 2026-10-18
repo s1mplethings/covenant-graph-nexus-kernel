@@ -133,12 +133,16 @@ class CandidateRevision:
     created_at: str
     creation_reason: str
     status: CandidateRevisionStatus = CandidateRevisionStatus.CREATED
+    lesson_snapshot_hash: str = ""
+    applied_lesson_ids: tuple[str, ...] = ()
+    generation_context_hash: str = ""
     schema_version: str = "1.0"
 
     def __post_init__(self) -> None:
         if self.revision_number < 1 or not self.revision_id or not self.capability_ref:
             raise ValueError("candidate revision identity is invalid")
         object.__setattr__(self, "source_manifest", tuple(_freeze(row) for row in self.source_manifest))
+        object.__setattr__(self, "applied_lesson_ids", tuple(str(item) for item in self.applied_lesson_ids))
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -165,6 +169,8 @@ class CandidateRevision:
             str(value.get("provider_response_id", "")), str(value["provider_operation"]),
             tuple(value.get("source_manifest", ())), str(value["source_hash"]), str(value["package_hash"]),
             str(value["created_at"]), str(value["creation_reason"]), CandidateRevisionStatus(str(value["status"])),
+            str(value.get("lesson_snapshot_hash", "")), tuple(value.get("applied_lesson_ids", ())),
+            str(value.get("generation_context_hash", "")),
         )
 
 
@@ -243,11 +249,15 @@ class ProviderAttemptReceipt:
     actual_tokens: Mapping[str, Any]
     cost: Any
     candidate_revision_created: bool
+    lesson_snapshot_hash: str = ""
+    applied_lesson_ids: tuple[str, ...] = ()
+    generation_context_hash: str = ""
     schema_version: str = "1.0"
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "reserved_tokens", _freeze(self.reserved_tokens))
         object.__setattr__(self, "actual_tokens", _freeze(self.actual_tokens))
+        object.__setattr__(self, "applied_lesson_ids", tuple(str(item) for item in self.applied_lesson_ids))
 
     def as_dict(self) -> dict[str, Any]:
         return {

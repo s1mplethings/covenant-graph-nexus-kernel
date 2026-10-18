@@ -12,16 +12,18 @@ from cgkn.application.software_project.contracts import WorkerScope
 from cgkn.application.software_project.scope import ScopedFileTransaction
 from cgkn.executors.llm import WORKER_SCHEMA, validate_worker_proposal
 from cgkn.providers import CompletionClient, ModelRoleConfig, parse_json_object
+from cgkn.application.learning import GenerationRequest, ProductionGenerationClient, default_production_client
 
 from .analyzer import compile_change_contract, snapshot_repository
 from .contracts import ChangeRequest, RepositoryCodegenReceipt
 
 
 class RepositoryCodegenService:
-    def __init__(self, client: CompletionClient, config: ModelRoleConfig, *, provider_id: str, mode: str) -> None:
+    def __init__(self, client: CompletionClient | ProductionGenerationClient, config: ModelRoleConfig, *, provider_id: str, mode: str) -> None:
         if config.role != "worker" or config.model != provider_id or mode not in {"SELECTED", "SINGLE_PROVIDER_MODE"}:
             raise ValueError("repository codegen requires one frozen worker route")
-        self.client, self.config, self.provider_id, self.mode = client, config, provider_id, mode
+        self.generation = client if isinstance(client, ProductionGenerationClient) else default_production_client(client)
+        self.client, self.config, self.provider_id, self.mode = self.generation.client, config, provider_id, mode
 
     def run(self, root: pathlib.Path | str, request: ChangeRequest) -> RepositoryCodegenReceipt:
         started = time.monotonic(); base = pathlib.Path(root).resolve(); before = snapshot_repository(base, request.change_id); contract = compile_change_contract(before, request)
@@ -31,7 +33,16 @@ class RepositoryCodegenService:
         failure = ""
         for attempt in range(2):
             prompt = self._prompt(base, request, contract, failure)
-            completion = self.client.complete(system="You are a bounded existing-repository patch worker. Use exact patch_file actions for existing files. Preserve declared interfaces and never edit tests, configuration, governance, hidden acceptance, or files outside target paths. Return JSON only.", user=json.dumps(prompt, ensure_ascii=False, sort_keys=True), schema_name="repository_patch", schema=WORKER_SCHEMA, config=self.config)
+            generated = self.generation.generate(GenerationRequest(
+                task_class="repository.codegen", operation="REPAIR" if failure else "GENERATION",
+                project_id=request.change_id, capability_ref="repository.patch@1", provider_id=self.provider_id,
+                system="You are a bounded existing-repository patch worker. Use exact patch_file actions for existing files. Preserve declared interfaces and never edit tests, configuration, governance, hidden acceptance, or files outside target paths. Return JSON only.",
+                goal=prompt, contract={"allowed_paths": contract.allowed_paths, "required_interfaces": dict(contract.required_interfaces)},
+                state=prompt["current_sources"], failure_evidence={"failure": failure} if failure else {},
+                schema_name="repository_patch", schema=WORKER_SCHEMA, model_config=self.config,
+                allowed_actions=("patch_file", "write_file"), forbidden_actions=("tests", "configuration", "governance", "hidden_acceptance"),
+            ))
+            completion = generated.completion
             calls += 1; usage = dict(completion.usage)
             proposal = validate_worker_proposal(parse_json_object(completion.text), request.change_id)
             if proposal["needs_escalation"]: failure = str(proposal["escalation_reason"]); break

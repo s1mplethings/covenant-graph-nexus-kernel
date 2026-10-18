@@ -1,0 +1,23 @@
+{
+  "kind": "LessonCatalog",
+  "schema_version": "1.0",
+  "iteration": "ITER-LESSON-AWARE-END-TO-END-PRODUCTION-025",
+  "status": "PASS",
+  "catalog_hash": "sha256:51f640e5352175d4123c87caf61b42a7d824815829dea6d9ac01f06be8ee8470",
+  "lessons": [
+    {"lesson_id":"lesson.be6c2bbccc9aafd6f5993723","trigger":"CLI_INTERFACE_DRIFT","scope":"project.codegen+GENERATION","evidence_refs":["governance/baselines/receipts/BASELINE-INTERFACE-001.json","governance/interface_contract_status.json"],"status":"VALIDATED","revision":2,"support_count":2,"contradiction_count":0,"injected_in_final_run":true},
+    {"lesson_id":"lesson.8b9ec450388e3194ce6c7c9d","trigger":"DEPENDENCY_DOMAIN_CONFUSION","scope":"project.codegen+GENERATION","evidence_refs":["governance/baselines/receipts/BASELINE-OBLIGATION-004.json","governance/obligation_compiler_status.json"],"status":"VALIDATED","revision":2,"support_count":2,"contradiction_count":0,"injected_in_final_run":true},
+    {"lesson_id":"lesson.4e478d6f77bd4a17e0ba1554","trigger":"RAW_NETWORK_IN_COMPOSITE","scope":"capability.build+GENERATION","evidence_refs":["governance/capability_dependency_graph.json","governance/baselines/receipts/BASELINE-SELF-GROWN-LEAVES-001.json"],"status":"VALIDATED","revision":1,"support_count":1,"contradiction_count":0,"injected_in_final_run":true},
+    {"lesson_id":"lesson.acfb007cf8352b8166245dc6","trigger":"CAPABILITY_DEPENDENCY_MISMATCH","scope":"capability.build+GENERATION","evidence_refs":["governance/candidate_lifecycle_status.json","governance/capability_dependency_graph.json"],"status":"VALIDATED","revision":1,"support_count":1,"contradiction_count":0,"injected_in_final_run":true},
+    {"lesson_id":"lesson.5caa279e149e1a9ed9280e49","trigger":"FRAMEWORK_VALIDATOR_DEFECT","scope":"GLOBAL","evidence_refs":["governance/candidate_lifecycle_status.json","governance/validation_action_policy_status.json"],"status":"PROMOTED_TO_POLICY","revision":1,"support_count":1,"contradiction_count":0,"injected_in_final_run":false},
+    {"lesson_id":"lesson.8094091fe7a2a123daf4de38","trigger":"EXTERNAL_DEPENDENCY_FAILURE","scope":"GLOBAL","evidence_refs":["governance/external_dependency_health_status.json","governance/validation_action_policy_status.json"],"status":"PROMOTED_TO_POLICY","revision":1,"support_count":1,"contradiction_count":0,"injected_in_final_run":false},
+    {"lesson_id":"lesson.ea9c8ec5e0d37165a32a0510","trigger":"CANDIDATE_REPAIR","scope":"GLOBAL","evidence_refs":["governance/candidate_lifecycle_status.json","governance/candidate_revision_index.json"],"status":"PROMOTED_TO_POLICY","revision":1,"support_count":1,"contradiction_count":0,"injected_in_final_run":false},
+    {"lesson_id":"lesson.1b78e27fb438770ee85a4756","trigger":"CATALOG_FAILURE","scope":"PROVIDER:grok","evidence_refs":["governance/grok_data_plane_status.json","governance/grok_timeout_authority_status.json"],"status":"PROMOTED_TO_POLICY","revision":1,"support_count":1,"contradiction_count":0,"injected_in_final_run":false}
+  ],
+  "validated_count": 4,
+  "promoted_to_policy_count": 4,
+  "review_count": 0,
+  "retired_count": 0,
+  "new_candidate_count": 0,
+  "contains_credentials": false
+}
