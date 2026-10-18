@@ -303,11 +303,12 @@ class MultiProjectCampaignService:
 
     def _seed_counters(self,receipts:Mapping[str,Mapping[str,Any]])->None:
         if self.provider_calls or self.input_tokens or self.output_tokens or self.cost_ticks: return
-        state=_read_json(self.root/"campaign_state.json")
-        self.provider_calls=int(state.get("provider_calls",sum(int(row.get("provider_calls",0)) for row in receipts.values())))+sum(self.interrupted_calls.values())
-        self.input_tokens=int(state.get("input_tokens",sum(int(row.get("input_tokens",0)) for row in receipts.values())))
-        self.output_tokens=int(state.get("output_tokens",sum(int(row.get("output_tokens",0)) for row in receipts.values())))
-        self.cost_ticks=int(state.get("cost_in_usd_ticks",sum(int(row.get("cost_in_usd_ticks",0)) for row in receipts.values())))
+        all_receipts=[_read_json(path) for path in self.root.glob("projects/**/project_receipt.json")]
+        pending=sum(calls for project,calls in self.interrupted_calls.items() if project not in receipts)
+        self.provider_calls=sum(int(row.get("provider_calls",0)) for row in all_receipts)+pending
+        self.input_tokens=sum(int(row.get("input_tokens",0)) for row in all_receipts)
+        self.output_tokens=sum(int(row.get("output_tokens",0)) for row in all_receipts)
+        self.cost_ticks=sum(int(row.get("cost_in_usd_ticks",0)) for row in all_receipts)
         admissions=sum(1 for path in (self.root/"capability_registry").glob("*/admission.json"))
         self.growth_count=max(admissions,sum(len(row.get("grown_capabilities",())) for row in receipts.values()))
         self.reuse_count=sum(len(row.get("reused_capabilities",())) for row in receipts.values())

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -31,6 +32,7 @@ def run(output_root: pathlib.Path, *, rerun_project_ids: tuple[str, ...] = ()) -
     if selection.get("routing_provider") != "grok" or selection.get("repository_codegen_mode") != "SINGLE_PROVIDER_MODE" or selection.get("fallback") != "deny":
         raise RuntimeError("frozen Grok SINGLE_PROVIDER_MODE route is unavailable")
     output_root.mkdir(parents=True, exist_ok=True)
+    _write_connection_route(output_root)
     lessons = output_root / "lessons"
     import_lessons(ROOT, lessons, output_root / "lesson_import_receipt.json")
     store = FileLessonStore(lessons)
@@ -71,6 +73,25 @@ def _write_framework_fix(root: pathlib.Path, commit: str) -> None:
         "source_commit":commit,"status":"VALIDATED_FOR_RERUN","contains_credentials":False,
     }
     transport.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    proxy_fix = root / "framework_fixes" / "FRAMEWORK-FIX-GROK-PROXY-003.json"
+    value = {
+        "kind":"CampaignFrameworkFix","schema_version":"1.0","fix_id":"FRAMEWORK-FIX-GROK-PROXY-003",
+        "supporting_project_evidence":[f"artifacts/campaigns/{CAMPAIGN_DIR}/projects/text_stats_cli/project_receipt.json",f"artifacts/campaigns/{CAMPAIGN_DIR}/projects/json_flatten_cli/project_receipt.json",f"artifacts/campaigns/{CAMPAIGN_DIR}/projects/todo_json_cli/project_receipt.json"],
+        "root_cause":"Three projects independently reached PROVIDER_TRANSPORT_FAILURE over direct HTTPS while the operator-authorized local FlClash proxy was available but not bound to the campaign process.",
+        "failure_domain":"PROVIDER_TRANSPORT_FAILURE","failure_code":"DIRECT_ROUTE_REMOTE_CLOSE",
+        "affected_authority":"campaign process transport environment only","changed_paths":["scripts/run_multi_project_campaign.py"],
+        "regression_test":"connection_route.json loopback-only proxy evidence","affected_projects_rerun":[],"canary_result":"PENDING_CAMPAIGN_RESUME",
+        "source_commit":commit,"status":"VALIDATED_FOR_CANARY","contains_credentials":False,
+    }
+    proxy_fix.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _write_connection_route(root: pathlib.Path) -> None:
+    raw=str(os.environ.get("HTTPS_PROXY","") or os.environ.get("https_proxy","")).strip()
+    allowed=raw in {"http://127.0.0.1:7890","http://localhost:7890"}
+    if raw and not allowed: raise RuntimeError("campaign HTTPS proxy must be the operator-authorized loopback endpoint")
+    value={"kind":"CampaignConnectionRoute","schema_version":"1.0","provider":"grok","route":"LOOPBACK_PROXY" if allowed else "DIRECT","proxy_endpoint":"127.0.0.1:7890" if allowed else "","credentials_present":False,"contains_credentials":False}
+    (root/"connection_route.json").write_text(json.dumps(value,ensure_ascii=False,indent=2,sort_keys=True)+"\n",encoding="utf-8")
 
 
 def _git(*args: str) -> str:

@@ -10,6 +10,7 @@ from cgkn.execution import BlockExecutionRequest, BlockExecutionResult, BlockSta
 from cgkn.application.project_campaign.service import _CoreExecutor, _repair_evidence
 from cgkn.providers import ProviderConnectionError
 from scripts.import_historical_lessons import import_lessons
+from scripts.run_multi_project_campaign import _write_connection_route
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -131,6 +132,15 @@ def test_provider_transport_failure_preserves_failure_domain_and_bounds_repair(t
     assert result.error.details['failure_domain']=='PROVIDER_TRANSPORT_FAILURE'
     assert result.retryable is True
     assert transport.config.max_output_tokens==4000 and transport.config.reasoning_effort=='low'
+
+
+def test_campaign_proxy_evidence_accepts_only_authorized_loopback(monkeypatch,tmp_path):
+    monkeypatch.setenv('HTTPS_PROXY','http://127.0.0.1:7890'); _write_connection_route(tmp_path)
+    assert json.loads((tmp_path/'connection_route.json').read_text())['route']=='LOOPBACK_PROXY'
+    monkeypatch.setenv('HTTPS_PROXY','http://example.invalid:7890')
+    try: _write_connection_route(tmp_path)
+    except RuntimeError as exc: assert 'loopback' in str(exc)
+    else: raise AssertionError('non-loopback proxy was accepted')
 
 
 def test_fake_projects_grow_then_reuse_and_patch_existing_repo(tmp_path):
