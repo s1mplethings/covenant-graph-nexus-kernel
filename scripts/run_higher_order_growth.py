@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import pathlib
 import shutil
 import sys
@@ -167,7 +168,7 @@ def run(output_root: pathlib.Path, seed_store: pathlib.Path, external_status: st
         return result
     profile = json.loads((ROOT / "config/provider_connections/grok.json").read_text(encoding="utf-8"))
     client = ConnectorCompletionClient(ProviderConnectorRegistry((GrokConnector(profile),)), enforce_budget=True, budget_purpose="CAPABILITY_BUILD", run_id="higher-order-growth", case_id="research-capabilities")
-    builder = CapabilityBuilderService(client, ModelRoleConfig("worker","grok",120,3000,0.0,"medium"), provider_id="grok", mode="SINGLE_PROVIDER_MODE", store=store)
+    builder = CapabilityBuilderService(client, ModelRoleConfig("worker","grok",180,3000,0.0,"medium"), provider_id="grok", mode="SINGLE_PROVIDER_MODE", store=store)
     growth = SelfGrowthService(builder, store, provider_id="grok", mode="SINGLE_PROVIDER_MODE", history_path=output_root / "provider_capability_history.json", network_public=_FixtureNetwork())
     specs = (repo_brief_spec(), compare_spec())
     smoke_inputs = ({"owner":"octocat","repo":"Hello-World","question":"What does this repository expose?"},{"repositories":[{"owner":"octocat","repo":"Hello-World"},{"owner":"octocat","repo":"Spoon-Knife"}],"question":"Compare these repositories"})
@@ -195,6 +196,9 @@ def run(output_root: pathlib.Path, seed_store: pathlib.Path, external_status: st
         release = runtime.invoke("release.notes.from_diff@1", {"diff_text":"diff --git a/README.md b/README.md\n--- a/README.md\n+++ b/README.md\n"})
         composition = {"status":"PASS","tree":tree.as_dict(),"dag":dag.as_dict(),"artifacts":{"research":comparison,"release":release,"compose":{"research_summary":comparison["summary"],"release_summary":release["summary"]}},"growth_calls":0,"builder_calls":0,"admission_calls":0}
     total_calls = sum(int(row["provider_calls"]) for row in receipts)
+    ledger_path = pathlib.Path(os.environ.get("CGKN_PROVIDER_BUDGET_LEDGER", ""))
+    if ledger_path.is_file():
+        total_calls = int(json.loads(ledger_path.read_text(encoding="utf-8")).get("totals", {}).get("api_calls", total_calls))
     success = len(receipts) == 2 and all(row["build"] == row["local_execution"] == row["reuse"] == "PASS" and row["reuse_growth_calls"] == row["reuse_builder_calls"] == 0 for row in receipts) and composition["status"] == "PASS" and total_calls <= 4
     result = {
         "kind":"HigherOrderGrowthRun","schema_version":"1.0","status":"PASS" if success else "HIGHER_ORDER_GROWTH_PARTIAL",
