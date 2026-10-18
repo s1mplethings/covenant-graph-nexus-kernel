@@ -45,3 +45,10 @@ def test_learning_does_not_mutate_operation_policy():
 
 def test_shared_transport_is_only_provider_urlopen_caller():
     assert "request.urlopen" in source("cgkn/providers/supervision/transport.py")
+
+
+def test_legacy_adaptive_entry_delegates_without_gateway_or_fixed_90():
+    value = source("scripts/run_adaptive_project_validation.py")
+    assert "GatewayCompletionClient" not in value
+    assert "ModelRoleConfig" not in value
+    assert "supervised_main" in value
