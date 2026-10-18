@@ -1,14 +1,14 @@
 {
   "kind": "CapabilityDependencyGraph",
   "schema_version": "1.0",
-  "iteration": "ITER-EXTERNAL-HEALTH-HIGHER-ORDER-GROWTH-021",
+  "iteration": "ITER-GROK-TIMEOUT-HIGHER-ORDER-CLOSURE-022",
   "nodes": [
     {"ref": "web.fetch.public@1", "state": "ADMITTED"},
     {"ref": "github.repo.inspect.public@1", "state": "ADMITTED"},
     {"ref": "markdown.links.extract@1", "state": "ADMITTED"},
     {"ref": "release.notes.from_diff@1", "state": "ADMITTED"},
-    {"ref": "research.repo.brief@1", "state": "NOT_ADMITTED_PROVIDER_FAILURE"},
-    {"ref": "research.compare.repos@1", "state": "NOT_ATTEMPTED_STOP_CONDITION_C"}
+    {"ref": "research.repo.brief@1", "state": "NOT_ATTEMPTED_STRUCTURED_PROBE_BLOCKED"},
+    {"ref": "research.compare.repos@1", "state": "NOT_ATTEMPTED_STRUCTURED_PROBE_BLOCKED"}
   ],
   "edges": [
     {"from": "web.fetch.public@1", "to": "github.repo.inspect.public@1", "state": "ACTIVE"},

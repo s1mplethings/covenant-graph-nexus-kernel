@@ -1,14 +1,25 @@
 {
-  "kind": "SelfGrownCapabilityReceipt",
+  "kind": "SelfGrownCapabilityHistory",
   "schema_version": "1.0",
-  "iteration": "ITER-EXTERNAL-HEALTH-HIGHER-ORDER-GROWTH-021",
   "capability_ref": "research.compare.repos@1",
+  "history": [
+    {
+      "iteration": "ITER-EXTERNAL-HEALTH-HIGHER-ORDER-GROWTH-021",
+      "provider_calls": 0,
+      "admission": "NOT_ATTEMPTED",
+      "status": "NOT_ATTEMPTED_STOP_CONDITION_C",
+      "reason": "research.repo.brief@1 failed after its one bounded repair"
+    },
+    {
+      "iteration": "ITER-GROK-TIMEOUT-HIGHER-ORDER-CLOSURE-022",
+      "provider_calls": 0,
+      "admission": "NOT_ATTEMPTED",
+      "status": "NOT_ATTEMPTED_STRUCTURED_PROBE_BLOCKED",
+      "reason": "live structured probe failed before Repo Brief build"
+    }
+  ],
   "dependency": "research.repo.brief@1",
   "provider": "grok",
-  "provider_calls": 0,
   "manual_candidate_edits": 0,
-  "admission": "NOT_ATTEMPTED",
-  "status": "NOT_ATTEMPTED_STOP_CONDITION_C",
-  "reason": "research.repo.brief@1 failed after its one bounded repair",
   "contains_credentials": false
 }

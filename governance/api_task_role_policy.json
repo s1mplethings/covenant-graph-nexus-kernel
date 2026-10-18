@@ -9,6 +9,8 @@
     "admission",
     "registry.integrity",
     "dependency.resolve",
+    "timeout.resolve",
+    "timeout.classify",
     "evidence.write"
   ],
   "grok": [

@@ -1,0 +1,59 @@
+{
+  "kind": "GrokTimeoutAuthorityStatus",
+  "schema_version": "1.0",
+  "iteration": "ITER-GROK-TIMEOUT-HIGHER-ORDER-CLOSURE-022",
+  "source_commit": "b749eb7a2f1b22041b582d87187b611e553cba72",
+  "root_cause": {
+    "status": "CONFIRMED",
+    "requested_timeout_seconds": 180,
+    "legacy_profile_timeout_seconds": 120,
+    "previous_effective_timeout_seconds": 120,
+    "previous_transport_timeout_seconds": 120,
+    "cause": "GrokConnector._request_json ignored ModelRoleConfig.timeout_seconds and always passed the profile timeout to request.urlopen"
+  },
+  "authority": {
+    "resolver": "cgkn.providers.connectors.grok.resolve_effective_timeout",
+    "default_timeout_seconds": 120,
+    "max_timeout_seconds": 240,
+    "requested_completion_timeout_seconds": 180,
+    "resolved_completion_timeout_seconds": 180,
+    "catalog_timeout_seconds": 120,
+    "hard_max_timeout_seconds": 600,
+    "legacy_timeout_compatible": true,
+    "conflicting_legacy_and_canonical_fields": "CONFIG_CONFLICT"
+  },
+  "classification": {
+    "connect_or_header": "PROVIDER_CONNECT_OR_HEADER_TIMEOUT",
+    "response_read": "PROVIDER_RESPONSE_READ_TIMEOUT",
+    "unknown_phase": "PROVIDER_REQUEST_TIMEOUT",
+    "transport": "PROVIDER_TRANSPORT_FAILURE",
+    "empty_response": "PROVIDER_EMPTY_RESPONSE",
+    "schema": "PROVIDER_SCHEMA_FAILURE",
+    "truncated": "PROVIDER_TRUNCATED_RESPONSE"
+  },
+  "evidence_fields": ["requested_timeout_seconds", "effective_timeout_seconds", "provider_default_timeout_seconds", "provider_max_timeout_seconds", "elapsed_ms", "timeout_phase", "outcome_unknown"],
+  "deterministic_tests": {"passed": 38, "failed": 0},
+  "live_probe": {
+    "calls": 1,
+    "status": "FAIL",
+    "phase": "MODEL_CATALOG",
+    "requested_completion_timeout_seconds": 180,
+    "catalog_effective_timeout_seconds": 120,
+    "elapsed_ms": 5145,
+    "error_class": "PROVIDER_TRANSPORT_FAILURE",
+    "outcome_unknown": true,
+    "responses_completion_reached": false,
+    "final_classification": "GROK_TRANSPORT_BLOCKER"
+  },
+  "budget_ledger": {
+    "rows": 1,
+    "finalized_failed_rows": 1,
+    "double_finalize": false,
+    "reserved_input_tokens": 76,
+    "reserved_output_tokens": 768,
+    "actual_tokens": "UNAVAILABLE",
+    "estimated_cost_upper_bound": 0.00476
+  },
+  "full_regression": "NOT_RUN_BY_POLICY",
+  "contains_credentials": false
+}
