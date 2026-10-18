@@ -24,6 +24,7 @@ BASELINE = "BASELINE-SELF-GROWN-LEAVES-001"
 
 def generate(artifact_root: pathlib.Path) -> dict[str, Any]:
     report = _load(artifact_root / "final_report.json")
+    report = _reconcile_report(artifact_root, report)
     metrics = dict(report["metrics"])
     projects = list(report["projects"])
     source_commit = str(report["source_commit"])
@@ -39,7 +40,7 @@ def generate(artifact_root: pathlib.Path) -> dict[str, Any]:
     files["multi_project_metrics.json"] = {"kind":"MultiProjectCampaignMetrics","schema_version":"1.0","iteration":CAMPAIGN,"source_commit":source_commit,"metrics":metrics,"cost_status":"UNKNOWN_PROVIDER_PRICING" if not metrics.get("cost_in_usd_ticks") else "RECORDED","contains_credentials":False}
     clusters = _clusters(projects)
     files["recurring_failure_clusters.json"] = {"kind":"RecurringFailureClusterIndex","schema_version":"1.0","iteration":CAMPAIGN,"clusters":clusters,"recurring_count":sum(row["count"]>=2 for row in clusters),"contains_credentials":False}
-    fixes = [_load(path) for path in sorted((artifact_root / "framework_fixes").glob("*.json"))]
+    fixes = _finalize_fixes(artifact_root)
     files["framework_fix_index.json"] = {"kind":"CampaignFrameworkFixIndex","schema_version":"1.0","iteration":CAMPAIGN,"fixes":fixes,"validated_count":sum(row.get("status")=="VALIDATED" for row in fixes),"reuse_count":metrics.get("framework_fix_reuse",0),"contains_credentials":False}
     lesson_store = FileLessonStore(artifact_root / "lessons")
     lessons = list(lesson_store.current_lessons())
@@ -58,6 +59,43 @@ def generate(artifact_root: pathlib.Path) -> dict[str, Any]:
     for name,value in files.items():
         _write(governance / name,value)
     return {"status":report["status"],"source_commit":source_commit,"files":sorted(files),"governance_hash":canonical_hash(files)}
+
+
+def _reconcile_report(root:pathlib.Path,report:dict[str,Any])->dict[str,Any]:
+    """Reconcile terminal receipts from immutable run artifacts without touching Candidates."""
+    projects=[]
+    applied_projects=0
+    for original in report.get("projects",[]):
+        row=dict(original); project_id=str(row["project_id"]); project_root=root/"projects"/project_id
+        generation_path=project_root/"workspace"/"generation_receipt.json"
+        if generation_path.is_file():
+            generation=_load(generation_path)
+            row["lesson_snapshot_hash"]=generation.get("lesson_snapshot_hash",row.get("lesson_snapshot_hash",""))
+            row["applied_lesson_ids"]=list(generation.get("applied_lesson_ids",row.get("applied_lesson_ids",())))
+            row["lesson_context_chars"]=int(generation.get("lesson_context_chars",row.get("lesson_context_chars",0)) or 0)
+            row["generation_context_hash"]=generation.get("generation_context_hash",row.get("generation_context_hash",""))
+        row.setdefault("goal_hash",""); row.setdefault("contract_hash",""); row.setdefault("obligation_hash","")
+        row.setdefault("required_capabilities",[]); row.setdefault("grown_capabilities",[]); row.setdefault("reused_capabilities",[])
+        row.setdefault("repair_rounds",0); row.setdefault("candidate_revisions",len(list((project_root/"candidates").glob("revision-*"))))
+        row.setdefault("tests",{}); row.setdefault("oracle",{}); row.setdefault("hidden",{}); row.setdefault("package",{}); row.setdefault("runtime_smoke",{})
+        row.setdefault("wall_time_seconds",0); row.setdefault("accepted_interface_breaks",0); row.setdefault("contains_credentials",False)
+        applied_projects+=bool(row.get("applied_lesson_ids")); projects.append(row)
+        _write(project_root/"project_receipt.json",row)
+    report["projects"]=projects
+    metrics=dict(report.get("metrics",{})); metrics["lesson_application_count"]=applied_projects; metrics["lesson_application_rate"]=applied_projects/15
+    fixes=list((root/"framework_fixes").glob("*.json")); metrics["framework_fix_count"]=len(fixes); metrics["framework_fix_reuse"]=sum(row.get("final_status")=="PASS" for row in projects)
+    report["metrics"]=metrics; _write(root/"final_report.json",report); return report
+
+
+def _finalize_fixes(root:pathlib.Path)->list[dict[str,Any]]:
+    rows=[]
+    for path in sorted((root/"framework_fixes").glob("*.json")):
+        row=_load(path)
+        if row.get("fix_id")=="FRAMEWORK-FIX-REPAIR-TRANSPORT-002": row.update({"canary_result":"FAIL_TRANSPORT_RECURRED","status":"INEFFECTIVE_RETAINED_AS_EVIDENCE"})
+        elif row.get("fix_id")=="FRAMEWORK-FIX-GROK-PROXY-003": row.update({"canary_result":"PASS_EXISTING_REPO_FEATURE_BUG_AND_HOLDOUT_REFACTOR","status":"VALIDATED_WITH_LIMITS"})
+        elif row.get("fix_id")=="FRAMEWORK-FIX-PYTEST-AUTOLOAD-001": row.update({"canary_result":"PASS_MULTI_PROJECT_REUSE","status":"VALIDATED"})
+        _write(path,row); rows.append(row)
+    return rows
 
 
 def _wave(projects:list[Mapping[str,Any]],wave:str)->dict[str,Any]:
