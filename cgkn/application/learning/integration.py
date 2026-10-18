@@ -49,9 +49,10 @@ class ProductionGenerationClient:
         if self.max_provider_calls is not None and self.provider_call_count >= self.max_provider_calls:
             raise RuntimeError(f"PROVIDER_CALL_LIMIT_EXCEEDED:{self.max_provider_calls}")
         self.provider_call_count += 1
+        model_config = replace(request.model_config, task_class=request.task_class, operation=request.operation)
         completion = self.client.complete(
             system=request.system, user=prompt, schema_name=request.schema_name,
-            schema=request.schema, config=request.model_config,
+            schema=request.schema, config=model_config,
         )
         usage = dict(completion.usage) | {
             "lesson_snapshot_hash": context.lesson_context.lesson_snapshot_hash,

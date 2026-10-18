@@ -7,6 +7,7 @@
   "preferred_models": ["deepseek-flash", "deepseek-v4-pro"],
   "structured_output_mode": "PROMPT_JSON_LOCAL_VALIDATE",
   "format_repairs_max": 1,
-  "timeout": 120,
+  "default_timeout_seconds": 120,
+  "max_timeout_seconds": 360,
   "max_output_tokens": 6000
 }

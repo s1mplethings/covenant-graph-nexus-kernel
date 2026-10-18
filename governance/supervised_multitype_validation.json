@@ -1,0 +1,22 @@
+{
+  "kind": "SupervisedMultitypeValidation",
+  "schema_version": "1.0",
+  "status": "LEVEL_3_MULTI_TYPE_PROJECT_GENERATION_NEEDS_REWORK",
+  "canary_gate": "FAIL_1_OF_4",
+  "project_phase": "NOT_RUN_BY_CANARY_GATE",
+  "projects": [
+    {"project_id":"line_select_cli","status":"NOT_RUN_BY_CANARY_GATE"},
+    {"project_id":"bookmark_store_cli","status":"NOT_RUN_BY_CANARY_GATE"},
+    {"project_id":"mapping_overlay_library","status":"NOT_RUN_BY_CANARY_GATE"},
+    {"project_id":"existing_repo_json_feature","status":"NOT_RUN_BY_CANARY_GATE"}
+  ],
+  "deterministic_cli_provider_calls": 0,
+  "manual_candidate_edits": 0,
+  "whole_project_replans": 0,
+  "silent_fallback": 0,
+  "unsafe_admissions": 0,
+  "accepted_interface_breaks": 0,
+  "hidden_leakage": 0,
+  "full_regression": "NOT_RUN_BY_POLICY",
+  "contains_credentials": false
+}

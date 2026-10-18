@@ -1,5 +1,12 @@
 {
-  "kind":"AdaptiveProviderSelectionStatus","schema_version":"1.0","status":"PASS_MICRO_NEEDS_REWORK_PRODUCTION","eligible_provider_count":2,
-  "routes":{"project.domain.simple":{"selected":"qwen","eligible":["grok","qwen"],"reason":"equal hard-gate reliability; cost unknown; lower tokens then latency"},"project.domain.persistent":{"selected":"grok","eligible":["grok"],"reason":"only hard-gate pass"},"project.domain.library":{"selected":"qwen","eligible":["qwen"],"reason":"provisional derivation from simple and patch"},"repository.patch":{"selected":"qwen","eligible":["qwen"],"reason":"only hard-gate pass"},"project.repair":{"selected":"qwen","eligible":["qwen"],"reason":"derived from repository.patch"},"capability.build":{"selected":"qwen","confidence":"LOW","reason":"S3 not required; provisional reuse only"}},
-  "global_best_provider":null,"silent_fallback":0,"contains_credentials":false
+  "kind":"AdaptiveProviderSelectionStatus","schema_version":"1.1","status":"PASS_MICRO_NEEDS_REWORK_PRODUCTION","eligible_provider_count":2,
+  "routes":{
+    "project.domain.simple":{"micro_selected":"qwen","production_status":"PRODUCTION_DEGRADED","future_route":"REQUALIFICATION_REQUIRED"},
+    "project.domain.persistent":{"micro_selected":"grok","production_status":"PRODUCTION_DEGRADED","future_route":"CANDIDATE_REPAIR_REQUIRED"},
+    "project.domain.library":{"micro_selected":"qwen","production_status":"PRODUCTION_DEGRADED","future_route":"REQUALIFICATION_REQUIRED"},
+    "repository.patch":{"selected":"qwen","production_status":"PRODUCTION_QUALIFIED"},
+    "project.repair":{"selected":"qwen","confidence":"LOW","production_status":"NOT_EVALUATED"},
+    "capability.build":{"selected":"qwen","confidence":"LOW","production_status":"NOT_EVALUATED"}
+  },
+  "supervisor_selects_provider":false,"global_best_provider":null,"silent_fallback":0,"contains_credentials":false
 }

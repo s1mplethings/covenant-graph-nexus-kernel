@@ -41,7 +41,7 @@ class RepositoryCodegenService:
                 self.call_authorizer("REPAIR" if failure else "GENERATION")
             prompt = self._prompt(base, request, contract, failure)
             generated = self.generation.generate(GenerationRequest(
-                task_class="repository.codegen", operation="REPAIR" if failure else "GENERATION",
+                task_class="repository.patch", operation="REPAIR" if failure else "GENERATION",
                 project_id=request.change_id, capability_ref="repository.patch@1", provider_id=self.provider_id,
                 system="You are a bounded existing-repository patch worker. Use exact patch_file actions for existing files. Preserve declared interfaces and never edit tests, configuration, governance, hidden acceptance, or files outside target paths. Return JSON only.",
                 goal=prompt, contract={"allowed_paths": contract.allowed_paths, "required_interfaces": dict(contract.required_interfaces)},

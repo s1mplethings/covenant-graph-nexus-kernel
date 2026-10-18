@@ -8,7 +8,7 @@
   "structured_output_mode": "NATIVE_JSON_SCHEMA",
   "reasoning_effort": "medium",
   "default_timeout_seconds": 120,
-  "max_timeout_seconds": 240,
+  "max_timeout_seconds": 360,
   "max_output_tokens": 7000,
   "prompt_cache_policy": "disabled_for_benchmark"
 }

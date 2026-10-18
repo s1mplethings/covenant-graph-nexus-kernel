@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import json
 import os
-import socket
 import time
+from dataclasses import replace
 from typing import Any, Mapping, Sequence
 from urllib import error, request
 from urllib.parse import urlparse
@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 from ..client import ModelRoleConfig, ProviderCompletion
 from ..connection_contracts import ModelBindingSource, ProviderConnectionError, ProviderConnectionHealth, ProviderConnectionSnapshot, ProviderModelBinding, StructuredOutputMode, canonical_hash
 from ..structured_output import parse_and_validate, resolve_credential, sanitize_vendor_text
+from ..supervision import ProviderOperationPolicyRegistry, ProviderRequestComplexity, SupervisedHttpTransport, SupervisionMode
 
 
 MAX_PROVIDER_TIMEOUT_SECONDS = 600
@@ -27,7 +28,8 @@ def resolve_effective_timeout(requested_timeout_seconds: Any, default_timeout_se
 class GrokConnector:
     provider_id = "grok"
 
-    def __init__(self, profile: Mapping[str, Any], *, environment: Mapping[str, str] | None = None) -> None:
+    def __init__(self, profile: Mapping[str, Any], *, environment: Mapping[str, str] | None = None,
+                 transport: SupervisedHttpTransport | None = None, policies: ProviderOperationPolicyRegistry | None = None) -> None:
         self.profile = dict(profile); self.environment = dict(os.environ if environment is None else environment)
         self.credential, self.credential_present = resolve_credential(self.environment, "CGKN_GROK_API_KEY", "XAI_API_KEY")
         self.base_url = str(self.environment.get("CGKN_GROK_BASE_URL") or self.profile.get("base_url") or "").rstrip("/")
@@ -52,6 +54,7 @@ class GrokConnector:
         self._auth_failures = 0; self._models_cache: tuple[str, ...] | None = None
         self.catalog_status = "NOT_EVALUATED"; self.data_plane_status = "NOT_EVALUATED"
         self.last_model_binding: ProviderModelBinding | None = None
+        self.transport = transport or SupervisedHttpTransport(); self.policies = policies or ProviderOperationPolicyRegistry()
         self._validate_static()
 
     def _validate_static(self) -> None:
@@ -72,10 +75,6 @@ class GrokConnector:
         if http_status == 404: return "GROK_MODEL_NOT_VISIBLE" if "model" in text else "GROK_ENDPOINT_ERROR"
         return "GROK_ENDPOINT_ERROR" if http_status else "TRANSPORT_FAILURE"
 
-    @staticmethod
-    def _is_timeout(exc: BaseException) -> bool:
-        return isinstance(exc, (TimeoutError, socket.timeout)) or isinstance(getattr(exc, "reason", None), (TimeoutError, socket.timeout))
-
     def _request_json(
         self,
         method: str,
@@ -88,14 +87,14 @@ class GrokConnector:
         endpoint_class: str,
         requested_model: str = "",
         bound_model: str = "",
+        config: ModelRoleConfig | None = None,
     ) -> dict[str, Any]:
         if not self.credential: raise ProviderConnectionError("GROK_MISSING_AUTH", "Grok inference credential is not configured")
         if self._auth_failures >= 2: raise ProviderConnectionError("GROK_CONNECTION_BLOCKED_CREDENTIAL", "Grok auth probe limit reached")
-        effective_timeout = int(timeout_seconds or self.default_timeout_seconds)
         started = time.monotonic()
         evidence = {
             "requested_timeout_seconds": requested_timeout_seconds,
-            "effective_timeout_seconds": effective_timeout,
+            "effective_timeout_seconds": int(timeout_seconds or self.default_timeout_seconds),
             "provider_default_timeout_seconds": self.default_timeout_seconds,
             "provider_max_timeout_seconds": self.max_timeout_seconds,
             "operation": operation,
@@ -104,32 +103,25 @@ class GrokConnector:
             "bound_model": bound_model,
         }
         encoded = None if payload is None else json.dumps(dict(payload), ensure_ascii=False).encode("utf-8")
-        req = request.Request(url, data=encoded, headers={"Authorization": f"Bearer {self.credential}", "Content-Type": "application/json", "Accept": "application/json"}, method=method)
+        task_class = config.task_class if config else "connection.probe"
+        operation_class = config.operation if config else operation
+        policy = self.policies.get(task_class, operation_class)
+        if config is not None: policy = replace(policy, supervision_mode=SupervisionMode.DEADLINE_ONLY)
+        complexity = ProviderRequestComplexity(0, len(encoded or b""), 0, 0, 0, 0,
+                                               config.max_output_tokens if config else 128,
+                                               task_class, self.provider_id, bound_model or requested_model)
         try:
-            try:
-                response_context = request.urlopen(req, timeout=effective_timeout)
-            except error.HTTPError:
-                raise
-            except (TimeoutError, error.URLError, OSError) as exc:
-                elapsed_ms = int((time.monotonic() - started) * 1000)
-                if self._is_timeout(exc):
-                    raise ProviderConnectionError("PROVIDER_CONNECT_OR_HEADER_TIMEOUT", "Grok request timed out before response headers", outcome_unknown=True, timeout_phase="CONNECT_OR_HEADER_TIMEOUT", evidence={**evidence, "elapsed_ms": elapsed_ms}) from None
-                raise ProviderConnectionError("PROVIDER_TRANSPORT_FAILURE", sanitize_vendor_text(getattr(exc, "reason", exc), (self.credential,)), outcome_unknown=True, evidence={**evidence, "elapsed_ms": elapsed_ms}) from None
-            with response_context as response:
-                try:
-                    raw = response.read(2_097_153)
-                except (TimeoutError, error.URLError, OSError) as exc:
-                    elapsed_ms = int((time.monotonic() - started) * 1000)
-                    if self._is_timeout(exc):
-                        raise ProviderConnectionError("PROVIDER_RESPONSE_READ_TIMEOUT", "Grok response body timed out", outcome_unknown=True, timeout_phase="RESPONSE_READ_TIMEOUT", evidence={**evidence, "elapsed_ms": elapsed_ms}) from None
-                    raise ProviderConnectionError("PROVIDER_TRANSPORT_FAILURE", sanitize_vendor_text(getattr(exc, "reason", exc), (self.credential,)), outcome_unknown=True, evidence={**evidence, "elapsed_ms": elapsed_ms}) from None
-            if len(raw) > 2_097_152: raise ProviderConnectionError("PROVIDER_TRUNCATED_RESPONSE", "Grok response exceeded the bounded size", outcome_unknown=True, evidence={**evidence, "elapsed_ms": int((time.monotonic()-started)*1000)})
+            response = self.transport.send(method=method, url=url,
+                headers={"Authorization": f"Bearer {self.credential}", "Content-Type": "application/json", "Accept": "application/json"},
+                body=encoded, provider_id=self.provider_id, model=bound_model or requested_model or self.provider_id,
+                policy=policy, complexity=complexity)
+            raw = response.body
             try:
                 value = json.loads(raw.decode("utf-8"))
             except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                 raise ProviderConnectionError("PROVIDER_SCHEMA_FAILURE", "Grok response was not valid JSON", outcome_unknown=True, evidence={**evidence, "elapsed_ms": int((time.monotonic()-started)*1000)}) from exc
             if not isinstance(value, dict): raise ProviderConnectionError("PROVIDER_SCHEMA_FAILURE", "Grok response root is not an object", outcome_unknown=True, evidence={**evidence, "elapsed_ms": int((time.monotonic()-started)*1000)})
-            self.last_request_evidence = {**evidence, "elapsed_ms": int((time.monotonic() - started) * 1000), "timeout_phase": "NONE", "outcome_unknown": False}
+            self.last_request_evidence = {**evidence, **self.transport.usage(response.receipt), "elapsed_ms": int((time.monotonic() - started) * 1000), "timeout_phase": "NONE", "outcome_unknown": False}
             return value
         except error.HTTPError as exc:
             try: value = json.loads(exc.read(65_536).decode("utf-8"))
@@ -140,8 +132,11 @@ class GrokConnector:
             category = self.classify_error(http_status=int(exc.code), vendor_code=code, message=message)
             if int(exc.code) == 401: self._auth_failures += 1
             raise ProviderConnectionError(category, message, http_status=int(exc.code), outcome_unknown=True, evidence={**evidence, "elapsed_ms": int((time.monotonic()-started)*1000)}) from None
-        except ProviderConnectionError:
-            raise
+        except ProviderConnectionError as exc:
+            merged = {**evidence, **dict(exc.evidence), "elapsed_ms": int((time.monotonic()-started)*1000)}
+            raise ProviderConnectionError(exc.error_class, str(exc).split(": ", 1)[-1], http_status=exc.http_status,
+                                          outcome_unknown=exc.outcome_unknown, timeout_phase=exc.timeout_phase,
+                                          evidence=merged) from None
 
     def list_models(self) -> Sequence[str]:
         if self._models_cache is not None: return self._models_cache
@@ -198,6 +193,7 @@ class GrokConnector:
                 timeout_seconds=effective_timeout, requested_timeout_seconds=config.timeout_seconds,
                 operation="STRUCTURED_COMPLETION", endpoint_class="DATA_PLANE",
                 requested_model=binding.requested_model, bound_model=binding.bound_model,
+                config=config,
             )
         except ProviderConnectionError:
             self.data_plane_status = "BLOCKED"

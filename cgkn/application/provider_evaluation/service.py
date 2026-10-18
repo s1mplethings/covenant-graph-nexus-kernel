@@ -88,6 +88,8 @@ class ProviderEvaluationService:
             max_output_tokens=case.budget.max_output_tokens,
             temperature=0.0,
             reasoning_effort="none",
+            task_class="benchmark.micro",
+            operation="BENCHMARK",
         )
         client: CompletionClient = self.client
         if isinstance(client, GatewayCompletionClient):

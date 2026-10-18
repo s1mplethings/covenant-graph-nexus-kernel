@@ -1,0 +1,13 @@
+{
+  "kind": "ProductionProviderQualification",
+  "schema_version": "1.0",
+  "status": "NEEDS_REWORK",
+  "profiles": [
+    {"provider_id":"qwen","actual_model":"qwen3.8-max","task_class":"project.domain.simple","micro_status":"MICRO_QUALIFIED","production_status":"PRODUCTION_DEGRADED","canary_samples":2,"candidate_materialization_rate":0.0,"timeout_rate":1.0},
+    {"provider_id":"grok","actual_model":"grok-4.7","task_class":"project.domain.persistent","micro_status":"MICRO_QUALIFIED","production_status":"PRODUCTION_DEGRADED","canary_samples":1,"candidate_materialization_rate":1.0,"production_success_rate":0.0},
+    {"provider_id":"qwen","actual_model":"qwen3.8-max","task_class":"project.domain.library","micro_status":"MICRO_QUALIFIED_PROVISIONAL","production_status":"PRODUCTION_DEGRADED","canary_samples":2,"candidate_materialization_rate":0.0,"timeout_rate":0.5,"cancelled_by_fix_cycle":1},
+    {"provider_id":"qwen","actual_model":"qwen3.8-max","task_class":"repository.patch","micro_status":"MICRO_QUALIFIED","production_status":"PRODUCTION_QUALIFIED","canary_samples":1,"candidate_materialization_rate":1.0,"production_success_rate":1.0,"latency_seconds":146.391}
+  ],
+  "production_evidence_precedes_micro_for_future_selection": true,
+  "contains_credentials": false
+}

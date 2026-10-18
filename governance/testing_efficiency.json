@@ -1,3 +1,10 @@
 {
-  "kind":"TestingEfficiency","schema_version":"1.0","micro_and_targeted":{"collected":129,"passed":128,"skipped":1,"failed":0},"product_direction_gate":"PASS","full":{"kernel":"NOT_RUN_BY_POLICY","application":"NOT_RUN_BY_POLICY","active_repository":"NOT_RUN_BY_POLICY"},"provider_calls":{"total":16,"limit":20,"evaluation":10,"old_replay":0,"new_projects":6},"provider_usage":{"qwen":{"calls":7,"known_tokens":3371,"cost":"UNKNOWN","production_timeouts":3},"deepseek":{"calls":2,"known_tokens":127,"cost":"UNKNOWN","failures":1},"grok":{"calls":7,"known_tokens":12898,"cost":"UNKNOWN","production_timeouts":3}},"contains_credentials":false
+  "kind":"TestingEfficiency","schema_version":"1.1",
+  "micro_supervision":{"collected":38,"passed":38,"failed":0},
+  "small_regression":{"collected":196,"passed":195,"skipped":1,"failed":0,"note":"count includes 38 micro/architecture tests"},
+  "product_direction_gate":"PENDING_FINAL_RUN",
+  "full":{"kernel":"NOT_RUN_BY_POLICY","application":"NOT_RUN_BY_POLICY","active_repository":"NOT_RUN_BY_POLICY"},
+  "provider_calls":{"actual_total":6,"iteration_limit":14,"canary_limit":6,"canary_primary_or_fix":6,"project":0,"project_not_run_reason":"CANARY_GATE_FAIL"},
+  "provider_usage":{"qwen":{"calls":5,"successful_candidates":1,"recorded_timeouts":3,"operator_cancelled_fix_attempts":1,"known_tokens":6300},"grok":{"calls":1,"successful_candidates":1,"functional_pass":0,"known_tokens":11699},"deepseek":{"calls":0}},
+  "manual_candidate_edits":0,"contains_credentials":false
 }

@@ -15,6 +15,8 @@ class ModelRoleConfig:
     max_output_tokens: int = 2200
     temperature: float = 0.0
     reasoning_effort: str = "none"
+    task_class: str = "project.domain.simple"
+    operation: str = "STRUCTURED_COMPLETION"
 
     def __post_init__(self) -> None:
         if self.role not in {"agent", "worker"} or not self.model.strip():
@@ -25,6 +27,8 @@ class ModelRoleConfig:
             raise ValueError("model output limit must be between 1 and 131072 tokens")
         if not 0.0 <= float(self.temperature) <= 2.0:
             raise ValueError("model temperature must be between 0 and 2")
+        if not self.task_class.strip() or not self.operation.strip():
+            raise ValueError("provider task class and operation are required")
 
 
 @dataclass(frozen=True)

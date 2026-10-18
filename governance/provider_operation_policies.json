@@ -1,0 +1,17 @@
+{
+  "kind": "ProviderOperationPolicies",
+  "schema_version": "1.0",
+  "estimator": "deadline-estimator-v1",
+  "policies": [
+    {"task_class":"connection.probe","connect":15,"first_progress":45,"idle":20,"base":60,"min":45,"extension":0,"max_extensions":0,"hard_limit":90,"max_output_tokens":128},
+    {"task_class":"benchmark.micro","connect":15,"first_progress":75,"idle":25,"base":90,"min":75,"extension":15,"max_extensions":2,"hard_limit":120,"max_output_tokens":4096},
+    {"task_class":"project.domain.simple","connect":20,"first_progress":120,"idle":45,"base":140,"min":120,"extension":45,"max_extensions":3,"hard_limit":300,"max_output_tokens":7000},
+    {"task_class":"project.domain.persistent","connect":20,"first_progress":150,"idle":45,"base":180,"min":150,"extension":60,"max_extensions":3,"hard_limit":360,"max_output_tokens":7000},
+    {"task_class":"project.domain.library","connect":20,"first_progress":120,"idle":45,"base":150,"min":120,"extension":45,"max_extensions":3,"hard_limit":300,"max_output_tokens":7000},
+    {"task_class":"repository.patch","connect":20,"first_progress":90,"idle":35,"base":120,"min":90,"extension":40,"max_extensions":2,"hard_limit":240,"max_output_tokens":6000},
+    {"task_class":"project.repair","connect":20,"first_progress":90,"idle":35,"base":120,"min":90,"extension":40,"max_extensions":2,"hard_limit":240,"max_output_tokens":3000},
+    {"task_class":"capability.build","connect":20,"first_progress":120,"idle":45,"base":160,"min":120,"extension":50,"max_extensions":3,"hard_limit":330,"max_output_tokens":7000}
+  ],
+  "non_streaming_structured_completion_override": "DEADLINE_ONLY",
+  "contains_credentials": false
+}

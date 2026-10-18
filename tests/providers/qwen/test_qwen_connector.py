@@ -35,12 +35,14 @@ def test_qwen_rejects_region_endpoint_mismatch() -> None:
         QwenConnector(bad, environment={"CGKN_QWEN_API_KEY": "secret"})
 
 
+def test_qwen_rejects_conflicting_legacy_and_default_timeout() -> None:
+    with pytest.raises(ProviderConnectionError, match="CONFIG_CONFLICT"):
+        QwenConnector({**PROFILE, "default_timeout_seconds": 120}, environment={"CGKN_QWEN_API_KEY": "secret"})
+
+
 def test_qwen_native_schema_path_is_vendor_local(monkeypatch) -> None:
     calls = []
-    replies = iter([
-        {"data": [{"id": "qwen3.8-max"}]},
-        {"id": "q1", "model": "qwen3.8-max-build", "choices": [{"message": {"content": "{\"ok\":true}"}}], "usage": {"total_tokens": 4}},
-    ])
+    replies = iter([{"id": "q1", "model": "qwen3.8-max-build", "choices": [{"message": {"content": "{\"ok\":true}"}}], "usage": {"total_tokens": 4}}])
     def fake(req, timeout):
         calls.append((req.full_url, json.loads(req.data) if req.data else None, timeout)); return Response(next(replies))
     monkeypatch.setattr("cgkn.providers.connectors.qwen.request.urlopen", fake)
@@ -51,6 +53,7 @@ def test_qwen_native_schema_path_is_vendor_local(monkeypatch) -> None:
     payload = calls[-1][1]
     assert payload["response_format"]["json_schema"] == {"name": "probe", "strict": True, "schema": schema}
     assert "/chat/completions" in calls[-1][0]
+    assert len(calls) == 1 and not calls[0][0].endswith("/models")
     assert "secret" not in repr(connector.connection_snapshot().as_dict())
 
 

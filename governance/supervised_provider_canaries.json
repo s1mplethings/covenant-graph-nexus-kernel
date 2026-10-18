@@ -1,0 +1,19 @@
+{
+  "kind": "SupervisedProviderCanaries",
+  "schema_version": "1.0",
+  "status": "NEEDS_REWORK",
+  "passed": 1,
+  "total": 4,
+  "actual_provider_requests": 6,
+  "call_limit": 6,
+  "results": [
+    {"route":"project.domain.simple","provider":"qwen","attempts":2,"candidate":false,"status":"FAIL","termination":"PROVIDER_FIRST_PROGRESS_TIMEOUT","latest_elapsed_ms":206153},
+    {"route":"project.domain.persistent","provider":"grok","attempts":1,"candidate":true,"status":"FAIL","failure":"CANDIDATE_FUNCTIONAL_DEFECT","elapsed_ms":50411},
+    {"route":"project.domain.library","provider":"qwen","attempts":2,"candidate":false,"status":"FAIL","termination":"PROVIDER_FIRST_PROGRESS_TIMEOUT","latest_elapsed_ms":216084,"one_attempt_cancelled_during_generic_fix" : true},
+    {"route":"repository.patch","provider":"qwen","attempts":1,"candidate":true,"schema":"PASS","interface":"PASS","functional":"PASS","status":"PASS","elapsed_ms":147047}
+  ],
+  "simple_required": "FAIL",
+  "patch_required": "PASS",
+  "gate_pass": false,
+  "contains_credentials": false
+}

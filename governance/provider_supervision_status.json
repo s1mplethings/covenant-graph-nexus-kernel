@@ -1,0 +1,26 @@
+{
+  "kind": "ProviderSupervisionStatus",
+  "schema_version": "1.0",
+  "iteration": "ITER-SUPERVISED-PROVIDER-MULTITYPE-CLOSURE-029",
+  "status": "FUNCTIONAL_PASS",
+  "architecture": {
+    "supervisor": "cgkn.providers.supervision.ProviderExecutionSupervisor",
+    "transport": "cgkn.providers.supervision.SupervisedHttpTransport",
+    "selector_authority_unchanged": true,
+    "action_policy_authority_unchanged": true,
+    "candidate_authority_unchanged": true,
+    "delivery_route_unchanged": true
+  },
+  "root_cause": {
+    "confirmed": true,
+    "previous_production_entry": "scripts/run_adaptive_project_validation.py -> GatewayCompletionClient -> cgkn-provider-api-lab gateway",
+    "fixed_90_second_source": "cgkn-provider-api-lab ProviderConfig.timeout_seconds default persisted as 90 and adapters.py request.urlopen timeout",
+    "cgkn_bundle_timeout": 180,
+    "resolution": "production qualification uses ConnectorCompletionClient and supervised native connectors; api-lab is credential/endpoint metadata only"
+  },
+  "cancellation": {"implementation": "synchronous bounded urllib socket lifecycle", "background_workers": 0, "orphan_workers": 0, "windows_test": "PASS"},
+  "progress_evidence_secret_safe": true,
+  "benchmark_production_boundary": "PASS",
+  "critical_stop": "NONE",
+  "contains_credentials": false
+}

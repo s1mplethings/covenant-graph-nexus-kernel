@@ -19,9 +19,14 @@ class Response:
     def read(self, _limit): return json.dumps(self.value).encode()
 
 
+def test_deepseek_rejects_conflicting_legacy_and_default_timeout() -> None:
+    with pytest.raises(ProviderConnectionError, match="CONFIG_CONFLICT"):
+        DeepSeekConnector({**PROFILE, "default_timeout_seconds": 120}, environment={"DEEPSEEK_API_KEY": "secret"})
+
+
 def test_deepseek_json_object_then_local_schema_validation(monkeypatch) -> None:
     calls = []
-    replies = iter([{"data": [{"id": "deepseek-flash"}]}, {"id": "d1", "model": "deepseek-flash", "choices": [{"message": {"content": "{\"ok\":true}"}}]}])
+    replies = iter([{"id": "d1", "model": "deepseek-flash", "choices": [{"message": {"content": "{\"ok\":true}"}}]}])
     def fake(req, timeout): calls.append(json.loads(req.data) if req.data else None); return Response(next(replies))
     monkeypatch.setattr("cgkn.providers.connectors.deepseek.request.urlopen", fake)
     connector = DeepSeekConnector(PROFILE, environment={"DEEPSEEK_API_KEY": "secret"})
@@ -33,7 +38,7 @@ def test_deepseek_json_object_then_local_schema_validation(monkeypatch) -> None:
 
 
 def test_deepseek_format_repair_cannot_change_existing_semantics(monkeypatch) -> None:
-    replies = iter([{"data": [{"id": "deepseek-flash"}]}, {"id": "d1", "choices": [{"message": {"content": "{\"answer\":1}"}}]}, {"id": "d2", "choices": [{"message": {"content": "{\"answer\":2,\"label\":\"ok\"}"}}]}])
+    replies = iter([{"id": "d1", "choices": [{"message": {"content": "{\"answer\":1}"}}]}, {"id": "d2", "choices": [{"message": {"content": "{\"answer\":2,\"label\":\"ok\"}"}}]}])
     monkeypatch.setattr("cgkn.providers.connectors.deepseek.request.urlopen", lambda req, timeout: Response(next(replies)))
     connector = DeepSeekConnector(PROFILE, environment={"DEEPSEEK_API_KEY": "secret"})
     schema = {"type": "object", "properties": {"answer": {"type": "integer"}, "label": {"type": "string"}}, "required": ["answer", "label"], "additionalProperties": False}

@@ -9,6 +9,7 @@
   "protocol": "OPENAI_CHAT_COMPLETIONS",
   "preferred_models": ["qwen3.8-max"],
   "structured_output_mode": "NATIVE_JSON_SCHEMA",
-  "timeout": 120,
+  "default_timeout_seconds": 120,
+  "max_timeout_seconds": 360,
   "max_output_tokens": 7000
 }

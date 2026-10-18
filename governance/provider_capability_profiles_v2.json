@@ -1,11 +1,14 @@
 {
-  "kind":"ProviderCapabilityProfilesV2","schema_version":"2.0","selection_policy_version":"provider-selection-v2","profiles":[
-    {"provider_id":"qwen","actual_model":"qwen3.8-max","task_class":"project.domain.simple","status":"PROVISIONAL_ELIGIBLE","confidence":"LOW","functional":1.0,"interface":1.0,"scope":1.0,"tokens":1870,"cost":"UNKNOWN","latency_ms":45437},
-    {"provider_id":"grok","actual_model":"grok-4.7","task_class":"project.domain.simple","status":"PROVISIONAL_ELIGIBLE","confidence":"LOW","functional":1.0,"interface":1.0,"scope":1.0,"tokens":6290,"cost":"UNKNOWN","latency_ms":50044},
-    {"provider_id":"deepseek","actual_model":"deepseek-flash","task_class":"project.domain.simple","status":"INELIGIBLE","confidence":"LOW","functional":0.0,"failure":"TRANSPORT_FAILURE"},
-    {"provider_id":"grok","actual_model":"grok-4.7","task_class":"project.domain.persistent","status":"PROVISIONAL_ELIGIBLE","confidence":"LOW","functional":1.0,"interface":1.0,"scope":1.0,"tokens":5211,"cost":"UNKNOWN","latency_ms":39481},
-    {"provider_id":"qwen","actual_model":"qwen3.8-max","task_class":"project.domain.persistent","status":"INELIGIBLE","confidence":"LOW","failure":"TIMEOUT"},
-    {"provider_id":"qwen","actual_model":"qwen3.8-max","task_class":"repository.patch","status":"PROVISIONAL_ELIGIBLE","confidence":"LOW","functional":1.0,"interface":1.0,"scope":1.0,"tokens":1394,"cost":"UNKNOWN","latency_ms":36130},
-    {"provider_id":"grok","actual_model":"grok-4.7","task_class":"repository.patch","status":"INELIGIBLE","confidence":"LOW","failure":"TRANSPORT_FAILURE"}
-  ],"cache_key_fields":["provider_id","actual_model","connector_config_hash","benchmark_suite_hash","task_class","selection_policy_version"],"contains_credentials":false
+  "kind":"ProviderCapabilityProfilesV2","schema_version":"2.1","selection_policy_version":"provider-selection-v2",
+  "profiles":[
+    {"provider_id":"qwen","actual_model":"qwen3.8-max","task_class":"project.domain.simple","micro_status":"MICRO_QUALIFIED","production_status":"PRODUCTION_DEGRADED","confidence":"LOW","production_canary_samples":2,"candidate_materialization_rate":0.0,"timeout_rate":1.0},
+    {"provider_id":"grok","actual_model":"grok-4.7","task_class":"project.domain.simple","micro_status":"MICRO_QUALIFIED","production_status":"NOT_EVALUATED","confidence":"LOW"},
+    {"provider_id":"deepseek","actual_model":"deepseek-flash","task_class":"project.domain.simple","micro_status":"INELIGIBLE","production_status":"NOT_EVALUATED","confidence":"LOW"},
+    {"provider_id":"grok","actual_model":"grok-4.7","task_class":"project.domain.persistent","micro_status":"MICRO_QUALIFIED","production_status":"PRODUCTION_DEGRADED","confidence":"LOW","production_canary_samples":1,"candidate_materialization_rate":1.0,"production_success_rate":0.0,"median_latency_ms":50375},
+    {"provider_id":"qwen","actual_model":"qwen3.8-max","task_class":"project.domain.library","micro_status":"MICRO_QUALIFIED_PROVISIONAL","production_status":"PRODUCTION_DEGRADED","confidence":"LOW","production_canary_samples":2,"candidate_materialization_rate":0.0},
+    {"provider_id":"qwen","actual_model":"qwen3.8-max","task_class":"repository.patch","micro_status":"MICRO_QUALIFIED","production_status":"PRODUCTION_QUALIFIED","confidence":"MEDIUM","production_canary_samples":1,"candidate_materialization_rate":1.0,"production_success_rate":1.0,"median_latency_ms":146391,"last_operation_policy_id":"repository.patch@1"},
+    {"provider_id":"grok","actual_model":"grok-4.7","task_class":"repository.patch","micro_status":"INELIGIBLE","production_status":"NOT_EVALUATED","confidence":"LOW"}
+  ],
+  "production_evidence_priority":true,
+  "contains_credentials":false
 }

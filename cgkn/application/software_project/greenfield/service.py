@@ -238,7 +238,8 @@ class GreenfieldBundleProductionService:
             outcome_unknown = bool(getattr(exc, "outcome_unknown", False))
             attempt = BundleAttempt(spec.bundle_id, attempt_id, "PROVIDER_BLOCKED", failure_class=error_class, duration_ms=int((time.perf_counter() - started) * 1000))
             self.attempts.append(attempt)
-            self.revisions.save_provider_attempt(spec.bundle_id, build_run_id, ProviderAttemptReceipt(attempt_id, operation, self.provider_id, self.model_config.model, "", "", self.route_snapshot_hash, utc_now(), utc_now(), "FAIL", error_class, outcome_unknown, {"max_output_tokens": spec.max_output_tokens}, {}, 0, False))
+            failure_usage = dict(getattr(exc, "evidence", {}) or {})
+            self.revisions.save_provider_attempt(spec.bundle_id, build_run_id, ProviderAttemptReceipt(attempt_id, operation, self.provider_id, self.model_config.model, "", "", self.route_snapshot_hash, utc_now(), utc_now(), "FAIL", error_class, outcome_unknown, {"max_output_tokens": spec.max_output_tokens}, failure_usage, 0, False))
             raise
         finally:
             shutil.rmtree(staging, ignore_errors=True)
