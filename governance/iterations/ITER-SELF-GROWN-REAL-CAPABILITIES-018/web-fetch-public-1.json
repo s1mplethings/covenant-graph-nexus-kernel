@@ -1,0 +1,22 @@
+{
+  "kind": "SelfGrownCapabilityReceipt",
+  "schema_version": "1.0",
+  "source_commit": "168f308f0e80aca9283af29cd6c7c0cfdc834ffe",
+  "capability_ref": "web.fetch.public@1",
+  "spec_hash": "sha256:b3208272eea3db8932d1fba287489dce2407125e2f36c51cef8d07a903da93b4",
+  "package_hash": "sha256:2a88c7ed22cc6ac8739c029efa9163ab562fd3b7f4a37469f22f2ec45c28d53c",
+  "risk_class": "READ_ONLY_PUBLIC_NETWORK",
+  "provider_id": "grok",
+  "provider_calls": 1,
+  "repair_rounds": 0,
+  "tests": "PASS",
+  "oracle": "PUBLIC_NETWORK_BLOCKED",
+  "admission": "ADMITTED",
+  "registry": "REGISTERED",
+  "first_execution": "BLOCKED_ENVIRONMENT",
+  "reuse_execution": "BLOCKED_ENVIRONMENT_WITH_ZERO_GROWTH",
+  "dependencies": [],
+  "manual_edits": 0,
+  "failure_detail": "example.com resolved to 198.18.1.22; reserved/non-public destinations are denied before transport",
+  "contains_credentials": false
+}
