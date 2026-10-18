@@ -123,7 +123,31 @@ def test_schema_failure_and_unsafe_code_fail_closed() -> None:
     ).run_case("qwen", cases["structured-identifiers"], run_id="run")
     assert receipt.success is False and receipt.schema_valid is False and receipt.error_class == "SCHEMA_FAILURE"
     unsafe = evaluate("codegen-normalize", {"path": "solution.py", "content": "import os\ndef normalize_identifier(text):\n return text\n"})
-    assert unsafe.functional_valid is False
+    assert unsafe.functional_valid is False and unsafe.scope_valid is False
+
+
+@pytest.mark.happy_path
+@pytest.mark.local_functional
+def test_repair_evaluator_accepts_safe_builtin_set_implementation() -> None:
+    result = evaluate(
+        "repair-unique",
+        {
+            "path": "solution.py",
+            "content": (
+                "def unique_ordered(values):\n"
+                "    seen = set()\n"
+                "    result = []\n"
+                "    for value in values:\n"
+                "        if value not in seen:\n"
+                "            seen.add(value)\n"
+                "            result.append(value)\n"
+                "    return result\n"
+            ),
+        },
+    )
+    assert result.functional_valid is True
+    assert result.interface_valid is True
+    assert result.scope_valid is True
 
 
 @pytest.mark.roundtrip

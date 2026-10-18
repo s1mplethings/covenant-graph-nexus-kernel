@@ -9,7 +9,14 @@ from typing import Any, Mapping, Sequence
 from scripts import provider_api_budget
 from jsonschema import Draft202012Validator
 
-from cgkn.providers import CompletionClient, GatewayCompletionClient, GatewayCompletionError, ModelRoleConfig, parse_json_object
+from cgkn.providers import (
+    CompletionClient,
+    GatewayCompletionClient,
+    GatewayCompletionError,
+    ModelRoleConfig,
+    ProviderConnectionError,
+    parse_json_object,
+)
 
 from .contracts import ProviderBenchmarkCase, ProviderBenchmarkReceipt, canonical_hash
 from .suite import BenchmarkValidation, benchmark_cases, evaluate, system_prompt
@@ -43,6 +50,15 @@ def _failure_class(exc: Exception) -> str:
         if category in {"schema_validation_failed", "invalid_response", "empty_response", "truncated_response"}:
             return "SCHEMA_FAILURE"
         return "TRANSPORT_FAILURE"
+    if isinstance(exc, ProviderConnectionError):
+        category = exc.error_class.upper()
+        if "TIMEOUT" in category:
+            return "TIMEOUT"
+        if "SCHEMA" in category or "INVALID_RESPONSE" in category:
+            return "SCHEMA_FAILURE"
+        if "BUDGET" in category:
+            return "BUDGET_BLOCKED"
+        return "TRANSPORT_FAILURE"
     if isinstance(exc, TimeoutError):
         return "TIMEOUT"
     if isinstance(exc, (json.JSONDecodeError, ValueError)):
@@ -58,11 +74,13 @@ class ProviderEvaluationService:
         gateway_config_hash: str,
         source_commit: str,
         prices: Mapping[str, ProviderPrice] | None = None,
+        structured_output_modes: Mapping[str, str] | None = None,
     ) -> None:
         self.client = client
         self.gateway_config_hash = gateway_config_hash
         self.source_commit = source_commit
         self.prices = dict(prices or {})
+        self.structured_output_modes = dict(structured_output_modes or {})
 
     def run_case(
         self,
@@ -172,6 +190,7 @@ class ProviderEvaluationService:
             source_commit=self.source_commit,
             gateway_config_hash=self.gateway_config_hash,
             secret_safe=True,
+            structured_output_mode=self.structured_output_modes.get(provider_id, "UNAVAILABLE"),
         )
 
     def run_provider(

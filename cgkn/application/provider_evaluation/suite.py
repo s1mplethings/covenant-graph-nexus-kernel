@@ -139,7 +139,10 @@ def system_prompt(task_class: str) -> str:
 
 class _SafeCode(ast.NodeVisitor):
     _forbidden = (ast.Import, ast.ImportFrom, ast.ClassDef, ast.Lambda, ast.With, ast.AsyncWith, ast.Try, ast.Delete, ast.Global, ast.Nonlocal, ast.Yield, ast.YieldFrom, ast.Await)
-    _calls = {"len", "min", "max", "sum", "str", "int", "float", "bool", "ValueError", "range", "enumerate"}
+    _calls = {
+        "len", "min", "max", "sum", "str", "int", "float", "bool",
+        "list", "set", "tuple", "dict", "ValueError", "range", "enumerate",
+    }
 
     def generic_visit(self, node: ast.AST) -> None:
         if isinstance(node, self._forbidden):
@@ -167,12 +170,24 @@ def _load_function(value: Mapping[str, Any], name: str, parameters: Sequence[str
         return None, False, False
     try:
         tree = ast.parse(value["content"], filename="solution.py")
+    except (SyntaxError, ValueError):
+        return None, False, True
+    try:
         _SafeCode().visit(tree)
+    except ValueError:
+        return None, False, False
+    try:
         functions = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
         if len(functions) != 1 or functions[0].name != name:
             return None, False, True
         namespace: dict[str, Any] = {}
-        safe_builtins = {key: getattr(builtins, key) for key in ("len", "min", "max", "sum", "str", "int", "float", "bool", "ValueError", "range", "enumerate")}
+        safe_builtins = {
+            key: getattr(builtins, key)
+            for key in (
+                "len", "min", "max", "sum", "str", "int", "float", "bool",
+                "list", "set", "tuple", "dict", "ValueError", "range", "enumerate",
+            )
+        }
         exec(compile(tree, "solution.py", "exec"), {"__builtins__": safe_builtins}, namespace)
         function = namespace[name]
         interface = list(inspect.signature(function).parameters) == list(parameters)

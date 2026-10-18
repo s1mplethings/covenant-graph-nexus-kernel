@@ -1187,6 +1187,54 @@
       "provider": true,
       "network": true
     },
+    "cgkn/providers/connection_contracts.py": {
+      "criticality": "P0",
+      "required_classes": ["happy_path", "negative", "boundary", "security"],
+      "test_cases": [
+        {"nodeid": "tests/providers/qwen/test_qwen_connector.py::test_qwen_native_schema_path_is_vendor_local", "classes": ["happy_path", "boundary"]},
+        {"nodeid": "tests/providers/grok/test_grok_connector.py::test_grok_rejects_management_endpoint_and_credential_conflict", "classes": ["negative", "fault_injection", "security"]}
+      ],
+      "state": false,
+      "security": true,
+      "provider": true,
+      "network": true
+    },
+    "cgkn/providers/connector_client.py": {
+      "criticality": "P0",
+      "required_classes": ["happy_path", "negative", "boundary", "security"],
+      "test_cases": [
+        {"nodeid": "tests/providers/test_connector_budget.py::test_connector_client_records_live_call_in_budget_ledger", "classes": ["happy_path", "boundary"]},
+        {"nodeid": "tests/providers/test_connector_budget.py::test_budget_enforcement_fails_closed_without_rates", "classes": ["negative", "fault_injection", "security"]}
+      ],
+      "state": true,
+      "security": true,
+      "provider": true,
+      "network": true
+    },
+    "cgkn/providers/connector_registry.py": {
+      "criticality": "P0",
+      "required_classes": ["happy_path", "negative", "boundary", "security"],
+      "test_cases": [
+        {"nodeid": "tests/providers/test_connector_architecture.py::test_registered_connectors_are_provider_authority", "classes": ["happy_path", "negative", "boundary"]},
+        {"nodeid": "tests/providers/test_connector_architecture.py::test_common_transport_and_registry_have_no_vendor_branching", "classes": ["fault_injection", "security"]}
+      ],
+      "state": false,
+      "security": true,
+      "provider": true,
+      "network": false
+    },
+    "cgkn/providers/structured_output.py": {
+      "criticality": "P0",
+      "required_classes": ["happy_path", "negative", "boundary", "security"],
+      "test_cases": [
+        {"nodeid": "tests/providers/deepseek/test_deepseek_connector.py::test_deepseek_json_object_then_local_schema_validation", "classes": ["happy_path", "boundary"]},
+        {"nodeid": "tests/providers/deepseek/test_deepseek_connector.py::test_deepseek_format_repair_cannot_change_existing_semantics", "classes": ["negative", "fault_injection", "security"]}
+      ],
+      "state": false,
+      "security": true,
+      "provider": true,
+      "network": false
+    },
     "cgkn/providers/gateway_client.py": {
       "criticality": "P0",
       "required_classes": [

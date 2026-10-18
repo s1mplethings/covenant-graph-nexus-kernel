@@ -125,6 +125,7 @@ class ProviderBenchmarkReceipt:
     request_ids: Sequence[str]
     source_commit: str
     gateway_config_hash: str
+    structured_output_mode: str = "UNAVAILABLE"
     secret_safe: bool = True
 
     def __post_init__(self) -> None:
@@ -163,6 +164,7 @@ class ProviderBenchmarkReceipt:
             "request_ids": list(self.request_ids),
             "source_commit": self.source_commit,
             "gateway_config_hash": self.gateway_config_hash,
+            "structured_output_mode": self.structured_output_mode,
             "secret_safe": self.secret_safe,
             "contains_credentials": False,
         }
@@ -189,6 +191,7 @@ class ProviderCapabilityProfile:
     selection_policy_version: str
     eligible: bool
     ineligible_reasons: Sequence[str]
+    structured_output_mode: str = "UNAVAILABLE"
     profile_hash: str = ""
 
     def as_dict(self, *, include_hash: bool = True) -> dict[str, Any]:
@@ -214,6 +217,7 @@ class ProviderCapabilityProfile:
             "selection_policy_version": self.selection_policy_version,
             "eligible": self.eligible,
             "ineligible_reasons": list(self.ineligible_reasons),
+            "structured_output_mode": self.structured_output_mode,
             "contains_credentials": False,
         }
         if include_hash:
