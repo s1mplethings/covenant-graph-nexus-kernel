@@ -25,6 +25,12 @@ CAMPAIGN_ID = "ITER-GREENFIELD-BUNDLE-GENERATION-027"
 API_DOCS_CAP = "project.docs.api_reference.render@1"
 
 
+class ProjectStageFailure(RuntimeError):
+    def __init__(self, stage: str, owner: str, failure_code: str) -> None:
+        super().__init__(f"{stage}:{failure_code}")
+        self.stage, self.owner, self.failure_code = stage, owner, failure_code
+
+
 def targeted_cases() -> tuple[ProjectCase, ...]:
     wanted = {"text_stats_cli", "todo_json_cli", "zip_manifest_cli", "notes_search_cli"}
     return tuple(case for case in campaign_matrix() if case.project_id in wanted)
@@ -93,7 +99,7 @@ class GreenfieldV2Campaign:
         except Exception as first_error:
             remaining = self.budget.snapshot()["partitions"][partition]["remaining"]
             if outcome["status"] == "SUCCEEDED" and remaining > 0 and self.generation.provider_call_count - before_calls < 3:
-                owner = self._owner_bundle(manifest, str(first_error))
+                owner = self._owner_bundle(manifest, first_error)
                 try:
                     patch = self._repair_bridge(case, workspace, owner, partition)
                     repair_calls = patch.calls
@@ -190,14 +196,24 @@ class GreenfieldV2Campaign:
             value = runtime.invoke(API_DOCS_CAP, {"package": case.package_name, "public_interfaces": [dict(case.interface_contract)]}); (workspace / "API_REFERENCE.md").write_text(str(value["markdown"]), encoding="utf-8")
 
     def _validate_and_package(self, workspace: pathlib.Path, root: pathlib.Path, case: ProjectCase):
-        _compile(workspace, case); tests = _pytest(workspace); oracle = _evaluate(workspace, case.package_name, case.public_cases, "oracle"); hidden = _evaluate(workspace, case.package_name, case.hidden_cases, "hidden")
+        try: _compile(workspace, case)
+        except Exception as exc: raise ProjectStageFailure("COMPILE", "DOMAIN", "SOURCE_COMPILE_FAILED") from exc
+        try: tests = _pytest(workspace)
+        except Exception as exc: raise ProjectStageFailure("PYTEST", self._failure_owner(str(exc)), "PUBLIC_CONTRACT_FAILED") from exc
+        try: oracle = _evaluate(workspace, case.package_name, case.public_cases, "oracle")
+        except Exception as exc: raise ProjectStageFailure("ORACLE", self._failure_owner(str(exc)), "PUBLIC_ORACLE_FAILED") from exc
+        try: hidden = _evaluate(workspace, case.package_name, case.hidden_cases, "hidden")
+        except Exception as exc: raise ProjectStageFailure("HIDDEN", self._failure_owner(str(exc)), "WITHHELD_ACCEPTANCE_FAILED") from exc
         help_result = subprocess.run(["python", "-m", case.package_name, "--help"], cwd=workspace, capture_output=True, text=True, timeout=30)
-        if help_result.returncode or "usage" not in help_result.stdout.lower() or "traceback" in help_result.stderr.lower(): raise RuntimeError("CLI_HELP_CONTRACT_FAILED")
-        package = _package(self.repository_root, workspace, root, case, self.source_commit)
+        if help_result.returncode or "usage" not in help_result.stdout.lower() or "traceback" in help_result.stderr.lower(): raise ProjectStageFailure("CLI_HELP", "CLI", "CLI_HELP_CONTRACT_FAILED")
+        try: package = _package(self.repository_root, workspace, root, case, self.source_commit)
+        except Exception as exc: raise ProjectStageFailure("PACKAGE", "DETERMINISTIC", "PROJECT_PACKAGE_FAILED") from exc
         return tests, oracle, hidden, package, package.get("runtime_smoke", {})
 
     def _repair_bridge(self, case: ProjectCase, workspace: pathlib.Path, owner, partition: str):
-        request = ChangeRequest(f"{case.project_id}-{owner.bundle_kind.value.lower()}-repair", "Repair the evidenced project defect without changing frozen public interfaces.", ChangeKind.BUG_FIX, tuple(str(item) for item in case.behavior_contract.values()), ("frozen bundle interface", "CLI help contract"), ("tests", "metadata", "governance", "hidden acceptance", "public interface changes"), ("compile", "pytest", "oracle", "hidden", "CLI help"), owner.target_paths)
+        frozen = owner.interface_contract.as_dict()
+        requirements = tuple(str(item) for item in case.behavior_contract.values()) + ("Implement the frozen bundle interface exactly: " + json.dumps(frozen, sort_keys=True),)
+        request = ChangeRequest(f"{case.project_id}-{owner.bundle_kind.value.lower()}-repair", "Repair the evidenced project defect. Controlled CLI errors must use exact exit code 2 and stderr. Do not change frozen public interfaces.", ChangeKind.BUG_FIX, requirements, ("frozen bundle interface", "CLI help contract", "controlled error exit code 2"), ("tests", "metadata", "governance", "hidden acceptance", "public interface changes"), ("compile", "pytest", "oracle", "CLI help", "controlled errors exit code 2"), owner.target_paths)
         service = RepositoryCodegenService(self.generation, self._repair_config(), provider_id="grok", mode="SINGLE_PROVIDER_MODE", call_authorizer=lambda _operation: self.budget.consume(partition, case.project_id), max_attempts=1)
         return service.run(workspace, request)
 
@@ -209,9 +225,15 @@ class GreenfieldV2Campaign:
             if child.is_dir() and not target.exists(): shutil.copytree(child, target)
 
     @staticmethod
-    def _owner_bundle(manifest, failure: str):
-        lowered = failure.lower()
-        return manifest.bundle_specs[1] if any(token in lowered for token in ("cli", "help", "argparse", "__main__")) else manifest.bundle_specs[0]
+    def _owner_bundle(manifest, failure: Exception):
+        owner = str(getattr(failure, "owner", ""))
+        if owner == "CLI": return manifest.bundle_specs[1]
+        return manifest.bundle_specs[0]
+
+    @staticmethod
+    def _failure_owner(text: str) -> str:
+        lowered = text.lower()
+        return "CLI" if any(token in lowered for token in ("returncode", "exit code", "stdout", "stderr", "argparse", "usage")) else "DOMAIN"
 
     @staticmethod
     def _bundle_failure(outcome: Mapping[str, Any]) -> str:

@@ -33,9 +33,11 @@ class GenerationManifestCompiler:
         cli_interface = BundleInterfaceContract(
             module=f"{package_name}.__main__", exports=("build_parser", "main"),
             signatures={"build_parser": "build_parser() -> argparse.ArgumentParser", "main": "main(argv: list[str] | None = None) -> int"},
-            controlled_errors=("invalid input -> non-zero + stderr",),
+            controlled_errors=("invalid input -> exit code 2 with non-empty stderr",),
             entrypoint=f"python -m {package_name}", commands=tuple(str(item) for item in interface_contract.get("commands", ())),
-            stdout_contract="exactly the declared public behavior; deterministic", help_contract=HELP_CONTRACT,
+            stdout_contract="exactly the declared public behavior; deterministic",
+            stderr_contract="controlled user/domain errors use stderr and exact exit code 2; no traceback",
+            help_contract=HELP_CONTRACT,
         )
         obligation_refs = tuple(f"obligation.{key}" for key in sorted(obligations))
         domain = self._bundle(

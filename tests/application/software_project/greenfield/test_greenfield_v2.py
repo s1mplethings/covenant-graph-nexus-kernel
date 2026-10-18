@@ -81,6 +81,7 @@ def test_cli_help_contract_is_explicit():
     help_contract = manifest().bundle_specs[1].interface_contract.help_contract
     assert help_contract == HELP_CONTRACT
     assert help_contract["exit_code"] == 0 and help_contract["business_file_side_effects"] == "FORBIDDEN"
+    assert "exact exit code 2" in manifest().bundle_specs[1].interface_contract.stderr_contract
 
 
 def test_bundle_graph_is_acyclic_and_cli_depends_on_domain():
