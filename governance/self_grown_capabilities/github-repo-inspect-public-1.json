@@ -1,7 +1,8 @@
 {
   "kind": "SelfGrownCapabilityReceipt",
   "schema_version": "1.0",
-  "source_commit": "168f308f0e80aca9283af29cd6c7c0cfdc834ffe",
+  "iteration_id": "ITER-PROXY-AWARE-RESEARCH-LEAF-019",
+  "source_commit": "7037a68a99e7e2b62649929fa1119b1e59b9e18e",
   "capability_ref": "github.repo.inspect.public@1",
   "risk_class": "PURE",
   "provider_id": "grok",
@@ -15,6 +16,7 @@
   "reuse_execution": "NOT_RUN",
   "dependencies": ["web.fetch.public@1"],
   "manual_edits": 0,
-  "failure_detail": "DEPENDENCY_EXECUTION_BLOCKED: web.fetch.public@1 real smoke was blocked by the environment",
+  "failure_detail": "PUBLIC_NETWORK_BLOCKED_ENVIRONMENT: explicit trusted loopback proxy was not configured while local DNS returned a 198.18.0.0/15 Fake-IP address",
+  "historical_receipt": "governance/iterations/ITER-SELF-GROWN-REAL-CAPABILITIES-018/github-repo-inspect-public-1.json",
   "contains_credentials": false
 }

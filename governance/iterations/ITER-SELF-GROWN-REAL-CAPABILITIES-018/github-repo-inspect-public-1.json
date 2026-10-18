@@ -1,0 +1,20 @@
+{
+  "kind": "SelfGrownCapabilityReceipt",
+  "schema_version": "1.0",
+  "source_commit": "168f308f0e80aca9283af29cd6c7c0cfdc834ffe",
+  "capability_ref": "github.repo.inspect.public@1",
+  "risk_class": "PURE",
+  "provider_id": "grok",
+  "provider_calls": 0,
+  "repair_rounds": 0,
+  "tests": "NOT_RUN",
+  "oracle": "NOT_RUN",
+  "admission": "NOT_ATTEMPTED",
+  "registry": "ABSENT",
+  "first_execution": "NOT_RUN",
+  "reuse_execution": "NOT_RUN",
+  "dependencies": ["web.fetch.public@1"],
+  "manual_edits": 0,
+  "failure_detail": "DEPENDENCY_EXECUTION_BLOCKED: web.fetch.public@1 real smoke was blocked by the environment",
+  "contains_credentials": false
+}

@@ -1,0 +1,44 @@
+{
+  "kind": "CGKNPublicNetworkTransportStatus",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-PROXY-AWARE-RESEARCH-LEAF-019",
+  "source_commit": "7037a68a99e7e2b62649929fa1119b1e59b9e18e",
+  "source_tree_sha": "e9de2750bc226c972e834dc753aeef62db3ca0e8",
+  "modes": {
+    "DIRECT": {
+      "status": "PASS",
+      "destination_authority": "locally resolved addresses, all of which must be public",
+      "fake_ip_range": "198.18.0.0/15 remains blocked"
+    },
+    "TRUSTED_LOCAL_PROXY": {
+      "status": "IMPLEMENTED_AND_TARGETED_TESTED",
+      "activation": "explicit CGKN_PUBLIC_NETWORK_MODE=proxy plus CGKN_PUBLIC_HTTP_PROXY",
+      "proxy_endpoint_policy": "credential-free HTTP endpoint at literal 127.0.0.1 or ::1 only",
+      "destination_authority": "public hostname delegated to the explicitly trusted loopback proxy",
+      "trade_off": "proxy mode cannot provide DIRECT mode's local DNS-level destination verification"
+    }
+  },
+  "shared_policy": {
+    "methods": ["GET", "HEAD"],
+    "max_redirects": 3,
+    "timeout_seconds_max": 10,
+    "response_bytes_max": 1048576,
+    "credentials": "FORBIDDEN",
+    "literal_private_reserved_targets": "FORBIDDEN",
+    "redirect_revalidation": "EVERY_HOP",
+    "text_like_responses_only": true
+  },
+  "diagnostic": {
+    "mode": "DIRECT",
+    "proxy_configured": false,
+    "proxy_endpoint_class": "NOT_CONFIGURED",
+    "direct_dns_result": ["198.18.0.41"],
+    "fake_ip_detected": true,
+    "public_fetch_possible": false,
+    "classification": "PUBLIC_NETWORK_BLOCKED_ENVIRONMENT"
+  },
+  "real_smoke": "BLOCKED_ENVIRONMENT_PROXY_NOT_CONFIGURED",
+  "security_tests": {"result": "PASS", "passed": 15, "failed": 0},
+  "unsafe_admissions": 0,
+  "contains_credentials": false
+}
