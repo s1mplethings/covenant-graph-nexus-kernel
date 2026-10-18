@@ -16,9 +16,21 @@ class StructuredOutputMode(str, Enum):
 
 
 class ProviderConnectionError(RuntimeError):
-    def __init__(self, error_class: str, message: str, *, http_status: int | None = None) -> None:
+    def __init__(
+        self,
+        error_class: str,
+        message: str,
+        *,
+        http_status: int | None = None,
+        outcome_unknown: bool = False,
+        timeout_phase: str = "",
+        evidence: Mapping[str, Any] | None = None,
+    ) -> None:
         self.error_class = str(error_class)
         self.http_status = http_status
+        self.outcome_unknown = bool(outcome_unknown)
+        self.timeout_phase = str(timeout_phase)
+        self.evidence = MappingProxyType(dict(evidence or {}))
         super().__init__(f"{self.error_class}: {str(message)[:1000]}")
 
 

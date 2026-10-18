@@ -483,6 +483,7 @@ def finalize_call(
     usage: dict[str, Any] | None,
     http_status: int | str | None,
     status: str,
+    evidence: dict[str, Any] | None = None,
 ) -> None:
     if not reservation:
         return
@@ -525,6 +526,14 @@ def finalize_call(
         requested_status = str(status or "FAILED").upper()
         target["status"] = "SUCCEEDED" if requested_status in {"PASS", "SUCCEEDED"} else "FAILED"
         target["finished_at"] = _now()
+        safe_evidence = dict(evidence or {})
+        for key in (
+            "error_class", "outcome_unknown", "timeout_phase", "requested_timeout_seconds",
+            "effective_timeout_seconds", "provider_default_timeout_seconds",
+            "provider_max_timeout_seconds", "elapsed_ms",
+        ):
+            if key in safe_evidence:
+                target[key] = safe_evidence[key]
         _recompute_totals(ledger, limits)
         ledger["updated_at"] = _now()
         _write(path, ledger)

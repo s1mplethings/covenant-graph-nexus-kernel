@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from cgkn.providers import ConnectorCompletionClient, ModelRoleConfig, ProviderCompletion, ProviderConnectorRegistry
+from cgkn.providers import ConnectorCompletionClient, ModelRoleConfig, ProviderCompletion, ProviderConnectionError, ProviderConnectorRegistry
 from scripts import provider_api_budget
 
 pytestmark = [pytest.mark.happy_path, pytest.mark.negative, pytest.mark.boundary, pytest.mark.fault_injection, pytest.mark.security]
@@ -20,6 +20,12 @@ class FailingConnector:
     provider_id = "fake"
     def complete_structured(self, **kwargs):
         raise RuntimeError("HTTP 503 sanitized failure")
+
+
+class TimeoutConnector:
+    provider_id = "fake"
+    def complete_structured(self, **kwargs):
+        raise ProviderConnectionError("PROVIDER_CONNECT_OR_HEADER_TIMEOUT","timed out",outcome_unknown=True,timeout_phase="CONNECT_OR_HEADER_TIMEOUT",evidence={"requested_timeout_seconds":180,"effective_timeout_seconds":180,"provider_default_timeout_seconds":120,"provider_max_timeout_seconds":240,"elapsed_ms":180001})
 
 
 def _budget(monkeypatch, ledger):
@@ -53,3 +59,15 @@ def test_connector_client_no_budget_and_failed_transport_paths(tmp_path, monkeyp
         failing.complete(system="s", user="u", schema_name="x", schema={"type":"object"}, config=config)
     call = json.loads(ledger.read_text(encoding="utf-8"))["calls"][0]
     assert call["status"] == "FAILED" and call["http_status"] == 503
+
+
+def test_timeout_is_finalized_once_with_evidence(tmp_path, monkeypatch):
+    ledger=tmp_path / "ledger.json"; _budget(monkeypatch,ledger)
+    client=ConnectorCompletionClient(ProviderConnectorRegistry((TimeoutConnector(),)),enforce_budget=True,budget_purpose="CAPABILITY_BUILD")
+    with pytest.raises(ProviderConnectionError,match="PROVIDER_CONNECT_OR_HEADER_TIMEOUT"):
+        client.complete(system="s",user="u",schema_name="x",schema={"type":"object"},config=ModelRoleConfig("worker","fake",180,10,0,"medium"))
+    value=json.loads(ledger.read_text(encoding="utf-8"))
+    assert value["totals"]["api_calls"] == 1 and len(value["calls"]) == 1
+    call=value["calls"][0]
+    assert call["status"] == "FAILED" and call["error_class"] == "PROVIDER_CONNECT_OR_HEADER_TIMEOUT"
+    assert call["outcome_unknown"] is True and call["effective_timeout_seconds"] == 180

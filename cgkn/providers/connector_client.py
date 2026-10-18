@@ -8,6 +8,7 @@ from typing import Any, Mapping
 from scripts import provider_api_budget
 
 from .client import ModelRoleConfig, ProviderCompletion
+from .connection_contracts import ProviderConnectionError
 from .connector_registry import ProviderConnectorRegistry
 
 
@@ -42,8 +43,16 @@ class ConnectorCompletionClient:
             completion = self.registry.get(config.model).complete_structured(system=system, user=user, schema_name=schema_name, schema=schema, config=config)
             response = {"id": completion.request_id, "usage": dict(completion.usage)}
             provider_api_budget.mark_response_received(reservation, response=response, http_status=200)
-            provider_api_budget.finalize_call(reservation, usage=dict(completion.usage), http_status=200, status="SUCCEEDED")
+            provider_api_budget.finalize_call(reservation, usage=dict(completion.usage), http_status=200, status="SUCCEEDED", evidence=dict(completion.usage))
             return completion
         except Exception as exc:
-            provider_api_budget.finalize_call(reservation, usage=None, http_status=provider_api_budget.http_status_from_error(str(exc)), status="FAILED")
+            evidence: dict[str, Any] = {}
+            if isinstance(exc, ProviderConnectionError):
+                evidence = {
+                    **dict(exc.evidence),
+                    "error_class": exc.error_class,
+                    "outcome_unknown": exc.outcome_unknown,
+                    "timeout_phase": exc.timeout_phase or "NONE",
+                }
+            provider_api_budget.finalize_call(reservation, usage=None, http_status=getattr(exc, "http_status", None) or provider_api_budget.http_status_from_error(str(exc)), status="FAILED", evidence=evidence)
             raise

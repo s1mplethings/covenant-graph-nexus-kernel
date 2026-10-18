@@ -5,11 +5,13 @@ import json
 import pytest
 
 from cgkn.providers import GrokConnector, ModelRoleConfig, ProviderConnectionError
+from cgkn.providers.connectors.grok import resolve_effective_timeout
 
 pytestmark = [pytest.mark.happy_path, pytest.mark.negative, pytest.mark.boundary, pytest.mark.fault_injection, pytest.mark.security]
 
 
 PROFILE = {"provider_id": "grok", "base_url": "https://api.x.ai/v1", "api_backend": "RESPONSES", "preferred_models": ["grok-4.7"], "reasoning_effort": "medium", "timeout": 10, "max_output_tokens": 100, "prompt_cache_policy": "disabled_for_benchmark"}
+MODERN_PROFILE = {**{key: value for key, value in PROFILE.items() if key != "timeout"}, "default_timeout_seconds": 120, "max_timeout_seconds": 240}
 
 
 class Response:
@@ -32,7 +34,7 @@ def test_grok_responses_structured_path(monkeypatch) -> None:
         {"data": [{"id": "grok-4.7"}]},
         {"id": "r1", "model": "grok-4.7", "status": "completed", "output": [{"type": "message", "content": [{"type": "output_text", "text": "{\"ok\":true}"}]}], "usage": {"input_tokens_details": {"cached_tokens": 0}}},
     ])
-    def fake(req, timeout): calls.append((req.full_url, json.loads(req.data) if req.data else None)); return Response(next(replies))
+    def fake(req, timeout): calls.append((req.full_url, json.loads(req.data) if req.data else None, timeout)); return Response(next(replies))
     monkeypatch.setattr("cgkn.providers.connectors.grok.request.urlopen", fake)
     connector = GrokConnector(PROFILE, environment={"XAI_API_KEY": "secret"})
     schema = {"type": "object", "properties": {"ok": {"type": "boolean"}}, "required": ["ok"], "additionalProperties": False}
@@ -43,6 +45,66 @@ def test_grok_responses_structured_path(monkeypatch) -> None:
     assert payload["text"]["format"] == {"type": "json_schema", "name": "probe", "strict": True, "schema": schema}
     assert payload["reasoning"] == {"effort": "low"}
     assert payload["store"] is False
+
+
+def test_legacy_timeout_loads_as_default() -> None:
+    connector = GrokConnector(PROFILE, environment={"XAI_API_KEY":"secret"})
+    assert connector.default_timeout_seconds == connector.max_timeout_seconds == 10
+
+
+def test_conflicting_and_invalid_timeout_profiles_are_rejected() -> None:
+    with pytest.raises(ProviderConnectionError, match="CONFIG_CONFLICT"):
+        GrokConnector({**MODERN_PROFILE,"timeout":10},environment={"XAI_API_KEY":"secret"})
+    with pytest.raises(ProviderConnectionError, match="GROK_TIMEOUT_CONFIG_INVALID"):
+        GrokConnector({**MODERN_PROFILE,"default_timeout_seconds":241},environment={"XAI_API_KEY":"secret"})
+    with pytest.raises(ProviderConnectionError, match="GROK_TIMEOUT_CONFIG_INVALID"):
+        GrokConnector({**MODERN_PROFILE,"max_timeout_seconds":601},environment={"XAI_API_KEY":"secret"})
+
+
+def test_effective_timeout_resolution() -> None:
+    assert resolve_effective_timeout(180,120,240) == 180
+    assert resolve_effective_timeout(300,120,240) == 240
+    assert resolve_effective_timeout(None,120,240) == 120
+    assert resolve_effective_timeout(0,120,240) == 120
+
+
+def test_completion_uses_effective_timeout_and_catalog_uses_default(monkeypatch) -> None:
+    calls = []
+    replies = iter([
+        {"data":[{"id":"grok-4.7"}]},
+        {"id":"r1","model":"grok-4.7","output_text":"{\"ok\":true}","usage":{"input_tokens":2,"output_tokens":1}},
+    ])
+    def fake(req, timeout): calls.append((req.full_url,timeout)); return Response(next(replies))
+    monkeypatch.setattr("cgkn.providers.connectors.grok.request.urlopen",fake)
+    connector = GrokConnector(MODERN_PROFILE,environment={"XAI_API_KEY":"secret"})
+    schema={"type":"object","properties":{"ok":{"type":"boolean"}},"required":["ok"],"additionalProperties":False}
+    completion=connector.complete_structured(system="s",user="u",schema_name="x",schema=schema,config=ModelRoleConfig("worker","grok",180,10,0,"medium"))
+    assert [timeout for _,timeout in calls] == [120,180]
+    assert completion.usage["requested_timeout_seconds"] == completion.usage["effective_timeout_seconds"] == 180
+    assert completion.usage["provider_default_timeout_seconds"] == 120
+    assert completion.usage["provider_max_timeout_seconds"] == 240
+    assert completion.usage["elapsed_ms"] >= 0
+
+
+def test_timeout_before_headers_is_classified(monkeypatch) -> None:
+    monkeypatch.setattr("cgkn.providers.connectors.grok.request.urlopen",lambda *_args,**_kwargs: (_ for _ in ()).throw(TimeoutError("timed out")))
+    connector=GrokConnector(MODERN_PROFILE,environment={"XAI_API_KEY":"secret"})
+    with pytest.raises(ProviderConnectionError) as caught:
+        connector._request_json("POST","https://api.x.ai/v1/responses",{},timeout_seconds=180,requested_timeout_seconds=180)
+    assert caught.value.error_class == "PROVIDER_CONNECT_OR_HEADER_TIMEOUT"
+    assert caught.value.timeout_phase == "CONNECT_OR_HEADER_TIMEOUT" and caught.value.outcome_unknown
+    assert caught.value.evidence["effective_timeout_seconds"] == 180
+
+
+def test_timeout_during_response_read_is_classified(monkeypatch) -> None:
+    class SlowResponse(Response):
+        def read(self,_limit): raise TimeoutError("timed out")
+    monkeypatch.setattr("cgkn.providers.connectors.grok.request.urlopen",lambda *_args,**_kwargs: SlowResponse({}))
+    connector=GrokConnector(MODERN_PROFILE,environment={"XAI_API_KEY":"secret"})
+    with pytest.raises(ProviderConnectionError) as caught:
+        connector._request_json("POST","https://api.x.ai/v1/responses",{},timeout_seconds=180,requested_timeout_seconds=180)
+    assert caught.value.error_class == "PROVIDER_RESPONSE_READ_TIMEOUT"
+    assert caught.value.timeout_phase == "RESPONSE_READ_TIMEOUT" and caught.value.outcome_unknown
 
 
 @pytest.mark.parametrize(("status", "message", "expected"), [(401, "incorrect API key", "GROK_INVALID_API_KEY"), (401, "management key", "GROK_WRONG_KEY_TYPE"), (403, "forbidden", "GROK_FORBIDDEN"), (404, "model missing", "GROK_MODEL_NOT_VISIBLE")])
