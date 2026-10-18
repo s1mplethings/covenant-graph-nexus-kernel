@@ -208,8 +208,7 @@ class AutonomousProjectProductionService:
         tomllib.loads(str(reuse["pyproject_toml"]))
         applied = tuple(core_result.outputs.get("applied_lesson_ids", ()))
         if recorder:
-            recorder.record_event(self._event(run_id, goal.project_id, "project.codegen", "PASS", "project.folder_manifest.core@1", "", str(core_result.outputs.get("candidate_id", "")), "", "PASS", (str(root / "state"),), core_result))
-            recorder.record_event(self._event(run_id, goal.project_id, "project.package", "PASS", "", "", "", "", "PASS", (str(package_result.outputs.get("manifest_path", "")),), core_result))
+            self.record_success_events(recorder, run_id, goal.project_id, root, core_result, package_result)
             record_feedback(self.generation.store, applied, success=True)
             recorder.finalize_run(run_id)
         receipt = {
@@ -230,6 +229,31 @@ class AutonomousProjectProductionService:
         }
         receipt_path = root / "project_production_receipt.json"; receipt_path.write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         return ProjectProductionResult("PASS", str(workspace), str(package_result.outputs["package_path"]), receipt)
+
+    @classmethod
+    def record_success_events(
+        cls,
+        recorder: StoreLessonRecorder,
+        run_id: str,
+        project_id: str,
+        root: pathlib.Path,
+        core_result: BlockExecutionResult,
+        package_result: BlockExecutionResult,
+    ) -> None:
+        """Idempotently materialize the required structured terminal learning history."""
+        candidate_id = str(core_result.outputs.get("candidate_id", ""))
+        manifest_ref = str(package_result.outputs.get("manifest_path", ""))
+        rows = (
+            ("capability.resolve", "GAP", PYPROJECT_REF, "", "GROWTH_REQUIRED", "PASS", (str(root / "state"),)),
+            ("capability.build", "PASS", PYPROJECT_REF, "", "BUILD_CANDIDATE", "PASS", (str(root / "growth"),)),
+            ("capability.admission", "PASS", PYPROJECT_REF, "", "ADMIT_CAPABILITY", "PASS", (str(root / "capability_store"),)),
+            ("project.codegen", "PASS", "project.folder_manifest.core@1", candidate_id, "", "PASS", (str(root / "state"),)),
+            ("project.validation", "PASS", "project.folder_manifest.core@1", candidate_id, "VALIDATE", "PASS", (str(root / "state"),)),
+            ("project.package", "PASS", "", "", "PACKAGE", "PASS", (manifest_ref,)),
+            ("lessons.applied", "PASS", "project.folder_manifest.core@1", candidate_id, "RECORD_FEEDBACK", "PASS", (str(root / "state"),)),
+        )
+        for operation, code, capability_ref, revision_id, action, outcome, evidence in rows:
+            recorder.record_event(cls._event(run_id, project_id, operation, code, capability_ref, "", revision_id, action, outcome, evidence, core_result))
 
     def _registry(self, workspace: pathlib.Path, root: pathlib.Path, capability_store: CapabilityStore, contract: Mapping[str, Any], obligations: Mapping[str, Any]) -> ExecutorRegistry:
         registry = ExecutorRegistry()

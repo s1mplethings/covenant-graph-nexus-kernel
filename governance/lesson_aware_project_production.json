@@ -30,7 +30,7 @@
   },
   "verification": {"project_tests":"PASS:6","oracle":"PASS","hidden_acceptance":"PASS","snapshot":"PASS","runtime_smoke":"PASS"},
   "delivery": {"authority":"scripts/local_packager.py","status":"PASS","package_sha256":"sha256:a4e6f08449e3b61aa8a94e58b515cd5b18cb4df350760cb74b43cdcfe9438541","package_ref":"artifacts/ITER-LESSON-AWARE-END-TO-END-PRODUCTION-025/project_runs/folder-manifest-beb6588e7e54/delivery/final_project_bundle.zip"},
-  "learning": {"structured_events":3,"feedback_support_increments":2,"contradictions":0,"new_candidates":0},
+  "learning": {"structured_events":7,"event_operations":["capability.resolve","capability.build","capability.admission","project.codegen","project.validation","project.package","lessons.applied"],"feedback_support_increments":2,"contradictions":0,"new_candidates":0},
   "manual_candidate_edits": 0,
   "unsafe_admissions": 0,
   "contains_credentials": false

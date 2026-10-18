@@ -125,6 +125,9 @@ def test_fake_missing_capability_growth_resume_package_and_reuse(tmp_path):
     assert "project-core-generate" in result.receipt["reused_nodes"]
     assert result.receipt["capability_reuse"]["growth_calls"]==0
     assert Path(result.package_path).is_file()
+    events=[json.loads(line) for line in (tmp_path/"learning-artifacts"/"learning"/"events.jsonl").read_text().splitlines()]
+    assert {event["operation"] for event in events}=={"capability.resolve","capability.build","capability.admission","project.codegen","project.validation","project.package","lessons.applied"}
+    assert len(events)==7
 
 
 def test_fake_candidate_defect_uses_one_bounded_repair(tmp_path):
