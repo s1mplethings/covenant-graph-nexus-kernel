@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-import ast
 import hashlib
 import importlib.util
 import inspect
 import json
 import pathlib
 import shutil
-import subprocess
-import sys
 import time
+import uuid
 from dataclasses import dataclass
 from typing import Any, Mapping
 
@@ -25,6 +23,7 @@ from cgkn.application.software_project.scope import ScopedFileTransaction
 from cgkn.application.materialization import materialize_json
 
 from .contracts import CapabilityBuildReceipt, CapabilityPackage, CapabilityRisk, CapabilitySpec
+from .lifecycle_contracts import ActionDecision, FailureDomain, ProviderAttemptReceipt, RecommendedAction
 from .public_network import PublicNetworkClient
 
 
@@ -241,114 +240,116 @@ class _ExampleDependencies:
         return self.invoke(capability_ref, value)
 
 
+@dataclass(frozen=True)
+class CandidateGenerationResult:
+    source_path: str | None
+    provider_receipt: ProviderAttemptReceipt
+    failure_domain: FailureDomain | None = None
+    error: str = ""
+
+
 class CapabilityBuilderService:
+    """Compatibility facade plus bounded Provider generation/repair adapters.
+
+    Validation, action selection, admission, installation, and resume are owned by
+    CapabilityBuildLifecycleService.  This class never turns validation failure
+    directly into a Provider call.
+    """
+
     def __init__(self, client: CompletionClient, config: ModelRoleConfig, *, provider_id: str, mode: str, store: CapabilityStore):
         if config.role != "worker" or config.model != provider_id or mode not in {"SELECTED", "SINGLE_PROVIDER_MODE"}:
             raise ValueError("capability builder requires one frozen worker route")
         self.client, self.config, self.provider_id, self.mode, self.store = client, config, provider_id, mode, store
 
     def build(self, candidate_root: pathlib.Path | str, spec: CapabilitySpec) -> CapabilityBuildReceipt:
-        root = pathlib.Path(candidate_root).resolve() / _slug(spec.ref)
+        from .lifecycle import CapabilityBuildLifecycleService
+
+        return CapabilityBuildLifecycleService(self, self.store).build(candidate_root, spec)
+
+    def generate_candidate(
+        self,
+        staging_root: pathlib.Path | str,
+        spec: CapabilitySpec,
+        *,
+        route_snapshot_hash: str,
+        operation: str = "GENERATION",
+        failure_evidence: Mapping[str, Any] | None = None,
+    ) -> CandidateGenerationResult:
+        """Perform exactly one Provider operation and return an unpersisted source tree."""
+        root = pathlib.Path(staging_root).resolve()
         if root.exists():
-            raise FileExistsError(f"candidate already exists: {root}")
+            raise FileExistsError(f"generation staging path already exists: {root}")
         self._scaffold(root, spec)
-        calls = repairs = 0; usage: dict[str, Any] = {}; failure = ""
+        started_at, attempt_id = utc_now(), f"provider.{uuid.uuid4().hex}"
         try:
-            dependency_manifest = self.store.resolve_dependency_manifest(spec) if spec.allowed_dependencies else []
+            completion = self.client.complete(
+                system="You implement one bounded Python capability. Patch only executor.py, use only the standard library and the supplied runtime contract, preserve the required execute signature, and return JSON only.",
+                user=json.dumps(self._prompt(root, spec, json.dumps(dict(failure_evidence or {}), ensure_ascii=False, sort_keys=True)), ensure_ascii=False, sort_keys=True),
+                schema_name="capability_candidate_patch", schema=WORKER_SCHEMA, config=self.config,
+            )
+            proposal = validate_worker_proposal(parse_json_object(completion.text), spec.ref)
+            if proposal["needs_escalation"]:
+                raise ValueError(str(proposal["escalation_reason"]))
             transaction = ScopedFileTransaction(root, WorkerScope(("executor.py", "tests/test_capability.py", "capability.json"), ("executor.py",), protected_paths=("admission.json",), max_actions=1, max_write_files=1, allow_create=False, allow_patch=True))
-            for attempt in range(2):
-                completion = self.client.complete(
-                    system="You implement one bounded Python capability. Patch only executor.py, use only the standard library and the supplied runtime contract, preserve the required execute signature, and return JSON only.",
-                    user=json.dumps(self._prompt(root, spec, failure), ensure_ascii=False, sort_keys=True),
-                    schema_name="capability_candidate_patch", schema=WORKER_SCHEMA, config=self.config,
-                )
-                calls += 1; usage = dict(completion.usage)
-                proposal = validate_worker_proposal(parse_json_object(completion.text), spec.ref)
-                if proposal["needs_escalation"]:
-                    failure = str(proposal["escalation_reason"]); break
-                transaction.apply(proposal["actions"])
-                passed, failure = self._verify(root)
-                if passed: break
-                if attempt == 0:
-                    repairs = 1
-            if failure:
-                return self._receipt(spec, root, calls, repairs, False, False, False, False, usage, failure)
-            package, registry = self._candidate(root, spec)
-            execution_passed = self._execute(package, spec)
-            if not execution_passed:
-                registry.reject(spec.ref)
-                return self._receipt(spec, root, calls, repairs, True, False, False, False, usage, "runtime execution failed")
-            registry.admit(spec.ref)
-            admission = {"kind": "CapabilityAdmission", "schema_version": "1.1", "capability_ref": spec.ref, "status": "ADMITTED", "source_hash": package.source_hash, "provider_id": self.provider_id, "mode": self.mode, "manual_edits": 0, "dependency_manifest": dependency_manifest}
-            (root / "admission.json").write_text(json.dumps(admission, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-            self.store.put(package)
-            return self._receipt(spec, root, calls, repairs, True, True, True, True, usage, "")
+            transaction.apply(proposal["actions"])
+            usage = dict(completion.usage)
+            receipt = ProviderAttemptReceipt(
+                attempt_id, operation, self.provider_id, str(completion.model), str(completion.request_id),
+                str(completion.request_id), route_snapshot_hash, started_at, utc_now(), "PASS", "", False,
+                {}, usage, usage.get("estimated_cost", "UNKNOWN"), False,
+            )
+            return CandidateGenerationResult(str(root), receipt)
         except Exception as exc:
-            return self._receipt(spec, root, calls, repairs, False, False, False, False, usage, f"{type(exc).__name__}: {exc}")
+            name = type(exc).__name__.upper()
+            domain = FailureDomain.PROVIDER_TIMEOUT if "TIMEOUT" in name or "TIMEOUT" in str(exc).upper() else FailureDomain.PROVIDER_SCHEMA_FAILURE if isinstance(exc, (ValueError, json.JSONDecodeError)) else FailureDomain.PROVIDER_TRANSPORT_FAILURE
+            shutil.rmtree(root, ignore_errors=True)
+            receipt = ProviderAttemptReceipt(
+                attempt_id, operation, self.provider_id, self.config.model, "", "", route_snapshot_hash,
+                started_at, utc_now(), "FAIL", domain.value, True, {}, {}, "UNKNOWN", False,
+            )
+            return CandidateGenerationResult(None, receipt, domain, f"{type(exc).__name__}: {exc}")
 
-    def _candidate(self, root: pathlib.Path, spec: CapabilitySpec) -> tuple[CapabilityPackage, CapabilityRegistry]:
-        tree = ast.parse((root / "executor.py").read_text(encoding="utf-8"))
-        forbidden = {"subprocess", "socket", "requests", "urllib", "httpx", "http", "ftplib", "ctypes", "multiprocessing", "os", "pathlib", "shutil"}
-        imports = {node.names[0].name.split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.Import)} | {str(node.module).split(".")[0] for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)}
-        if imports & forbidden:
-            raise ValueError("candidate requests forbidden network or process access")
-        forbidden_calls = {"open", "exec", "eval", "compile", "__import__"}
-        if any(isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in forbidden_calls for node in ast.walk(tree)):
-            raise ValueError("candidate requests forbidden filesystem or dynamic execution access")
-        forbidden_attributes = {"system", "popen", "run", "Popen", "write", "write_text", "write_bytes", "unlink", "remove", "rmdir", "mkdir"}
-        if any(isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr in forbidden_attributes for node in ast.walk(tree)):
-            raise ValueError("candidate requests forbidden filesystem or process access")
-        execute_nodes = [node for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.name == "execute"]
-        if len(execute_nodes) != 1:
-            raise ValueError("candidate must declare exactly one execute function")
-        parameter_count = len(execute_nodes[0].args.args)
-        requires_context = spec.risk is CapabilityRisk.READ_ONLY_PUBLIC_NETWORK or bool(spec.allowed_dependencies)
-        if parameter_count != (2 if requires_context else 1):
-            raise ValueError("candidate execute signature does not match declared runtime requirements")
-        source_text = (root / "executor.py").read_text(encoding="utf-8")
-        if spec.risk is CapabilityRisk.READ_ONLY_PUBLIC_NETWORK and any(token in source_text.lower() for token in ("authorization", "cookie", "proxy-authorization", "api_key", "api-key", "bearer ")):
-            raise ValueError("public-network capability may not request credentials")
-        if spec.risk is CapabilityRisk.READ_ONLY_PUBLIC_NETWORK and "network_public" not in source_text:
-            raise ValueError("public-network capability must use the bounded network runtime")
-        if spec.risk is not CapabilityRisk.READ_ONLY_PUBLIC_NETWORK and "network_public" in source_text:
-            raise ValueError("capability did not declare public-network risk")
-        dependency_literals = {
-            node.args[0].value
-            for node in ast.walk(tree)
-            if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr in {"invoke", "execute"}
-            and node.args and isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str)
-        }
-        if dependency_literals - set(spec.allowed_dependencies):
-            raise ValueError("candidate invokes an undeclared capability dependency")
-        if spec.allowed_dependencies and dependency_literals != set(spec.allowed_dependencies):
-            raise ValueError("candidate did not invoke every declared capability dependency")
-        source_hash = "sha256:" + hashlib.sha256((root / "executor.py").read_bytes()).hexdigest()
-        component = ComponentSpec(spec.capability_id, spec.version, (PortSpec("value", "artifact.capability.value@1"),), (PortSpec("result", "artifact.capability.result@1"),), metadata={"risk": spec.risk.value})
-        executor_ref = f"generated.{spec.capability_id}@{spec.version}"
-        package = CapabilityPackage(spec, str(root), component.ref, executor_ref, source_hash, ("tests/test_capability.py",))
-        effects = ("public_network_read",) if spec.risk is CapabilityRisk.READ_ONLY_PUBLIC_NETWORK else (("capability_dependency_execute",) if spec.allowed_dependencies else ())
-        descriptor = CapabilityDescriptor(spec.capability_id, spec.version, component.ref, executor_ref, ("generated_python",), ("value",), ("result",), effects, 10.0, "local", "LOW", "generated", {"provider_id": self.provider_id, "source_hash": source_hash, "dependencies": spec.allowed_dependencies}, package.test_refs)
-        registry = CapabilityRegistry({component.ref: component}); registry.register_candidate(descriptor)
-        return package, registry
+    def repair_candidate(
+        self,
+        parent_source: pathlib.Path | str,
+        staging_root: pathlib.Path | str,
+        spec: CapabilitySpec,
+        *,
+        route_snapshot_hash: str,
+        failure_evidence: Mapping[str, Any],
+        decision: ActionDecision,
+    ) -> CandidateGenerationResult:
+        if decision.action is not RecommendedAction.REPAIR_CANDIDATE:
+            raise PermissionError("ACTION_POLICY_IS_THE_ONLY_REPAIR_AUTHORITY")
+        source = pathlib.Path(parent_source).resolve()
+        staging = pathlib.Path(staging_root).resolve()
+        if staging.exists():
+            raise FileExistsError(staging)
+        shutil.copytree(source, staging, ignore=shutil.ignore_patterns("__pycache__", ".pytest_cache", "admission.json"))
+        return self._complete_existing(staging, spec, route_snapshot_hash, failure_evidence)
 
-    @staticmethod
-    def _execute(package: CapabilityPackage, spec: CapabilitySpec) -> bool:
-        for index, frozen in enumerate(spec.examples):
-            example = dict(frozen)
-            runtime = dict(example.get("runtime", {}))
-            context = CapabilityRuntimeContext(_ExampleNetwork(runtime.get("network_response")), _ExampleDependencies(runtime.get("dependency_results", {})))
-            executor = GeneratedCapabilityExecutor(package, runtime_context=context if (spec.risk is CapabilityRisk.READ_ONLY_PUBLIC_NETWORK or spec.allowed_dependencies) else None)
-            request = BlockExecutionRequest("capability-builder", "admission", f"attempt-{index + 1}", spec.ref, package.component_ref, package.executor_ref, TaskContext(spec.goal, acceptance=spec.acceptance), {"value": example["input"]}, timeout_seconds=5)
-            result = executor.execute(request)
-            if not result.succeeded or materialize_json(result.outputs.get("result")) != example["output"]:
-                return False
-        return True
-
-    @staticmethod
-    def _verify(root: pathlib.Path) -> tuple[bool, str]:
-        environment = dict(__import__("os").environ); environment["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"; environment["PYTHONDONTWRITEBYTECODE"] = "1"
-        result = subprocess.run([sys.executable, "-m", "pytest", "-q"], cwd=root, capture_output=True, text=True, timeout=60, env=environment)
-        return result.returncode == 0, "" if result.returncode == 0 else (result.stdout + "\n" + result.stderr)[-4000:]
+    def _complete_existing(self, root: pathlib.Path, spec: CapabilitySpec, route_snapshot_hash: str, failure_evidence: Mapping[str, Any]) -> CandidateGenerationResult:
+        started_at, attempt_id = utc_now(), f"provider.{uuid.uuid4().hex}"
+        try:
+            completion = self.client.complete(
+                system="Repair one bounded Python capability. Patch only executor.py and return JSON only.",
+                user=json.dumps(self._prompt(root, spec, json.dumps(dict(failure_evidence), ensure_ascii=False, sort_keys=True)), ensure_ascii=False, sort_keys=True),
+                schema_name="capability_candidate_patch", schema=WORKER_SCHEMA, config=self.config,
+            )
+            proposal = validate_worker_proposal(parse_json_object(completion.text), spec.ref)
+            if proposal["needs_escalation"]:
+                raise ValueError(str(proposal["escalation_reason"]))
+            transaction = ScopedFileTransaction(root, WorkerScope(("executor.py", "tests/test_capability.py", "capability.json"), ("executor.py",), protected_paths=("admission.json",), max_actions=1, max_write_files=1, allow_create=False, allow_patch=True))
+            transaction.apply(proposal["actions"])
+            usage = dict(completion.usage)
+            receipt = ProviderAttemptReceipt(attempt_id, "REPAIR", self.provider_id, str(completion.model), str(completion.request_id), str(completion.request_id), route_snapshot_hash, started_at, utc_now(), "PASS", "", False, {}, usage, usage.get("estimated_cost", "UNKNOWN"), False)
+            return CandidateGenerationResult(str(root), receipt)
+        except Exception as exc:
+            name = type(exc).__name__.upper()
+            domain = FailureDomain.PROVIDER_TIMEOUT if "TIMEOUT" in name or "TIMEOUT" in str(exc).upper() else FailureDomain.PROVIDER_SCHEMA_FAILURE if isinstance(exc, (ValueError, json.JSONDecodeError)) else FailureDomain.PROVIDER_TRANSPORT_FAILURE
+            shutil.rmtree(root, ignore_errors=True)
+            receipt = ProviderAttemptReceipt(attempt_id, "REPAIR", self.provider_id, self.config.model, "", "", route_snapshot_hash, started_at, utc_now(), "FAIL", domain.value, True, {}, {}, "UNKNOWN", False)
+            return CandidateGenerationResult(None, receipt, domain, f"{type(exc).__name__}: {exc}")
 
     @staticmethod
     def _prompt(root: pathlib.Path, spec: CapabilitySpec, failure: str) -> dict[str, Any]:
@@ -393,6 +394,3 @@ class CapabilityBuilderService:
             rows.extend([f"def test_example_{index}():", f"    assert {call} == {example['output']!r}", ""])
         (root / "tests/test_capability.py").write_text("\n".join(rows), encoding="utf-8")
         (root / "README.md").write_text(f"# {spec.ref}\n\n{spec.goal}\n", encoding="utf-8")
-
-    def _receipt(self, spec: CapabilitySpec, root: pathlib.Path, calls: int, repairs: int, tests: bool, admitted: bool, executed: bool, stored: bool, usage: dict[str, Any], error: str) -> CapabilityBuildReceipt:
-        return CapabilityBuildReceipt(spec.ref, self.provider_id, self.mode, str(root), calls, repairs, tests, admitted, executed, stored, 0, "PASS" if stored else "FAIL", usage, error[:4000])
