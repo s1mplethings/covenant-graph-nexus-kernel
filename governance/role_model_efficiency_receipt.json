@@ -1,10 +1,10 @@
 {
   "kind": "CGKNRoleModelEfficiencyReceipt",
   "schema_version": "1.0",
-  "iteration": "ITER-WORKER-SCOPE-CONTRACT-CLOSURE-037",
-  "source_closure_commit": "e473ad634d27aa04e79fca9b230842b8929a7dfe",
-  "source_tree_sha": "27fe2d91f104f75a6c81cdeee48a80cd739eaf47",
-  "execution_head": "e473ad634d27aa04e79fca9b230842b8929a7dfe",
+  "iteration": "ITER-FAILURE-ROUTING-REPAIR-SEMANTICS-038",
+  "source_closure_commit": "497132af2e65fc0c4834f0f5f3a3bdbf22ba0fe7",
+  "source_tree_sha": "60d77634e6ab2c87338f1ff7813a85f3e8ff90a1",
+  "execution_head": "497132af2e65fc0c4834f0f5f3a3bdbf22ba0fe7",
   "api_lab_dependency": {
     "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
     "branch": "codex/deepseek-thinking-control-20261019",
@@ -13,123 +13,125 @@
     "route_mode": "raw_defer",
     "modified_this_iteration": false
   },
-  "scope_contract": {
-    "invariant": "BLUEPRINT_SCOPE_CONSISTENCY",
-    "max_cohesive_write_files": 5,
-    "visible_paths": "owns union reads",
-    "writable_paths": "owns only",
-    "write_limit_counts_reads": false,
-    "targeted_tests": "PASS_66",
-    "product_direction_gate": "PASS"
+  "retained_qualification_evidence": {
+    "coordinator": "PASS_3_OF_3_NOT_RERUN",
+    "worker_file_bundle": "PASS_NOT_RERUN",
+    "worker_cohesive_unit": "PASS_NOT_RERUN",
+    "reason": "This iteration changed failure routing and PatchBundle repair semantics, not the already-qualified Coordinator or generation route."
   },
-  "provider_evidence_replay": {
-    "status": "PASS_3_OF_3",
-    "provider_calls": 0,
-    "provider_calls_saved": 3,
-    "prompt_hash": "sha256:8f91094999ef4a3aaf04751ca3f3de78ab686101395f428486a72bd809b69bfe",
-    "schema_hash": "sha256:862bee4167fa480046955969236b5e4b055a4478e6b1f52c5c25427884fe1e2b",
-    "blueprint_hash": "sha256:54b69928a0b1a64173c44e840e45bb6c37e4fea7ddacd4c337dde9ea5e5f2937",
-    "unit_hash": "sha256:46b7544798597092e2c7e12fa1a2087f637172943bdd98236d64ff8119bc0b82",
-    "prior_runs": [
-      "worker-real-unit-qualify-1-ccb8b82943",
-      "worker-real-unit-qualify-2-3bec819830",
-      "worker-real-unit-qualify-3-9640ba060b"
-    ],
-    "replay_runs": [
-      "worker-cohesive-replay-1-334b74ff1a",
-      "worker-cohesive-replay-2-7cff9e905b",
-      "worker-cohesive-replay-3-20ba4686df"
-    ],
-    "scope": "PASS_3_OF_3",
-    "syntax": "PASS_3_OF_3",
-    "interface": "PASS_3_OF_3",
-    "atomic_apply": "PASS_3_OF_3",
-    "evidence_index": "D:/CGKN/.service_evidence/ITER-WORKER-SCOPE-CONTRACT-CLOSURE-037/worker_scope_replay/index.json"
-  },
-  "fresh_worker_seam": {
+  "failure_routing_contract": {
     "status": "PASS",
-    "run_id": "worker-real-unit-diagnostic-1-c808c5ef78",
+    "generation_incomplete_owner": "CURRENT_GENERATION_UNIT",
+    "generation_without_baseline_action": "RETRY_GENERATION",
+    "repair_requires_materialized_baseline": true,
+    "baseline_identity": "SORTED_PATHS_AND_CANONICAL_CONTENT_HASH",
+    "repair_scope": "NON_EMPTY_SUBSET_OF_UNIT_OWNS",
+    "unresolved_attribution_action": "STOP",
+    "generation_retry_counts_as_repair": false,
+    "targeted_tests": "PASS_75",
+    "compileall": "PASS"
+  },
+  "patch_bundle_v2_probe": {
+    "status": "PASS",
+    "run_id": "worker-patch-probe-8dbae2c198",
     "provider": "deepseek",
     "model": "deepseek-flash",
-    "thinking_requested": "disabled",
-    "thinking_forwarded": "disabled",
     "logical_calls": 1,
     "transport_attempts": 1,
-    "input_tokens": 3387,
-    "output_tokens": 1716,
-    "cached_tokens": 3200,
-    "reasoning_tokens": null,
+    "input_tokens": 2769,
+    "output_tokens": 93,
+    "cached_tokens": 2560,
+    "reasoning_tokens": 38,
+    "total_tokens": 2862,
     "finish_reason": "stop",
-    "valid_candidates": 1,
-    "selection_receipt_hash": "sha256:29b95520f48ec07fbba765fa0a328d8ad76eb5e09651606f96e48df8dbed62a8",
-    "file_count": 4,
+    "selection_receipt_hash": "sha256:ada31f62b34b665156ca4c2dc65fe6a4ad0abe2a382b8c17f8e89a81207d5422",
+    "schema_hash": "sha256:e3f55cce537ea7e18683366100b031dc51b4b139b752cb2fa5b0f83dbbf23f7a",
     "scope": "PASS",
-    "syntax": "PASS",
-    "interface": "PASS",
-    "duration_ms": 7137
+    "interface_guard": "PASS",
+    "pytest": "PASS",
+    "atomic_apply": "PASS",
+    "evidence_root": "D:/CGKN/.service_evidence/ITER-FAILURE-ROUTING-REPAIR-SEMANTICS-038/patch_probe_final"
   },
-  "worker_cohesive_unit_qualification": "PASS",
   "real_csv_single": {
-    "status": "FAIL",
-    "run_id": "blueprint-cli_csv_cleaner-7186e845b3",
-    "blueprint_hash": "sha256:b59b1aab7621d415c0e3ffe4f0cece91a7b4cf9bc73c91038f093504492da220",
+    "status": "FAIL_HIDDEN_ACCEPTANCE_ATTRIBUTION_UNRESOLVED",
+    "run_id": "blueprint-cli_csv_cleaner-79cb5a6750",
+    "blueprint_hash": "sha256:d34984be1d17baf09cd17d34c8714a589842d1688a6ee511bdf42c33b3bac5d4",
+    "units": [
+      {"unit_id": "core-cli", "owned_file_count": 4},
+      {"unit_id": "tests", "owned_file_count": 2},
+      {"unit_id": "docs", "owned_file_count": 1}
+    ],
     "coordinator_calls": 1,
-    "worker_generate_calls": 3,
-    "worker_repair_calls": 2,
+    "worker_generation_calls": 3,
+    "generation_retry_calls": 2,
+    "repair_calls": 0,
     "total_logical_calls": 6,
-    "transport_attempts": 6,
-    "repair_rounds": 2,
+    "call_budget": 8,
+    "repair_rounds": 0,
+    "repair_round_budget": 2,
     "manual_edits": 0,
     "token_totals": {
-      "input_tokens": 35093,
-      "output_tokens": 12959,
+      "input_tokens": 42252,
+      "output_tokens": 7473,
+      "cached_tokens": 11136,
       "actual_usage_complete": true,
-      "estimated_cost": 0.061011
+      "estimated_cost": 0.057198
     },
-    "coordinator_tokens": {
-      "input_tokens": 612,
-      "output_tokens": 1174,
-      "cached_tokens": null,
-      "reasoning_tokens": null,
-      "usage_status": "REPORTED_WITHOUT_DETAIL_BREAKDOWN"
+    "role_tokens": {
+      "coordinator": {"input_tokens": 612, "output_tokens": 1158, "cached_tokens": 384, "reasoning_tokens": null},
+      "generation": {"input_tokens": 20582, "output_tokens": 3155, "cached_tokens": 384, "reasoning_tokens": null},
+      "generation_retry": {"input_tokens": 21058, "output_tokens": 3160, "cached_tokens": 10368, "reasoning_tokens": null},
+      "repair": {"input_tokens": 0, "output_tokens": 0, "cached_tokens": 0, "reasoning_tokens": 0}
     },
-    "worker_generate_tokens": {
-      "input_tokens": 13288,
-      "output_tokens": 3786,
-      "cached_tokens": 384,
-      "reasoning_tokens": null
+    "generation_failure_chain": [
+      {
+        "origin_unit_id": "tests",
+        "owner_unit_id": "tests",
+        "failure_stage": "UNIT_OUTPUT_VALIDATION",
+        "failure_type": "UNIT_OUTPUT_INCOMPLETE",
+        "materialized_baseline": false,
+        "recovery_action": "RETRY_GENERATION"
+      },
+      {
+        "origin_unit_id": "tests",
+        "owner_unit_id": "tests",
+        "failure_stage": "UNIT_OUTPUT_VALIDATION",
+        "failure_type": "UNIT_OUTPUT_INCOMPLETE",
+        "materialized_baseline": false,
+        "recovery_action": "RETRY_GENERATION"
+      }
+    ],
+    "compile": "PASS",
+    "pytest": "PASS",
+    "runtime_smoke": "PASS",
+    "hidden_acceptance": "FAIL",
+    "failed_requirement_ids": ["public-requirement-1"],
+    "terminal_failure": {
+      "origin_unit_id": "external_acceptance",
+      "owner_unit_id": null,
+      "failure_stage": "ACCEPTANCE",
+      "failure_type": "ATTRIBUTION_UNRESOLVED",
+      "materialized_baseline": false,
+      "recovery_action": "STOP",
+      "failure_report_hash": "sha256:0158c19d74e60f874a48b016dcd51ea2c062fc21a1f804725f5e372cf2a2feb8"
     },
-    "worker_repair_tokens": {
-      "input_tokens": 21193,
-      "output_tokens": 7999,
-      "cached_tokens": 2688,
-      "reasoning_tokens": 6811
-    },
-    "first_failure": "tests FileBundle contained tests/test_cleaning.py but omitted owned tests/test_cli.py",
-    "owner_attribution": "tests failure fell back to core-cli",
-    "repair_1": "PatchBundle rejected because csv_cleaner/cleaning.py appeared twice",
-    "repair_2": "PatchBundle touched two of four core-cli owned files and was rejected by the current exact-owns equality rule",
-    "compile": "BLOCKED",
-    "pytest": "BLOCKED",
-    "runtime_smoke": "BLOCKED",
-    "hidden_acceptance": "BLOCKED",
-    "evidence": "D:/CGKN/.service_evidence/ITER-WORKER-SCOPE-CONTRACT-CLOSURE-037/csv_single/blueprint-cli_csv_cleaner-7186e845b3/live-single_receipt.json"
+    "reused_units": ["core-cli", "docs"],
+    "node_wall_time_ms": 29505,
+    "evidence": "D:/CGKN/.service_evidence/ITER-FAILURE-ROUTING-REPAIR-SEMANTICS-038/csv_single/blueprint-cli_csv_cleaner-79cb5a6750/live-single_receipt.json"
   },
-  "real_seeded_repair": "NOT_RUN_DUE_STOP_CONDITION_D",
-  "real_csv_repeatability": "NOT_RUN_DUE_STOP_CONDITION_D",
+  "real_seeded_repair": "NOT_RUN_DUE_STOP_CONDITION_C",
+  "real_csv_repeatability": "NOT_RUN_DUE_STOP_CONDITION_C",
   "regression": {
     "compileall": "PASS",
-    "targeted_tests": "PASS_66",
-    "product_direction_gate": "PASS",
-    "governance_fixture": "NOT_RERUN_DUE_STOP_CONDITION_D",
-    "application_tests": "NOT_RUN_DUE_STOP_CONDITION_D",
-    "kernel_profiles": "NOT_RUN_DUE_STOP_CONDITION_D",
-    "full_pytest": "NOT_RUN_DUE_STOP_CONDITION_D",
+    "targeted_tests": "PASS_75",
+    "application_tests": "NOT_RUN_DUE_STOP_CONDITION_C",
+    "kernel_profiles": "NOT_RUN_DUE_STOP_CONDITION_C",
+    "full_pytest": "NOT_RUN_DUE_STOP_CONDITION_C",
     "kernel_evidence_fresh": false
   },
   "efficiency_experiment_ready": false,
-  "stop_condition": "D",
+  "stop_condition": "C",
   "stop_status": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
   "contains_credentials": false,
-  "receipt_hash": "sha256:6bcfe8685733405121cc38d141036000d7fce58805df4f9ad4a998d38654b553"
+  "receipt_hash": "sha256:323441fd6242d01a38c6b68d2976ac99c63d424f95e72b458448e3eceb15a150"
 }

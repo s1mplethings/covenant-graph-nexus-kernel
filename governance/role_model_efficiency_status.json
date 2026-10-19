@@ -1,21 +1,25 @@
 {
   "kind": "CGKNRoleModelEfficiencyStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-WORKER-SCOPE-CONTRACT-CLOSURE-037",
-  "source_commit": "e473ad634d27aa04e79fca9b230842b8929a7dfe",
+  "iteration": "ITER-FAILURE-ROUTING-REPAIR-SEMANTICS-038",
+  "source_commit": "497132af2e65fc0c4834f0f5f3a3bdbf22ba0fe7",
   "coordinator_qualification": "PASS_3_OF_3",
   "worker_protocol_qualification": true,
   "worker_cohesive_unit_qualification": "PASS",
-  "worker_thinking_root_cause": "CONFIRMED",
+  "worker_patch_bundle_qualification": "PASS_V2_1_OF_1",
+  "failure_routing_status": "PASS",
+  "generation_retry_status": "PASS",
+  "repair_subset_contract": "PASS",
+  "patch_bundle_version": 2,
   "worker_generation_thinking_policy": "disabled",
   "worker_repair_thinking_policy": "default",
-  "failed_provider_calls_recorded": true,
   "minimal_blueprint_status": "PARTIAL",
-  "real_generation_status": "FAIL",
+  "real_generation_status": "FAIL_HIDDEN_ACCEPTANCE",
   "real_repair_status": "NOT_EVALUATED",
+  "csv_repeatability": "NOT_EVALUATED",
   "efficiency_experiment_ready": false,
   "manual_candidate_edits": 0,
-  "stop_condition": "D",
+  "stop_condition": "C",
   "stop_status": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
   "api_lab_dependency": {
     "commit": "999dff096afe45f058fe67016aee28a73912d5d4",
@@ -28,7 +32,7 @@
     {
       "priority": "P0",
       "code": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
-      "detail": "CSV Single failed after the allowed two repair rounds because incomplete tests generation was misattributed to core-cli and the subsequent repair payloads did not satisfy current PatchBundle path rules."
+      "detail": "CSV Single stopped fail-closed after hidden acceptance failed without safely attributable owner evidence; Seeded Repair and CSV repeatability were not started."
     }
   ]
 }
