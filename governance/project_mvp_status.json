@@ -1,7 +1,7 @@
 {
   "kind": "CGKNProjectMVPStatus",
   "schema_version": "1.0",
-  "source_commit": "WORKING_TREE",
+  "source_commit": "b93ddbcce0d6cdb335178ef6a87994c854cf0042",
   "minimal_blueprint_status": "PARTIAL",
   "real_generation": "BLOCKED_PROVIDER",
   "real_repair": "NOT_EVALUATED",
