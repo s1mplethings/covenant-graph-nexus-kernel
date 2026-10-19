@@ -1,37 +1,58 @@
 {
   "kind": "CGKNRoleModelEfficiencyStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-COORDINATOR-QUALIFICATION-CLOSURE-034",
-  "source_commit": "d561da30dfe148175b53ea708ff52d8f826cd696",
+  "iteration": "ITER-DEEPSEEK-THINKING-ROUTE-CLOSURE-035",
+  "source_commit": "85d1b8b8d4bdcd7676897e9c45c17cd3485b9f81",
   "ingress_status": "PASS",
   "api_lab_dependency": {
     "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
-    "branch": "codex/raw-defer-structured-output-20261019",
-    "commit": "7380ee48681442426290d88c5c3496f567a990e1",
-    "contract_version": "1.0",
+    "branch": "codex/deepseek-thinking-control-20261019",
+    "commit": "999dff096afe45f058fe67016aee28a73912d5d4",
+    "contract_version": "1.1",
     "route_mode": "raw_defer",
     "selector_authority": "CGKN",
     "selector_version": "1.0",
     "transport_method": "api_lab_gateway",
     "status": "PASS"
   },
+  "coordinator_thinking_policy": "disabled",
+  "coordinator_reasoning_effort": "none",
+  "coordinator_reasoning_tokens": null,
+  "thinking_root_cause_status": "CONFIRMED",
   "minimal_blueprint_status": "PARTIAL",
-  "coordinator_qualification": "COORDINATOR_NOT_QUALIFIED",
-  "worker_file_bundle_qualification": "NOT_EVALUATED",
-  "worker_patch_bundle_qualification": "NOT_EVALUATED",
-  "real_csv_single": "NOT_EVALUATED",
-  "real_csv_repeatability": "NOT_EVALUATED",
-  "real_seeded_repair": "NOT_EVALUATED",
-  "real_generation_status": "NOT_EVALUATED",
+  "coordinator_qualification": "PASS_3_OF_3",
+  "coordinator_efficiency": {
+    "median_input_tokens": 612,
+    "median_output_tokens": 893,
+    "median_reasoning_tokens": null,
+    "median_duration_ms": 4519,
+    "status": "PASS_IDEAL_OUTPUT_TARGET"
+  },
+  "worker_file_bundle_qualification": "PASS",
+  "worker_patch_bundle_qualification": "PASS",
+  "real_csv_single": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
+  "real_csv_repeatability": "NOT_RUN_DUE_STOP_CONDITION",
+  "real_seeded_repair": "NOT_RUN_DUE_STOP_CONDITION",
+  "real_generation_status": "FAIL",
   "real_repair_status": "NOT_EVALUATED",
   "efficiency_experiment_ready": false,
-  "worker_runs": 0,
+  "worker_runs": 2,
   "manual_candidate_edits": 0,
   "blockers": [
     {
       "priority": "P0",
-      "code": "COORDINATOR_NOT_QUALIFIED",
-      "detail": "Fresh Coordinator qualification was 0/3 because every DeepSeek response was PROVIDER_OUTPUT_TRUNCATED at the fixed 3500-token output limit."
+      "code": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
+      "detail": "The qualified default-thinking Worker route succeeds for minimal FileBundle and PatchBundle probes but truncates a cohesive 4-file implementation bundle at 6000 tokens for three consecutive affected-unit attempts."
+    },
+    {
+      "priority": "P1",
+      "code": "FAILED_WORKER_RECEIPT_PROPAGATION",
+      "detail": "Failed generation selection evidence is available at the gateway boundary but is not retained in the project-level provider call list."
+    },
+    {
+      "priority": "P1",
+      "code": "KERNEL_REGRESSION_GOVERNANCE_FIXTURE_DIRTY",
+      "detail": "Boundary and security Kernel profiles each fail test_strict_experiments_record_history_and_cli at the fixture clean-worktree gate."
     }
   ]
 }
