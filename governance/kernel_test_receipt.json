@@ -1,9 +1,9 @@
 {
   "kind": "CGKNKernelTestReceipt",
   "schema_version": "1.0",
-  "source_commit": "84e75b5a4e7d7e62f54b8014c0938d6dbefe281e",
-  "source_tree_sha": "d967b4ecd559c4dbba4c15a3fe5743027f56b798",
-  "core_source_hash": "sha256:09ac30e17d6658bfa86d572ef97ae38fedc48794597f9fa51e4f384b48acbb2f",
+  "source_commit": "d561da30dfe148175b53ea708ff52d8f826cd696",
+  "source_tree_sha": "4dc1cb2b44060ce4136b0b6a7d4f62254012caed",
+  "core_source_hash": "sha256:a61fb66ba2a673fb9f7f08561578d93e112a45b380356ce398626aff50d7bd49",
   "commands": [
     {
       "argv": [
@@ -77,7 +77,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-unit-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-unit-0.xml"
       ],
       "returncode": 0
     },
@@ -108,7 +108,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-boundary-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-boundary-0.xml"
       ],
       "returncode": 0
     },
@@ -139,7 +139,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-fault-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-fault-0.xml"
       ],
       "returncode": 0
     },
@@ -170,7 +170,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-security-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-security-0.xml"
       ],
       "returncode": 0
     },
@@ -201,7 +201,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-local-functional-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-local-functional-0.xml"
       ],
       "returncode": 0
     },
@@ -230,7 +230,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-full-core-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-full-core-0.xml"
       ],
       "returncode": 0
     },
@@ -240,7 +240,7 @@
         "-m",
         "pytest",
         "-q",
-        "--junitxml=D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-active-repository-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-active-repository-0.xml"
       ],
       "returncode": 0
     },
@@ -252,17 +252,17 @@
         "-q",
         "-m",
         "live_provider",
-        "--junitxml=D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-live-provider-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-live-provider-0.xml"
       ],
       "returncode": 0
     }
   ],
   "totals": {
-    "passed": 3970,
+    "passed": 3982,
     "failed": 0,
     "errors": 0,
     "skipped": 356,
-    "duration_seconds": 1534.36
+    "duration_seconds": 1791.18
   },
   "test_node_ids": [
     "tests/agent/test_agent_mvp.py::test_failed_test_triggers_affected_only_retry",
@@ -555,6 +555,12 @@
     "tests/application/software_project/test_service_fake_provider.py::test_missing_provider_usage_is_not_reported_as_zero",
     "tests/application/software_project/test_snapshot.py::test_snapshot_hashes_files_and_excludes_runtime_artifacts",
     "tests/application/test_materialization.py::test_nested_immutable_dataclass_materializes_to_json_primitives",
+    "tests/application/test_project_blueprint.py::test_assembler_expands_defaults_checks_and_stable_hash",
+    "tests/application/test_project_blueprint.py::test_assembler_rejects_invalid_paths_ownership_and_dependencies[units0-unsafe]",
+    "tests/application/test_project_blueprint.py::test_assembler_rejects_invalid_paths_ownership_and_dependencies[units1-ownership collision]",
+    "tests/application/test_project_blueprint.py::test_assembler_rejects_invalid_paths_ownership_and_dependencies[units2-invalid dependency]",
+    "tests/application/test_project_blueprint.py::test_assembler_rejects_invalid_paths_ownership_and_dependencies[units3-cycle]",
+    "tests/application/test_project_blueprint.py::test_assembler_requires_tests_and_readme_coverage",
     "tests/application/test_project_blueprint.py::test_blueprint_rejects_invalid_structure[units0-duplicate unit]",
     "tests/application/test_project_blueprint.py::test_blueprint_rejects_invalid_structure[units1-ownership collision]",
     "tests/application/test_project_blueprint.py::test_blueprint_rejects_invalid_structure[units2-cycle]",
@@ -563,6 +569,8 @@
     "tests/application/test_project_blueprint.py::test_file_and_patch_bundles_are_strict_and_mutually_exclusive",
     "tests/application/test_project_blueprint.py::test_freeze_requires_acceptance_and_edit_is_atomic",
     "tests/application/test_project_blueprint.py::test_interface_extractor_is_stable_and_guard_detects_breaks",
+    "tests/application/test_project_blueprint.py::test_minimal_payload_rejects_unit_and_file_count_limits",
+    "tests/application/test_project_blueprint.py::test_minimal_payload_round_trip_and_strict_schema",
     "tests/application/test_project_loop.py::test_fake_greenfield_runs_real_filesystem_pytest_and_hidden_acceptance",
     "tests/application/test_project_loop.py::test_fake_repair_preserves_blueprint_and_reruns_only_owner_and_checks",
     "tests/application/verification/test_contract_test_compiler.py::test_compiler_is_deterministic_and_covers_every_obligation_and_oracle",
@@ -927,6 +935,7 @@
     "tests/providers/test_gateway_client.py::test_chat_completions_compatibility_path_preserves_schema",
     "tests/providers/test_gateway_client.py::test_chat_extraction_rejects_invalid_and_truncated_choices",
     "tests/providers/test_gateway_client.py::test_fallback_configuration_is_rejected",
+    "tests/providers/test_gateway_client.py::test_gateway_binds_versioned_raw_defer_metadata_and_receipt",
     "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/admin-token-responses-path]",
     "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/v1--responses-token]",
     "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/v1-token-other-method]",
@@ -949,7 +958,7 @@
     "tests/providers/test_gateway_client.py::test_timeout_after_send_is_outcome_unknown_and_not_retried",
     "tests/providers/test_structured_output_selector.py::test_receipt_does_not_persist_secret_text",
     "tests/providers/test_structured_output_selector.py::test_schema_echo_is_never_selected",
-    "tests/providers/test_structured_output_selector.py::test_selector_uses_the_production_blueprint_edit_schema",
+    "tests/providers/test_structured_output_selector.py::test_selector_uses_the_production_minimal_blueprint_schema",
     "tests/providers/test_structured_output_selector.py::test_two_valid_candidates_are_ambiguous",
     "tests/providers/test_structured_output_selector.py::test_unique_schema_valid_candidate_is_selected[envelope]",
     "tests/providers/test_structured_output_selector.py::test_unique_schema_valid_candidate_is_selected[fenced]",
@@ -2779,7 +2788,7 @@
     {
       "profile": "static",
       "status": "PASS",
-      "duration_ms": 12783,
+      "duration_ms": 25587,
       "commands": [
         {
           "argv": [
@@ -2837,7 +2846,7 @@
             "scripts/kernel_source_identity.py"
           ],
           "returncode": 0,
-          "stdout_tail": "{\n  \"kind\": \"CGKNKernelSourceIdentity\",\n  \"schema_version\": \"1.0\",\n  \"source_commit\": \"84e75b5a4e7d7e62f54b8014c0938d6dbefe281e\",\n  \"source_tree_sha\": \"d967b4ecd559c4dbba4c15a3fe5743027f56b798\",\n  \"core_source_hash\": \"sha256:09ac30e17d6658bfa86d572ef97ae38fedc48794597f9fa51e4f384b48acbb2f\",\n  \"test_source_hash\": \"sha256:f49010a02096a6932053fc2697f4af222541885557cb5847297580d71a4d63dc\",\n  \"authority_manifest_hash\": \"sha256:d18753442656bd4bcb79d9a2a545f12000a845fc9f8c45fbbf2cb4d1026ffc1e\",\n  \"coverage_manifest_hash\": \"sha256:43933f9e59ccc87623b2a111202cfc23fbe9f43569d37ef356ecb38eb8d0d720\",\n  \"core_path_count\": 115,\n  \"test_path_count\": 278\n}\n",
+          "stdout_tail": "{\n  \"kind\": \"CGKNKernelSourceIdentity\",\n  \"schema_version\": \"1.0\",\n  \"source_commit\": \"d561da30dfe148175b53ea708ff52d8f826cd696\",\n  \"source_tree_sha\": \"4dc1cb2b44060ce4136b0b6a7d4f62254012caed\",\n  \"core_source_hash\": \"sha256:a61fb66ba2a673fb9f7f08561578d93e112a45b380356ce398626aff50d7bd49\",\n  \"test_source_hash\": \"sha256:321021c0fcda6d1d6f32114d44a22f1c16bc55d23c8ef2d092ea40b5e3829a05\",\n  \"authority_manifest_hash\": \"sha256:d18753442656bd4bcb79d9a2a545f12000a845fc9f8c45fbbf2cb4d1026ffc1e\",\n  \"coverage_manifest_hash\": \"sha256:43933f9e59ccc87623b2a111202cfc23fbe9f43569d37ef356ecb38eb8d0d720\",\n  \"core_path_count\": 115,\n  \"test_path_count\": 278\n}\n",
           "stderr_tail": ""
         }
       ],
@@ -2854,7 +2863,7 @@
     {
       "profile": "unit",
       "status": "PASS",
-      "duration_ms": 138739,
+      "duration_ms": 154547,
       "commands": [
         {
           "argv": [
@@ -2881,10 +2890,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-unit-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-unit-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "........................................s............................... [ 15%]\n........................................................................ [ 30%]\n........................................................................ [ 45%]\n........................................................................ [ 61%]\n........................................................................ [ 76%]\n........................................................................ [ 91%]\n.......................................                                  [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-unit-0.xml -\n470 passed, 1 skipped in 136.69s (0:02:16)\n",
+          "stdout_tail": "........................................s............................... [ 15%]\n........................................................................ [ 30%]\n........................................................................ [ 45%]\n........................................................................ [ 61%]\n........................................................................ [ 76%]\n........................................................................ [ 91%]\n........................................                                 [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-unit-0.xml -\n471 passed, 1 skipped in 153.66s (0:02:33)\n",
           "stderr_tail": ""
         }
       ],
@@ -3196,6 +3205,7 @@
         "tests/providers/test_gateway_client.py::test_chat_completions_compatibility_path_preserves_schema",
         "tests/providers/test_gateway_client.py::test_chat_extraction_rejects_invalid_and_truncated_choices",
         "tests/providers/test_gateway_client.py::test_fallback_configuration_is_rejected",
+        "tests/providers/test_gateway_client.py::test_gateway_binds_versioned_raw_defer_metadata_and_receipt",
         "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/admin-token-responses-path]",
         "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/v1--responses-token]",
         "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/v1-token-other-method]",
@@ -3218,7 +3228,7 @@
         "tests/providers/test_gateway_client.py::test_timeout_after_send_is_outcome_unknown_and_not_retried",
         "tests/providers/test_structured_output_selector.py::test_receipt_does_not_persist_secret_text",
         "tests/providers/test_structured_output_selector.py::test_schema_echo_is_never_selected",
-        "tests/providers/test_structured_output_selector.py::test_selector_uses_the_production_blueprint_edit_schema",
+        "tests/providers/test_structured_output_selector.py::test_selector_uses_the_production_minimal_blueprint_schema",
         "tests/providers/test_structured_output_selector.py::test_two_valid_candidates_are_ambiguous",
         "tests/providers/test_structured_output_selector.py::test_unique_schema_valid_candidate_is_selected[envelope]",
         "tests/providers/test_structured_output_selector.py::test_unique_schema_valid_candidate_is_selected[fenced]",
@@ -3365,7 +3375,7 @@
       ],
       "failed_test_node_ids": [],
       "totals": {
-        "passed": 470,
+        "passed": 471,
         "failed": 0,
         "errors": 0,
         "skipped": 1
@@ -3374,7 +3384,7 @@
     {
       "profile": "boundary",
       "status": "PASS",
-      "duration_ms": 113597,
+      "duration_ms": 132288,
       "commands": [
         {
           "argv": [
@@ -3403,10 +3413,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-boundary-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-boundary-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "...........................s............................................ [ 22%]\n........................................................................ [ 45%]\n........................................................................ [ 68%]\n........................................................................ [ 90%]\n.............................                                            [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-boundary-0.xml -\n316 passed, 1 skipped, 154 deselected in 111.10s (0:01:51)\n",
+          "stdout_tail": "...........................s............................................ [ 22%]\n........................................................................ [ 45%]\n........................................................................ [ 67%]\n........................................................................ [ 90%]\n..............................                                           [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-boundary-0.xml -\n317 passed, 1 skipped, 154 deselected in 131.31s (0:02:11)\n",
           "stderr_tail": ""
         }
       ],
@@ -3652,6 +3662,7 @@
         "tests/providers/test_gateway_client.py::test_chat_completions_compatibility_path_preserves_schema",
         "tests/providers/test_gateway_client.py::test_chat_extraction_rejects_invalid_and_truncated_choices",
         "tests/providers/test_gateway_client.py::test_fallback_configuration_is_rejected",
+        "tests/providers/test_gateway_client.py::test_gateway_binds_versioned_raw_defer_metadata_and_receipt",
         "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/admin-token-responses-path]",
         "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/v1--responses-token]",
         "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/v1-token-other-method]",
@@ -3733,7 +3744,7 @@
       ],
       "failed_test_node_ids": [],
       "totals": {
-        "passed": 316,
+        "passed": 317,
         "failed": 0,
         "errors": 0,
         "skipped": 1
@@ -3742,7 +3753,7 @@
     {
       "profile": "fault",
       "status": "PASS",
-      "duration_ms": 6719,
+      "duration_ms": 8519,
       "commands": [
         {
           "argv": [
@@ -3771,10 +3782,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-fault-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-fault-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "........................................................................ [ 90%]\n........                                                                 [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-fault-0.xml -\n80 passed, 391 deselected in 5.55s\n",
+          "stdout_tail": "........................................................................ [ 90%]\n........                                                                 [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-fault-0.xml -\n80 passed, 392 deselected in 6.00s\n",
           "stderr_tail": ""
         }
       ],
@@ -3872,7 +3883,7 @@
     {
       "profile": "security",
       "status": "PASS",
-      "duration_ms": 80372,
+      "duration_ms": 93949,
       "commands": [
         {
           "argv": [
@@ -3901,10 +3912,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-security-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-security-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "....................s................................................... [ 60%]\n................................................                         [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-security-0.xml -\n119 passed, 1 skipped, 351 deselected in 79.55s (0:01:19)\n",
+          "stdout_tail": "....................s................................................... [ 60%]\n................................................                         [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-security-0.xml -\n119 passed, 1 skipped, 352 deselected in 91.41s (0:01:31)\n",
           "stderr_tail": ""
         }
       ],
@@ -4043,7 +4054,7 @@
     {
       "profile": "local-functional",
       "status": "PASS",
-      "duration_ms": 23789,
+      "duration_ms": 17572,
       "commands": [
         {
           "argv": [
@@ -4072,10 +4083,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-local-functional-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-local-functional-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "......                                                                   [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-local-functional-0.xml -\n6 passed, 465 deselected in 21.62s\n",
+          "stdout_tail": "......                                                                   [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-local-functional-0.xml -\n6 passed, 466 deselected in 16.51s\n",
           "stderr_tail": ""
         }
       ],
@@ -4099,7 +4110,7 @@
     {
       "profile": "full-core",
       "status": "PASS",
-      "duration_ms": 140635,
+      "duration_ms": 167265,
       "commands": [
         {
           "argv": [
@@ -4126,10 +4137,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-full-core-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-full-core-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "........................................s............................... [ 15%]\n........................................................................ [ 30%]\n........................................................................ [ 45%]\n........................................................................ [ 61%]\n........................................................................ [ 76%]\n........................................................................ [ 91%]\n.......................................                                  [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-full-core-0.xml -\n470 passed, 1 skipped in 139.77s (0:02:19)\n",
+          "stdout_tail": "........................................s............................... [ 15%]\n........................................................................ [ 30%]\n........................................................................ [ 45%]\n........................................................................ [ 61%]\n........................................................................ [ 76%]\n........................................................................ [ 91%]\n........................................                                 [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-full-core-0.xml -\n471 passed, 1 skipped in 166.32s (0:02:46)\n",
           "stderr_tail": ""
         }
       ],
@@ -4441,6 +4452,7 @@
         "tests/providers/test_gateway_client.py::test_chat_completions_compatibility_path_preserves_schema",
         "tests/providers/test_gateway_client.py::test_chat_extraction_rejects_invalid_and_truncated_choices",
         "tests/providers/test_gateway_client.py::test_fallback_configuration_is_rejected",
+        "tests/providers/test_gateway_client.py::test_gateway_binds_versioned_raw_defer_metadata_and_receipt",
         "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/admin-token-responses-path]",
         "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/v1--responses-token]",
         "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/v1-token-other-method]",
@@ -4463,7 +4475,7 @@
         "tests/providers/test_gateway_client.py::test_timeout_after_send_is_outcome_unknown_and_not_retried",
         "tests/providers/test_structured_output_selector.py::test_receipt_does_not_persist_secret_text",
         "tests/providers/test_structured_output_selector.py::test_schema_echo_is_never_selected",
-        "tests/providers/test_structured_output_selector.py::test_selector_uses_the_production_blueprint_edit_schema",
+        "tests/providers/test_structured_output_selector.py::test_selector_uses_the_production_minimal_blueprint_schema",
         "tests/providers/test_structured_output_selector.py::test_two_valid_candidates_are_ambiguous",
         "tests/providers/test_structured_output_selector.py::test_unique_schema_valid_candidate_is_selected[envelope]",
         "tests/providers/test_structured_output_selector.py::test_unique_schema_valid_candidate_is_selected[fenced]",
@@ -4610,7 +4622,7 @@
       ],
       "failed_test_node_ids": [],
       "totals": {
-        "passed": 470,
+        "passed": 471,
         "failed": 0,
         "errors": 0,
         "skipped": 1
@@ -4619,7 +4631,7 @@
     {
       "profile": "active-repository",
       "status": "PASS",
-      "duration_ms": 1014245,
+      "duration_ms": 1186950,
       "commands": [
         {
           "argv": [
@@ -4627,10 +4639,10 @@
             "-m",
             "pytest",
             "-q",
-            "--junitxml=D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-active-repository-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-active-repository-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "........sssssssssssssssssssssssssssssssssssssssssssssssss [ 40%]\nsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss... [ 42%]\n........................................................................ [ 45%]\n................sssss................................................... [ 47%]\n.......sss.............................................................. [ 50%]\n........s............................................................... [ 52%]\n........................................................................ [ 55%]\n........................................................................ [ 57%]\n........................................................................ [ 60%]\n........................................................................ [ 62%]\n........................................................................ [ 65%]\n........................................................................ [ 67%]\n..................................ss.................................... [ 70%]\n..................sssssss............................................... [ 73%]\n...............................................s........................ [ 75%]\n.................ssss.s..s.s............................................ [ 78%]\n...........................................................s............ [ 80%]\n.......................................................ssssssssssssssss. [ 83%]\n..................................................................ssssss [ 85%]\n...............................................................ssss..... [ 88%]\n..................................................................ssssss [ 90%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 93%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 95%]\n...........................ssssssssssssssssssss..s...................... [ 98%]\n................................................ssss                     [100%]\n============================== warnings summary ===============================\ntests/test_canonical_delivery_manifest.py::CanonicalDeliveryManifestTests::test_malicious_duplicate_and_corrupt_zip_are_rejected\n  D:\\anaconda\\Lib\\zipfile\\__init__.py:1607: UserWarning: Duplicate name: 'same.txt'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\n  D:\\CGKN\\.service_worktree\\role-model-efficiency\\tests\\test_knowledge_schemas.py:20: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    from jsonschema import Draft202012Validator, RefResolver  # type: ignore\n\ntests/test_provider_causal_trace.py::test_causal_trace_schema_hash_and_independent_inspector\n  D:\\CGKN\\.service_worktree\\role-model-efficiency\\tests\\test_provider_causal_trace.py:302: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    resolver = jsonschema.RefResolver.from_schema(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n- generated xml file: D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-active-repository-0.xml -\n2509 passed, 351 skipped, 4 warnings in 1012.37s (0:16:52)\n",
+          "stdout_tail": "sssssssssssssssssssss [ 40%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 42%]\nssssss.................................................................. [ 45%]\n.........................sssss.......................................... [ 47%]\n................sss..................................................... [ 50%]\n.................s...................................................... [ 52%]\n........................................................................ [ 55%]\n........................................................................ [ 57%]\n........................................................................ [ 60%]\n........................................................................ [ 62%]\n........................................................................ [ 65%]\n........................................................................ [ 67%]\n...........................................ss........................... [ 70%]\n...........................sssssss...................................... [ 72%]\n........................................................s............... [ 75%]\n..........................ssss.s..s.s................................... [ 77%]\n....................................................................s... [ 80%]\n................................................................ssssssss [ 82%]\nssssssss................................................................ [ 85%]\n...ssssss............................................................... [ 87%]\nssss.................................................................... [ 90%]\n...sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 92%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 95%]\nsssssssss...........................ssssssssssssssssssss..s............. [ 97%]\n.........................................................ssss            [100%]\n============================== warnings summary ===============================\ntests/test_canonical_delivery_manifest.py::CanonicalDeliveryManifestTests::test_malicious_duplicate_and_corrupt_zip_are_rejected\n  D:\\anaconda\\Lib\\zipfile\\__init__.py:1607: UserWarning: Duplicate name: 'same.txt'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\n  D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\tests\\test_knowledge_schemas.py:20: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    from jsonschema import Draft202012Validator, RefResolver  # type: ignore\n\ntests/test_provider_causal_trace.py::test_causal_trace_schema_hash_and_independent_inspector\n  D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\tests\\test_provider_causal_trace.py:302: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    resolver = jsonschema.RefResolver.from_schema(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-active-repository-0.xml -\n2518 passed, 351 skipped, 4 warnings in 1185.03s (0:19:45)\n",
           "stderr_tail": ""
         }
       ],
@@ -4925,6 +4937,12 @@
         "tests/application/software_project/test_service_fake_provider.py::test_missing_provider_usage_is_not_reported_as_zero",
         "tests/application/software_project/test_snapshot.py::test_snapshot_hashes_files_and_excludes_runtime_artifacts",
         "tests/application/test_materialization.py::test_nested_immutable_dataclass_materializes_to_json_primitives",
+        "tests/application/test_project_blueprint.py::test_assembler_expands_defaults_checks_and_stable_hash",
+        "tests/application/test_project_blueprint.py::test_assembler_rejects_invalid_paths_ownership_and_dependencies[units0-unsafe]",
+        "tests/application/test_project_blueprint.py::test_assembler_rejects_invalid_paths_ownership_and_dependencies[units1-ownership collision]",
+        "tests/application/test_project_blueprint.py::test_assembler_rejects_invalid_paths_ownership_and_dependencies[units2-invalid dependency]",
+        "tests/application/test_project_blueprint.py::test_assembler_rejects_invalid_paths_ownership_and_dependencies[units3-cycle]",
+        "tests/application/test_project_blueprint.py::test_assembler_requires_tests_and_readme_coverage",
         "tests/application/test_project_blueprint.py::test_blueprint_rejects_invalid_structure[units0-duplicate unit]",
         "tests/application/test_project_blueprint.py::test_blueprint_rejects_invalid_structure[units1-ownership collision]",
         "tests/application/test_project_blueprint.py::test_blueprint_rejects_invalid_structure[units2-cycle]",
@@ -4933,6 +4951,8 @@
         "tests/application/test_project_blueprint.py::test_file_and_patch_bundles_are_strict_and_mutually_exclusive",
         "tests/application/test_project_blueprint.py::test_freeze_requires_acceptance_and_edit_is_atomic",
         "tests/application/test_project_blueprint.py::test_interface_extractor_is_stable_and_guard_detects_breaks",
+        "tests/application/test_project_blueprint.py::test_minimal_payload_rejects_unit_and_file_count_limits",
+        "tests/application/test_project_blueprint.py::test_minimal_payload_round_trip_and_strict_schema",
         "tests/application/test_project_loop.py::test_fake_greenfield_runs_real_filesystem_pytest_and_hidden_acceptance",
         "tests/application/test_project_loop.py::test_fake_repair_preserves_blueprint_and_reruns_only_owner_and_checks",
         "tests/application/verification/test_contract_test_compiler.py::test_compiler_is_deterministic_and_covers_every_obligation_and_oracle",
@@ -5297,6 +5317,7 @@
         "tests/providers/test_gateway_client.py::test_chat_completions_compatibility_path_preserves_schema",
         "tests/providers/test_gateway_client.py::test_chat_extraction_rejects_invalid_and_truncated_choices",
         "tests/providers/test_gateway_client.py::test_fallback_configuration_is_rejected",
+        "tests/providers/test_gateway_client.py::test_gateway_binds_versioned_raw_defer_metadata_and_receipt",
         "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/admin-token-responses-path]",
         "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/v1--responses-token]",
         "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/v1-token-other-method]",
@@ -5319,7 +5340,7 @@
         "tests/providers/test_gateway_client.py::test_timeout_after_send_is_outcome_unknown_and_not_retried",
         "tests/providers/test_structured_output_selector.py::test_receipt_does_not_persist_secret_text",
         "tests/providers/test_structured_output_selector.py::test_schema_echo_is_never_selected",
-        "tests/providers/test_structured_output_selector.py::test_selector_uses_the_production_blueprint_edit_schema",
+        "tests/providers/test_structured_output_selector.py::test_selector_uses_the_production_minimal_blueprint_schema",
         "tests/providers/test_structured_output_selector.py::test_two_valid_candidates_are_ambiguous",
         "tests/providers/test_structured_output_selector.py::test_unique_schema_valid_candidate_is_selected[envelope]",
         "tests/providers/test_structured_output_selector.py::test_unique_schema_valid_candidate_is_selected[fenced]",
@@ -7500,7 +7521,7 @@
       ],
       "failed_test_node_ids": [],
       "totals": {
-        "passed": 2509,
+        "passed": 2518,
         "failed": 0,
         "errors": 0,
         "skipped": 351
@@ -7509,7 +7530,7 @@
     {
       "profile": "live-provider",
       "status": "BLOCKED_ENVIRONMENT",
-      "duration_ms": 3481,
+      "duration_ms": 4503,
       "commands": [
         {
           "argv": [
@@ -7519,10 +7540,10 @@
             "-q",
             "-m",
             "live_provider",
-            "--junitxml=D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-live-provider-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-live-provider-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "s                                                                        [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\role-model-efficiency\\artifacts\\kernel-profile-live-provider-0.xml -\n1 skipped, 2859 deselected in 2.42s\n",
+          "stdout_tail": "s                                                                        [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-live-provider-0.xml -\n1 skipped, 2868 deselected in 3.08s\n",
           "stderr_tail": ""
         }
       ],
@@ -7540,8 +7561,8 @@
       "reason": "live-provider tests were not executed; all selected cases were skipped"
     }
   ],
-  "coverage_file_hash": "sha256:5c2b0d4f6bfa80a8f7f2458e095ad035c664566fdafc0ca6a553c435fff4af40",
-  "generated_at": "2026-10-19T09:51:52.549395+00:00",
+  "coverage_file_hash": "sha256:9610fde9b61b667386d013a1a87e4488fb090b0c19f5cd2bf3b58fb4739f6f27",
+  "generated_at": "2026-10-19T13:26:36.424682+00:00",
   "environment": {
     "python": "3.12.3",
     "platform": "Windows-11-10.0.26200-SP0"
@@ -7551,5 +7572,5 @@
     "secret_persisted": false
   },
   "final_verdict": "PASS",
-  "receipt_hash": "sha256:98b05597af5c9ec7a3f95e4b00c2d27f99c62a8c67d765f2a3583e813c2ec643"
+  "receipt_hash": "sha256:05033eca985d601a913ffe5a9953e1c8b711af01fd8ab09d75f910d341040fbd"
 }
