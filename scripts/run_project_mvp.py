@@ -384,10 +384,13 @@ class _AcceptedBundleReplayClient:
             "selector_version": receipt.get("selector_version") == SELECTOR_VERSION,
             "finish_reason": receipt.get("finish_reason") == "stop",
         }
-        self.identity = checks | {
-            "prompt_hash": prompt_hash, "schema_hash": replay_receipt.schema_hash,
-            "raw_response_hash": replay_receipt.raw_response_hash,
-            "selected_candidate_hash": replay_receipt.selected_candidate_hash,
+        self.identity = {
+            "checks": checks,
+            "hashes": {
+                "prompt_hash": prompt_hash, "schema_hash": replay_receipt.schema_hash,
+                "raw_response_hash": replay_receipt.raw_response_hash,
+                "selected_candidate_hash": replay_receipt.selected_candidate_hash,
+            },
         }
         failed = sorted(key for key, value in checks.items() if value is not True)
         if failed:
@@ -453,7 +456,8 @@ def _worker_cohesive_replay(artifact_root: pathlib.Path, *, replay_index: pathli
             for path in unit.owns
         )
         interface = result.succeeded and _required_interfaces_present(workspace, unit)
-        passed = result.succeeded and len(files) == len(unit.owns) == 4 and syntax and interface and all(replay_client.identity.get(key) is True for key in (
+        identity_checks = dict(replay_client.identity.get("checks") or {})
+        passed = result.succeeded and len(files) == len(unit.owns) == 4 and syntax and interface and all(identity_checks.get(key) is True for key in (
             "provider", "model", "thinking_mode", "reasoning_effort", "operation", "prompt_hash", "schema_hash",
             "raw_response_hash", "selected_candidate_hash", "candidate_count", "valid_candidate_count",
             "api_lab_commit", "selector_version", "finish_reason",
