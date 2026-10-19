@@ -90,6 +90,26 @@ class UnitKind(str, Enum):
     ACCEPTANCE = "acceptance"
 
 
+class FailureStage(str, Enum):
+    PROVIDER_TRANSPORT = "PROVIDER_TRANSPORT"
+    PROVIDER_OUTPUT = "PROVIDER_OUTPUT"
+    UNIT_OUTPUT_VALIDATION = "UNIT_OUTPUT_VALIDATION"
+    MATERIALIZATION = "MATERIALIZATION"
+    SYNTAX_VALIDATION = "SYNTAX_VALIDATION"
+    INTERFACE_VALIDATION = "INTERFACE_VALIDATION"
+    COMPILE = "COMPILE"
+    TEST = "TEST"
+    RUNTIME = "RUNTIME"
+    ACCEPTANCE = "ACCEPTANCE"
+    UNKNOWN = "UNKNOWN"
+
+
+class FailureAction(str, Enum):
+    RETRY_GENERATION = "RETRY_GENERATION"
+    REPAIR_EXISTING = "REPAIR_EXISTING"
+    STOP = "STOP"
+
+
 @dataclass(frozen=True)
 class MinimalBlueprintUnitDesign:
     unit_id: str
@@ -575,7 +595,7 @@ def interface_breaks(old: ObservedInterfaceManifest, new: ObservedInterfaceManif
 
 @dataclass(frozen=True)
 class UnitResult:
-    unit_id: str; status: str; changed_files: tuple[str, ...] = (); produced_artifact_refs: tuple[str, ...] = (); observed_interfaces: tuple[str, ...] = (); test_evidence: tuple[str, ...] = (); provider_usage: tuple[tuple[str, str], ...] = (); duration: int = 0; error: str = ""; result_hash: str = ""
+    unit_id: str; status: str; changed_files: tuple[str, ...] = (); produced_artifact_refs: tuple[str, ...] = (); observed_interfaces: tuple[str, ...] = (); test_evidence: tuple[str, ...] = (); provider_usage: tuple[tuple[str, str], ...] = (); duration: int = 0; error: str = ""; materialized_baseline: bool = False; result_hash: str = ""
 
     def __post_init__(self) -> None:
         if self.status not in {"SUCCEEDED", "FAILED", "BLOCKED", "NEEDS_REVIEW"}: raise ValueError("invalid UnitResult status")
@@ -584,23 +604,33 @@ class UnitResult:
         object.__setattr__(self, "result_hash", expected)
 
     def as_dict(self, *, include_hash: bool = True) -> dict[str, Any]:
-        value = {"unit_id": self.unit_id, "status": self.status, "changed_files": list(self.changed_files), "produced_artifact_refs": list(self.produced_artifact_refs), "observed_interfaces": list(self.observed_interfaces), "test_evidence": list(self.test_evidence), "provider_usage": dict(self.provider_usage), "duration": self.duration, "error": self.error}
+        value = {"unit_id": self.unit_id, "status": self.status, "changed_files": list(self.changed_files), "produced_artifact_refs": list(self.produced_artifact_refs), "observed_interfaces": list(self.observed_interfaces), "test_evidence": list(self.test_evidence), "provider_usage": dict(self.provider_usage), "duration": self.duration, "error": self.error, "materialized_baseline": self.materialized_baseline}
         return value | ({"result_hash": self.result_hash} if include_hash else {})
 
 
 @dataclass(frozen=True)
 class FailureReport:
-    unit_id: str; failure_type: str; owner_file: str = ""; owner_interface: str = ""; first_project_frame: str = ""; failed_check: str = ""; expected: str = ""; observed: str = ""; affected_units: tuple[str, ...] = (); suggested_action: str = ""; evidence_refs: tuple[str, ...] = (); failure_hash: str = ""
+    origin_unit_id: str; failure_type: str; failure_stage: str = FailureStage.UNKNOWN.value; owner_unit_id: str = ""; recovery_action: str = FailureAction.STOP.value; materialized_baseline: bool = False; owner_file: str = ""; owner_interface: str = ""; first_project_frame: str = ""; failed_check: str = ""; expected: str = ""; observed: str = ""; affected_units: tuple[str, ...] = (); suggested_action: str = ""; evidence_refs: tuple[str, ...] = (); failure_hash: str = ""
 
     def __post_init__(self) -> None:
-        allowed = {"SYNTAX_ERROR", "IMPORT_ERROR", "NAME_ERROR", "INTERFACE_MISMATCH", "TEST_FAILURE", "RUNTIME_FAILURE", "SCOPE_VIOLATION", "PROVIDER_FAILURE", "UNKNOWN"}
+        allowed = {"SYNTAX_ERROR", "IMPORT_ERROR", "NAME_ERROR", "INTERFACE_MISMATCH", "TEST_FAILURE", "RUNTIME_FAILURE", "SCOPE_VIOLATION", "PROVIDER_FAILURE", "UNIT_OUTPUT_INCOMPLETE", "UNIT_OUTPUT_SCOPE_VIOLATION", "UNIT_OUTPUT_INVALID", "ATTRIBUTION_UNRESOLVED", "REPAIR_WITHOUT_BASELINE", "UNKNOWN"}
         if self.failure_type not in allowed: raise ValueError("invalid failure type")
+        if self.failure_stage not in {item.value for item in FailureStage}: raise ValueError("invalid failure stage")
+        if self.recovery_action not in {item.value for item in FailureAction}: raise ValueError("invalid failure action")
+        if not self.origin_unit_id: raise ValueError("failure origin is required")
+        if self.recovery_action != FailureAction.STOP.value and not self.owner_unit_id: raise ValueError("recoverable failure requires an owner")
+        if self.recovery_action == FailureAction.REPAIR_EXISTING.value and not self.materialized_baseline: raise ValueError("REPAIR_WITHOUT_BASELINE")
         expected = _hash(self.as_dict(include_hash=False))
         if self.failure_hash and self.failure_hash != expected: raise ValueError("failure hash mismatch")
         object.__setattr__(self, "failure_hash", expected)
 
+    @property
+    def unit_id(self) -> str:
+        """Compatibility alias for the actionable owner, or origin when unresolved."""
+        return self.owner_unit_id or self.origin_unit_id
+
     def as_dict(self, *, include_hash: bool = True) -> dict[str, Any]:
-        value = {"unit_id": self.unit_id, "failure_type": self.failure_type, "owner_file": self.owner_file, "owner_interface": self.owner_interface, "first_project_frame": self.first_project_frame, "failed_check": self.failed_check, "expected": self.expected, "observed": self.observed, "affected_units": list(self.affected_units), "suggested_action": self.suggested_action, "evidence_refs": list(self.evidence_refs)}
+        value = {"unit_id": self.unit_id, "origin_unit_id": self.origin_unit_id, "owner_unit_id": self.owner_unit_id or None, "failure_stage": self.failure_stage, "failure_type": self.failure_type, "recovery_action": self.recovery_action, "materialized_baseline": self.materialized_baseline, "owner_file": self.owner_file, "owner_interface": self.owner_interface, "first_project_frame": self.first_project_frame, "failed_check": self.failed_check, "expected": self.expected, "observed": self.observed, "affected_units": list(self.affected_units), "suggested_action": self.suggested_action, "evidence_refs": list(self.evidence_refs)}
         return value | ({"failure_hash": self.failure_hash} if include_hash else {})
 
 
@@ -620,11 +650,34 @@ class FileBundle:
 
 @dataclass(frozen=True)
 class PatchBundle:
-    unit_id: str; patches: tuple[tuple[str, str, str], ...]; summary: str = ""; needs_escalation: bool = False; escalation_reason: str = ""; schema_version: str = "1.0"; kind: str = "patch_bundle"
+    unit_id: str; files: tuple[tuple[str, tuple[tuple[str, str], ...]], ...]; summary: str = ""; needs_escalation: bool = False; escalation_reason: str = ""; schema_version: str = "2.0"; kind: str = "patch_bundle"
+
+    @property
+    def patches(self) -> tuple[tuple[str, str, str], ...]:
+        """Compatibility view of normalized file-level edits."""
+        return tuple((path, find, replacement) for path, edits in self.files for find, replacement in edits)
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "PatchBundle":
-        if set(value) != {"schema_version", "kind", "unit_id", "patches", "summary", "needs_escalation", "escalation_reason"} or value.get("schema_version") != "1.0" or value.get("kind") != "patch_bundle": raise ValueError("invalid PatchBundle envelope")
-        patches = tuple((_safe_path(str(item["path"])), str(item["find"]), str(item["replace"])) for item in value.get("patches", ()))
-        if not patches or any(not find for _, find, _ in patches) or len({path for path, _, _ in patches}) != len(patches): raise ValueError("PatchBundle patches must be non-empty and path-unique")
-        return cls(str(value["unit_id"]), patches, str(value["summary"]), bool(value["needs_escalation"]), str(value["escalation_reason"]))
+        version = str(value.get("schema_version", ""))
+        if value.get("kind") != "patch_bundle": raise ValueError("invalid PatchBundle envelope")
+        if version == "2.0":
+            if set(value) != {"schema_version", "kind", "unit_id", "files"}: raise ValueError("invalid PatchBundle v2 envelope")
+            files = tuple(
+                (
+                    _safe_path(str(item["path"])),
+                    tuple((str(edit["find"]), str(edit["replace"])) for edit in item.get("edits", ())),
+                )
+                for item in value.get("files", ())
+            )
+            if not files or len({path for path, _ in files}) != len(files): raise ValueError("PatchBundle files must be non-empty and path-unique")
+            if any(not edits or any(not find for find, _ in edits) for _, edits in files): raise ValueError("PatchBundle edits must be non-empty with non-empty find text")
+            return cls(str(value["unit_id"]), files, schema_version=version)
+        if version == "1.0":
+            expected = {"schema_version", "kind", "unit_id", "patches", "summary", "needs_escalation", "escalation_reason"}
+            if set(value) != expected: raise ValueError("invalid PatchBundle v1 envelope")
+            patches = tuple((_safe_path(str(item["path"])), str(item["find"]), str(item["replace"])) for item in value.get("patches", ()))
+            if not patches or any(not find for _, find, _ in patches) or len({path for path, _, _ in patches}) != len(patches): raise ValueError("PatchBundle v1 patches must be non-empty and path-unique")
+            files = tuple((path, ((find, replacement),)) for path, find, replacement in patches)
+            return cls(str(value["unit_id"]), files, str(value["summary"]), bool(value["needs_escalation"]), str(value["escalation_reason"]), version)
+        raise ValueError("invalid PatchBundle envelope")

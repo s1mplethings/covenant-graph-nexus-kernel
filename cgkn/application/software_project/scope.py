@@ -93,13 +93,26 @@ class ScopedFileTransaction:
             elif kind == "patch_file":
                 if relative not in self.targets:
                     raise ScopeViolation("patch_file target is not declared in target_paths")
-                if set(action) != {"action", "path", "find", "replace"} or not self.scope.allow_patch or not target.is_file():
+                if not self.scope.allow_patch or not target.is_file():
                     raise ScopeViolation("invalid scoped patch_file action")
                 before = target.read_text(encoding="utf-8")
-                find = str(action["find"])
-                if not find or before.count(find) != 1:
-                    raise ScopeViolation("patch find text must occur exactly once")
-                content = before.replace(find, str(action["replace"]), 1).encode("utf-8")
+                if set(action) == {"action", "path", "find", "replace"}:
+                    edits = ({"find": action["find"], "replace": action["replace"]},)
+                elif set(action) == {"action", "path", "edits"} and isinstance(action.get("edits"), (list, tuple)):
+                    edits = tuple(action["edits"])
+                else:
+                    raise ScopeViolation("invalid scoped patch_file action")
+                if not edits:
+                    raise ScopeViolation("patch_file edits must be non-empty")
+                updated = before
+                for edit in edits:
+                    if not isinstance(edit, Mapping) or set(edit) != {"find", "replace"}:
+                        raise ScopeViolation("invalid scoped patch edit")
+                    find = str(edit["find"])
+                    if not find or updated.count(find) != 1:
+                        raise ScopeViolation("patch find text must occur exactly once")
+                    updated = updated.replace(find, str(edit["replace"]), 1)
+                content = updated.encode("utf-8")
             else:
                 raise ScopeViolation(f"forbidden worker action: {kind}")
             if relative in planned:

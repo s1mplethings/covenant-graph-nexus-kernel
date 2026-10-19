@@ -9,12 +9,12 @@ import pytest
 from jsonschema import Draft202012Validator
 
 from cgkn.application.project_blueprint import (
-    BlueprintCheck, BlueprintUnit, FailureReport, FileBundle, PatchBundle,
+    BlueprintCheck, BlueprintUnit, FailureAction, FailureReport, FailureStage, FileBundle, PatchBundle,
     MINIMAL_BLUEPRINT_DESIGN_SCHEMA, MinimalBlueprintDesignPayload,
     ProjectBlueprint, apply_blueprint_edits, assemble_project_blueprint,
     extract_python_interface, interface_breaks,
 )
-from cgkn.application.project_loop import compile_blueprint
+from cgkn.application.project_loop import PATCH_BUNDLE_SCHEMA, compile_blueprint
 from cgkn.application.software_project.contracts import MAX_COHESIVE_WRITE_FILES, WorkerScope
 
 
@@ -65,8 +65,12 @@ def test_file_and_patch_bundles_are_strict_and_mutually_exclusive() -> None:
     parsed = FileBundle.from_dict(compact)
     assert parsed.files == (("a.py", "x=1\n"),) and parsed.schema_version == "2.0" and parsed.summary == ""
     with pytest.raises(ValueError): PatchBundle.from_dict(file_value)
-    patch_value = {"schema_version": "1.0", "kind": "patch_bundle", "unit_id": "core", "patches": [{"path": "a.py", "find": "1", "replace": "2"}], "summary": "fix", "needs_escalation": False, "escalation_reason": ""}
+    patch_value = {"schema_version": "2.0", "kind": "patch_bundle", "unit_id": "core", "files": [{"path": "a.py", "edits": [{"find": "1", "replace": "2"}]}]}
     assert PatchBundle.from_dict(patch_value).patches[0][1:] == ("1", "2")
+    Draft202012Validator(PATCH_BUNDLE_SCHEMA).validate(patch_value)
+    legacy = {"schema_version": "1.0", "kind": "patch_bundle", "unit_id": "core", "patches": [{"path": "a.py", "find": "1", "replace": "2"}], "summary": "fix", "needs_escalation": False, "escalation_reason": ""}
+    normalized = PatchBundle.from_dict(legacy)
+    assert normalized.schema_version == "1.0" and normalized.files == (("a.py", (("1", "2"),)),)
 
 
 def test_interface_extractor_is_stable_and_guard_detects_breaks() -> None:
@@ -80,7 +84,7 @@ def test_interface_extractor_is_stable_and_guard_detects_breaks() -> None:
 
 
 def test_failure_report_is_hashable_and_versioned_by_content() -> None:
-    report = FailureReport("core", "TEST_FAILURE", failed_check="pytest", affected_units=("core", "pytest"))
+    report = FailureReport("pytest", "TEST_FAILURE", failure_stage=FailureStage.TEST.value, owner_unit_id="core", recovery_action=FailureAction.REPAIR_EXISTING.value, materialized_baseline=True, failed_check="pytest", affected_units=("core", "pytest"))
     assert hash(report)
     assert report.failure_hash.startswith("sha256:")
 

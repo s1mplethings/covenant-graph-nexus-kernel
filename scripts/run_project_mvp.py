@@ -17,7 +17,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from cgkn.application.project_blueprint import BlueprintUnit, FailureReport, ProjectBlueprint
+from cgkn.application.project_blueprint import BlueprintUnit, FailureAction, FailureReport, FailureStage, ProjectBlueprint
 from cgkn.application.project_loop import BlueprintUnitExecutor, MinimalProjectLoop
 from cgkn.application.software_project.catalog import get_case
 from cgkn.execution import BlockExecutionRequest, TaskContext
@@ -35,6 +35,27 @@ PHASE_B_PROFILES = {"fake-parallel", "fake-conflict", "fake-standup", "live-para
 def _hash(value: Any) -> str:
     raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return "sha256:" + hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def _summarize_calls(calls: list[dict[str, Any]]) -> dict[str, Any]:
+    def token(call: dict[str, Any], name: str) -> int | None:
+        value = call.get(name)
+        if value is None:
+            value = dict(call.get("usage") or {}).get(name)
+        return int(value) if isinstance(value, int) else None
+
+    def total(name: str) -> int | None:
+        values = [token(call, name) for call in calls]
+        return sum(value for value in values if value is not None) if calls and all(value is not None for value in values) else (0 if not calls else None)
+
+    failed = sum(call.get("unit_result") == "FAILED" or call.get("result") == "FAILED" for call in calls)
+    return {
+        "logical_calls": len(calls), "successful_calls": len(calls) - failed, "failed_calls": failed,
+        "prompt_tokens": total("prompt_tokens"), "completion_tokens": total("completion_tokens"),
+        "cached_tokens": total("cached_tokens"), "reasoning_tokens": total("reasoning_tokens"),
+        "finish_reasons": [call.get("finish_reason") or dict(call.get("selection_receipt") or {}).get("finish_reason") for call in calls],
+        "transport_attempts": [call.get("transport_attempts") for call in calls],
+    }
 
 
 def _source_identity() -> dict[str, Any]:
@@ -113,9 +134,21 @@ def _live(profile: str, artifact_root: pathlib.Path) -> dict[str, Any]:
         shutil.copytree(ROOT / get_case(case_id).seeded_fixture, workspace)
         owners = [unit.unit_id for unit in blueprint.units if "math_utils.py" in unit.owns]
         if len(owners) != 1: raise ValueError("seeded repair blueprint must have one math_utils.py owner")
-        initial_failure = FailureReport(owners[0], "TEST_FAILURE", owner_file="math_utils.py", owner_interface="add(a,b)", first_project_frame="math_utils.py:2", failed_check="initial pytest", expected="add(2,3) == 5", observed="add(2,3) == -1", affected_units=(owners[0],), suggested_action="patch subtraction to addition while preserving add(a,b)", evidence_refs=("initial_test",))
+        initial_failure = FailureReport(owners[0], "TEST_FAILURE", failure_stage=FailureStage.TEST.value, owner_unit_id=owners[0], recovery_action=FailureAction.REPAIR_EXISTING.value, materialized_baseline=True, owner_file="math_utils.py", owner_interface="add(a,b)", first_project_frame="math_utils.py:2", failed_check="initial pytest", expected="add(2,3) == 5", observed="add(2,3) == -1", affected_units=(owners[0],), suggested_action="patch subtraction to addition while preserving add(a,b)", evidence_refs=("initial_test",))
     outcome = loop.run(blueprint, workspace, case_id=case_id, initial_failure=initial_failure)
-    value = outcome.as_dict() | {"agent_decisions": decisions, "manual_edits": 0, "profile": profile}
+    worker_calls = list(json.loads((outcome.run_root / "provider_calls.json").read_text(encoding="utf-8")).get("calls") or ())
+    coordinator_calls = list(loop.coordinator_calls)
+    generations = [call for call in worker_calls if call.get("call_class") == "GENERATION"]
+    generation_retries = [call for call in worker_calls if call.get("call_class") == "GENERATION_RETRY"]
+    repairs = [call for call in worker_calls if call.get("call_class") == "REPAIR"]
+    ledger = {
+        "coordinator": _summarize_calls(coordinator_calls),
+        "generation": _summarize_calls(generations),
+        "generation_retry": _summarize_calls(generation_retries),
+        "repair": _summarize_calls(repairs),
+        "calls": {"coordinator": coordinator_calls, "worker": worker_calls},
+    }
+    value = outcome.as_dict() | {"agent_decisions": decisions, "manual_edits": 0, "profile": profile, "provider_ledger": ledger}
     target = outcome.run_root / f"{profile}_receipt.json"; target.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return value
 
@@ -269,11 +302,14 @@ def _worker_probe(artifact_root: pathlib.Path, *, patch_mode: bool) -> dict[str,
     executor = BlueprintUnitExecutor(workspace, client, worker_config)
     if patch_mode:
         executor.failure_reports[unit.unit_id] = FailureReport(
-            unit.unit_id, "TEST_FAILURE", owner_file="math_utils.py", owner_interface="add(a,b)",
+            unit.unit_id, "TEST_FAILURE", failure_stage=FailureStage.TEST.value,
+            owner_unit_id=unit.unit_id, recovery_action=FailureAction.REPAIR_EXISTING.value,
+            materialized_baseline=True, owner_file="math_utils.py", owner_interface="add(a,b)",
             first_project_frame="math_utils.py:2", failed_check="pytest", expected="add(2,3) == 5",
             observed="add(2,3) == -1", affected_units=(unit.unit_id,),
             suggested_action="replace subtraction with addition and preserve add(a,b)", evidence_refs=("pytest",),
         )
+        executor.register_materialized_baseline(unit)
     request = BlockExecutionRequest(
         project_id=f"worker_{probe}_probe", run_id=run_id, attempt_id="attempt-1",
         node_id=unit.unit_id, component_ref=f"project.unit.{'implementation' if not patch_mode else 'implementation'}@1",

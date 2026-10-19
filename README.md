@@ -18,7 +18,7 @@ User Goal
 
 The high-capability Agent owns project-level decisions and composition. Cheap models, local models, APIs, search, scripts, browsers, and test tools execute bounded node work; they do not redefine project intent.
 
-The current software-project MVP uses that same coordinator to design and freeze one minimal `ProjectBlueprint`, then compiles cohesive blueprint units into the existing CapabilityTree/DAG. Workers exchange only `FileBundle` or `PatchBundle` payloads; deterministic code owns scope, syntax, interface guards, application, evidence, and affected-only repair continuity.
+The current software-project MVP uses that same coordinator to design and freeze one minimal `ProjectBlueprint`, then compiles cohesive blueprint units into the existing CapabilityTree/DAG. Workers use exact-owns `FileBundle` generation and file-unique `PatchBundle` v2 repair over a non-empty owned subset. Deterministic code owns failure stage/origin/owner attribution, baseline-gated retry-versus-repair routing, scope, syntax, interface guards, atomic application, evidence, and affected-only continuity.
 
 Roles such as Project Manager, Developer, Tester, Researcher, Release, or Marketing are optional capability bundles/views over the same tree and DAG, not mandatory pipeline stages.
 
@@ -67,10 +67,12 @@ The replacement L6 adapter in `cgkn/application/project_blueprint.py` and
 payload and deterministically supplies executor metadata, scope limits,
 compile/pytest/runtime/acceptance checks, protected paths, and timeouts. The
 versioned API Lab raw-defer route preserves Provider text and transport
-metadata while CGKN remains the sole structured-answer selector. Fresh live
-Coordinator, Worker, generation, and repair qualification receipts remain
-required before the MVP status can advance. Run the bounded profiles through
-`python scripts/run_project_mvp.py`.
+metadata while CGKN remains the sole structured-answer selector. A failed unit
+generation is retried as generation until it establishes a hash-bound materialized
+baseline; only later compile, test, runtime, or acceptance failures may enter
+repair. Fresh live generation and repair receipts remain required before the MVP
+status can advance. Run the bounded profiles through `python
+scripts/run_project_mvp.py`.
 
 Cleanup status and the exact migration boundary are recorded in:
 

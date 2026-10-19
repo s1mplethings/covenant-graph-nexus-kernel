@@ -5,9 +5,12 @@ import pathlib
 import shutil
 import sys
 
-from cgkn.application.project_blueprint import BlueprintCheck, BlueprintUnit, ProjectBlueprint
-from cgkn.application.project_loop import BlueprintUnitExecutor, MinimalProjectLoop
-from cgkn.execution import BlockExecutionRequest, TaskContext
+import pytest
+
+from cgkn.application.project_blueprint import BlueprintCheck, BlueprintUnit, FailureAction, FailureReport, FailureStage, ProjectBlueprint
+from cgkn.application.project_loop import BlueprintUnitExecutor, MinimalProjectLoop, compile_blueprint
+from cgkn.execution import BlockExecutionRequest, BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode, TaskContext
+from cgkn.orchestration import compile_tree
 from cgkn.providers import GatewayCompletionError, ModelRoleConfig, ProviderCompletion
 
 
@@ -41,7 +44,11 @@ def _bundle(unit_id, files):
 
 
 def _patch(unit_id, path, find, replace):
-    return {"schema_version": "1.0", "kind": "patch_bundle", "unit_id": unit_id, "patches": [{"path": path, "find": find, "replace": replace}], "summary": "repaired", "needs_escalation": False, "escalation_reason": ""}
+    return {"schema_version": "2.0", "kind": "patch_bundle", "unit_id": unit_id, "files": [{"path": path, "edits": [{"find": find, "replace": replace}]}]}
+
+
+def _patch_files(unit_id, files):
+    return {"schema_version": "2.0", "kind": "patch_bundle", "unit_id": unit_id, "files": [{"path": path, "edits": [{"find": find, "replace": replace} for find, replace in edits]} for path, edits in files.items()]}
 
 
 def _configs():
@@ -122,7 +129,7 @@ def test_fake_repair_preserves_blueprint_and_reruns_only_owner_and_checks(tmp_pa
     client = QueueClient([_bundle("core", {"math_utils.py": "def add(a, b):\n    return a - b\n"}), _patch("core", "math_utils.py", "return a - b", "return a + b")])
     workspace = tmp_path / "workspace"; workspace.mkdir(); (workspace / "test_math_utils.py").write_text("from math_utils import add\ndef test_add(): assert add(2,3)==5\n", encoding="utf-8")
     agent, worker = _configs(); outcome = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", client, agent, worker).run(blueprint, workspace, case_id="seeded_repair")
-    assert outcome.status == "SUCCEEDED" and outcome.repair_rounds == 1
+    assert outcome.status == "SUCCEEDED" and outcome.repair_rounds == 1 and outcome.repair_calls == 1
     assert outcome.blueprint.project_id == blueprint.project_id and outcome.blueprint.revision == blueprint.revision
     assert outcome.failure_reports[0].unit_id == "core"
     assert outcome.summary.actual_executions == ("core", "pytest", "accept")
@@ -210,9 +217,139 @@ def test_initial_generation_failure_retries_generation_before_any_repair(tmp_pat
     ).run(_csv_blueprint(), tmp_path / "workspace", case_id="cli_csv_cleaner")
 
     assert outcome.status == "SUCCEEDED"
-    assert outcome.repair_rounds == 1
+    assert outcome.repair_rounds == 0 and outcome.generation_retries == 1
     core_operations = [
         call["operation"] for call in client.calls
         if '"unit_id": "core"' in call["user"]
     ]
     assert core_operations[:2] == ["EXECUTE", "EXECUTE"]
+
+
+def test_incomplete_tests_generation_retries_same_unit_without_repair(tmp_path: pathlib.Path) -> None:
+    client = QueueClient([
+        _bundle("core", {"csv_cleaner/__init__.py": "from .core import clean_file, clean_rows\n", "csv_cleaner/__main__.py": MAIN, "csv_cleaner/core.py": CORE}),
+        _bundle("docs", {"README.md": "# CSV Cleaner\n\nUsage documented.\n"}),
+        _bundle("tests", {"tests/test_csv_cleaner.py": "def test_partial():\n    assert True\n"}),
+        _bundle("tests", {"tests/test_csv_cleaner.py": "def test_public():\n    assert True\n", "tests/test_cli.py": "def test_cli():\n    assert True\n"}),
+    ])
+    blueprint = _csv_blueprint()
+    tests = blueprint.by_id["tests"]
+    widened = BlueprintUnit.from_dict(tests.as_dict() | {"owns": ["tests/test_csv_cleaner.py", "tests/test_cli.py"], "max_files": 2})
+    blueprint = ProjectBlueprint("1.0", blueprint.project_id, blueprint.revision, blueprint.goal, blueprint.constraints, tuple(widened if unit.unit_id == "tests" else unit for unit in blueprint.units), blueprint.checks).freeze()
+    agent, worker = _configs()
+    outcome = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", client, agent, worker).run(blueprint, tmp_path / "workspace", case_id="cli_csv_cleaner")
+
+    assert outcome.status == "SUCCEEDED"
+    assert outcome.generation_retries == 1 and outcome.repair_rounds == outcome.repair_calls == 0
+    report = outcome.failure_reports[0]
+    assert report.failure_stage == FailureStage.UNIT_OUTPUT_VALIDATION.value
+    assert report.failure_type == "UNIT_OUTPUT_INCOMPLETE"
+    assert report.origin_unit_id == report.owner_unit_id == "tests"
+    assert report.recovery_action == FailureAction.RETRY_GENERATION.value
+    tests_operations = [call["operation"] for call in client.calls if '"unit_id": "tests"' in call["user"]]
+    assert tests_operations == ["EXECUTE", "EXECUTE"]
+    tests_prompts = [call for call in client.calls if '"unit_id": "tests"' in call["user"]]
+    assert '"failure_report": null' in tests_prompts[0]["user"]
+    assert '"recovery_action": "RETRY_GENERATION"' in tests_prompts[1]["user"]
+
+
+def test_initial_repair_without_materialized_baseline_is_forbidden(tmp_path: pathlib.Path) -> None:
+    unit = BlueprintUnit("core", "core", "implementation", ("core.py",), executor_ref="llm.cheap@1", instruction="core", acceptance=("works",), allowed_effects=("filesystem.write",))
+    blueprint = ProjectBlueprint("1.0", "no-baseline", 1, "repair", (), (unit,), (BlueprintCheck("accept", "acceptance", depends_on=("core",), acceptance=("hidden",)),)).freeze()
+    failure = FailureReport("pytest", "TEST_FAILURE", failure_stage=FailureStage.TEST.value, owner_unit_id="core", recovery_action=FailureAction.REPAIR_EXISTING.value, materialized_baseline=True)
+    agent, worker = _configs()
+    with pytest.raises(ValueError, match="REPAIR_WITHOUT_BASELINE"):
+        MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", QueueClient([]), agent, worker).run(blueprint, tmp_path / "workspace", case_id="seeded_repair", initial_failure=failure)
+
+
+def test_materialized_baseline_requires_current_workspace_identity(tmp_path: pathlib.Path) -> None:
+    unit = BlueprintUnit("core", "core", "implementation", ("core.py",), executor_ref="llm.cheap@1", instruction="core", acceptance=("works",), allowed_effects=("filesystem.write",))
+    (tmp_path / "core.py").write_text("value = 1\n", encoding="utf-8")
+    executor = BlueprintUnitExecutor(tmp_path, QueueClient([]), ModelRoleConfig("worker", "deepseek"))
+    executor.register_materialized_baseline(unit)
+    assert executor.has_materialized_baseline("core")
+    (tmp_path / "core.py").write_text("value = 2\n", encoding="utf-8")
+    assert not executor.has_materialized_baseline("core")
+
+
+def _execute_repair(tmp_path: pathlib.Path, payload: dict, *, repeated_source: bool = False):
+    owns = ("pkg/a.py", "pkg/b.py", "pkg/c.py", "pkg/d.py")
+    for index, relative in enumerate(owns):
+        target = tmp_path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        body = "value = 1\nlabel = 'old'\n" if index == 0 else f"value = {index + 1}\n"
+        if repeated_source and index == 0:
+            body = "value = 1\nvalue = 1\n"
+        target.write_text(body, encoding="utf-8")
+    unit = BlueprintUnit("core", "cohesive core", "implementation", owns, executor_ref="llm.cheap@1", instruction="repair", acceptance=("works",), allowed_effects=("filesystem.read", "filesystem.write"), max_files=4)
+    executor = BlueprintUnitExecutor(tmp_path, QueueClient([payload]), ModelRoleConfig("worker", "deepseek"))
+    executor.register_materialized_baseline(unit)
+    executor.failure_reports[unit.unit_id] = FailureReport("pytest", "TEST_FAILURE", failure_stage=FailureStage.TEST.value, owner_unit_id="core", recovery_action=FailureAction.REPAIR_EXISTING.value, materialized_baseline=True)
+    request = BlockExecutionRequest("project", "run", "attempt", unit.unit_id, "project.unit.implementation@1", "llm.cheap@1", TaskContext("repair", node_config={"unit": unit.as_dict()}))
+    before = {path: (tmp_path / path).read_text(encoding="utf-8") for path in owns}
+    return executor.execute(request), before, {path: (tmp_path / path).read_text(encoding="utf-8") for path in owns}
+
+
+def test_repair_accepts_one_of_four_files_with_two_ordered_hunks(tmp_path: pathlib.Path) -> None:
+    payload = _patch_files("core", {"pkg/a.py": [("value = 1", "value = 10"), ("label = 'old'", "label = 'new'")]})
+    result, before, after = _execute_repair(tmp_path, payload)
+    assert result.succeeded
+    assert result.outputs["modified_files"] == ("pkg/a.py",)
+    assert "value = 10" in after["pkg/a.py"] and "label = 'new'" in after["pkg/a.py"]
+    assert all(after[path] == before[path] for path in ("pkg/b.py", "pkg/c.py", "pkg/d.py"))
+
+
+def test_repair_accepts_two_of_four_owned_files(tmp_path: pathlib.Path) -> None:
+    payload = _patch_files("core", {"pkg/a.py": [("value = 1", "value = 10")], "pkg/c.py": [("value = 3", "value = 30")]})
+    result, before, after = _execute_repair(tmp_path, payload)
+    assert result.succeeded and set(result.outputs["modified_files"]) == {"pkg/a.py", "pkg/c.py"}
+    assert after["pkg/b.py"] == before["pkg/b.py"] and after["pkg/d.py"] == before["pkg/d.py"]
+
+
+@pytest.mark.parametrize("payload", [
+    _patch_files("core", {"outside.py": [("x", "y")]}),
+    {"schema_version": "2.0", "kind": "patch_bundle", "unit_id": "core", "files": [
+        {"path": "pkg/a.py", "edits": [{"find": "value = 1", "replace": "value = 2"}]},
+        {"path": "pkg/a.py", "edits": [{"find": "label = 'old'", "replace": "label = 'new'"}]},
+    ]},
+])
+def test_repair_rejects_undeclared_or_duplicate_file_objects_atomically(tmp_path: pathlib.Path, payload: dict) -> None:
+    result, before, after = _execute_repair(tmp_path, payload)
+    assert not result.succeeded and after == before
+
+
+@pytest.mark.parametrize(("edits", "repeated"), [
+    ([("value = 1", "value = 10"), ("missing", "replacement")], False),
+    ([("value = 1", "value = 2")], True),
+])
+def test_failed_patch_hunk_leaves_whole_transaction_unchanged(tmp_path: pathlib.Path, edits, repeated: bool) -> None:
+    payload = _patch_files("core", {"pkg/a.py": edits, "pkg/b.py": [("value = 2", "value = 20")]})
+    result, before, after = _execute_repair(tmp_path, payload, repeated_source=repeated)
+    assert not result.succeeded and after == before
+
+
+def test_cross_unit_attribution_uses_evidence_and_never_implementation_fallback(tmp_path: pathlib.Path) -> None:
+    blueprint = _csv_blueprint()
+    agent, worker_config = _configs()
+    executor = BlueprintUnitExecutor(tmp_path, QueueClient([]), worker_config)
+    for unit_id in ("core", "tests"):
+        unit = blueprint.by_id[unit_id]
+        for relative in unit.owns:
+            target = tmp_path / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("# materialized\n", encoding="utf-8")
+        executor.register_materialized_baseline(unit)
+    dag = compile_tree(compile_blueprint(blueprint, case_id="cli_csv_cleaner"))
+
+    source_result = BlockExecutionResult("p", "r", "a", "pytest", "local.python-test@1", BlockStatus.FAILED, outputs={"stderr": "csv_cleaner/core.py:12: ValueError"}, error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR, "csv_cleaner/core.py:12: ValueError"))
+    source_report = MinimalProjectLoop._failure_report(blueprint, "pytest", source_result, dag, executor)
+    assert source_report.owner_unit_id == "core" and source_report.recovery_action == FailureAction.REPAIR_EXISTING.value
+
+    test_result = BlockExecutionResult("p", "r", "b", "pytest", "local.python-test@1", BlockStatus.FAILED, outputs={"stderr": "tests/test_csv_cleaner.py:9: assert False"}, error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR, "tests/test_csv_cleaner.py:9: assert False"))
+    test_report = MinimalProjectLoop._failure_report(blueprint, "pytest", test_result, dag, executor)
+    assert test_report.owner_unit_id == "tests"
+
+    unknown_result = BlockExecutionResult("p", "r", "c", "pytest", "local.python-test@1", BlockStatus.FAILED, error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR, "assertion failed without a project path"))
+    unknown_report = MinimalProjectLoop._failure_report(blueprint, "pytest", unknown_result, dag, executor)
+    assert unknown_report.owner_unit_id == "" and unknown_report.failure_type == "ATTRIBUTION_UNRESOLVED"
+    assert unknown_report.recovery_action == FailureAction.STOP.value
