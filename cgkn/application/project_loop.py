@@ -8,7 +8,7 @@ import uuid
 from dataclasses import dataclass, replace
 from typing import Any, Mapping, Protocol
 
-from cgkn.application.learning import GenerationRequest, ProductionGenerationClient, default_production_client
+from cgkn.application.learning import GenerationRequest, ProductionGenerationClient, canonical_hash, default_production_client
 from cgkn.application.materialization import materialize_json
 from cgkn.application.software_project.acceptance import ExternalAcceptanceExecutor
 from cgkn.application.software_project.contracts import WorkerScope
@@ -19,7 +19,7 @@ from cgkn.executors import CommandExecutor, ExecutorRegistry, PythonTestExecutor
 from cgkn.executors.protocol import ExecutorDescriptor
 from cgkn.orchestration import CapabilityNode, CapabilityTree, compile_tree
 from cgkn.orchestration.invalidation import downstream_closure
-from cgkn.providers import CompletionClient, ModelRoleConfig, parse_json_object
+from cgkn.providers import CompletionClient, GatewayCompletionError, ModelRoleConfig, parse_json_object
 from cgkn.runtime import DAGRunner, RunSummary
 from cgkn.state import FileRunStore
 
@@ -171,6 +171,7 @@ class BlueprintUnitExecutor:
 
     def execute(self, request: BlockExecutionRequest) -> BlockExecutionResult:
         started, clock = utc_now(), time.perf_counter(); usage: dict[str, Any] = {}
+        unit: BlueprintUnit | None = None; mode = "UNKNOWN"; provider_recorded = False
         try:
             unit = BlueprintUnit.from_dict(request.task_context.node_config["unit"])
             visible = tuple(dict.fromkeys((*unit.owns, *unit.reads)))
@@ -195,17 +196,8 @@ class BlueprintUnitExecutor:
                 model_config=self.config, allowed_actions=("file_bundle",) if not failure else ("patch_bundle",), forbidden_actions=("shell", "network", "blueprint_change", "hidden_acceptance"), run_id=request.run_id,
             ))
             completion = generated.completion; usage = dict(completion.usage)
-            self.calls.append({
-                "request_id": completion.request_id,
-                "model": completion.model,
-                "usage": usage,
-                "role": "worker",
-                "unit_id": unit.unit_id,
-                "duration": int((time.perf_counter() - clock) * 1000),
-                "attempt_count": completion.attempts,
-                "selection_receipt": dict(completion.selection_receipt),
-                "transport_metadata": dict(completion.transport_metadata),
-            })
+            self.calls.append(self._call_record(request, unit, mode, clock, completion=completion))
+            provider_recorded = True
             value = parse_json_object(completion.text)
             if str(value.get("unit_id", "")) != unit.unit_id: raise ValueError("bundle unit_id mismatch")
             if failure:
@@ -235,9 +227,55 @@ class BlueprintUnitExecutor:
             outputs = {"unit_result": unit_result.as_dict(), "summary": summary, "modified_files": list(changed), "observed_interfaces": {path: item.as_dict() for path, item in new_manifests.items()}, "context_chars": len(json.dumps(prompt, ensure_ascii=False, sort_keys=True)), "included_files": list(sources), "included_interfaces": list(manifests), "included_dependencies": list(request.task_context.dependency_results), "action_results": results}
             return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.SUCCEEDED, outputs=outputs, started_at=started, ended_at=utc_now(), duration_ms=unit_result.duration, usage=usage)
         except Exception as exc:
+            if isinstance(exc, GatewayCompletionError) and unit is not None and not provider_recorded:
+                self.calls.append(self._call_record(request, unit, mode, clock, error=exc))
             policy = isinstance(exc, PermissionError)
             code = ExecutionErrorCode.POLICY_BLOCKED if policy else ExecutionErrorCode.INVALID_OUTPUT if isinstance(exc, ValueError) else ExecutionErrorCode.EXECUTION_ERROR
             return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.FAILED, error=ExecutionError(code, str(exc)), started_at=started, ended_at=utc_now(), duration_ms=max(0, int((time.perf_counter() - clock) * 1000)), usage=usage, retryable=not policy)
+
+    def _call_record(
+        self, request: BlockExecutionRequest, unit: BlueprintUnit, mode: str, clock: float, *,
+        completion: Any | None = None, error: GatewayCompletionError | None = None,
+    ) -> dict[str, Any]:
+        receipt = dict(completion.selection_receipt) if completion is not None else dict(error.evidence if error else {})
+        metadata = dict(completion.transport_metadata) if completion is not None else {}
+        reported_usage = dict(completion.usage) if completion is not None else dict(receipt.get("usage") or {})
+        usage_status = "REPORTED" if reported_usage else "UNKNOWN_AFTER_FAILURE" if error else "UNREPORTED"
+        def token(*names: str) -> int | None:
+            for source in (reported_usage, receipt):
+                for name in names:
+                    if source.get(name) is not None:
+                        return int(source[name])
+            return None
+        attempts_detail = metadata.get("transport_attempts") or receipt.get("transport_attempts_detail") or []
+        attempt_count = completion.attempts if completion is not None else receipt.get("transport_attempts")
+        return {
+            "logical_call_id": f"{request.run_id}:{unit.unit_id}:{mode.lower()}:{len(self.calls) + 1}",
+            "project_id": request.project_id, "run_id": request.run_id,
+            "role": "worker", "operation": mode, "unit_id": unit.unit_id,
+            "provider": self.config.model,
+            "model": completion.model if completion is not None else str(receipt.get("model") or self.config.model),
+            "request_id": completion.request_id if completion is not None else str(receipt.get("request_id") or ""),
+            "transport_attempts": attempts_detail if attempts_detail else attempt_count,
+            "transport_attempt_count": int(attempt_count or (len(attempts_detail) if isinstance(attempts_detail, list) else 0)),
+            "thinking_mode_requested": self.config.thinking_mode,
+            "thinking_mode_forwarded": metadata.get("thinking_mode_forwarded", receipt.get("thinking_mode_forwarded")),
+            "reasoning_effort": self.config.reasoning_effort,
+            "prompt_tokens": token("prompt_tokens", "input_tokens"),
+            "completion_tokens": token("completion_tokens", "output_tokens"),
+            "reasoning_tokens": token("reasoning_tokens"),
+            "cached_tokens": token("cached_tokens"),
+            "total_tokens": token("total_tokens"), "usage_status": usage_status,
+            "finish_reason": receipt.get("finish_reason"),
+            "configured_timeout": self.config.timeout_seconds,
+            "effective_timeout": receipt.get("effective_request_timeout_seconds"),
+            "elapsed_ms": int((time.perf_counter() - clock) * 1000),
+            "schema_hash": receipt.get("schema_hash"), "prompt_hash": receipt.get("prompt_hash"),
+            "selection_receipt_hash": canonical_hash(receipt) if receipt else None,
+            "selection_receipt": receipt, "transport_metadata": metadata,
+            "result": "FAILED" if error else "SUCCEEDED",
+            "failure_type": error.category if error else None,
+        }
 
 
 @dataclass(frozen=True)

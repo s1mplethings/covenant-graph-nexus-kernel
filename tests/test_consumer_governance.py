@@ -32,6 +32,7 @@ def fixture(tmp_path: Path) -> Path:
     run(project, "git", "config", "user.name", "CGKN Tests")
     (project / "src").mkdir()
     (project / "tests").mkdir()
+    (project / ".gitignore").write_text("__pycache__/\n*.py[cod]\n.pytest_cache/\n", encoding="utf-8")
     (project / "src" / "core.py").write_text("BOUNDARY = True\n", encoding="utf-8")
     (project / "tests" / "test_boundary.py").write_text("def test_boundary():\n    assert True\n", encoding="utf-8")
     invariant = {

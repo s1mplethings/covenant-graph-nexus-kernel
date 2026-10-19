@@ -427,6 +427,30 @@ def test_gateway_binds_versioned_raw_defer_metadata_and_receipt(gateway) -> None
     assert receipt["schema_valid_candidate_count"] == 1
 
 
+def test_truncation_evidence_preserves_forwarded_thinking_and_attempts(gateway) -> None:
+    Handler.raw_defer = {
+        "contract_version": "1.1", "raw_text": '{"ok":',
+        "thinking_mode_requested": "disabled", "thinking_mode_forwarded": "disabled",
+        "reasoning_effort_requested": "none", "reasoning_text_present": False,
+        "reasoning_text_length": 0, "reasoning_tokens": None, "cached_tokens": 0,
+        "provider_id": "deepseek", "model": "deepseek", "request_id": "truncated-1",
+        "finish_reason": "length", "usage": {"prompt_tokens": 13, "completion_tokens": 6000, "total_tokens": 6013},
+        "transport_attempts": [{"attempt_id": "transport-1", "attempt": 1, "status": "COMPLETED"}],
+        "elapsed_ms": 12, "response_headers_received": True, "transport_status": "COMPLETED",
+        "error_type": None, "redacted_error": None,
+    }
+    with pytest.raises(GatewayCompletionError) as caught:
+        client(gateway).complete(
+            system="s", user="u", schema_name="x", schema=SCHEMA,
+            config=ModelRoleConfig("worker", "deepseek", max_output_tokens=6000, thinking_mode="disabled"),
+        )
+    evidence = caught.value.evidence
+    assert evidence["thinking_mode_requested"] == evidence["thinking_mode_forwarded"] == "disabled"
+    assert evidence["transport_attempts_detail"][0]["attempt_id"] == "transport-1"
+    assert evidence["usage"]["completion_tokens"] == 6000
+    assert evidence["request_id"] == "truncated-1"
+
+
 def test_gateway_rejects_two_schema_valid_objects_with_receipt(gateway) -> None:
     Handler.response_text = '{"ok":true}\n{"ok":false}'
     with pytest.raises(GatewayCompletionError) as caught:

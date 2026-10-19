@@ -110,6 +110,7 @@ def test_strict_experiments_record_history_and_cli(tmp_path, monkeypatch, capsys
     timeline = strict.history()
     assert timeline["status"] == "PASS"
     assert timeline["metrics"]["historicalCommitsChecked"] == 1
+    assert _SCENARIOS.run(project, "git", "status", "--porcelain") == ""
 
     monkeypatch.setattr(strict, "verify", lambda **_kwargs: {"status": "PASS"})
     recorded = strict.record()

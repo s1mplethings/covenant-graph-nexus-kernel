@@ -6,8 +6,9 @@ import shutil
 import sys
 
 from cgkn.application.project_blueprint import BlueprintCheck, BlueprintUnit, ProjectBlueprint
-from cgkn.application.project_loop import MinimalProjectLoop
-from cgkn.providers import ModelRoleConfig, ProviderCompletion
+from cgkn.application.project_loop import BlueprintUnitExecutor, MinimalProjectLoop
+from cgkn.execution import BlockExecutionRequest, TaskContext
+from cgkn.providers import GatewayCompletionError, ModelRoleConfig, ProviderCompletion
 
 
 class QueueClient:
@@ -17,6 +18,19 @@ class QueueClient:
         self.calls.append({"system": system, "user": user, "schema_name": schema_name, "role": config.role, "operation": config.operation})
         if not self.responses: raise AssertionError("unexpected Provider call")
         return ProviderCompletion(json.dumps(self.responses.pop(0)), config.model, f"req-{len(self.calls)}", {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30})
+
+
+class TruncatedClient:
+    def complete(self, *, system, user, schema_name, schema, config):
+        raise GatewayCompletionError("PROVIDER_OUTPUT_TRUNCATED", "bounded", evidence={
+            "request_id": "failed-request-1", "model": "deepseek", "finish_reason": "length",
+            "usage": {"prompt_tokens": 31, "completion_tokens": 6000, "total_tokens": 6031},
+            "reasoning_tokens": None, "cached_tokens": 4, "transport_attempts": 1,
+            "transport_attempts_detail": [{"attempt_id": "transport-1", "status": "COMPLETED"}],
+            "thinking_mode_requested": "disabled", "thinking_mode_forwarded": "disabled",
+            "schema_hash": "sha256:schema", "prompt_hash": "sha256:prompt",
+            "final_status": "PROVIDER_OUTPUT_TRUNCATED",
+        })
 
 
 def _bundle(unit_id, files):
@@ -110,3 +124,45 @@ def test_fake_repair_preserves_blueprint_and_reruns_only_owner_and_checks(tmp_pa
     assert outcome.failure_reports[0].unit_id == "core"
     assert outcome.summary.actual_executions == ("core", "pytest", "accept")
     assert "return a + b" in (workspace / "math_utils.py").read_text(encoding="utf-8")
+
+
+def test_failed_worker_provider_call_is_recorded_with_reported_usage(tmp_path: pathlib.Path) -> None:
+    unit = BlueprintUnit(
+        "core", "CSV core", "implementation", ("core.py",), executor_ref="llm.cheap@1",
+        instruction="implement core", acceptance=("syntax",), allowed_effects=("filesystem.write",),
+    )
+    executor = BlueprintUnitExecutor(
+        tmp_path, TruncatedClient(),
+        ModelRoleConfig("worker", "deepseek", timeout_seconds=150, max_output_tokens=6000, thinking_mode="disabled"),
+    )
+    request = BlockExecutionRequest(
+        "project-1", "run-1", "attempt-1", "core", "project.unit.implementation@1", "llm.cheap@1",
+        TaskContext("implement core", node_config={"unit": unit.as_dict()}),
+        timeout_seconds=150, declared_effects=("filesystem.write",),
+    )
+    result = executor.execute(request)
+    assert not result.succeeded
+    assert len(executor.calls) == 1
+    call = executor.calls[0]
+    assert call["result"] == "FAILED"
+    assert call["failure_type"] == "PROVIDER_OUTPUT_TRUNCATED"
+    assert call["request_id"] == "failed-request-1"
+    assert call["thinking_mode_requested"] == call["thinking_mode_forwarded"] == "disabled"
+    assert call["prompt_tokens"] == 31 and call["completion_tokens"] == 6000
+    assert call["reasoning_tokens"] is None and call["cached_tokens"] == 4
+    assert call["usage_status"] == "REPORTED"
+    assert call["transport_attempt_count"] == 1
+
+
+def test_failed_worker_provider_call_keeps_unknown_usage_null(tmp_path: pathlib.Path) -> None:
+    class UnknownFailureClient:
+        def complete(self, **_kwargs):
+            raise GatewayCompletionError("outcome_unknown", "timeout", evidence={"request_id": "unknown-1"})
+
+    unit = BlueprintUnit("core", "core", "implementation", ("core.py",), executor_ref="llm.cheap@1", instruction="core", acceptance=("syntax",), allowed_effects=("filesystem.write",))
+    executor = BlueprintUnitExecutor(tmp_path, UnknownFailureClient(), ModelRoleConfig("worker", "deepseek"))
+    request = BlockExecutionRequest("project-1", "run-1", "attempt-1", "core", "project.unit.implementation@1", "llm.cheap@1", TaskContext("core", node_config={"unit": unit.as_dict()}))
+    executor.execute(request)
+    call = executor.calls[0]
+    assert call["usage_status"] == "UNKNOWN_AFTER_FAILURE"
+    assert call["prompt_tokens"] is call["completion_tokens"] is call["total_tokens"] is None

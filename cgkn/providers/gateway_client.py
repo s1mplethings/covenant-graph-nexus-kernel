@@ -242,6 +242,11 @@ class GatewayCompletionClient:
             truncated = status not in {"completed", ""} or finish_reason.lower() in {"length", "max_tokens"}
             if truncated:
                 evidence = selection.as_dict()
+                evidence.update({
+                    "thinking_mode_requested": config.thinking_mode,
+                    "thinking_mode_forwarded": transport_metadata.get("thinking_mode_forwarded"),
+                    "transport_attempts_detail": list(attempts) if isinstance(attempts, list) else [],
+                })
                 evidence["final_status"] = "PROVIDER_OUTPUT_TRUNCATED"
                 raise GatewayCompletionError(
                     "PROVIDER_OUTPUT_TRUNCATED", "Provider output reached its configured limit",
@@ -250,9 +255,15 @@ class GatewayCompletionClient:
             if not text.strip():
                 raise GatewayCompletionError("empty_response", "gateway returned no completion text", http_status=http_status)
             if selection_error is not None:
+                failed_evidence = selection_error.receipt.as_dict()
+                failed_evidence.update({
+                    "thinking_mode_requested": config.thinking_mode,
+                    "thinking_mode_forwarded": transport_metadata.get("thinking_mode_forwarded"),
+                    "transport_attempts_detail": list(attempts) if isinstance(attempts, list) else [],
+                })
                 raise GatewayCompletionError(
                     selection_error.status, selection_error.status,
-                    http_status=http_status, evidence=selection_error.receipt.as_dict(),
+                    http_status=http_status, evidence=failed_evidence,
                 ) from None
             provider_api_budget.finalize_call(reservation, usage=usage, http_status=http_status, status="SUCCEEDED")
             assert selected is not None

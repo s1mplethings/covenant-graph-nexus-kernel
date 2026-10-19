@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
 import os
@@ -16,7 +17,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from cgkn.application.project_blueprint import BlueprintUnit, FailureReport
+from cgkn.application.project_blueprint import BlueprintUnit, FailureReport, ProjectBlueprint
 from cgkn.application.project_loop import BlueprintUnitExecutor, MinimalProjectLoop
 from cgkn.application.software_project.catalog import get_case
 from cgkn.execution import BlockExecutionRequest, TaskContext
@@ -291,12 +292,130 @@ def _worker_probe(artifact_root: pathlib.Path, *, patch_mode: bool) -> dict[str,
     return outcome
 
 
+def _required_interfaces_present(workspace: pathlib.Path, unit: BlueprintUnit) -> bool:
+    definitions: set[str] = set()
+    for relative in unit.owns:
+        target = workspace / pathlib.PurePosixPath(relative)
+        if target.suffix != ".py" or not target.is_file():
+            continue
+        tree = ast.parse(target.read_text(encoding="utf-8"), filename=relative)
+        definitions.update(node.name for node in tree.body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)))
+    required = {
+        item.split("(", 1)[0].rsplit(".", 1)[-1]
+        for item in unit.required_interfaces if str(item).strip()
+    }
+    return required <= definitions
+
+
+def _worker_real_unit(
+    artifact_root: pathlib.Path, *, blueprint_path: pathlib.Path, count: int, diagnostic: bool,
+) -> dict[str, Any]:
+    expected = 1 if diagnostic else 3
+    if count != expected:
+        raise ValueError(f"worker real-unit {'diagnostic' if diagnostic else 'qualification'} requires exactly {expected} run(s)")
+    identity = _source_identity()
+    if not identity["tracked_worktree_clean"]:
+        raise RuntimeError("worker real-unit validation requires a frozen clean Source Closure")
+    base_client = completion_client_from_environment()
+    if not isinstance(base_client, GatewayCompletionClient):
+        raise RuntimeError("worker real-unit validation requires the reviewed API Lab Gateway route")
+    blueprint = ProjectBlueprint.from_dict(json.loads(blueprint_path.read_text(encoding="utf-8")))
+    implementations = [unit for unit in blueprint.units if unit.kind == "implementation"]
+    if not implementations:
+        raise ValueError("frozen blueprint has no implementation unit")
+    unit = implementations[0]
+    runs: list[dict[str, Any]] = []
+    for index in range(1, count + 1):
+        run_id = f"worker-real-unit-{'diagnostic' if diagnostic else 'qualify'}-{index}-{uuid.uuid4().hex[:10]}"
+        workspace = artifact_root / "worker_real_unit" / run_id / "workspace"
+        workspace.mkdir(parents=True, exist_ok=False)
+        client = base_client.bind_run(run_id, blueprint.project_id, budget_purpose="GENERATION")
+        worker_config = ModelRoleConfig(
+            role="worker", model="deepseek", timeout_seconds=150, max_output_tokens=6000,
+            temperature=0.0, reasoning_effort="none", task_class="project.codegen",
+            operation="EXECUTE", outer_deadline_seconds=180, deadline_reserve_seconds=30,
+            thinking_mode="disabled",
+        )
+        executor = BlueprintUnitExecutor(workspace, client, worker_config)
+        request = BlockExecutionRequest(
+            project_id=blueprint.project_id, run_id=run_id, attempt_id="attempt-1",
+            node_id=unit.unit_id, component_ref="project.unit.implementation@1", executor_ref="llm.cheap@1",
+            task_context=TaskContext(
+                unit.instruction or unit.purpose, node_config={"unit": unit.as_dict()},
+                dependency_results={}, project_constraints=blueprint.constraints, acceptance=unit.acceptance,
+            ),
+            timeout_seconds=unit.timeout_seconds, declared_effects=unit.allowed_effects,
+        )
+        started = time.perf_counter(); result = executor.execute(request)
+        call = executor.calls[-1] if executor.calls else {}
+        receipt = dict(call.get("selection_receipt") or {})
+        file_lengths = {
+            relative: len((workspace / pathlib.PurePosixPath(relative)).read_text(encoding="utf-8"))
+            for relative in unit.owns if (workspace / pathlib.PurePosixPath(relative)).is_file()
+        }
+        syntax = result.succeeded
+        if result.succeeded:
+            for relative in unit.owns:
+                target = workspace / pathlib.PurePosixPath(relative)
+                if target.suffix == ".py":
+                    syntax = syntax and subprocess.run(
+                        [sys.executable, "-m", "py_compile", str(target)], capture_output=True, text=True,
+                    ).returncode == 0
+        interface = result.succeeded and _required_interfaces_present(workspace, unit)
+        passed = (
+            result.succeeded and _worker_receipt_complete(call) and syntax and interface
+            and receipt.get("finish_reason") not in {"length", "max_tokens"}
+            and int(receipt.get("completion_tokens") or receipt.get("usage", {}).get("completion_tokens") or 0) < 6000
+            and call.get("thinking_mode_requested") == call.get("thinking_mode_forwarded") == "disabled"
+        )
+        row = {
+            "run_id": run_id, "source_commit": identity["cgkn_source_commit"],
+            "api_lab_commit": receipt.get("api_lab_commit"), "project_id": blueprint.project_id,
+            "blueprint_hash": blueprint.blueprint_hash, "unit_id": unit.unit_id,
+            "unit_hash": _hash(unit.as_dict()), "unit": unit.as_dict(),
+            "provider": call.get("provider"), "model": call.get("model"),
+            "thinking_mode_requested": call.get("thinking_mode_requested"),
+            "thinking_mode_forwarded": call.get("thinking_mode_forwarded"),
+            "reasoning_effort": call.get("reasoning_effort"), "request_id": call.get("request_id"),
+            "transport_attempts": call.get("transport_attempts"),
+            "input_context_chars": result.outputs.get("context_chars") if result.succeeded else None,
+            "input_tokens": call.get("prompt_tokens"), "output_tokens": call.get("completion_tokens"),
+            "reasoning_tokens": call.get("reasoning_tokens"), "cached_tokens": call.get("cached_tokens"),
+            "reasoning_text_present": receipt.get("reasoning_text_present"),
+            "reasoning_text_length": receipt.get("reasoning_text_length"),
+            "finish_reason": call.get("finish_reason"), "raw_final_content_length": receipt.get("raw_length"),
+            "json_candidate_count": receipt.get("json_candidate_count"),
+            "schema_valid_candidate_count": receipt.get("schema_valid_candidate_count"),
+            "file_count": len(file_lengths), "per_file_content_lengths": file_lengths,
+            "selection_receipt_hash": call.get("selection_receipt_hash"),
+            "syntax": "PASS" if syntax else "FAIL", "scope": "PASS" if result.succeeded else "FAIL",
+            "interface": "PASS" if interface else "FAIL", "manual_edits": 0,
+            "duration_ms": int((time.perf_counter() - started) * 1000),
+            "provider_call": call, "block_result": result.as_dict(),
+            "status": "PASS" if passed else "FAIL",
+        }
+        target = artifact_root / "worker_real_unit" / f"{run_id}.json"
+        target.write_text(json.dumps(row, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        runs.append(row)
+    passed = all(row["status"] == "PASS" for row in runs)
+    result = {
+        "profile": "worker-real-unit-diagnostic" if diagnostic else "worker-cohesive-qualify",
+        "status": "PASS" if passed else "WORKER_COHESIVE_UNIT_NOT_QUALIFIED",
+        "qualification": None if diagnostic else ("3/3" if passed else f"{sum(row['status'] == 'PASS' for row in runs)}/3"),
+        "source_identity": identity, "blueprint_path": str(blueprint_path), "runs": runs,
+    }
+    index = artifact_root / "worker_real_unit" / ("diagnostic_index.json" if diagnostic else "qualification_index.json")
+    index.write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return result
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the CGKN minimal ProjectBlueprint MVP profiles")
-    parser.add_argument("--profile", required=True, choices=("unit", "fake-single", "fake-repair", "coordinator-diagnostic", "coordinator-qualify", "worker-file-probe", "worker-patch-probe", "live-single", "live-repair", "fake-parallel", "fake-conflict", "fake-standup", "live-parallel", "live-repeat", "final"))
+    parser.add_argument("--profile", required=True, choices=("unit", "fake-single", "fake-repair", "coordinator-diagnostic", "coordinator-qualify", "worker-file-probe", "worker-patch-probe", "worker-real-unit-diagnostic", "worker-cohesive-qualify", "live-single", "live-repair", "fake-parallel", "fake-conflict", "fake-standup", "live-parallel", "live-repeat", "final"))
     parser.add_argument("--artifact-root", type=pathlib.Path, default=ROOT / ".service_evidence" / "project_mvp")
     parser.add_argument("--count", type=int, default=3)
     parser.add_argument("--provider", default="deepseek")
+    parser.add_argument("--blueprint-path", type=pathlib.Path)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv); args.artifact_root.mkdir(parents=True, exist_ok=True)
     if args.profile in PHASE_B_PROFILES:
@@ -308,6 +427,13 @@ def main(argv: list[str] | None = None) -> int:
     elif args.profile == "coordinator-qualify": result = _coordinator_qualify(args.artifact_root.resolve(), count=args.count, provider=args.provider)
     elif args.profile == "worker-file-probe": result = _worker_probe(args.artifact_root.resolve(), patch_mode=False)
     elif args.profile == "worker-patch-probe": result = _worker_probe(args.artifact_root.resolve(), patch_mode=True)
+    elif args.profile in {"worker-real-unit-diagnostic", "worker-cohesive-qualify"}:
+        if args.blueprint_path is None:
+            raise ValueError("worker real-unit profiles require --blueprint-path")
+        result = _worker_real_unit(
+            args.artifact_root.resolve(), blueprint_path=args.blueprint_path.resolve(), count=args.count,
+            diagnostic=args.profile == "worker-real-unit-diagnostic",
+        )
     elif args.profile in {"live-single", "live-repair"}: result = _live(args.profile, args.artifact_root.resolve())
     else:
         result = {"profile": "final", "status": "NOT_READY", "reason": "run the ordered PHASE A and PHASE B profiles first"}
