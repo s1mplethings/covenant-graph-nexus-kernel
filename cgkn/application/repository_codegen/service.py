@@ -12,7 +12,7 @@ from cgkn.application.software_project.contracts import WorkerScope
 from cgkn.application.software_project.scope import ScopedFileTransaction
 from cgkn.executors.llm import WORKER_SCHEMA, validate_worker_proposal
 from cgkn.providers import CompletionClient, ModelRoleConfig, parse_json_object
-from cgkn.application.learning import GenerationRequest, ProductionGenerationClient, default_production_client
+from cgkn.application.learning import GenerationRequest, ProductionGenerationClient, canonical_hash, default_production_client
 
 from .analyzer import compile_change_contract, snapshot_repository
 from .contracts import ChangeRequest, RepositoryCodegenReceipt
@@ -29,6 +29,13 @@ class RepositoryCodegenService:
         if max_attempts not in {1, 2}:
             raise ValueError("repository codegen max_attempts must be 1 or 2")
         self.max_attempts = max_attempts
+        self.task_class = "repository.patch"
+
+    def as_task_class(self, task_class: str) -> "RepositoryCodegenService":
+        if task_class not in {"repository.patch", "project.repair"}:
+            raise ValueError("unsupported repository codegen task class")
+        self.task_class = task_class
+        return self
 
     def run(self, root: pathlib.Path | str, request: ChangeRequest) -> RepositoryCodegenReceipt:
         started = time.monotonic(); base = pathlib.Path(root).resolve(); before = snapshot_repository(base, request.change_id); contract = compile_change_contract(before, request)
@@ -40,14 +47,20 @@ class RepositoryCodegenService:
             if self.call_authorizer is not None:
                 self.call_authorizer("REPAIR" if failure else "GENERATION")
             prompt = self._prompt(base, request, contract, failure)
+            prompt_chars = len(json.dumps(prompt, ensure_ascii=False, sort_keys=True))
+            cap = 20_000 if self.task_class == "project.repair" else 24_000
+            if prompt_chars > cap:
+                raise RuntimeError(f"PROMPT_PROJECTION_OVERFLOW:{prompt_chars}>{cap}")
+            projection_hash = canonical_hash({"version": "production-repository-projection-v1", "task_class": self.task_class, "payload": prompt})
             generated = self.generation.generate(GenerationRequest(
-                task_class="repository.patch", operation="REPAIR" if failure else "GENERATION",
+                task_class=self.task_class, operation="REPAIR" if self.task_class == "project.repair" or failure else "GENERATION",
                 project_id=request.change_id, capability_ref="repository.patch@1", provider_id=self.provider_id,
                 system="You are a bounded existing-repository patch worker. Use exact patch_file actions for existing files. Preserve declared interfaces and never edit tests, configuration, governance, hidden acceptance, or files outside target paths. Return JSON only.",
-                goal=prompt, contract={"allowed_paths": contract.allowed_paths, "required_interfaces": dict(contract.required_interfaces)},
+                goal={"projection_hash": projection_hash}, contract={"change_contract_hash": canonical_hash({"allowed_paths": contract.allowed_paths, "required_interfaces": dict(contract.required_interfaces)})},
                 state=prompt["current_sources"], failure_evidence={"failure": failure} if failure else {},
                 schema_name="repository_patch", schema=WORKER_SCHEMA, model_config=self.config,
                 allowed_actions=("patch_file", "write_file"), forbidden_actions=("tests", "configuration", "governance", "hidden_acceptance"),
+                projected_prompt=prompt, prompt_projection_hash=projection_hash,
             ))
             completion = generated.completion
             calls += 1; usage = dict(completion.usage)

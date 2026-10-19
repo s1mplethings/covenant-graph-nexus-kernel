@@ -1,13 +1,1 @@
-{
-  "kind": "ProviderLatencyProfiles",
-  "schema_version": "1.0",
-  "freeze_rule": "current request snapshot is immutable; updates affect future runs only",
-  "profiles": [
-    {"provider_id":"grok","actual_model":"grok-4.7","task_class":"project.domain.persistent","successful_seconds":[50.375],"first_progress_seconds":[49.657],"sample_count":1,"historical_adjustment":0},
-    {"provider_id":"qwen","actual_model":"qwen3.8-max","task_class":"repository.patch","successful_seconds":[146.391],"first_progress_seconds":[146.375],"sample_count":1,"historical_adjustment":0},
-    {"provider_id":"qwen","actual_model":"qwen3.8-max","task_class":"project.domain.simple","successful_seconds":[],"first_progress_seconds":[],"sample_count":0,"historical_adjustment":0},
-    {"provider_id":"qwen","actual_model":"qwen3.8-max","task_class":"project.domain.library","successful_seconds":[],"first_progress_seconds":[],"sample_count":0,"historical_adjustment":0}
-  ],
-  "minimum_success_samples_for_adjustment": 3,
-  "contains_credentials": false
-}
+{"kind":"ProviderLatencyProfiles","schema_version":"1.1","freeze_rule":"current request snapshot is immutable; updates affect future runs only","minimum_success_samples_for_adjustment":3,"profiles":[{"provider_id":"qwen","actual_model":"qwen3.8-max","task_class":"repository.patch","successful_seconds":[146.391,198.219],"latest_first_progress_seconds":198.188,"historical_adjustment":0},{"provider_id":"grok","actual_model":"grok-4.7","task_class":"project.domain.persistent","successful_transport_seconds":[65.718],"candidate_successes":0,"historical_adjustment":0},{"provider_id":"grok","actual_model":"grok-4.7","task_class":"project.domain.library","successful_transport_seconds":[48.36],"candidate_successes":0,"historical_adjustment":0},{"provider_id":"grok","actual_model":"grok-4.7","task_class":"project.domain.simple","transport_failures":1,"historical_adjustment":0},{"provider_id":"qwen","actual_model":"qwen3.8-max","task_class":"project.domain.simple","predicted_deadline_terminations":1,"latest_elapsed_seconds":286.074,"historical_adjustment":0}],"contains_credentials":false}

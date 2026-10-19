@@ -251,6 +251,8 @@ class GenerationRequest:
     allowed_actions: tuple[str, ...] = ()
     forbidden_actions: tuple[str, ...] = ()
     run_id: str = ""
+    projected_prompt: Mapping[str, Any] | None = None
+    prompt_projection_hash: str = ""
 
 
 @dataclass(frozen=True)

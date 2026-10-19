@@ -94,7 +94,10 @@ class SupervisedHttpTransport:
             if _is_timeout(exc):
                 decision = self.supervisor.check(session, now_ms)
                 if not decision.name.startswith("CANCEL_"):
-                    decision = SupervisorDecision.CANCEL_FIRST_PROGRESS_TIMEOUT if session.first_progress_ms < 0 else SupervisorDecision.CANCEL_IDLE_TIMEOUT
+                    decision = (SupervisorDecision.CANCEL_PREDICTED_DEADLINE
+                                if policy.supervision_mode == SupervisionMode.DEADLINE_ONLY
+                                else (SupervisorDecision.CANCEL_FIRST_PROGRESS_TIMEOUT if session.first_progress_ms < 0
+                                      else SupervisorDecision.CANCEL_IDLE_TIMEOUT))
                 raise self._timeout_error(decision, session, now_ms) from None
             receipt = self.supervisor.receipt(session, now_ms, "TRANSPORT_FAILURE", outcome_unknown=True)
             self.last_receipt = receipt
@@ -110,6 +113,7 @@ class SupervisedHttpTransport:
             SupervisorDecision.CANCEL_CONNECT_TIMEOUT: ("PROVIDER_CONNECT_TIMEOUT", "CONNECT"),
             SupervisorDecision.CANCEL_FIRST_PROGRESS_TIMEOUT: ("PROVIDER_FIRST_PROGRESS_TIMEOUT", "FIRST_PROGRESS"),
             SupervisorDecision.CANCEL_IDLE_TIMEOUT: ("PROVIDER_IDLE_TIMEOUT", "IDLE_PROGRESS"),
+            SupervisorDecision.CANCEL_PREDICTED_DEADLINE: ("PROVIDER_PREDICTED_DEADLINE_REACHED", "PREDICTED_DEADLINE"),
             SupervisorDecision.CANCEL_HARD_LIMIT: ("PROVIDER_HARD_LIMIT_REACHED", "HARD_LIMIT"),
         }
         error_class, phase = mapping[decision]

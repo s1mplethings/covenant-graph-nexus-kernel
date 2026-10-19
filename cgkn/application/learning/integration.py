@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import json
 import pathlib
 from dataclasses import replace
 from typing import Any
@@ -45,7 +46,18 @@ class ProductionGenerationClient:
             failure_evidence=request.failure_evidence, lesson_query=query,
             allowed_actions=request.allowed_actions, forbidden_actions=request.forbidden_actions,
         )
-        prompt = assembler.render_prompt(context)
+        if request.projected_prompt is None:
+            prompt = assembler.render_prompt(context)
+        else:
+            payload = dict(request.projected_prompt)
+            payload["lessons"] = [
+                {"lesson_id": lesson_id, "revision": revision, "guidance": guidance, "avoid": avoid}
+                for lesson_id, revision, guidance, avoid in zip(
+                    context.lesson_context.lesson_ids, context.lesson_context.lesson_revisions,
+                    context.lesson_context.bounded_guidance, context.lesson_context.bounded_avoid,
+                )
+            ]
+            prompt = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
         if self.max_provider_calls is not None and self.provider_call_count >= self.max_provider_calls:
             raise RuntimeError(f"PROVIDER_CALL_LIMIT_EXCEEDED:{self.max_provider_calls}")
         self.provider_call_count += 1
@@ -59,6 +71,7 @@ class ProductionGenerationClient:
             "applied_lesson_ids": list(context.lesson_context.lesson_ids),
             "lesson_context_chars": context.lesson_context.context_chars,
             "generation_context_hash": context.context_hash,
+            "prompt_projection_hash": request.prompt_projection_hash,
         }
         enriched = ProviderCompletion(completion.text, completion.model, completion.request_id, usage, completion.attempts)
         return GenerationResult(enriched, context.lesson_context.lesson_snapshot_hash, context.lesson_context.lesson_ids, context.lesson_context.context_chars, context.context_hash)

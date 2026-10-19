@@ -1,10 +1,1 @@
-{
-  "kind":"TestingEfficiency","schema_version":"1.1",
-  "micro_supervision":{"collected":39,"passed":39,"failed":0},
-  "small_regression":{"collected":197,"passed":196,"skipped":1,"failed":0,"note":"count includes 39 micro/architecture tests"},
-  "product_direction_gate":"PENDING_FINAL_RUN",
-  "full":{"kernel":"NOT_RUN_BY_POLICY","application":"NOT_RUN_BY_POLICY","active_repository":"NOT_RUN_BY_POLICY"},
-  "provider_calls":{"actual_total":6,"iteration_limit":14,"canary_limit":6,"canary_primary_or_fix":6,"project":0,"project_not_run_reason":"CANARY_GATE_FAIL"},
-  "provider_usage":{"qwen":{"calls":5,"successful_candidates":1,"recorded_timeouts":3,"operator_cancelled_fix_attempts":1,"known_tokens":6300},"grok":{"calls":1,"successful_candidates":1,"functional_pass":0,"known_tokens":11699},"deepseek":{"calls":0}},
-  "manual_candidate_edits":0,"contains_credentials":false
-}
+{"kind":"TestingEfficiency","schema_version":"1.2","micro_and_targeted":{"collected":43,"passed":43,"failed":0},"small_regression":{"collected":130,"passed":130,"skipped":0,"failed":0,"target_max":140},"additional_diagnostic_regression":{"collected":147,"passed":146,"skipped":1,"failed":0},"product_direction_gate":"PASS","self_growth_reuse":{"status":"PASS","growth_calls":0,"builder_calls":0,"admission_calls":0,"self_growth_v1":"COMPLETE_FROZEN"},"full":{"kernel":"NOT_RUN_BY_POLICY","application":"NOT_RUN_BY_POLICY","active_repository":"NOT_RUN_BY_POLICY"},"provider_calls":{"actual_total":6,"iteration_limit":8,"project_order":["P04","P02","P01","P03"]},"manual_candidate_edits":0,"contains_credentials":false}

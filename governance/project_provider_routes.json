@@ -1,10 +1,1 @@
-{
-  "kind":"ProjectProviderRoutes","schema_version":"1.1","frozen":true,
-  "routes":[
-    {"project_id":"line_select_cli","task_class":"project.domain.simple","primary":"qwen","transport_backup":"grok","production_qualification":"FAIL","project_status":"NOT_RUN_BY_CANARY_GATE"},
-    {"project_id":"bookmark_store_cli","task_class":"project.domain.persistent","primary":"grok","transport_backup":"qwen","production_qualification":"FAIL_CANDIDATE_FUNCTIONAL","project_status":"NOT_RUN_BY_CANARY_GATE"},
-    {"project_id":"mapping_overlay_library","task_class":"project.domain.library","primary":"qwen","transport_backup":"grok","production_qualification":"FAIL","project_status":"NOT_RUN_BY_CANARY_GATE"},
-    {"project_id":"existing_repo_json_feature","task_class":"repository.patch","primary":"qwen","production_qualification":"PASS","project_status":"NOT_RUN_BY_CANARY_GATE"}
-  ],
-  "candidate_defect_backup_forbidden":true,"candidate_before_backup_required":false,"contains_credentials":false
-}
+{"kind":"ProjectProviderRoutes","schema_version":"1.2","frozen":true,"plan_hash":"sha256:6759f6b8627fb62dea7d2d91e188c9ea1f60779c6c34420fc6d8a81448440e8e","routes":[{"project_id":"existing_repo_json_feature","task_class":"repository.patch","primary":"qwen","status":"PASS"},{"project_id":"bookmark_store_cli","task_class":"project.domain.persistent","primary":"grok","transport_backup":"qwen","status":"FAIL_SCHEMA","note":"backup cancelled after authority defect detection"},{"project_id":"line_select_cli","task_class":"project.domain.simple","primary":"grok","transport_backup":"qwen","status":"FAIL_NO_CANDIDATE"},{"project_id":"mapping_overlay_library","task_class":"project.domain.library","primary":"grok","transport_backup":"qwen","status":"FAIL_INVALID_ENVELOPE","backup_used":false}],"candidate_defect_backup_forbidden":true,"one_additional_action":true,"contains_credentials":false}

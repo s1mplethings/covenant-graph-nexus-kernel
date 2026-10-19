@@ -10,6 +10,10 @@ from .contracts import (
     AssemblyReceipt, BudgetReservation, BundleAttempt, BundleInterfaceContract, BundleKind,
     BundleSpec, CampaignBudgetAllocator, GenerationManifest, canonical_hash,
 )
+from .projection import (
+    ProductionPromptProjection, ProductionPromptSizePolicy,
+    ProjectShapedQualificationReceipt, project_domain_prompt,
+)
 
 __all__ = [
     "AssemblyReceipt", "BudgetReservation", "BundleAttempt", "BundleInterfaceContract", "BundleKind",
@@ -19,4 +23,6 @@ __all__ = [
     "CLIArgumentAction", "CLIArgumentKind", "CLIArgumentSpec", "CLICommandSpec", "CLIDispatchSpec",
     "CLIErrorMapping", "CLIOutputMode", "CLIOutputSpec", "DeterministicCLICompiler",
     "DomainCommandContract", "StructuredCLIPlan",
+    "ProductionPromptProjection", "ProductionPromptSizePolicy",
+    "ProjectShapedQualificationReceipt", "project_domain_prompt",
 ]

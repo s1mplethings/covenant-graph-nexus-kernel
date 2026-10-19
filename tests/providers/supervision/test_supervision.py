@@ -108,6 +108,14 @@ def test_deadline_only_has_no_idle_timeout():
     assert supervisor.check(state, policy.idle_progress_timeout_seconds * 1000 + 2) == SupervisorDecision.CONTINUE
 
 
+def test_deadline_only_reports_predicted_deadline_not_fake_first_progress():
+    registry = ProviderOperationPolicyRegistry(); policy = registry.get("project.domain.simple")
+    policy = type(policy)(**{**policy.__dict__, "supervision_mode": SupervisionMode.DEADLINE_ONLY})
+    supervisor = ProviderExecutionSupervisor(); state = supervisor.start("r", "p", "m", policy, complexity(), LatencySnapshot("k",(),(),(),0,0), 0)
+    assert policy.min_deadline_seconds == 240 and policy.hard_limit_seconds == 300
+    assert supervisor.check(state, state.final_deadline_seconds * 1000) == SupervisorDecision.CANCEL_PREDICTED_DEADLINE
+
+
 def test_historical_p90_requires_three_successes():
     assert LatencySnapshot("k", (10, 20), (), (), 0, 0).historical_adjustment(base=10, hard_limit=100) == 0
     assert LatencySnapshot("k", (10, 20, 30), (), (), 0, 0).historical_adjustment(base=10, hard_limit=100) == 26

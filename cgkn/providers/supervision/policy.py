@@ -10,9 +10,9 @@ from .contracts import ProviderOperationPolicy, ProviderRequestComplexity, Super
 _POLICIES = (
     ("connection.probe", 15, 45, 20, 60, 45, 0, 0, 90, 128),
     ("benchmark.micro", 15, 75, 25, 90, 75, 15, 2, 120, 4096),
-    ("project.domain.simple", 20, 120, 45, 140, 120, 45, 3, 300, 7000),
-    ("project.domain.persistent", 20, 150, 45, 180, 150, 60, 3, 360, 7000),
-    ("project.domain.library", 20, 120, 45, 150, 120, 45, 3, 300, 7000),
+    ("project.domain.simple", 20, 120, 45, 240, 240, 45, 3, 300, 7000),
+    ("project.domain.persistent", 20, 150, 45, 300, 300, 60, 3, 360, 7000),
+    ("project.domain.library", 20, 120, 45, 240, 240, 45, 3, 300, 7000),
     ("repository.patch", 20, 90, 35, 120, 90, 40, 2, 240, 6000),
     ("project.repair", 20, 90, 35, 120, 90, 40, 2, 240, 3000),
     ("capability.build", 20, 120, 45, 160, 120, 50, 3, 330, 7000),

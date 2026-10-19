@@ -111,6 +111,8 @@ class ProviderExecutionSupervisor:
         if elapsed >= session.policy.hard_limit_seconds * 1000:
             return SupervisorDecision.CANCEL_HARD_LIMIT
         if elapsed >= session.final_deadline_seconds * 1000:
+            if session.policy.supervision_mode == SupervisionMode.DEADLINE_ONLY:
+                return SupervisorDecision.CANCEL_PREDICTED_DEADLINE
             return SupervisorDecision.CANCEL_FIRST_PROGRESS_TIMEOUT if session.first_progress_ms < 0 else SupervisorDecision.CANCEL_IDLE_TIMEOUT
         if session.connect_elapsed_ms < 0 and elapsed >= session.policy.connect_timeout_seconds * 1000:
             return SupervisorDecision.CANCEL_CONNECT_TIMEOUT

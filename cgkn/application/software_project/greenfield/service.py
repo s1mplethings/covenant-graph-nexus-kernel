@@ -27,6 +27,7 @@ from cgkn.state import FileRunStore
 from .assembly import ProjectAssembler
 from .contracts import AssemblyReceipt, BundleAttempt, BundleSpec, GenerationManifest, canonical_hash
 from .cli import DeterministicCLICompiler, StructuredCLIPlan
+from .projection import ProductionPromptProjection, project_domain_prompt
 
 
 class BundleValidationError(RuntimeError):
@@ -66,6 +67,11 @@ class _ProviderBundleExecutor:
             outcome_unknown = bool(getattr(exc, "outcome_unknown", False))
             return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.FAILED, error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR, f"{error_class}: {exc}", {"failure_domain": "PROVIDER_TRANSPORT_FAILURE", "provider_error_class": error_class, "outcome_unknown": outcome_unknown}), retryable=not outcome_unknown, started_at=started, ended_at=utc_now(), duration_ms=int((time.perf_counter() - clock) * 1000))
         except Exception as exc:
+            failure_class = "PROVIDER_SCHEMA_FAILURE" if "ProposalError" in type(exc).__name__ or "proposal" in str(exc).lower() else "BUNDLE_CANDIDATE_DEFECT"
+            self.service.attempts.append(BundleAttempt(
+                self.spec.bundle_id, f"attempt.{uuid.uuid4().hex}", "CANDIDATE_REJECTED",
+                failure_class=failure_class, duration_ms=int((time.perf_counter() - clock) * 1000),
+            ))
             return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.FAILED, error=ExecutionError(ExecutionErrorCode.INVALID_OUTPUT, f"{type(exc).__name__}: {exc}", {"failure_domain": "BUNDLE_CANDIDATE_DEFECT"}), started_at=started, ended_at=utc_now(), duration_ms=int((time.perf_counter() - clock) * 1000))
 
 
@@ -84,6 +90,7 @@ class GreenfieldBundleProductionService:
         self.current_revisions: dict[str, str] = {}
         self.attempts: list[BundleAttempt] = []
         self.assembly_receipt: AssemblyReceipt | None = None
+        self.prompt_projections: list[ProductionPromptProjection] = []
 
     @staticmethod
     def build_tree(manifest: GenerationManifest) -> CapabilityTree:
@@ -188,24 +195,39 @@ class GreenfieldBundleProductionService:
             if parent_revision_id:
                 shutil.copytree(self.revisions.source_path(parent_revision_id), staging, dirs_exist_ok=True)
             current = {path.relative_to(staging).as_posix(): path.read_text(encoding="utf-8") for path in staging.rglob("*.py")}
-            prompt = {
+            legacy_prompt = {
                 "node_id": spec.bundle_id, "project_id": manifest.project_id, "bundle": spec.as_dict(),
                 "project_contract": dict(project_contract), "frozen_interface_contract": spec.interface_contract.as_dict(),
                 "dependency_interfaces": [item.interface_contract.as_dict() for item in manifest.bundle_specs if item.bundle_id in spec.depends_on],
                 "dependency_interface_hashes": list(spec.required_interfaces), "current_sources": current,
                 "failure_evidence": dict(failure_evidence or {}),
             }
+            system = "Implement the declared domain target only. Return JSON file actions. The projected interface and obligations are authoritative; do not write CLI, init, tests, metadata, docs, hidden acceptance, governance, artifacts, or use network/shell."
+            task_class = str(spec.lesson_query["task_class"])
+            projection = project_domain_prompt(
+                task_class=task_class, project_id=manifest.project_id,
+                package_name=spec.interface_contract.module.split(".", 1)[0],
+                domain_goal=str(project_contract.get("public_goal", spec.goal)), spec=spec,
+                obligations=tuple({"ref": ref} for ref in spec.obligation_refs),
+                controlled_errors=spec.interface_contract.controlled_errors,
+                system=system, schema=WORKER_SCHEMA, current_sources=current,
+                failure_evidence=failure_evidence, operation=operation,
+                before_payload=legacy_prompt,
+            )
+            self.prompt_projections.append(projection)
             if self.call_authorizer is not None:
                 self.call_authorizer(spec, operation)
             config = replace(self.model_config, timeout_seconds=spec.timeout_seconds, max_output_tokens=1200 if parent_revision_id else spec.max_output_tokens, reasoning_effort=spec.reasoning_effort)
             generated = self.generation.generate(GenerationRequest(
-                task_class=str(spec.lesson_query["task_class"]), operation=operation, project_id=manifest.project_id,
+                task_class=task_class, operation=operation, project_id=manifest.project_id,
                 capability_ref=spec.bundle_id, provider_id=self.provider_id,
-                system="Implement one cohesive project bundle. The frozen project and interface contracts are authoritative. Return JSON file actions only for target_paths. Do not edit tests, metadata, docs, hidden acceptance, governance, artifacts, or another bundle. Do not use network or shell.",
-                goal=prompt, contract={"manifest_hash": manifest.manifest_hash, "bundle": spec.as_dict(), "project_contract_hash": manifest.project_contract_hash},
+                system=system,
+                goal={"projection_hash": projection.projection_hash}, contract={"project_contract_hash": manifest.project_contract_hash},
                 state=current, failure_evidence=dict(failure_evidence or {}), schema_name="greenfield_bundle_actions", schema=WORKER_SCHEMA,
                 model_config=config, dependency_risk_policy={"runtime": "PYTHON_STDLIB_ONLY", "network": "FORBIDDEN", "shell": "FORBIDDEN"},
                 allowed_actions=spec.allowed_actions, forbidden_actions=spec.forbidden_actions, run_id=run_id,
+                projected_prompt=projection.authoritative_payload,
+                prompt_projection_hash=projection.projection_hash,
             ))
             proposal = validate_worker_proposal(parse_json_object(generated.completion.text), spec.bundle_id)
             if proposal["needs_escalation"]:

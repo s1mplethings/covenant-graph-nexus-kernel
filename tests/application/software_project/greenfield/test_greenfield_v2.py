@@ -172,8 +172,8 @@ class FakeBundleProvider:
         self.calls: list[str] = []; self.cli_transport_once = cli_transport_once; self.bad_cli_once = bad_cli_once
 
     def complete(self, **kwargs):
-        prompt = json.loads(kwargs["user"]); bundle = prompt["bundle"]; bundle_id = bundle["bundle_id"]
-        kind = bundle["bundle_kind"]; self.calls.append(kind)
+        prompt = json.loads(kwargs["user"]); bundle_id = prompt["subject_ref"]
+        kind = "DOMAIN"; self.calls.append(kind)
         if kind == "CLI" and self.cli_transport_once:
             self.cli_transport_once = False
             raise ProviderConnectionError("PROVIDER_TRANSPORT_FAILURE", "closed", outcome_unknown=False)
