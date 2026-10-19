@@ -6,7 +6,7 @@
 - Base evidence: `60aac0906bea3d622812c8ae032aa39dea882c24`
 - Branch: `codex/task-gated-level3-closure-20261019`
 - Worktree: `D:\CGKN\.service_worktree\task-gated-level3`
-- Source and remote publication SHA: pending canonical publication
+- Source and remote implementation SHA: `0f3d9adddcf7ab77cce0015cbef9b68d62b6c625`
 
 ## 2. Protected Baseline
 
@@ -101,4 +101,5 @@ Domain Providers still fail to reliably materialize schema-valid Candidates for 
 
 ## 23. Commits
 
-Canonical publication commit and remote SHA are recorded after tests and publication complete.
+- `0f3d9adddcf7ab77cce0015cbef9b68d62b6c625` — `feat(providers): add task-gated level3 execution` — implementation, tests and governance.
+- Evidence Closure commit — this report's publication-only closure; see final remote HEAD.
