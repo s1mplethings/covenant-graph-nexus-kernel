@@ -30,6 +30,7 @@ class Handler(BaseHTTPRequestHandler):
     status = 200
     error_type = "gateway_error"
     completion_status = "completed"
+    response_text: str | None = None
 
     def log_message(self, *_args: object) -> None:
         return
@@ -46,7 +47,7 @@ class Handler(BaseHTTPRequestHandler):
                 "object": "response",
                 "status": self.completion_status,
                 "model": payload["model"],
-                "output_text": json.dumps(self.response),
+                "output_text": self.response_text if self.response_text is not None else json.dumps(self.response),
                 "usage": {"input_tokens": 11, "output_tokens": 7, "total_tokens": 18},
             }
         encoded = json.dumps(body).encode()
@@ -64,6 +65,7 @@ def gateway():
     Handler.status = 200
     Handler.error_type = "gateway_error"
     Handler.completion_status = "completed"
+    Handler.response_text = None
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -131,7 +133,7 @@ def test_all_supported_provider_routes_are_explicit(gateway, provider: str) -> N
 @pytest.mark.security
 def test_invalid_schema_output_auth_error_and_no_secret_leak(gateway) -> None:
     Handler.response = {"wrong": True}
-    with pytest.raises(GatewayCompletionError, match="schema_validation_failed"):
+    with pytest.raises(GatewayCompletionError, match="PROVIDER_SCHEMA_FAILURE"):
         client(gateway).complete(system="s", user="u", schema_name="x", schema=SCHEMA, config=ModelRoleConfig("agent", "qwen"))
     Handler.status = 401
     Handler.error_type = "authentication_error"
@@ -338,6 +340,26 @@ def test_benchmark_budget_purpose_is_explicit_and_bounded() -> None:
     assert bound.budget_purpose == "BENCHMARK"
     with pytest.raises(ValueError, match="budget purpose"):
         bound.bind_run("benchmark-run", "case-b", budget_purpose="FALLBACK")
+
+
+def test_gateway_selects_unique_schema_valid_object_and_returns_receipt(gateway) -> None:
+    Handler.response_text = '{"type":"object","properties":{"ok":{"type":"boolean"}}}\n{"ok":true}'
+    completion = client(gateway).complete(
+        system="s", user="u", schema_name="x", schema=SCHEMA,
+        config=ModelRoleConfig("agent", "deepseek", task_class="project.compose", operation="COMPOSITION"),
+    )
+    assert json.loads(completion.text) == {"ok": True}
+    assert completion.selection_receipt["json_candidate_count"] == 2
+    assert completion.selection_receipt["schema_valid_candidate_count"] == 1
+    assert completion.selection_receipt["final_status"] == "ACCEPTED"
+
+
+def test_gateway_rejects_two_schema_valid_objects_with_receipt(gateway) -> None:
+    Handler.response_text = '{"ok":true}\n{"ok":false}'
+    with pytest.raises(GatewayCompletionError) as caught:
+        client(gateway).complete(system="s", user="u", schema_name="x", schema=SCHEMA, config=ModelRoleConfig("agent", "deepseek"))
+    assert caught.value.category == "PROVIDER_AMBIGUOUS_STRUCTURED_OUTPUT"
+    assert caught.value.evidence["schema_valid_candidate_count"] == 2
 
 
 @pytest.mark.negative

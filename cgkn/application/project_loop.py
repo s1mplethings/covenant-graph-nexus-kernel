@@ -40,12 +40,45 @@ from .project_blueprint import (
 )
 
 
+_STRING_LIST = {"type": "array", "items": {"type": "string"}, "uniqueItems": True}
+_UNIT_PROPERTIES: dict[str, Any] = {
+    "unit_id": {"type": "string", "minLength": 1}, "purpose": {"type": "string", "minLength": 1},
+    "kind": {"enum": ["implementation", "tests", "documentation"]}, "owns": {**_STRING_LIST, "minItems": 1, "maxItems": 5},
+    "reads": _STRING_LIST, "depends_on": _STRING_LIST, "executor_ref": {"const": "llm.cheap@1"},
+    "instruction": {"type": "string", "minLength": 1}, "required_interfaces": _STRING_LIST,
+    "acceptance": {**_STRING_LIST, "minItems": 1}, "allowed_effects": _STRING_LIST,
+    "max_actions": {"type": "integer", "minimum": 1, "maximum": 20},
+    "max_files": {"type": "integer", "minimum": 1, "maximum": 5},
+    "max_output_bytes": {"type": "integer", "minimum": 1, "maximum": 256000},
+    "status": {"const": "PENDING"},
+}
+_UNIT_REQUIRED = list(_UNIT_PROPERTIES)
+_CHECK_PROPERTIES: dict[str, Any] = {
+    "check_id": {"type": "string", "minLength": 1}, "kind": {"enum": ["verification", "acceptance"]},
+    "command": _STRING_LIST, "depends_on": {**_STRING_LIST, "minItems": 1},
+    "acceptance": {**_STRING_LIST, "minItems": 1},
+}
+
+
+def _edit(operation: str, payload: Mapping[str, Any], required: list[str]) -> dict[str, Any]:
+    return {"type": "object", "additionalProperties": False, "required": ["operation", "payload"], "properties": {
+        "operation": {"const": operation},
+        "payload": {"type": "object", "additionalProperties": False, "required": required, "properties": dict(payload)},
+    }}
+
+
 BLUEPRINT_EDIT_SCHEMA: dict[str, Any] = {
     "type": "object", "additionalProperties": False, "required": ["edits"],
-    "properties": {"edits": {"type": "array", "minItems": 1, "items": {
-        "type": "object", "additionalProperties": False, "required": ["operation", "payload"],
-        "properties": {"operation": {"type": "string", "enum": ["set_goal", "add_constraint", "add_unit", "update_unit", "remove_unit", "add_check", "remove_check", "finish_design"]}, "payload": {"type": "object"}},
-    }}},
+    "properties": {"edits": {"type": "array", "minItems": 1, "items": {"oneOf": [
+        _edit("set_goal", {"goal": {"type": "string", "minLength": 1}}, ["goal"]),
+        _edit("add_constraint", {"constraint": {"type": "string", "minLength": 1}}, ["constraint"]),
+        _edit("add_unit", _UNIT_PROPERTIES, _UNIT_REQUIRED),
+        _edit("update_unit", _UNIT_PROPERTIES, ["unit_id"]),
+        _edit("remove_unit", {"unit_id": {"type": "string", "minLength": 1}}, ["unit_id"]),
+        _edit("add_check", _CHECK_PROPERTIES, list(_CHECK_PROPERTIES)),
+        _edit("remove_check", {"check_id": {"type": "string", "minLength": 1}}, ["check_id"]),
+        _edit("finish_design", {}, []),
+    ]}}},
 }
 
 _FILE_ITEM = {"type": "object", "additionalProperties": False, "required": ["path", "content"], "properties": {"path": {"type": "string"}, "content": {"type": "string"}}}
@@ -121,6 +154,7 @@ class ProviderBlueprintDesigner:
         self.calls: list[dict[str, Any]] = []
 
     def design(self, blueprint: ProjectBlueprint, public_contract: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+        started = time.perf_counter()
         prompt = {"mode": "DESIGN", "draft": blueprint.as_dict(), "public_contract": dict(public_contract), "rules": {"cohesive_units_not_files": True, "max_provider_units": 3, "max_owned_files_per_unit": 5, "provider_unit_executor": "llm.cheap@1", "deterministic_checks": True, "finish_required": True}}
         generated = self.generation.generate(GenerationRequest(
             task_class="project.compose", operation="COMPOSITION", project_id=blueprint.project_id,
@@ -131,7 +165,17 @@ class ProviderBlueprintDesigner:
             allowed_actions=("set_goal", "add_constraint", "add_unit", "update_unit", "remove_unit", "add_check", "remove_check", "finish_design"),
             forbidden_actions=("source_write", "shell", "test_pass", "candidate_metadata"),
         ))
-        self.calls.append({"request_id": generated.completion.request_id, "model": generated.completion.model, "usage": dict(generated.completion.usage), "duration": 0, "role": "coordinator"})
+        self.calls.append({
+            "request_id": generated.completion.request_id,
+            "model": generated.completion.model,
+            "usage": dict(generated.completion.usage),
+            "usage_status": "REPORTED" if generated.completion.usage else "UNREPORTED",
+            "duration_ms": int((time.perf_counter() - started) * 1000),
+            "role": "coordinator",
+            "logical_calls": 1,
+            "transport_attempts": generated.completion.attempts,
+            "selection_receipt": dict(generated.completion.selection_receipt),
+        })
         value = parse_json_object(generated.completion.text)
         edits = value.get("edits")
         if not isinstance(edits, list): raise ValueError("Coordinator omitted BlueprintEdit list")

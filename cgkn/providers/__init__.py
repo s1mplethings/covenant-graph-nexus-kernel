@@ -1,4 +1,8 @@
-from .client import CompletionClient, ModelRoleConfig, OpenAICompatibleClient, ProviderCompletion, parse_json_object
+from .client import (
+    CompletionClient, DirectGenerationClient, GenerationClient, GenerationRequest,
+    GenerationResult, ModelRoleConfig, OpenAICompatibleClient, ProviderCompletion,
+    as_generation_client, parse_json_object,
+)
 from .connection_contracts import ModelBindingSource, ProviderConnectionError, ProviderConnectionHealth, ProviderConnectionSnapshot, ProviderModelBinding, StructuredOutputMode
 from .connector_client import ConnectorCompletionClient
 from .connector_registry import ProviderConnectorRegistry, supported_provider_ids
@@ -13,7 +17,8 @@ from .supervision import (DeadlineEstimatorV1, ProgressEventType, ProviderExecut
 
 __all__ = [
     "ALLOWED_PROVIDER_IDS", "CGKNModelRouting", "CompletionClient", "GatewayCompletionClient",
-    "GatewayCompletionError", "ModelRoleConfig", "ModelRoutingSnapshot", "OpenAICompatibleClient",
+    "GatewayCompletionError", "GenerationClient", "GenerationRequest", "GenerationResult",
+    "DirectGenerationClient", "as_generation_client", "ModelRoleConfig", "ModelRoutingSnapshot", "OpenAICompatibleClient",
     "ProviderCompletion", "ProviderConnectionError", "ProviderConnectionHealth", "ProviderModelBinding", "ModelBindingSource",
     "ProviderConnectionSnapshot", "ProviderConnector", "ProviderConnectorRegistry", "ConnectorCompletionClient",
     "QwenConnector", "GrokConnector", "DeepSeekConnector", "StructuredOutputMode",

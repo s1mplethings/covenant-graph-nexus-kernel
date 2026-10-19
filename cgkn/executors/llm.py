@@ -6,8 +6,10 @@ from typing import Any, Mapping
 
 from cgkn.execution import BlockExecutionRequest, BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode
 from cgkn.execution.contracts import utc_now
-from cgkn.providers import CompletionClient, ModelRoleConfig, parse_json_object
-from cgkn.application.learning import GenerationRequest, ProductionGenerationClient, default_production_client
+from cgkn.providers import (
+    CompletionClient, GenerationClient, GenerationRequest, ModelRoleConfig,
+    as_generation_client, parse_json_object,
+)
 
 from .protocol import ExecutorDescriptor
 
@@ -96,10 +98,10 @@ def validate_worker_proposal(value: Mapping[str, Any], node_id: str) -> dict[str
 class LLMExecutor:
     descriptor = ExecutorDescriptor("llm.cheap@1", "bounded_llm", ("*",), ("filesystem.read", "filesystem.write"))
 
-    def __init__(self, project_root: pathlib.Path | str, client: CompletionClient | ProductionGenerationClient, config: ModelRoleConfig):
+    def __init__(self, project_root: pathlib.Path | str, client: CompletionClient | GenerationClient, config: ModelRoleConfig):
         if config.role != "worker":
             raise ValueError("LLMExecutor requires worker model config")
-        self.generation = client if isinstance(client, ProductionGenerationClient) else default_production_client(client)
+        self.generation = as_generation_client(client)
         self.actions, self.client, self.config = BoundedFileActions(project_root), self.generation.client, config
 
     def execute(self, request: BlockExecutionRequest) -> BlockExecutionResult:

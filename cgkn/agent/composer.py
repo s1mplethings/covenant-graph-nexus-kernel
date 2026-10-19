@@ -7,8 +7,10 @@ from typing import Any, Mapping
 
 from cgkn.orchestration.capability_tree import CapabilityTree, _thaw
 from cgkn.orchestration.tree_edits import TreeEdit
-from cgkn.providers import CompletionClient, ModelRoleConfig, ProviderCompletion, parse_json_object
-from cgkn.application.learning import GenerationRequest, ProductionGenerationClient, default_production_client
+from cgkn.providers import (
+    CompletionClient, GenerationClient, GenerationRequest, ModelRoleConfig,
+    ProviderCompletion, as_generation_client, parse_json_object,
+)
 
 from .composer_contract import parse_tree_edit
 
@@ -98,10 +100,10 @@ def parse_agent_decision(value: Mapping[str, Any], completion: ProviderCompletio
 
 
 class AgentComposer:
-    def __init__(self, client: CompletionClient | ProductionGenerationClient, config: ModelRoleConfig):
+    def __init__(self, client: CompletionClient | GenerationClient, config: ModelRoleConfig):
         if config.role != "agent":
             raise ValueError("AgentComposer requires agent model config")
-        self.generation = client if isinstance(client, ProductionGenerationClient) else default_production_client(client)
+        self.generation = as_generation_client(client)
         self.client, self.config = self.generation.client, config
 
     def decide(self, context: AgentDecisionContext) -> AgentDecision:

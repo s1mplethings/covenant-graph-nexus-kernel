@@ -7,6 +7,8 @@ from enum import Enum
 from types import MappingProxyType
 from typing import Any, Mapping, Protocol
 
+from cgkn.providers import GenerationRequest, GenerationResult
+
 
 def _freeze(value: Any) -> Any:
     if isinstance(value, Mapping):
@@ -232,30 +234,6 @@ class LessonRecorder(Protocol):
 
 
 @dataclass(frozen=True)
-class GenerationRequest:
-    task_class: str
-    operation: str
-    project_id: str
-    capability_ref: str
-    provider_id: str
-    system: str
-    goal: Any
-    contract: Any
-    state: Any
-    failure_evidence: Any
-    schema_name: str
-    schema: Mapping[str, Any]
-    model_config: Any
-    lesson_policy: str = "ENABLED"
-    dependency_risk_policy: Any = field(default_factory=dict)
-    allowed_actions: tuple[str, ...] = ()
-    forbidden_actions: tuple[str, ...] = ()
-    run_id: str = ""
-    projected_prompt: Mapping[str, Any] | None = None
-    prompt_projection_hash: str = ""
-
-
-@dataclass(frozen=True)
 class GenerationContext:
     authoritative_facts: Mapping[str, Any]
     current_state: Any
@@ -269,11 +247,4 @@ class GenerationContext:
         object.__setattr__(self, "authoritative_facts", _freeze(self.authoritative_facts))
 
 
-@dataclass(frozen=True)
-class GenerationResult:
-    completion: Any
-    lesson_snapshot_hash: str
-    applied_lesson_ids: tuple[str, ...]
-    lesson_context_chars: int
-    generation_context_hash: str
 

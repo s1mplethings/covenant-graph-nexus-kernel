@@ -73,7 +73,10 @@ class ProductionGenerationClient:
             "generation_context_hash": context.context_hash,
             "prompt_projection_hash": request.prompt_projection_hash,
         }
-        enriched = ProviderCompletion(completion.text, completion.model, completion.request_id, usage, completion.attempts)
+        enriched = ProviderCompletion(
+            completion.text, completion.model, completion.request_id, usage, completion.attempts,
+            completion.selection_receipt,
+        )
         return GenerationResult(enriched, context.lesson_context.lesson_snapshot_hash, context.lesson_context.lesson_ids, context.lesson_context.context_chars, context.context_hash)
 
 

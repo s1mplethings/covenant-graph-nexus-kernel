@@ -167,7 +167,7 @@ def test_feedback_support_and_review(tmp_path):
 class FakeClient:
     def complete(self, **kwargs):
         self.kwargs = kwargs
-        return ProviderCompletion('{"ok":true}', "grok", "request-1", {"total_tokens": 3}, 1)
+        return ProviderCompletion('{"ok":true}', "grok", "request-1", {"total_tokens": 3}, 1, {"final_status": "ACCEPTED"})
 
 
 def test_production_client_adds_snapshot_metadata(tmp_path):
@@ -176,6 +176,7 @@ def test_production_client_adds_snapshot_metadata(tmp_path):
     result = client.generate(GenerationRequest("project.codegen", "GENERATION", "p", "", "grok", "system", "goal", {"x": 1}, {}, {}, "shape", {"type": "object"}, ModelRoleConfig("worker", "grok")))
     assert result.applied_lesson_ids == (item.lesson_id,)
     assert result.completion.usage["lesson_snapshot_hash"] == result.lesson_snapshot_hash
+    assert result.completion.selection_receipt["final_status"] == "ACCEPTED"
 
 
 def test_production_noop_requires_explicit_disable():

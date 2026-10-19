@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Mapping, Protocol
 
 from scripts import check_connectivity, provider_transport
@@ -17,6 +17,8 @@ class ModelRoleConfig:
     reasoning_effort: str = "none"
     task_class: str = "project.domain.simple"
     operation: str = "STRUCTURED_COMPLETION"
+    outer_deadline_seconds: int = 0
+    deadline_reserve_seconds: int = 30
 
     def __post_init__(self) -> None:
         if self.role not in {"agent", "worker"} or not self.model.strip():
@@ -29,6 +31,10 @@ class ModelRoleConfig:
             raise ValueError("model temperature must be between 0 and 2")
         if not self.task_class.strip() or not self.operation.strip():
             raise ValueError("provider task class and operation are required")
+        if self.outer_deadline_seconds < 0 or self.deadline_reserve_seconds < 0:
+            raise ValueError("provider deadline values must be non-negative")
+        if self.outer_deadline_seconds and self.outer_deadline_seconds <= self.deadline_reserve_seconds:
+            raise ValueError("outer deadline must exceed its reserve")
 
 
 @dataclass(frozen=True)
@@ -38,10 +44,79 @@ class ProviderCompletion:
     request_id: str = ""
     usage: Mapping[str, Any] = field(default_factory=dict)
     attempts: int = 1
+    selection_receipt: Mapping[str, Any] = field(default_factory=dict)
 
 
 class CompletionClient(Protocol):
     def complete(self, *, system: str, user: str, schema_name: str, schema: Mapping[str, Any], config: ModelRoleConfig) -> ProviderCompletion: ...
+
+
+@dataclass(frozen=True)
+class GenerationRequest:
+    """Layer-neutral request consumed by optional generation-context adapters."""
+
+    task_class: str
+    operation: str
+    project_id: str
+    capability_ref: str
+    provider_id: str
+    system: str
+    goal: Any
+    contract: Any
+    state: Any
+    failure_evidence: Any
+    schema_name: str
+    schema: Mapping[str, Any]
+    model_config: Any
+    lesson_policy: str = "ENABLED"
+    dependency_risk_policy: Any = field(default_factory=dict)
+    allowed_actions: tuple[str, ...] = ()
+    forbidden_actions: tuple[str, ...] = ()
+    run_id: str = ""
+    projected_prompt: Mapping[str, Any] | None = None
+    prompt_projection_hash: str = ""
+
+
+@dataclass(frozen=True)
+class GenerationResult:
+    completion: ProviderCompletion
+    lesson_snapshot_hash: str = ""
+    applied_lesson_ids: tuple[str, ...] = ()
+    lesson_context_chars: int = 0
+    generation_context_hash: str = ""
+
+
+class GenerationClient(Protocol):
+    def generate(self, request: GenerationRequest) -> GenerationResult: ...
+
+
+class DirectGenerationClient:
+    """Adapt the canonical CompletionClient without depending on an L6 context policy."""
+
+    def __init__(self, client: CompletionClient):
+        self.client = client
+
+    def generate(self, request: GenerationRequest) -> GenerationResult:
+        prompt = request.projected_prompt or {
+            "goal": request.goal,
+            "contract": request.contract,
+            "current_state": request.state,
+            "failure_evidence": request.failure_evidence,
+            "allowed_actions": list(request.allowed_actions),
+            "forbidden_actions": list(request.forbidden_actions),
+        }
+        completion = self.client.complete(
+            system=request.system,
+            user=json.dumps(prompt, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+            schema_name=request.schema_name,
+            schema=request.schema,
+            config=replace(request.model_config, task_class=request.task_class, operation=request.operation),
+        )
+        return GenerationResult(completion)
+
+
+def as_generation_client(client: CompletionClient | GenerationClient) -> GenerationClient:
+    return client if callable(getattr(client, "generate", None)) else DirectGenerationClient(client)
 
 
 def parse_json_object(text: str) -> dict[str, Any]:

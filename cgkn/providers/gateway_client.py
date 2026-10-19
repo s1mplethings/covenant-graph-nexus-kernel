@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import time
 from dataclasses import dataclass, field, replace
 from typing import Any, Mapping
 from urllib import error, request
@@ -10,7 +11,8 @@ from urllib.parse import urlparse
 
 from scripts import provider_api_budget
 
-from .client import ModelRoleConfig, OpenAICompatibleClient, ProviderCompletion, parse_json_object
+from .client import ModelRoleConfig, OpenAICompatibleClient, ProviderCompletion
+from .structured_output import StructuredAnswerSelector, StructuredSelectionError
 
 
 MAX_RESPONSE_BYTES = 2_097_152
@@ -18,10 +20,11 @@ MAX_REQUEST_BYTES = 1_048_576
 
 
 class GatewayCompletionError(RuntimeError):
-    def __init__(self, category: str, message: str, *, http_status: int | None = None, outcome_unknown: bool = False) -> None:
+    def __init__(self, category: str, message: str, *, http_status: int | None = None, outcome_unknown: bool = False, evidence: Mapping[str, Any] | None = None) -> None:
         self.category = category
         self.http_status = http_status
         self.outcome_unknown = outcome_unknown
+        self.evidence = dict(evidence or {})
         super().__init__(f"{category}: {message}")
 
 
@@ -88,10 +91,11 @@ class GatewayCompletionClient:
         return replace(self, run_id=str(run_id), case_id=str(case_id), budget_purpose=purpose)
 
     def complete(self, *, system: str, user: str, schema_name: str, schema: Mapping[str, Any], config: ModelRoleConfig) -> ProviderCompletion:
+        logical_started = time.monotonic()
         if config.model not in {"qwen", "deepseek", "grok"}:
             raise GatewayCompletionError("invalid_model", "model must be an allowed Provider ID")
         schema_doc = dict(schema)
-        validator = _schema_validator(schema_doc)
+        _schema_validator(schema_doc)
         if self.api_method == "chat_completions":
             path = "/v1/chat/completions"
             payload: dict[str, Any] = {
@@ -116,6 +120,14 @@ class GatewayCompletionClient:
         if len(encoded) > MAX_REQUEST_BYTES:
             raise GatewayCompletionError("request_too_large", "gateway request exceeded the bounded request size")
         identity = "sha256:" + hashlib.sha256(encoded).hexdigest()
+        outer_seconds = config.outer_deadline_seconds or (config.timeout_seconds + config.deadline_reserve_seconds)
+        remaining_outer = max(0.0, outer_seconds - (time.monotonic() - logical_started))
+        available_transport_seconds = remaining_outer - config.deadline_reserve_seconds
+        if available_transport_seconds <= 0:
+            raise GatewayCompletionError("outer_deadline_exhausted", "insufficient time remains to start Provider transport")
+        # Do not let sub-second bookkeeping elapsed before transport turn a valid
+        # one-second request into a zero-second deadline.
+        effective_timeout = min(config.timeout_seconds, max(1, int(available_transport_seconds)))
         limits = provider_api_budget.configured_limits()
         if self.enforce_budget and (
             provider_api_budget.configured_ledger_path() is None
@@ -149,7 +161,7 @@ class GatewayCompletionClient:
             )
             provider_api_budget.mark_request_started(reservation)
             started = True
-            with request.urlopen(req, timeout=config.timeout_seconds) as response:
+            with request.urlopen(req, timeout=effective_timeout) as response:
                 http_status = int(response.status)
                 raw = response.read(MAX_RESPONSE_BYTES + 1)
             if len(raw) > MAX_RESPONSE_BYTES:
@@ -165,17 +177,36 @@ class GatewayCompletionClient:
             text = self._extract_text(decoded)
             if not text.strip():
                 raise GatewayCompletionError("empty_response", "gateway returned no completion text", http_status=http_status)
-            value = parse_json_object(text)
-            errors = sorted(validator.iter_errors(value), key=lambda item: list(item.path))
-            if errors:
-                raise GatewayCompletionError("schema_validation_failed", errors[0].message, http_status=http_status)
             usage = dict(decoded.get("usage")) if isinstance(decoded.get("usage"), dict) else {}
             if "prompt_tokens" not in usage and "input_tokens" in usage:
                 usage["prompt_tokens"] = usage.get("input_tokens")
             if "completion_tokens" not in usage and "output_tokens" in usage:
                 usage["completion_tokens"] = usage.get("output_tokens")
+            prompt_hash = "sha256:" + hashlib.sha256(
+                json.dumps({"system": system, "user": user}, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            ).hexdigest()
+            try:
+                selected, selection = StructuredAnswerSelector().select(
+                    text, schema_doc, schema_name=schema_name, provider_id=config.model,
+                    model=str(decoded.get("model") or config.model), task_class=config.task_class,
+                    operation=config.operation, prompt_hash=prompt_hash, transport_attempts=1,
+                    elapsed_ms=int((time.monotonic() - logical_started) * 1000),
+                    usage_status="REPORTED" if usage else "UNREPORTED",
+                    configured_timeout_seconds=config.timeout_seconds,
+                    effective_request_timeout_seconds=effective_timeout,
+                    remaining_outer_seconds=max(0, int(remaining_outer)), max_output_tokens=config.max_output_tokens,
+                    logical_call_number=1, response_headers_received=True,
+                )
+            except StructuredSelectionError as exc:
+                raise GatewayCompletionError(
+                    exc.status, exc.status, http_status=http_status, evidence=exc.receipt.as_dict()
+                ) from None
             provider_api_budget.finalize_call(reservation, usage=usage, http_status=http_status, status="SUCCEEDED")
-            return ProviderCompletion(text, str(decoded.get("model") or config.model), str(decoded.get("id") or ""), usage, 1)
+            return ProviderCompletion(
+                json.dumps(selected, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+                str(decoded.get("model") or config.model), str(decoded.get("id") or ""), usage, 1,
+                selection.as_dict(),
+            )
         except error.HTTPError as exc:
             http_status = int(exc.code)
             try:
