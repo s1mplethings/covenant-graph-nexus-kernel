@@ -2,7 +2,7 @@
   "kind": "CGKNRoleModelEfficiencyStatus",
   "schema_version": "1.0",
   "iteration": "ITER-COORDINATOR-QUALIFICATION-CLOSURE-034",
-  "source_commit": "SOURCE_CLOSURE_PENDING",
+  "source_commit": "d561da30dfe148175b53ea708ff52d8f826cd696",
   "ingress_status": "PASS",
   "api_lab_dependency": {
     "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
@@ -16,7 +16,7 @@
     "status": "PASS"
   },
   "minimal_blueprint_status": "PARTIAL",
-  "coordinator_qualification": "NOT_EVALUATED",
+  "coordinator_qualification": "COORDINATOR_NOT_QUALIFIED",
   "worker_file_bundle_qualification": "NOT_EVALUATED",
   "worker_patch_bundle_qualification": "NOT_EVALUATED",
   "real_csv_single": "NOT_EVALUATED",
@@ -30,8 +30,8 @@
   "blockers": [
     {
       "priority": "P0",
-      "code": "FRESH_COORDINATOR_QUALIFICATION_PENDING",
-      "detail": "Freeze the minimized Coordinator Source Closure and run exactly three fresh DeepSeek probes."
+      "code": "COORDINATOR_NOT_QUALIFIED",
+      "detail": "Fresh Coordinator qualification was 0/3 because every DeepSeek response was PROVIDER_OUTPUT_TRUNCATED at the fixed 3500-token output limit."
     }
   ]
 }
