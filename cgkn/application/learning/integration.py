@@ -102,22 +102,36 @@ def lesson_aware_messages(
     artifact_root: pathlib.Path | str | None = None,
 ) -> tuple[list[dict[str, str]], dict[str, Any]]:
     """Adapter for the reviewed compatibility transport without creating a second route."""
-    if len(messages) < 2:
-        raise ValueError("production Provider messages require system and user content")
+    if not messages:
+        raise ValueError("production Provider messages require user content")
+    # Compatibility callers may provide only the user turn. Normalize that
+    # shape before learning projection so transport selection and budgeting
+    # remain downstream of the reviewed context boundary.
+    normalized_messages = [dict(item) for item in messages]
+    if len(normalized_messages) == 1:
+        normalized_messages.insert(0, {"role": "system", "content": ""})
     try:
-        payload: Any = __import__("json").loads(str(messages[-1].get("content", "")))
+        payload: Any = __import__("json").loads(str(normalized_messages[-1].get("content", "")))
     except Exception:
-        payload = {"raw_request": str(messages[-1].get("content", ""))}
+        payload = {"raw_request": str(normalized_messages[-1].get("content", ""))}
     configured = pathlib.Path(artifact_root or os.environ.get("CGKN_LEARNING_ARTIFACT_ROOT", ".cgkn")).resolve()
     store = FileLessonStore(configured); reader = StoreLessonReader(store); assembler = GenerationContextAssembler(reader)
     authority_hash = canonical_hash(payload)
     context = assembler.assemble(
-        goal=payload, contract=payload, current_state={}, dependency_risk_policy={}, failure_evidence={},
+        goal=payload, contract={}, current_state={}, dependency_risk_policy={}, failure_evidence={},
         lesson_query=LessonQuery(task_class, operation, capability_ref, provider_id, project_id, authority_snapshot_hash=authority_hash),
         forbidden_actions=("contract_change", "security_policy_change", "hidden_acceptance"),
     )
-    updated = [dict(item) for item in messages]
-    updated[-1]["content"] = assembler.render_prompt(context)
+    updated = normalized_messages
+    rendered_prompt = json.loads(assembler.render_prompt(context))
+    # render_prompt exposes goal keys at the top level for native generation
+    # clients. The compatibility adapter already carries the same goal under
+    # AUTHORITATIVE CONTRACT, so remove only those exact duplicates to keep
+    # legacy request sizes bounded without dropping facts.
+    if isinstance(payload, dict):
+        for key in payload:
+            rendered_prompt.pop(str(key), None)
+    updated[-1]["content"] = json.dumps(rendered_prompt, ensure_ascii=False, sort_keys=True)
     return updated, {
         "lesson_snapshot_hash": context.lesson_context.lesson_snapshot_hash,
         "applied_lesson_ids": list(context.lesson_context.lesson_ids),

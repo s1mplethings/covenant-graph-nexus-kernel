@@ -8504,6 +8504,16 @@ def provider_text(
     request_metrics_path: pathlib.Path | None = None,
 ) -> str:
     lesson_metadata: dict[str, Any] = {}
+    # Reject an already-over-budget caller payload before lesson lookup or any
+    # additional evidence events. The projected prompt is checked again below.
+    try:
+        enforce_provider_request_context_budget(messages, stage=stage, max_tokens=max_tokens)
+    except ProviderInputContextBudgetError as exc:
+        append_provider_event_log(
+            phase_log_path,
+            {"event": "provider_context_budget_checked", **exc.receipt},
+        )
+        raise
     non_production_stage = any(token in stage.lower() for token in ("benchmark", "diagnostic", "probe"))
     if not non_production_stage:
         from cgkn.application.learning import lesson_aware_messages

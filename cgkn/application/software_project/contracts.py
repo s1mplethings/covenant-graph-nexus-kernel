@@ -52,8 +52,8 @@ class WorkerScope:
             if path.is_absolute() or not str(path) or ".." in path.parts:
                 raise ValueError("worker scope paths must be safe and relative")
         targets = self.target_paths or self.allowed_paths
-        if not targets or len(targets) > 3 or any(item not in self.allowed_paths for item in targets):
-            raise ValueError("worker target_paths must be one to three cohesive paths within allowed_paths")
+        if not targets or len(targets) > min(3, self.max_write_files) or any(item not in self.allowed_paths for item in targets):
+            raise ValueError("worker target_paths must fit the cohesive path and write-file limits")
         object.__setattr__(self, "target_paths", tuple(targets))
         if self.max_actions < 1 or self.max_write_files < 1 or self.max_total_output_bytes < 1:
             raise ValueError("worker scope limits must be positive")
