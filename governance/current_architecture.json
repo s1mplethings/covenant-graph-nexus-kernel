@@ -23,6 +23,7 @@
     "compatibility_mainline_replacement": "NOT_IMPLEMENTED",
     "agent_cheap_executor_mvp": "REAL_PROVIDER_VALIDATED",
     "software_project_generation_bundle": "TARGETED_PASS_MINI_CAMPAIGN_NEEDS_REWORK",
+    "minimal_project_blueprint": "PARTIAL_PROVIDER_BLOCKED",
     "functional_readiness": "LEVEL_4"
   },
   "product_authority": ["PRODUCT_GOAL.md", "MVP_SCOPE.md", "governance/product_invariants.json"],
@@ -42,6 +43,9 @@
     "growth_loop": "cgkn/growth/loop.py:GrowthLoop",
     "agent_decision": "cgkn/agent/composer.py:AgentDecision",
     "agent_project_loop": "cgkn/agent/project_loop.py:AgentProjectLoop",
+    "project_blueprint": "cgkn/application/project_blueprint.py:ProjectBlueprint",
+    "project_blueprint_compiler": "cgkn/application/project_loop.py:compile_blueprint",
+    "minimal_project_loop": "cgkn/application/project_loop.py:MinimalProjectLoop",
     "bounded_llm_executor": "cgkn/executors/llm.py:LLMExecutor",
     "executor_factory": "cgkn/executors/factory.py:ExecutorFactoryRegistry",
     "artifact_runtime": "cgkn/runtime/runner.py:ArtifactModuleRunner",
@@ -58,7 +62,7 @@
   },
   "compatibility_entrypoints": ["scripts/codex_conversation.py", "scripts/run_codex_conversation_generation.py", "scripts/run_local_pipeline.py", "scripts/run_local_pipeline_impl.py"],
   "compatibility_rule": "Compatibility entrypoints remain callable and are not the MVP planning or composition authority. The isolated MVP runtime has not replaced them.",
-  "next_feature_increment": {"id": "MVP-016", "name": "Stabilize CLI bundle repair fidelity", "migration_target": "Improve deterministic failure evidence and bounded CLI repository-patch repair after cohesive bundle assembly without changing Provider routing or adding a second runtime."},
+  "next_feature_increment": {"id": "MVP-017", "name": "Close minimal ProjectBlueprint generation and repair", "migration_target": "Prove one frozen blueprint, cohesive units, minimal Provider payloads, interface guarding, and affected-only repair through the existing CapabilityTree, DAGRunner, and FileRunStore."},
   "forbidden_parallel_authorities": true,
   "verification": {"github_actions": "NOT_EVALUATED", "product_direction_gate": "PASS", "focused_tests": "PASS", "deterministic_vertical_slice": "PASS", "resume_and_local_repair": "PASS", "self_growth_v0": "PASS", "agent_cheap_executor_fake_integration": "PASS", "agent_cheap_executor_real_provider": "PASS", "decision_efficiency_benchmark": "PASS_WITH_LIMITS", "self_growth_v1": "NOT_EVALUATED", "full_pytest": "NOT_EVALUATED"}
 }

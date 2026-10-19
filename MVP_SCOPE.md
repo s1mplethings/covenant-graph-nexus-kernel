@@ -8,6 +8,8 @@ The MVP proves that one high-capability Agent can assemble and maintain a real p
 
 Goal -> Agent -> CapabilityTree -> ExecutionDAG -> Component/Block execution -> Result -> Test/Observation -> Project State -> Agent checkpoint
 
+The L6 software-project slice projects this mainline as: Goal -> coordinating Agent DESIGN -> frozen minimal ProjectBlueprint -> cohesive units -> existing CapabilityTree/ExecutionDAG -> bounded workers and deterministic checks -> UnitResult/FailureReport -> affected-only repair. The blueprint is project truth; it is not a second execution graph or state authority.
+
 ## P0 required now
 
 - one canonical capability/block input-output interface;

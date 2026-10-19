@@ -1,0 +1,29 @@
+{
+  "kind": "CGKNProjectMVPStatus",
+  "schema_version": "1.0",
+  "source_commit": "WORKING_TREE",
+  "minimal_blueprint_status": "PARTIAL",
+  "real_generation": "BLOCKED_PROVIDER",
+  "real_repair": "NOT_EVALUATED",
+  "multi_agent_status": "BLOCKED_BY_PHASE_A",
+  "multi_agent_readiness": "MULTI_AGENT_LEVEL_0",
+  "standup_status": "NOT_EVALUATED",
+  "repeatability": "NOT_EVALUATED",
+  "kernel_regression": "BASELINE_FAILURES_NO_NEW_TARGETED_REGRESSION",
+  "blockers": [
+    {
+      "priority": "P0",
+      "phase": "A3_REAL_GREENFIELD",
+      "summary": "No real ProjectBlueprint was produced within the fixed Provider budget.",
+      "evidence": "Seven of eight allowed live calls were consumed by three 90-second Qwen/Grok planning timeouts and four DeepSeek structured-output adaptation failures. No Worker call or manual project edit occurred.",
+      "next_action": "Fix and independently verify API Lab structured-output selection so the validated answer object is chosen instead of schema/reasoning text, then start a fresh bounded project run."
+    },
+    {
+      "priority": "P1",
+      "phase": "KERNEL_REGRESSION",
+      "summary": "The inherited 6076b83 baseline does not currently satisfy every Kernel Gate or the full pytest suite.",
+      "evidence": "The unchanged base and this branch reproduce the same 14 failing tests, including the architecture reverse-import gate and stale source-bound receipt. Focused Project MVP tests, boundary, fault, security, and local-functional profiles pass; the one additional full-suite cache entry passed when rerun alone.",
+      "next_action": "Close the inherited Kernel architecture and receipt failures in a separate authorized iteration before claiming a fresh all-green Kernel closure."
+    }
+  ]
+}

@@ -67,6 +67,12 @@ def test_file_policy(path: str, classification: str, action: str) -> None:
         assert action == "BLOCK"
 
 
+def test_product_authority_documents_are_publishable_current_docs() -> None:
+    for path in ("PRODUCT_GOAL.md", "MVP_SCOPE.md"):
+        classification, _ = gate.classify_path(path)
+        assert classification == "CURRENT_DOC"
+
+
 def test_force_push_options_are_always_blocked() -> None:
     for option in ("-f", "--force", "--force-with-lease"):
         with pytest.raises(gate.PublishBlocked, match="BLOCKED_FORCE_PUSH"):

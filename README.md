@@ -18,6 +18,8 @@ User Goal
 
 The high-capability Agent owns project-level decisions and composition. Cheap models, local models, APIs, search, scripts, browsers, and test tools execute bounded node work; they do not redefine project intent.
 
+The current software-project MVP uses that same coordinator to design and freeze one minimal `ProjectBlueprint`, then compiles cohesive blueprint units into the existing CapabilityTree/DAG. Workers exchange only `FileBundle` or `PatchBundle` payloads; deterministic code owns scope, syntax, interface guards, application, evidence, and affected-only repair continuity.
+
 Roles such as Project Manager, Developer, Tester, Researcher, Release, or Marketing are optional capability bundles/views over the same tree and DAG, not mandatory pipeline stages.
 
 ## Current implementation state
@@ -51,7 +53,7 @@ The remaining compatibility entrypoints are:
 
 They remain callable only to preserve existing behavior while the new runtime is implemented. They are not the MVP planning or composition authority.
 
-The first L6 application bundle lives under `cgkn/application/software_project/`.
+The compatibility L6 application bundle lives under `cgkn/application/software_project/`.
 It assembles the existing Agent, tree, DAG, executor, state, and test
 authorities to generate isolated stdlib-only projects with file-scoped workers,
 deterministic snapshots, and external acceptance. Its deterministic contract
@@ -59,6 +61,13 @@ and harness tests pass, but the bounded real-Provider Stage 1 run did not reach
 a final project PASS after two application repair rounds. The bundle therefore
 remains `PARTIAL` at `GENERATION_LEVEL_0`; this does not change LEVEL 4 product
 readiness or the completed L0-L5 kernel foundation.
+
+The replacement experiment is an isolated L6 adapter in
+`cgkn/application/project_blueprint.py` and `cgkn/application/project_loop.py`.
+Its fake filesystem/pytest/hidden-acceptance profiles pass. Real Provider
+generation is `BLOCKED_PROVIDER`, and repair remains `NOT_EVALUATED` until
+their receipts and full regression close. Run profiles through
+`python scripts/run_project_mvp.py`.
 
 Cleanup status and the exact migration boundary are recorded in:
 

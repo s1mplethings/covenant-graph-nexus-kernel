@@ -12,6 +12,8 @@ The reviewed Codex conversation generation route remains: API/provider project g
 
 High-capability Agent -> CapabilityTree -> ExecutionDAG -> Component/Block -> replaceable Executor -> Result/Test -> Project State -> Agent checkpoint
 
+For L6 software-project generation, the Agent first freezes one minimal ProjectBlueprint. Cohesive units compile into the existing CapabilityTree/DAG; repair inherits the same blueprint, workspace, interfaces, results, and FileRunStore state and invalidates only the affected subgraph.
+
 The Agent owns project-level understanding and key decisions. Executors perform bounded work. Cheap APIs, local models, search, browser tools, scripts, test runners, and provider models are executors; they do not become the canonical project planner.
 
 Tree structure represents composition. DAG structure represents executable dependencies.

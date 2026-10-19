@@ -4,6 +4,8 @@ CGKN is an autonomous project-team kernel built on a composable capability syste
 
 The core rule is: a high-capability Agent owns project-level understanding and key decisions; CGKN exposes reusable capabilities through stable input/output boundaries, expands work as a Capability Tree, compiles executable dependencies into an Execution DAG, and delegates bounded execution to replaceable low-cost models, local models, APIs, tools, or deterministic programs.
 
+For software-project generation, the coordinating Agent first designs and freezes one minimal `ProjectBlueprint`. It then delegates cohesive units through the existing CapabilityTree and ExecutionDAG. Repair preserves that blueprint, current workspace, observed interfaces, successful results, and project state, and reruns only the smallest affected unit and downstream checks.
+
 CGKN is not a fixed Product -> Design -> Build -> QA pipeline, not a model router, and not a virtual-company simulator.
 
 ## Product layers
