@@ -1,50 +1,43 @@
 {
   "kind": "CGKNProjectMVPStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-DEEPSEEK-THINKING-ROUTE-CLOSURE-035",
-  "source_commit": "85d1b8b8d4bdcd7676897e9c45c17cd3485b9f81",
+  "iteration": "ITER-WORKER-REAL-UNIT-CLOSURE-036",
+  "source_commit": "721d24ff4fa90d49cea8426c8cd4e4fc41fcf5d8",
   "minimal_blueprint_status": "PARTIAL",
-  "coordinator_thinking_policy": "disabled",
-  "coordinator_reasoning_effort": "none",
-  "thinking_root_cause_status": "CONFIRMED",
   "coordinator_qualification": "PASS_3_OF_3",
+  "worker_protocol_qualification": true,
   "worker_file_bundle_qualification": "PASS",
   "worker_patch_bundle_qualification": "PASS",
-  "real_csv_single": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
-  "real_csv_repeatability": "NOT_RUN_DUE_STOP_CONDITION",
-  "real_seeded_repair": "NOT_RUN_DUE_STOP_CONDITION",
+  "worker_thinking_root_cause": "CONFIRMED",
+  "worker_generation_thinking_policy": "disabled",
+  "worker_repair_thinking_policy": "default",
+  "worker_cohesive_unit_qualification": "FAIL",
+  "failed_provider_calls_recorded": true,
+  "real_csv_single": "NOT_RUN_DUE_STOP_CONDITION_D",
+  "real_csv_repeatability": "NOT_RUN_DUE_STOP_CONDITION_D",
+  "real_seeded_repair": "NOT_RUN_DUE_STOP_CONDITION_D",
   "real_generation": "FAIL",
   "real_repair": "NOT_EVALUATED",
+  "kernel_evidence_fresh": false,
   "efficiency_experiment_ready": false,
   "multi_agent_status": "BLOCKED_BY_EFFICIENCY_EXPERIMENT",
-  "multi_agent_readiness": "MULTI_AGENT_LEVEL_0",
-  "kernel_regression": "FAIL",
-  "application_regression": "PASS_334_WITH_1_SKIP",
   "api_lab_dependency": {
     "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
     "branch": "codex/deepseek-thinking-control-20261019",
     "commit": "999dff096afe45f058fe67016aee28a73912d5d4",
-    "remote_sha": "999dff096afe45f058fe67016aee28a73912d5d4",
     "contract_version": "1.1",
-    "route_mode": "raw_defer",
-    "selector_authority": "CGKN",
-    "status": "PASS"
+    "modified_this_iteration": false
   },
   "blockers": [
     {
       "priority": "P0",
-      "code": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
-      "detail": "CSV Single used one qualified Coordinator call, then the core 4-file Worker hit finish_reason=length at exactly 6000 output tokens on the initial attempt and both allowed affected-unit retries. No files were accepted, downstream nodes remained blocked, and the live sequence stopped before Seeded Repair or CSV repeatability."
+      "code": "WORKER_COHESIVE_UNIT_NOT_QUALIFIED",
+      "detail": "All three frozen core-cli qualification calls returned one valid four-file FileBundle below 6000 tokens, but local WorkerScope independently hard-caps cohesive target_paths at three while ProjectBlueprint permits up to five and this unit declares max_files=4."
     },
     {
       "priority": "P1",
-      "code": "FAILED_WORKER_RECEIPT_NOT_ATTACHED_TO_PROJECT_OUTCOME",
-      "detail": "The budget ledger retains request IDs and token totals for failed Worker calls, but BlueprintUnitExecutor does not append GatewayCompletionError selection evidence to provider_calls.json."
-    },
-    {
-      "priority": "P1",
-      "code": "KERNEL_REGRESSION_GOVERNANCE_FIXTURE_DIRTY",
-      "detail": "Boundary and security profiles fail the same existing consumer-governance test because its strict verification leaves the temporary fixture dirty before record(); fault and local-functional profiles pass."
+      "code": "KERNEL_EVIDENCE_NOT_REFRESHED_AFTER_STOP",
+      "detail": "The governance fixture source fix is committed, but Kernel profiles and full pytest were not run after stop condition D; freshness remains false."
     }
   ]
 }

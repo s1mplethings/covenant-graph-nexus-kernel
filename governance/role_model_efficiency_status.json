@@ -1,58 +1,34 @@
 {
   "kind": "CGKNRoleModelEfficiencyStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-DEEPSEEK-THINKING-ROUTE-CLOSURE-035",
-  "source_commit": "85d1b8b8d4bdcd7676897e9c45c17cd3485b9f81",
-  "ingress_status": "PASS",
+  "iteration": "ITER-WORKER-REAL-UNIT-CLOSURE-036",
+  "source_commit": "721d24ff4fa90d49cea8426c8cd4e4fc41fcf5d8",
+  "coordinator_qualification": "PASS_3_OF_3",
+  "worker_protocol_qualification": true,
+  "worker_cohesive_unit_qualification": "FAIL",
+  "worker_thinking_root_cause": "CONFIRMED",
+  "worker_generation_thinking_policy": "disabled",
+  "worker_repair_thinking_policy": "default",
+  "failed_provider_calls_recorded": true,
+  "minimal_blueprint_status": "PARTIAL",
+  "real_generation_status": "FAIL",
+  "real_repair_status": "NOT_EVALUATED",
+  "efficiency_experiment_ready": false,
+  "manual_candidate_edits": 0,
+  "stop_condition": "D",
+  "stop_status": "WORKER_COHESIVE_UNIT_NOT_QUALIFIED",
   "api_lab_dependency": {
-    "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
-    "branch": "codex/deepseek-thinking-control-20261019",
     "commit": "999dff096afe45f058fe67016aee28a73912d5d4",
     "contract_version": "1.1",
     "route_mode": "raw_defer",
     "selector_authority": "CGKN",
-    "selector_version": "1.0",
-    "transport_method": "api_lab_gateway",
-    "status": "PASS"
+    "modified_this_iteration": false
   },
-  "coordinator_thinking_policy": "disabled",
-  "coordinator_reasoning_effort": "none",
-  "coordinator_reasoning_tokens": null,
-  "thinking_root_cause_status": "CONFIRMED",
-  "minimal_blueprint_status": "PARTIAL",
-  "coordinator_qualification": "PASS_3_OF_3",
-  "coordinator_efficiency": {
-    "median_input_tokens": 612,
-    "median_output_tokens": 893,
-    "median_reasoning_tokens": null,
-    "median_duration_ms": 4519,
-    "status": "PASS_IDEAL_OUTPUT_TARGET"
-  },
-  "worker_file_bundle_qualification": "PASS",
-  "worker_patch_bundle_qualification": "PASS",
-  "real_csv_single": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
-  "real_csv_repeatability": "NOT_RUN_DUE_STOP_CONDITION",
-  "real_seeded_repair": "NOT_RUN_DUE_STOP_CONDITION",
-  "real_generation_status": "FAIL",
-  "real_repair_status": "NOT_EVALUATED",
-  "efficiency_experiment_ready": false,
-  "worker_runs": 2,
-  "manual_candidate_edits": 0,
   "blockers": [
     {
       "priority": "P0",
-      "code": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
-      "detail": "The qualified default-thinking Worker route succeeds for minimal FileBundle and PatchBundle probes but truncates a cohesive 4-file implementation bundle at 6000 tokens for three consecutive affected-unit attempts."
-    },
-    {
-      "priority": "P1",
-      "code": "FAILED_WORKER_RECEIPT_PROPAGATION",
-      "detail": "Failed generation selection evidence is available at the gateway boundary but is not retained in the project-level provider call list."
-    },
-    {
-      "priority": "P1",
-      "code": "KERNEL_REGRESSION_GOVERNANCE_FIXTURE_DIRTY",
-      "detail": "Boundary and security Kernel profiles each fail test_strict_experiments_record_history_and_cli at the fixture clean-worktree gate."
+      "code": "COHESIVE_SCOPE_LIMIT_CONFLICT",
+      "detail": "Blueprint core-cli owns four tightly coupled package files with max_files=4, but WorkerScope enforces len(target_paths)<=3 before syntax or interface checks."
     }
   ]
 }
