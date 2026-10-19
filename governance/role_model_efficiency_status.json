@@ -1,11 +1,11 @@
 {
   "kind": "CGKNRoleModelEfficiencyStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-WORKER-REAL-UNIT-CLOSURE-036",
-  "source_commit": "721d24ff4fa90d49cea8426c8cd4e4fc41fcf5d8",
+  "iteration": "ITER-WORKER-SCOPE-CONTRACT-CLOSURE-037",
+  "source_commit": "e473ad634d27aa04e79fca9b230842b8929a7dfe",
   "coordinator_qualification": "PASS_3_OF_3",
   "worker_protocol_qualification": true,
-  "worker_cohesive_unit_qualification": "FAIL",
+  "worker_cohesive_unit_qualification": "PASS",
   "worker_thinking_root_cause": "CONFIRMED",
   "worker_generation_thinking_policy": "disabled",
   "worker_repair_thinking_policy": "default",
@@ -16,7 +16,7 @@
   "efficiency_experiment_ready": false,
   "manual_candidate_edits": 0,
   "stop_condition": "D",
-  "stop_status": "WORKER_COHESIVE_UNIT_NOT_QUALIFIED",
+  "stop_status": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
   "api_lab_dependency": {
     "commit": "999dff096afe45f058fe67016aee28a73912d5d4",
     "contract_version": "1.1",
@@ -27,8 +27,8 @@
   "blockers": [
     {
       "priority": "P0",
-      "code": "COHESIVE_SCOPE_LIMIT_CONFLICT",
-      "detail": "Blueprint core-cli owns four tightly coupled package files with max_files=4, but WorkerScope enforces len(target_paths)<=3 before syntax or interface checks."
+      "code": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
+      "detail": "CSV Single failed after the allowed two repair rounds because incomplete tests generation was misattributed to core-cli and the subsequent repair payloads did not satisfy current PatchBundle path rules."
     }
   ]
 }

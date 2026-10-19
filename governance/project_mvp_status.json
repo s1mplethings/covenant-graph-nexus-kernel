@@ -1,8 +1,8 @@
 {
   "kind": "CGKNProjectMVPStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-WORKER-REAL-UNIT-CLOSURE-036",
-  "source_commit": "721d24ff4fa90d49cea8426c8cd4e4fc41fcf5d8",
+  "iteration": "ITER-WORKER-SCOPE-CONTRACT-CLOSURE-037",
+  "source_commit": "e473ad634d27aa04e79fca9b230842b8929a7dfe",
   "minimal_blueprint_status": "PARTIAL",
   "coordinator_qualification": "PASS_3_OF_3",
   "worker_protocol_qualification": true,
@@ -11,9 +11,15 @@
   "worker_thinking_root_cause": "CONFIRMED",
   "worker_generation_thinking_policy": "disabled",
   "worker_repair_thinking_policy": "default",
-  "worker_cohesive_unit_qualification": "FAIL",
+  "worker_cohesive_unit_qualification": "PASS",
+  "worker_cohesive_qualification_basis": {
+    "prior_provider_generation": "PASS_3_OF_3",
+    "deterministic_scope_replay": "PASS_3_OF_3",
+    "fresh_live_seam": "PASS_1_OF_1",
+    "replay_provider_calls": 0
+  },
   "failed_provider_calls_recorded": true,
-  "real_csv_single": "NOT_RUN_DUE_STOP_CONDITION_D",
+  "real_csv_single": "FAIL_AFTER_2_REPAIR_ROUNDS",
   "real_csv_repeatability": "NOT_RUN_DUE_STOP_CONDITION_D",
   "real_seeded_repair": "NOT_RUN_DUE_STOP_CONDITION_D",
   "real_generation": "FAIL",
@@ -31,13 +37,23 @@
   "blockers": [
     {
       "priority": "P0",
-      "code": "WORKER_COHESIVE_UNIT_NOT_QUALIFIED",
-      "detail": "All three frozen core-cli qualification calls returned one valid four-file FileBundle below 6000 tokens, but local WorkerScope independently hard-caps cohesive target_paths at three while ProjectBlueprint permits up to five and this unit declares max_files=4."
+      "code": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
+      "detail": "The final-source CSV Single exhausted two repair rounds. The tests Unit returned only one of its two owned files; failure ownership then fell back to core-cli, and both core-cli PatchBundles were rejected locally (duplicate patch path, then partial owned-path patch)."
+    },
+    {
+      "priority": "P1",
+      "code": "FAILURE_OWNER_ATTRIBUTION_NEEDS_REWORK",
+      "detail": "A local failure on the tests node with no path in its error text was attributed to the sole implementation unit instead of the failed provider unit."
+    },
+    {
+      "priority": "P1",
+      "code": "PATCH_BUNDLE_SUBSET_CONTRACT_NEEDS_REWORK",
+      "detail": "Generation correctly requires exactly all unit.owns, but repair currently applies the same equality rule even though an exact PatchBundle should be allowed to modify a safe non-empty subset of owned paths."
     },
     {
       "priority": "P1",
       "code": "KERNEL_EVIDENCE_NOT_REFRESHED_AFTER_STOP",
-      "detail": "The governance fixture source fix is committed, but Kernel profiles and full pytest were not run after stop condition D; freshness remains false."
+      "detail": "Full Kernel profiles and full pytest were intentionally not run after stop condition D; source-bound Kernel evidence remains stale."
     }
   ]
 }

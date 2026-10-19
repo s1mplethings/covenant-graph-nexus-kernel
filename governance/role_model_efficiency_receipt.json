@@ -1,10 +1,10 @@
 {
   "kind": "CGKNRoleModelEfficiencyReceipt",
   "schema_version": "1.0",
-  "iteration": "ITER-WORKER-REAL-UNIT-CLOSURE-036",
-  "source_closure_commit": "721d24ff4fa90d49cea8426c8cd4e4fc41fcf5d8",
-  "source_tree_sha": "fe27c62d0592eb8e2ccdaadb7f718df73f3210e1",
-  "execution_head": "721d24ff4fa90d49cea8426c8cd4e4fc41fcf5d8",
+  "iteration": "ITER-WORKER-SCOPE-CONTRACT-CLOSURE-037",
+  "source_closure_commit": "e473ad634d27aa04e79fca9b230842b8929a7dfe",
+  "source_tree_sha": "27fe2d91f104f75a6c81cdeee48a80cd739eaf47",
+  "execution_head": "e473ad634d27aa04e79fca9b230842b8929a7dfe",
   "api_lab_dependency": {
     "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
     "branch": "codex/deepseek-thinking-control-20261019",
@@ -13,83 +13,123 @@
     "route_mode": "raw_defer",
     "modified_this_iteration": false
   },
-  "previous_failure_audit": [
-    {"attempt": "initial_execute", "unit_id": "core-cli", "input_tokens": 3563, "output_tokens": 6000, "finish_reason": "length", "request_id": "9e409db7-cbad-438c-b4bd-e5d40b28b6db", "duration_ms": 25229, "thinking_requested": "default", "thinking_forwarded": null, "reasoning_tokens": null},
-    {"attempt": "repair_1", "unit_id": "core-cli", "input_tokens": 4119, "output_tokens": 6000, "finish_reason": "length", "request_id": "07edc1f2-8736-449a-bc7a-8a1eb59988ee", "duration_ms": 20669, "thinking_requested": "default", "thinking_forwarded": null, "reasoning_tokens": null},
-    {"attempt": "repair_2", "unit_id": "core-cli", "input_tokens": 4119, "output_tokens": 6000, "finish_reason": "length", "request_id": "082a9fd8-7a46-4f53-b187-6f3c9797eafa", "duration_ms": 22020, "thinking_requested": "default", "thinking_forwarded": null, "reasoning_tokens": null}
-  ],
-  "failed_provider_call_ledger": {
-    "status": "PASS_TARGETED",
-    "reported_failure_usage_preserved": true,
-    "unknown_failure_usage_is_null": true,
-    "usage_status_unknown_value": "UNKNOWN_AFTER_FAILURE",
-    "targeted_tests": "PASS_99"
+  "scope_contract": {
+    "invariant": "BLUEPRINT_SCOPE_CONSISTENCY",
+    "max_cohesive_write_files": 5,
+    "visible_paths": "owns union reads",
+    "writable_paths": "owns only",
+    "write_limit_counts_reads": false,
+    "targeted_tests": "PASS_66",
+    "product_direction_gate": "PASS"
   },
-  "worker_thinking_diagnostic": {
-    "run_id": "worker-real-unit-diagnostic-1-5cd3889b0c",
-    "request_id": "159a069f-8610-4d4c-b2e0-20c5825a1776",
+  "provider_evidence_replay": {
+    "status": "PASS_3_OF_3",
+    "provider_calls": 0,
+    "provider_calls_saved": 3,
+    "prompt_hash": "sha256:8f91094999ef4a3aaf04751ca3f3de78ab686101395f428486a72bd809b69bfe",
+    "schema_hash": "sha256:862bee4167fa480046955969236b5e4b055a4478e6b1f52c5c25427884fe1e2b",
     "blueprint_hash": "sha256:54b69928a0b1a64173c44e840e45bb6c37e4fea7ddacd4c337dde9ea5e5f2937",
-    "unit_id": "core-cli",
     "unit_hash": "sha256:46b7544798597092e2c7e12fa1a2087f637172943bdd98236d64ff8119bc0b82",
+    "prior_runs": [
+      "worker-real-unit-qualify-1-ccb8b82943",
+      "worker-real-unit-qualify-2-3bec819830",
+      "worker-real-unit-qualify-3-9640ba060b"
+    ],
+    "replay_runs": [
+      "worker-cohesive-replay-1-334b74ff1a",
+      "worker-cohesive-replay-2-7cff9e905b",
+      "worker-cohesive-replay-3-20ba4686df"
+    ],
+    "scope": "PASS_3_OF_3",
+    "syntax": "PASS_3_OF_3",
+    "interface": "PASS_3_OF_3",
+    "atomic_apply": "PASS_3_OF_3",
+    "evidence_index": "D:/CGKN/.service_evidence/ITER-WORKER-SCOPE-CONTRACT-CLOSURE-037/worker_scope_replay/index.json"
+  },
+  "fresh_worker_seam": {
+    "status": "PASS",
+    "run_id": "worker-real-unit-diagnostic-1-c808c5ef78",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
     "thinking_requested": "disabled",
     "thinking_forwarded": "disabled",
-    "reasoning_effort": "none",
-    "input_tokens": 3538,
+    "logical_calls": 1,
+    "transport_attempts": 1,
+    "input_tokens": 3387,
     "output_tokens": 1716,
+    "cached_tokens": 3200,
     "reasoning_tokens": null,
-    "cached_tokens": 0,
-    "reasoning_text_present": false,
-    "reasoning_text_length": 0,
     "finish_reason": "stop",
-    "raw_final_content_length": 6022,
-    "json_candidate_count": 1,
-    "schema_valid_candidate_count": 0,
-    "selection_receipt_hash": "sha256:3325023471f748342d596f3671b74af8554c021911368b0048c88b863d35a356",
-    "duration_ms": 9576,
-    "status": "TRUNCATION_ELIMINATED_SCHEMA_FOLLOWUP_REQUIRED"
+    "valid_candidates": 1,
+    "selection_receipt_hash": "sha256:29b95520f48ec07fbba765fa0a328d8ad76eb5e09651606f96e48df8dbed62a8",
+    "file_count": 4,
+    "scope": "PASS",
+    "syntax": "PASS",
+    "interface": "PASS",
+    "duration_ms": 7137
   },
-  "payload_analysis": {
-    "old_payload": "FileBundle/PatchBundle combined oneOf with mandatory summary and escalation fields",
-    "diagnostic_raw_chars": 6022,
-    "diagnostic_candidate_count": 1,
-    "schema_echo_detected": false,
-    "failure": "oneOf schema rejection",
-    "safe_repetition_metrics": "UNAVAILABLE_RAW_NOT_RETAINED_ON_FAILED_SELECTION",
-    "single_allowed_change": "compact FileBundle v2 with mutually exclusive escalation; PatchBundle remains independent",
-    "unit_design": "UNCHANGED"
+  "worker_cohesive_unit_qualification": "PASS",
+  "real_csv_single": {
+    "status": "FAIL",
+    "run_id": "blueprint-cli_csv_cleaner-7186e845b3",
+    "blueprint_hash": "sha256:b59b1aab7621d415c0e3ffe4f0cece91a7b4cf9bc73c91038f093504492da220",
+    "coordinator_calls": 1,
+    "worker_generate_calls": 3,
+    "worker_repair_calls": 2,
+    "total_logical_calls": 6,
+    "transport_attempts": 6,
+    "repair_rounds": 2,
+    "manual_edits": 0,
+    "token_totals": {
+      "input_tokens": 35093,
+      "output_tokens": 12959,
+      "actual_usage_complete": true,
+      "estimated_cost": 0.061011
+    },
+    "coordinator_tokens": {
+      "input_tokens": 612,
+      "output_tokens": 1174,
+      "cached_tokens": null,
+      "reasoning_tokens": null,
+      "usage_status": "REPORTED_WITHOUT_DETAIL_BREAKDOWN"
+    },
+    "worker_generate_tokens": {
+      "input_tokens": 13288,
+      "output_tokens": 3786,
+      "cached_tokens": 384,
+      "reasoning_tokens": null
+    },
+    "worker_repair_tokens": {
+      "input_tokens": 21193,
+      "output_tokens": 7999,
+      "cached_tokens": 2688,
+      "reasoning_tokens": 6811
+    },
+    "first_failure": "tests FileBundle contained tests/test_cleaning.py but omitted owned tests/test_cli.py",
+    "owner_attribution": "tests failure fell back to core-cli",
+    "repair_1": "PatchBundle rejected because csv_cleaner/cleaning.py appeared twice",
+    "repair_2": "PatchBundle touched two of four core-cli owned files and was rejected by the current exact-owns equality rule",
+    "compile": "BLOCKED",
+    "pytest": "BLOCKED",
+    "runtime_smoke": "BLOCKED",
+    "hidden_acceptance": "BLOCKED",
+    "evidence": "D:/CGKN/.service_evidence/ITER-WORKER-SCOPE-CONTRACT-CLOSURE-037/csv_single/blueprint-cli_csv_cleaner-7186e845b3/live-single_receipt.json"
   },
-  "worker_cohesive_runs": [
-    {"run_id": "worker-real-unit-qualify-1-ccb8b82943", "request_id": "7b96b3d5-197b-4d0f-ba78-62c19029d1cb", "input_tokens": 3387, "output_tokens": 1792, "reasoning_tokens": null, "cached_tokens": 0, "finish_reason": "stop", "valid_candidates": 1, "raw_chars": 6301, "selection_receipt_hash": "sha256:3c2d6493c203bd7a265d192d51fda6589529d8bbfc963455a0bc594d9b0be106", "files": {"csv_cleaner/__init__.py": 92, "csv_cleaner/__main__.py": 139, "csv_cleaner/cleaning.py": 2111, "csv_cleaner/cli.py": 3343}, "status": "FAIL_SCOPE_LIMIT"},
-    {"run_id": "worker-real-unit-qualify-2-3bec819830", "request_id": "bc1caee8-2c15-45bc-9542-dee59b055d32", "input_tokens": 3387, "output_tokens": 1827, "reasoning_tokens": null, "cached_tokens": 3200, "finish_reason": "stop", "valid_candidates": 1, "raw_chars": 6407, "selection_receipt_hash": "sha256:f7109af27a63469235b886e2f2749fcc46566b476bbf9106681bd9da2f7fad1e", "files": {"csv_cleaner/__init__.py": 115, "csv_cleaner/__main__.py": 133, "csv_cleaner/cleaning.py": 2209, "csv_cleaner/cli.py": 3326}, "status": "FAIL_SCOPE_LIMIT"},
-    {"run_id": "worker-real-unit-qualify-3-9640ba060b", "request_id": "415da72b-4951-465f-bcb5-a04c7b5dc8c9", "input_tokens": 3387, "output_tokens": 1864, "reasoning_tokens": null, "cached_tokens": 3200, "finish_reason": "stop", "valid_candidates": 1, "raw_chars": 6437, "selection_receipt_hash": "sha256:f17b8bfa5f5f21e7f89778d98a17fbfc7b4541c8a3c6cb64604dd3a0610915b2", "files": {"csv_cleaner/__init__.py": 115, "csv_cleaner/__main__.py": 133, "csv_cleaner/cleaning.py": 2195, "csv_cleaner/cli.py": 3372}, "status": "FAIL_SCOPE_LIMIT"}
-  ],
-  "worker_thinking_root_cause": "CONFIRMED",
-  "worker_generation_thinking_policy": "disabled",
-  "worker_repair_thinking_policy": "default",
-  "worker_protocol_qualification": true,
-  "worker_cohesive_unit_qualification": "FAIL",
-  "governance_fixture": {
-    "root_cause": "temporary consumer repository produced untracked tests/__pycache__ during strict verification",
-    "temp_repo_isolation": true,
-    "clean_state_proof": "PASS_TARGETED",
-    "dirty_state_rejection": "PASS_TARGETED",
-    "production_gate_weakened": false
-  },
-  "regression": {
-    "targeted_source_tests": "PASS_99",
-    "payload_policy_tests": "PASS_56",
-    "product_direction_gate": "PASS",
-    "compileall": "PASS",
-    "kernel_profiles": "NOT_RUN_AFTER_STOP_CONDITION_D",
-    "full_pytest": "NOT_RUN_AFTER_STOP_CONDITION_D",
-    "kernel_evidence_fresh": false
-  },
-  "real_csv_single": "NOT_RUN_DUE_STOP_CONDITION_D",
   "real_seeded_repair": "NOT_RUN_DUE_STOP_CONDITION_D",
   "real_csv_repeatability": "NOT_RUN_DUE_STOP_CONDITION_D",
+  "regression": {
+    "compileall": "PASS",
+    "targeted_tests": "PASS_66",
+    "product_direction_gate": "PASS",
+    "governance_fixture": "NOT_RERUN_DUE_STOP_CONDITION_D",
+    "application_tests": "NOT_RUN_DUE_STOP_CONDITION_D",
+    "kernel_profiles": "NOT_RUN_DUE_STOP_CONDITION_D",
+    "full_pytest": "NOT_RUN_DUE_STOP_CONDITION_D",
+    "kernel_evidence_fresh": false
+  },
   "efficiency_experiment_ready": false,
   "stop_condition": "D",
-  "stop_status": "WORKER_COHESIVE_UNIT_NOT_QUALIFIED",
+  "stop_status": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
   "contains_credentials": false,
-  "receipt_hash": "sha256:e4b0b9bb25569147350304fdc6968b52352487f04041539122fdad54fd785ebc"
+  "receipt_hash": "sha256:6bcfe8685733405121cc38d141036000d7fce58805df4f9ad4a998d38654b553"
 }
