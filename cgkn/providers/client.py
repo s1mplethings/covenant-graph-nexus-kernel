@@ -45,6 +45,7 @@ class ProviderCompletion:
     usage: Mapping[str, Any] = field(default_factory=dict)
     attempts: int = 1
     selection_receipt: Mapping[str, Any] = field(default_factory=dict)
+    transport_metadata: Mapping[str, Any] = field(default_factory=dict)
 
 
 class CompletionClient(Protocol):

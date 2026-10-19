@@ -62,11 +62,14 @@ a final project PASS after two application repair rounds. The bundle therefore
 remains `PARTIAL` at `GENERATION_LEVEL_0`; this does not change LEVEL 4 product
 readiness or the completed L0-L5 kernel foundation.
 
-The replacement experiment is an isolated L6 adapter in
-`cgkn/application/project_blueprint.py` and `cgkn/application/project_loop.py`.
-Its fake filesystem/pytest/hidden-acceptance profiles pass. Real Provider
-generation is `BLOCKED_PROVIDER`, and repair remains `NOT_EVALUATED` until
-their receipts and full regression close. Run profiles through
+The replacement L6 adapter in `cgkn/application/project_blueprint.py` and
+`cgkn/application/project_loop.py` now accepts a minimal semantic design
+payload and deterministically supplies executor metadata, scope limits,
+compile/pytest/runtime/acceptance checks, protected paths, and timeouts. The
+versioned API Lab raw-defer route preserves Provider text and transport
+metadata while CGKN remains the sole structured-answer selector. Fresh live
+Coordinator, Worker, generation, and repair qualification receipts remain
+required before the MVP status can advance. Run the bounded profiles through
 `python scripts/run_project_mvp.py`.
 
 Cleanup status and the exact migration boundary are recorded in:

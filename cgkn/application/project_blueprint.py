@@ -4,9 +4,55 @@ import ast
 import hashlib
 import json
 import pathlib
+import sys
 from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Any, Iterable, Mapping
+
+
+PROTECTED_PROJECT_PATHS = (
+    ".git",
+    ".cgkn",
+    ".service_evidence",
+    "governance",
+)
+
+MINIMAL_BLUEPRINT_DESIGN_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["schema_version", "units", "finish_design"],
+    "properties": {
+        "schema_version": {"const": "1.0"},
+        "units": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 4,
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": [
+                    "unit_id", "kind", "purpose", "owns", "depends_on",
+                    "instruction", "acceptance",
+                ],
+                "properties": {
+                    "unit_id": {"type": "string", "minLength": 1},
+                    "kind": {"enum": ["implementation", "tests", "documentation"]},
+                    "purpose": {"type": "string", "minLength": 1},
+                    "owns": {
+                        "type": "array", "minItems": 1, "maxItems": 5,
+                        "uniqueItems": True, "items": {"type": "string"},
+                    },
+                    "reads": {"type": "array", "uniqueItems": True, "items": {"type": "string"}},
+                    "depends_on": {"type": "array", "uniqueItems": True, "items": {"type": "string"}},
+                    "instruction": {"type": "string", "minLength": 1},
+                    "required_interfaces": {"type": "array", "uniqueItems": True, "items": {"type": "string"}},
+                    "acceptance": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+                },
+            },
+        },
+        "finish_design": {"const": True},
+    },
+}
 
 
 def _hash(value: Any) -> str:
@@ -43,6 +89,97 @@ class UnitKind(str, Enum):
 
 
 @dataclass(frozen=True)
+class MinimalBlueprintUnitDesign:
+    unit_id: str
+    kind: str
+    purpose: str
+    owns: tuple[str, ...]
+    depends_on: tuple[str, ...]
+    instruction: str
+    acceptance: tuple[str, ...]
+    reads: tuple[str, ...] = ()
+    required_interfaces: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if self.kind not in {
+            UnitKind.IMPLEMENTATION.value,
+            UnitKind.TESTS.value,
+            UnitKind.DOCUMENTATION.value,
+        }:
+            raise ValueError(f"invalid minimal unit kind: {self.kind}")
+        if not self.unit_id or not self.purpose.strip() or not self.instruction.strip():
+            raise ValueError("minimal unit identity, purpose, and instruction are required")
+        if not self.owns or len(self.owns) > 5 or not self.acceptance:
+            raise ValueError("minimal unit requires one to five owned paths and acceptance")
+        owns = tuple(_safe_path(item) for item in self.owns)
+        reads = tuple(_safe_path(item) for item in self.reads)
+        if len(set(owns)) != len(owns) or len(set(reads)) != len(reads):
+            raise ValueError("minimal unit paths must be unique")
+        if set(owns) & set(reads):
+            raise ValueError("minimal unit reads and owns must not overlap")
+        object.__setattr__(self, "owns", owns)
+        object.__setattr__(self, "reads", reads)
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "unit_id": self.unit_id,
+            "kind": self.kind,
+            "purpose": self.purpose,
+            "owns": list(self.owns),
+            "reads": list(self.reads),
+            "depends_on": list(self.depends_on),
+            "instruction": self.instruction,
+            "required_interfaces": list(self.required_interfaces),
+            "acceptance": list(self.acceptance),
+        }
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "MinimalBlueprintUnitDesign":
+        return cls(
+            unit_id=str(value.get("unit_id", "")),
+            kind=str(value.get("kind", "")),
+            purpose=str(value.get("purpose", "")),
+            owns=_tuple(value.get("owns")),
+            depends_on=_tuple(value.get("depends_on")),
+            instruction=str(value.get("instruction", "")),
+            acceptance=_tuple(value.get("acceptance")),
+            reads=_tuple(value.get("reads")),
+            required_interfaces=_tuple(value.get("required_interfaces")),
+        )
+
+
+@dataclass(frozen=True)
+class MinimalBlueprintDesignPayload:
+    schema_version: str
+    units: tuple[MinimalBlueprintUnitDesign, ...]
+    finish_design: bool
+
+    def __post_init__(self) -> None:
+        if self.schema_version != "1.0" or self.finish_design is not True:
+            raise ValueError("minimal blueprint design identity is invalid")
+        if not 2 <= len(self.units) <= 4:
+            raise ValueError("minimal blueprint design requires two to four units")
+        ids = [item.unit_id for item in self.units]
+        if len(ids) != len(set(ids)):
+            raise ValueError("duplicate unit id")
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "units": [item.as_dict() for item in self.units],
+            "finish_design": self.finish_design,
+        }
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "MinimalBlueprintDesignPayload":
+        return cls(
+            str(value.get("schema_version", "")),
+            tuple(MinimalBlueprintUnitDesign.from_dict(item) for item in value.get("units", ())),
+            value.get("finish_design") is True,
+        )
+
+
+@dataclass(frozen=True)
 class BlueprintUnit:
     unit_id: str
     purpose: str
@@ -59,6 +196,8 @@ class BlueprintUnit:
     max_files: int = 5
     max_output_bytes: int = 64_000
     status: str = "PENDING"
+    protected_paths: tuple[str, ...] = PROTECTED_PROJECT_PATHS
+    timeout_seconds: int = 120
 
     def __post_init__(self) -> None:
         if not self.unit_id or any(char not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_." for char in self.unit_id):
@@ -79,8 +218,11 @@ class BlueprintUnit:
             raise ValueError("verification/acceptance requires a deterministic executor")
         if self.kind in {UnitKind.IMPLEMENTATION.value, UnitKind.TESTS.value, UnitKind.DOCUMENTATION.value} and self.executor_ref != "llm.cheap@1":
             raise ValueError("production units require the bounded worker executor")
-        if min(self.max_actions, self.max_files, self.max_output_bytes) < 1:
+        if min(self.max_actions, self.max_files, self.max_output_bytes, self.timeout_seconds) < 1:
             raise ValueError("unit limits must be positive")
+        for owned in owns:
+            if any(owned == protected or owned.startswith(protected + "/") for protected in self.protected_paths):
+                raise ValueError(f"unit cannot own protected path: {owned}")
         object.__setattr__(self, "owns", owns)
         object.__setattr__(self, "reads", reads)
 
@@ -92,6 +234,7 @@ class BlueprintUnit:
             "required_interfaces": list(self.required_interfaces), "acceptance": list(self.acceptance),
             "allowed_effects": list(self.allowed_effects), "max_actions": self.max_actions,
             "max_files": self.max_files, "max_output_bytes": self.max_output_bytes, "status": self.status,
+            "protected_paths": list(self.protected_paths), "timeout_seconds": self.timeout_seconds,
         }
 
     @classmethod
@@ -104,6 +247,8 @@ class BlueprintUnit:
             allowed_effects=_tuple(value.get("allowed_effects")), max_actions=int(value.get("max_actions", 5)),
             max_files=int(value.get("max_files", 5)), max_output_bytes=int(value.get("max_output_bytes", 64_000)),
             status=str(value.get("status", "PENDING")),
+            protected_paths=_tuple(value.get("protected_paths", PROTECTED_PROJECT_PATHS)),
+            timeout_seconds=int(value.get("timeout_seconds", 120)),
         )
 
 
@@ -219,6 +364,90 @@ class ProjectBlueprint:
         if self.status != BlueprintStatus.DRAFT.value:
             raise ValueError("only a draft blueprint may be frozen")
         return replace(self, status=BlueprintStatus.FROZEN.value, blueprint_hash="")
+
+
+def assemble_project_blueprint(
+    project_id: str,
+    payload: MinimalBlueprintDesignPayload | Mapping[str, Any],
+    public_contract: Mapping[str, Any],
+) -> ProjectBlueprint:
+    """Expand Agent-owned semantic design into one canonical frozen blueprint."""
+
+    design = payload if isinstance(payload, MinimalBlueprintDesignPayload) else MinimalBlueprintDesignPayload.from_dict(payload)
+    public_goal = str(public_contract.get("public_goal", "")).strip()
+    if not project_id or not public_goal:
+        raise ValueError("project identity and public goal are required")
+    public_acceptance = tuple(str(item) for item in public_contract.get("public_acceptance", ()))
+    constraints = tuple(str(item) for item in public_contract.get("constraints", ()))
+    implementation_ids = tuple(item.unit_id for item in design.units if item.kind == UnitKind.IMPLEMENTATION.value)
+    if not implementation_ids:
+        raise ValueError("minimal blueprint requires an implementation unit")
+
+    units: list[BlueprintUnit] = []
+    for item in design.units:
+        dependencies = item.depends_on
+        if item.kind == UnitKind.TESTS.value and not dependencies:
+            dependencies = implementation_ids
+        units.append(BlueprintUnit(
+            unit_id=item.unit_id,
+            purpose=item.purpose,
+            kind=item.kind,
+            owns=item.owns,
+            reads=item.reads,
+            depends_on=dependencies,
+            executor_ref="llm.cheap@1",
+            instruction=item.instruction,
+            required_interfaces=item.required_interfaces,
+            acceptance=item.acceptance,
+            allowed_effects=("filesystem.read", "filesystem.write"),
+            max_actions=max(5, len(item.owns)),
+            max_files=len(item.owns),
+            max_output_bytes=64_000,
+            status="PENDING",
+            protected_paths=PROTECTED_PROJECT_PATHS,
+            timeout_seconds=120,
+        ))
+
+    by_id = {item.unit_id: item for item in units}
+    test_units = [item for item in units if item.kind == UnitKind.TESTS.value]
+    if not test_units:
+        raise ValueError("minimal blueprint requires tests coverage")
+    for unit in test_units:
+        if not set(unit.depends_on) & set(implementation_ids):
+            raise ValueError("tests unit must depend on an implementation unit")
+    requires_readme = "readme" in (public_goal + " " + " ".join(public_acceptance)).lower()
+    if requires_readme and not any(pathlib.PurePosixPath(path).name.lower() == "readme.md" for unit in units for path in unit.owns):
+        raise ValueError("minimal blueprint requires README coverage")
+    entrypoint = str(public_contract.get("entrypoint", "")).strip()
+    if entrypoint and entrypoint not in {path for unit in units for path in unit.owns}:
+        raise ValueError("minimal blueprint does not own the required entrypoint")
+
+    unit_ids = tuple(item.unit_id for item in units)
+    runtime_command = tuple(str(item) for item in public_contract.get("runtime_command", ()))
+    checks = (
+        BlueprintCheck(
+            "compile", "verification",
+            (sys.executable, "-m", "compileall", "-q", "."),
+            unit_ids, ("all Python sources compile",),
+        ),
+        BlueprintCheck(
+            "pytest", "verification",
+            (sys.executable, "-m", "pytest", "-q"),
+            ("compile",), ("public tests pass",),
+        ),
+        BlueprintCheck(
+            "runtime_smoke", "verification",
+            runtime_command,
+            ("pytest",), ("public runtime command succeeds",),
+        ),
+        BlueprintCheck(
+            "external_acceptance", "acceptance", (),
+            ("runtime_smoke",), public_acceptance or ("external acceptance passes",),
+        ),
+    )
+    return ProjectBlueprint(
+        "1.0", project_id, 1, public_goal, constraints, tuple(units), checks,
+    ).freeze()
 
 
 def apply_blueprint_edits(blueprint: ProjectBlueprint, edits: Iterable[Mapping[str, Any]]) -> ProjectBlueprint:

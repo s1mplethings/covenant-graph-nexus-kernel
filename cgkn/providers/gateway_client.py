@@ -17,6 +17,10 @@ from .structured_output import StructuredAnswerSelector, StructuredSelectionErro
 
 MAX_RESPONSE_BYTES = 2_097_152
 MAX_REQUEST_BYTES = 1_048_576
+API_LAB_REPOSITORY = "https://github.com/s1mplethings/cgkn-provider-api-lab.git"
+API_LAB_BRANCH = "codex/raw-defer-structured-output-20261019"
+API_LAB_COMMIT = "7380ee48681442426290d88c5c3496f567a990e1"
+API_LAB_RAW_DEFER_CONTRACT_VERSION = "1.0"
 
 
 class GatewayCompletionError(RuntimeError):
@@ -171,13 +175,17 @@ class GatewayCompletionClient:
                 raise GatewayCompletionError("invalid_response", "gateway response root is not an object", http_status=http_status)
             response_doc = decoded
             provider_api_budget.mark_response_received(reservation, response=response_doc, http_status=http_status)
+            raw_defer = decoded.get("cgkn_raw_defer")
+            if raw_defer is not None and not isinstance(raw_defer, Mapping):
+                raise GatewayCompletionError("invalid_response", "raw-defer metadata must be an object", http_status=http_status)
+            transport_metadata = dict(raw_defer or {})
+            if transport_metadata and str(transport_metadata.get("contract_version")) != API_LAB_RAW_DEFER_CONTRACT_VERSION:
+                raise GatewayCompletionError("invalid_response", "unsupported API Lab raw-defer contract", http_status=http_status)
             status = str(decoded.get("status", "completed"))
-            if status not in {"completed", ""}:
-                raise GatewayCompletionError("truncated_response", "gateway response did not complete", http_status=http_status)
-            text = self._extract_text(decoded)
-            if not text.strip():
-                raise GatewayCompletionError("empty_response", "gateway returned no completion text", http_status=http_status)
-            usage = dict(decoded.get("usage")) if isinstance(decoded.get("usage"), dict) else {}
+            finish_reason = str(transport_metadata.get("finish_reason") or "")
+            text = str(transport_metadata.get("raw_text") or "") if transport_metadata else self._extract_text(decoded)
+            usage_source = transport_metadata.get("usage") if transport_metadata else decoded.get("usage")
+            usage = dict(usage_source) if isinstance(usage_source, Mapping) else {}
             if "prompt_tokens" not in usage and "input_tokens" in usage:
                 usage["prompt_tokens"] = usage.get("input_tokens")
             if "completion_tokens" not in usage and "output_tokens" in usage:
@@ -185,27 +193,69 @@ class GatewayCompletionClient:
             prompt_hash = "sha256:" + hashlib.sha256(
                 json.dumps({"system": system, "user": user}, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
             ).hexdigest()
+            attempts = transport_metadata.get("transport_attempts")
+            attempt_count = len(attempts) if isinstance(attempts, list) and attempts else 1
+            selector_kwargs = {
+                "schema_name": schema_name,
+                "provider_id": str(transport_metadata.get("provider_id") or config.model),
+                "model": str(transport_metadata.get("model") or decoded.get("model") or config.model),
+                "task_class": config.task_class,
+                "operation": config.operation,
+                "prompt_hash": prompt_hash,
+                "transport_attempts": attempt_count,
+                "elapsed_ms": int(transport_metadata.get("elapsed_ms") or (time.monotonic() - logical_started) * 1000),
+                "usage_status": "REPORTED" if usage else "UNREPORTED",
+                "configured_timeout_seconds": config.timeout_seconds,
+                "effective_request_timeout_seconds": effective_timeout,
+                "remaining_outer_seconds": max(0, int(remaining_outer)),
+                "max_output_tokens": config.max_output_tokens,
+                "logical_call_number": 1,
+                "response_headers_received": bool(transport_metadata.get("response_headers_received", True)),
+                "finish_reason": finish_reason,
+                "transport_status": str(transport_metadata.get("transport_status") or "COMPLETED"),
+                "usage": usage,
+                "api_lab_commit": API_LAB_COMMIT,
+                "api_lab_contract_version": API_LAB_RAW_DEFER_CONTRACT_VERSION,
+                "route_mode": "raw_defer",
+            }
+            selection_error: StructuredSelectionError | None = None
+            selected: dict[str, Any] | None = None
             try:
                 selected, selection = StructuredAnswerSelector().select(
-                    text, schema_doc, schema_name=schema_name, provider_id=config.model,
-                    model=str(decoded.get("model") or config.model), task_class=config.task_class,
-                    operation=config.operation, prompt_hash=prompt_hash, transport_attempts=1,
-                    elapsed_ms=int((time.monotonic() - logical_started) * 1000),
-                    usage_status="REPORTED" if usage else "UNREPORTED",
-                    configured_timeout_seconds=config.timeout_seconds,
-                    effective_request_timeout_seconds=effective_timeout,
-                    remaining_outer_seconds=max(0, int(remaining_outer)), max_output_tokens=config.max_output_tokens,
-                    logical_call_number=1, response_headers_received=True,
+                    text, schema_doc, **selector_kwargs,
                 )
             except StructuredSelectionError as exc:
+                selection_error = exc
+                selection = exc.receipt
+            truncated = status not in {"completed", ""} or finish_reason.lower() in {"length", "max_tokens"}
+            if truncated:
+                evidence = selection.as_dict()
+                evidence["final_status"] = "PROVIDER_OUTPUT_TRUNCATED"
                 raise GatewayCompletionError(
-                    exc.status, exc.status, http_status=http_status, evidence=exc.receipt.as_dict()
+                    "PROVIDER_OUTPUT_TRUNCATED", "Provider output reached its configured limit",
+                    http_status=http_status, evidence=evidence,
+                )
+            if not text.strip():
+                raise GatewayCompletionError("empty_response", "gateway returned no completion text", http_status=http_status)
+            if selection_error is not None:
+                raise GatewayCompletionError(
+                    selection_error.status, selection_error.status,
+                    http_status=http_status, evidence=selection_error.receipt.as_dict(),
                 ) from None
             provider_api_budget.finalize_call(reservation, usage=usage, http_status=http_status, status="SUCCEEDED")
+            assert selected is not None
+            transport_metadata.update({
+                "api_lab_repository": API_LAB_REPOSITORY,
+                "api_lab_branch": API_LAB_BRANCH,
+                "api_lab_commit": API_LAB_COMMIT,
+                "api_lab_contract_version": API_LAB_RAW_DEFER_CONTRACT_VERSION,
+                "route_mode": "raw_defer",
+            })
             return ProviderCompletion(
                 json.dumps(selected, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
-                str(decoded.get("model") or config.model), str(decoded.get("id") or ""), usage, 1,
-                selection.as_dict(),
+                str(transport_metadata.get("model") or decoded.get("model") or config.model),
+                str(transport_metadata.get("request_id") or decoded.get("id") or ""),
+                usage, attempt_count, selection.as_dict(), transport_metadata,
             )
         except error.HTTPError as exc:
             http_status = int(exc.code)
@@ -217,7 +267,8 @@ class GatewayCompletionClient:
                 response_doc = {}
             category, message = _safe_gateway_error(response_doc, self.access_token, f"gateway HTTP {http_status}")
             provider_api_budget.finalize_call(reservation, usage=None, http_status=http_status, status="FAILED")
-            raise GatewayCompletionError(category, message, http_status=http_status) from None
+            evidence = response_doc.get("cgkn_raw_defer") if isinstance(response_doc.get("cgkn_raw_defer"), Mapping) else {}
+            raise GatewayCompletionError(category, message, http_status=http_status, evidence=evidence) from None
         except GatewayCompletionError:
             provider_api_budget.finalize_call(reservation, usage=(response_doc or {}).get("usage") if response_doc else None, http_status=http_status, status="FAILED")
             raise

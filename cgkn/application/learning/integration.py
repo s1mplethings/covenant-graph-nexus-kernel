@@ -75,7 +75,7 @@ class ProductionGenerationClient:
         }
         enriched = ProviderCompletion(
             completion.text, completion.model, completion.request_id, usage, completion.attempts,
-            completion.selection_receipt,
+            completion.selection_receipt, completion.transport_metadata,
         )
         return GenerationResult(enriched, context.lesson_context.lesson_snapshot_hash, context.lesson_context.lesson_ids, context.lesson_context.context_chars, context.context_hash)
 

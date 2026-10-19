@@ -31,6 +31,7 @@ class Handler(BaseHTTPRequestHandler):
     error_type = "gateway_error"
     completion_status = "completed"
     response_text: str | None = None
+    raw_defer: dict[str, Any] | None = None
 
     def log_message(self, *_args: object) -> None:
         return
@@ -50,6 +51,8 @@ class Handler(BaseHTTPRequestHandler):
                 "output_text": self.response_text if self.response_text is not None else json.dumps(self.response),
                 "usage": {"input_tokens": 11, "output_tokens": 7, "total_tokens": 18},
             }
+            if type(self).raw_defer is not None:
+                body["cgkn_raw_defer"] = type(self).raw_defer
         encoded = json.dumps(body).encode()
         self.send_response(self.status)
         self.send_header("Content-Type", "application/json")
@@ -66,6 +69,7 @@ def gateway():
     Handler.error_type = "gateway_error"
     Handler.completion_status = "completed"
     Handler.response_text = None
+    Handler.raw_defer = None
     server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -156,7 +160,11 @@ def test_rate_limit_and_truncation_propagate_without_fallback(gateway) -> None:
     Handler.completion_status = "incomplete"
     with pytest.raises(GatewayCompletionError) as truncated:
         client(gateway).complete(system="s", user="u", schema_name="x", schema=SCHEMA, config=ModelRoleConfig("agent", "grok"))
-    assert truncated.value.category == "truncated_response"
+    assert truncated.value.category == "PROVIDER_OUTPUT_TRUNCATED"
+    assert truncated.value.evidence["max_output_tokens"] == 2200
+    assert truncated.value.evidence["raw_length"] > 0
+    assert truncated.value.evidence["schema_valid_candidate_count"] == 1
+    assert truncated.value.evidence["final_status"] == "PROVIDER_OUTPUT_TRUNCATED"
 
 
 @pytest.mark.fault_injection
@@ -352,6 +360,32 @@ def test_gateway_selects_unique_schema_valid_object_and_returns_receipt(gateway)
     assert completion.selection_receipt["json_candidate_count"] == 2
     assert completion.selection_receipt["schema_valid_candidate_count"] == 1
     assert completion.selection_receipt["final_status"] == "ACCEPTED"
+
+
+def test_gateway_binds_versioned_raw_defer_metadata_and_receipt(gateway) -> None:
+    raw = '{"reasoning":"inspect"}\n{"ok":true}'
+    Handler.raw_defer = {
+        "contract_version": "1.0", "raw_text": raw, "reasoning_text": "inspect",
+        "provider_id": "deepseek", "model": "deepseek", "request_id": "provider-raw-1",
+        "finish_reason": "stop", "usage": {"prompt_tokens": 13, "completion_tokens": 5, "total_tokens": 18},
+        "transport_attempts": [{"attempt_id": "provider-raw-1", "attempt": 1, "status": "COMPLETED", "elapsed_ms": 12}],
+        "elapsed_ms": 12, "response_headers_received": True, "transport_status": "COMPLETED",
+        "error_type": None, "redacted_error": None,
+    }
+    completion = client(gateway).complete(
+        system="s", user="u", schema_name="x", schema=SCHEMA,
+        config=ModelRoleConfig("agent", "deepseek"),
+    )
+    assert json.loads(completion.text) == {"ok": True}
+    assert completion.request_id == "provider-raw-1"
+    assert completion.transport_metadata["api_lab_commit"] == "7380ee48681442426290d88c5c3496f567a990e1"
+    assert completion.transport_metadata["route_mode"] == "raw_defer"
+    receipt = completion.selection_receipt
+    assert receipt["api_lab_commit"] == completion.transport_metadata["api_lab_commit"]
+    assert receipt["api_lab_contract_version"] == "1.0"
+    assert receipt["finish_reason"] == "stop"
+    assert receipt["usage"]["completion_tokens"] == 5
+    assert receipt["schema_valid_candidate_count"] == 1
 
 
 def test_gateway_rejects_two_schema_valid_objects_with_receipt(gateway) -> None:

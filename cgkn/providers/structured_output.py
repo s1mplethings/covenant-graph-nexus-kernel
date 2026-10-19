@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping, Sequence
 
 from .connection_contracts import ProviderConnectionError
@@ -63,6 +63,12 @@ class StructuredSelectionReceipt:
     max_output_tokens: int = 0
     logical_call_number: int = 1
     response_headers_received: bool = False
+    finish_reason: str = ""
+    transport_status: str = ""
+    usage: Mapping[str, Any] = field(default_factory=dict)
+    api_lab_commit: str = ""
+    api_lab_contract_version: str = ""
+    route_mode: str = ""
     selector_version: str = SELECTOR_VERSION
 
     def as_dict(self) -> dict[str, Any]:
@@ -86,6 +92,12 @@ class StructuredSelectionReceipt:
             "max_output_tokens": self.max_output_tokens,
             "logical_call_number": self.logical_call_number,
             "response_headers_received": self.response_headers_received,
+            "finish_reason": self.finish_reason,
+            "transport_status": self.transport_status,
+            "usage": dict(self.usage),
+            "api_lab_commit": self.api_lab_commit,
+            "api_lab_contract_version": self.api_lab_contract_version,
+            "route_mode": self.route_mode,
             "contains_credentials": False,
         }
 
@@ -137,6 +149,9 @@ class StructuredAnswerSelector:
         effective_request_timeout_seconds: int = 0, remaining_outer_seconds: int = 0,
         max_output_tokens: int = 0, logical_call_number: int = 1,
         response_headers_received: bool = False,
+        finish_reason: str = "", transport_status: str = "",
+        usage: Mapping[str, Any] | None = None, api_lab_commit: str = "",
+        api_lab_contract_version: str = "", route_mode: str = "",
     ) -> tuple[dict[str, Any], StructuredSelectionReceipt]:
         started = time.monotonic()
         raw = str(raw_text or "")
@@ -192,6 +207,9 @@ class StructuredAnswerSelector:
             remaining_outer_seconds=max(0, int(remaining_outer_seconds)),
             max_output_tokens=max(0, int(max_output_tokens)), logical_call_number=max(1, int(logical_call_number)),
             response_headers_received=bool(response_headers_received),
+            finish_reason=str(finish_reason), transport_status=str(transport_status),
+            usage=dict(usage or {}), api_lab_commit=str(api_lab_commit),
+            api_lab_contract_version=str(api_lab_contract_version), route_mode=str(route_mode),
         )
         if selected is None:
             raise StructuredSelectionError(status, receipt)

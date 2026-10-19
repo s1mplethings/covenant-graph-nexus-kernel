@@ -1,42 +1,37 @@
 {
   "kind": "CGKNRoleModelEfficiencyStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-ROLE-MODEL-EFFICIENCY-033",
-  "source_commit": "84e75b5a4e7d7e62f54b8014c0938d6dbefe281e",
+  "iteration": "ITER-COORDINATOR-QUALIFICATION-CLOSURE-034",
+  "source_commit": "SOURCE_CLOSURE_PENDING",
   "ingress_status": "PASS",
-  "coordinator_qualification": "PASS_WITH_LIMITS",
+  "api_lab_dependency": {
+    "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
+    "branch": "codex/raw-defer-structured-output-20261019",
+    "commit": "7380ee48681442426290d88c5c3496f567a990e1",
+    "contract_version": "1.0",
+    "route_mode": "raw_defer",
+    "selector_authority": "CGKN",
+    "selector_version": "1.0",
+    "transport_method": "api_lab_gateway",
+    "status": "PASS"
+  },
+  "minimal_blueprint_status": "PARTIAL",
+  "coordinator_qualification": "NOT_EVALUATED",
+  "worker_file_bundle_qualification": "NOT_EVALUATED",
+  "worker_patch_bundle_qualification": "NOT_EVALUATED",
+  "real_csv_single": "NOT_EVALUATED",
+  "real_csv_repeatability": "NOT_EVALUATED",
+  "real_seeded_repair": "NOT_EVALUATED",
   "real_generation_status": "NOT_EVALUATED",
   "real_repair_status": "NOT_EVALUATED",
-  "blueprint_benefit": "NOT_EVALUATED",
-  "role_separation_benefit": "NOT_EVALUATED",
-  "cheap_executor_benefit": "NOT_EVALUATED",
-  "strong_coordinator_benefit": "NOT_EVALUATED",
-  "capability_gain": "NOT_EVALUATED",
-  "evaluated_tiers": [],
-  "run_count": 3,
-  "diagnostic_run_count": 6,
+  "efficiency_experiment_ready": false,
   "worker_runs": 0,
   "manual_candidate_edits": 0,
   "blockers": [
     {
       "priority": "P0",
-      "code": "COORDINATOR_QUALIFICATION_2_OF_3",
-      "detail": "The final DeepSeek qualification group produced two frozen Blueprints and one output-limit truncation; the required threshold is 3/3."
-    },
-    {
-      "priority": "P0",
-      "code": "SELECTION_RECEIPT_NOT_CAPTURED_IN_LIVE_SUCCESS_ARTIFACTS",
-      "detail": "The two successful qualification artifacts predate selection-receipt propagation through ProductionGenerationClient; the source fix is tested but the strict gate forbids extra live reruns after 2/3."
-    },
-    {
-      "priority": "P1",
-      "code": "API_LAB_RAW_DEFER_PATCH_NOT_PUBLISHED",
-      "detail": "The API Lab gateway must defer structured selection to CGKN to preserve one selector authority; the audited local API Lab patch remains outside this repository and uncommitted."
-    },
-    {
-      "priority": "P2",
-      "code": "PRICING_NOT_EVALUATED",
-      "detail": "No verified pricing snapshot was needed because Phase 2 was not entered."
+      "code": "FRESH_COORDINATOR_QUALIFICATION_PENDING",
+      "detail": "Freeze the minimized Coordinator Source Closure and run exactly three fresh DeepSeek probes."
     }
   ]
 }

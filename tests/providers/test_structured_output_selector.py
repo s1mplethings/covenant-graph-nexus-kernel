@@ -4,19 +4,31 @@ import json
 
 import pytest
 
-from cgkn.application.project_loop import BLUEPRINT_EDIT_SCHEMA
+from cgkn.application.project_blueprint import MINIMAL_BLUEPRINT_DESIGN_SCHEMA
 from cgkn.providers.structured_output import StructuredAnswerSelector, StructuredSelectionError
 
 
-VALID = {"edits": [{"operation": "finish_design", "payload": {}}]}
-OTHER_VALID = {"edits": [{"operation": "set_goal", "payload": {"goal": "csv"}}]}
+def unit(unit_id: str, purpose: str = "implement") -> dict:
+    return {
+        "unit_id": unit_id,
+        "kind": "implementation" if unit_id.startswith("impl") else "tests",
+        "purpose": purpose,
+        "owns": [f"{unit_id}.py"],
+        "depends_on": [] if unit_id.startswith("impl") else ["impl"],
+        "instruction": purpose,
+        "acceptance": ["works"],
+    }
+
+
+VALID = {"schema_version": "1.0", "units": [unit("impl"), unit("tests")], "finish_design": True}
+OTHER_VALID = {"schema_version": "1.0", "units": [unit("impl2"), unit("tests2")], "finish_design": True}
 
 
 def select(text: str):
     return StructuredAnswerSelector().select(
-        text, BLUEPRINT_EDIT_SCHEMA, schema_name="cgkn_blueprint_edits",
-        provider_id="deepseek", model="deepseek", task_class="project.compose",
-        operation="COMPOSITION", prompt_hash="sha256:prompt", transport_attempts=1,
+        text, MINIMAL_BLUEPRINT_DESIGN_SCHEMA, schema_name="cgkn_minimal_blueprint_design",
+        provider_id="deepseek", model="deepseek", task_class="project.blueprint",
+        operation="BLUEPRINT_DESIGN", prompt_hash="sha256:prompt", transport_attempts=1,
         usage_status="REPORTED",
     )
 
@@ -26,18 +38,18 @@ def select(text: str):
     [
         ("single", json.dumps(VALID), 1, None),
         ("fenced", "```json\n" + json.dumps(VALID) + "\n```", 1, None),
-        ("schema_echo", "Schema: " + json.dumps(BLUEPRINT_EDIT_SCHEMA) + "\nAnswer: " + json.dumps(VALID), 2, None),
+        ("schema_echo", "Schema: " + json.dumps(MINIMAL_BLUEPRINT_DESIGN_SCHEMA) + "\nAnswer: " + json.dumps(VALID), 2, None),
         ("reasoning", '{"reasoning":"plan first"}\n' + json.dumps(VALID), 2, None),
         ("envelope", json.dumps({"answer": VALID}), 1, "answer"),
         ("natural_language", "Here is the only answer:\n" + json.dumps(VALID) + "\nDone.", 1, None),
-        ("unicode", json.dumps({"edits": [{"operation": "set_goal", "payload": {"goal": "清理数据"}}]}, ensure_ascii=False), 1, None),
-        ("nested_brace_string", json.dumps({"edits": [{"operation": "set_goal", "payload": {"goal": "literal } { braces"}}]}), 1, None),
+        ("unicode", json.dumps({**VALID, "units": [unit("impl", "清理数据"), unit("tests")]}, ensure_ascii=False), 1, None),
+        ("nested_brace_string", json.dumps({**VALID, "units": [unit("impl", "literal } { braces"), unit("tests")]}), 1, None),
     ],
     ids=("single", "fenced", "schema-echo", "reasoning", "envelope", "natural-language", "unicode", "nested-braces"),
 )
 def test_unique_schema_valid_candidate_is_selected(name: str, text: str, expected_candidates: int, envelope: str | None) -> None:
     value, receipt = select(text)
-    assert value["edits"] and receipt.final_status == "ACCEPTED"
+    assert value["units"] and receipt.final_status == "ACCEPTED"
     assert receipt.json_candidate_count == expected_candidates
     assert receipt.schema_valid_candidate_count == 1
     assert receipt.envelope_detected == envelope
@@ -50,13 +62,13 @@ def test_unique_schema_valid_candidate_is_selected(name: str, text: str, expecte
     [
         ("unknown_nested_envelope", json.dumps({"wrapper": {"answer": VALID}})),
         ("zero_valid", '{"reasoning":"only"}'),
-        ("truncated", '{"edits":[{"operation":"finish_design"'),
+        ("truncated", '{"schema_version":"1.0","units":['),
         ("array", json.dumps([VALID])),
         ("json_inside_string", json.dumps(json.dumps(VALID))),
         ("extra_field", json.dumps({**VALID, "extra": True})),
-        ("missing_required", json.dumps({"not_edits": []})),
-        ("invalid_operation", json.dumps({"edits": [{"operation": "write_source", "payload": {}}]})),
-        ("provider_schema_echo", json.dumps(BLUEPRINT_EDIT_SCHEMA)),
+        ("missing_required", json.dumps({"not_units": []})),
+        ("invalid_kind", json.dumps({**VALID, "units": [{**unit("impl"), "kind": "source"}, unit("tests")]})),
+        ("provider_schema_echo", json.dumps(MINIMAL_BLUEPRINT_DESIGN_SCHEMA)),
         ("huge_invalid", json.dumps({"reasoning": "x" * 200_000})),
     ],
     ids=("unknown-envelope", "zero-valid", "truncated", "array", "json-string", "extra", "missing", "invalid-operation", "schema-only", "huge-invalid"),
@@ -78,7 +90,7 @@ def test_two_valid_candidates_are_ambiguous() -> None:
 
 
 def test_schema_echo_is_never_selected() -> None:
-    value, receipt = select(json.dumps(BLUEPRINT_EDIT_SCHEMA) + "\n" + json.dumps(VALID))
+    value, receipt = select(json.dumps(MINIMAL_BLUEPRINT_DESIGN_SCHEMA) + "\n" + json.dumps(VALID))
     assert value == VALID and receipt.selected_candidate_index == 1
     assert receipt.candidate_rejections[0].startswith("0:")
 
@@ -91,8 +103,8 @@ def test_receipt_does_not_persist_secret_text() -> None:
     assert secret not in serialized and "authorization" not in serialized.lower()
 
 
-def test_selector_uses_the_production_blueprint_edit_schema() -> None:
+def test_selector_uses_the_production_minimal_blueprint_schema() -> None:
     value, _ = select(json.dumps(VALID))
     assert value == VALID
     with pytest.raises(StructuredSelectionError):
-        select(json.dumps({"edits": [{"operation": "finish_design", "payload": {}, "unknown": 1}]}))
+        select(json.dumps({**VALID, "unknown": 1}))

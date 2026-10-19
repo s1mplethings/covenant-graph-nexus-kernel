@@ -6,10 +6,13 @@ import shutil
 import sys
 
 import pytest
+from jsonschema import Draft202012Validator
 
 from cgkn.application.project_blueprint import (
     BlueprintCheck, BlueprintUnit, FailureReport, FileBundle, PatchBundle,
-    ProjectBlueprint, apply_blueprint_edits, extract_python_interface, interface_breaks,
+    MINIMAL_BLUEPRINT_DESIGN_SCHEMA, MinimalBlueprintDesignPayload,
+    ProjectBlueprint, apply_blueprint_edits, assemble_project_blueprint,
+    extract_python_interface, interface_breaks,
 )
 from cgkn.application.project_loop import compile_blueprint
 
@@ -76,3 +79,108 @@ def test_failure_report_is_hashable_and_versioned_by_content() -> None:
     report = FailureReport("core", "TEST_FAILURE", failed_check="pytest", affected_units=("core", "pytest"))
     assert hash(report)
     assert report.failure_hash.startswith("sha256:")
+
+
+def _minimal_payload(*, units: list[dict] | None = None) -> dict:
+    return {
+        "schema_version": "1.0",
+        "units": units or [
+            {
+                "unit_id": "implementation", "kind": "implementation",
+                "purpose": "implement CLI", "owns": ["pkg/__init__.py", "pkg/__main__.py"],
+                "reads": [], "depends_on": [], "instruction": "implement public behavior",
+                "required_interfaces": ["main"], "acceptance": ["CLI works"],
+            },
+            {
+                "unit_id": "tests", "kind": "tests", "purpose": "test CLI",
+                "owns": ["tests/test_cli.py"], "reads": ["pkg/__main__.py"],
+                "depends_on": [], "instruction": "test public behavior", "acceptance": ["pytest passes"],
+                "required_interfaces": [],
+            },
+            {
+                "unit_id": "docs", "kind": "documentation", "purpose": "document CLI",
+                "owns": ["README.md"], "reads": [], "depends_on": [], "instruction": "document usage",
+                "required_interfaces": [],
+                "acceptance": ["README covers usage"],
+            },
+        ],
+        "finish_design": True,
+    }
+
+
+def _public_contract() -> dict:
+    return {
+        "public_goal": "Build a tested CLI with README",
+        "public_acceptance": ["CLI behavior", "README and tests"],
+        "entrypoint": "pkg/__main__.py",
+        "runtime_command": ["python", "-m", "pkg", "--help"],
+        "constraints": ["stdlib only", "offline"],
+    }
+
+
+def test_minimal_payload_round_trip_and_strict_schema() -> None:
+    value = _minimal_payload()
+    payload = MinimalBlueprintDesignPayload.from_dict(value)
+    assert payload.as_dict() == value
+    Draft202012Validator(MINIMAL_BLUEPRINT_DESIGN_SCHEMA).validate(value)
+    invalid = json.loads(json.dumps(value)); invalid["units"][0]["executor_ref"] = "llm.cheap@1"
+    assert not Draft202012Validator(MINIMAL_BLUEPRINT_DESIGN_SCHEMA).is_valid(invalid)
+
+
+def test_assembler_expands_defaults_checks_and_stable_hash() -> None:
+    first = assemble_project_blueprint("demo", _minimal_payload(), _public_contract())
+    second = assemble_project_blueprint("demo", _minimal_payload(), _public_contract())
+    assert first == second and first.blueprint_hash == second.blueprint_hash
+    assert [item.check_id for item in first.checks] == ["compile", "pytest", "runtime_smoke", "external_acceptance"]
+    assert first.by_id["tests"].depends_on == ("implementation",)
+    assert all(item.executor_ref == "llm.cheap@1" for item in first.units)
+    assert all(item.status == "PENDING" and item.timeout_seconds == 120 for item in first.units)
+    assert all(item.protected_paths for item in first.units)
+
+
+@pytest.mark.parametrize(
+    ("units", "message"),
+    [
+        ([
+            {"unit_id": "implementation", "kind": "implementation", "purpose": "x", "owns": ["../x.py"], "depends_on": [], "instruction": "x", "acceptance": ["x"]},
+            {"unit_id": "tests", "kind": "tests", "purpose": "x", "owns": ["tests/test_x.py"], "depends_on": ["implementation"], "instruction": "x", "acceptance": ["x"]},
+        ], "unsafe"),
+        ([
+            {"unit_id": "implementation", "kind": "implementation", "purpose": "x", "owns": ["pkg/__main__.py"], "depends_on": [], "instruction": "x", "acceptance": ["x"]},
+            {"unit_id": "tests", "kind": "tests", "purpose": "x", "owns": ["pkg/__main__.py"], "depends_on": ["implementation"], "instruction": "x", "acceptance": ["x"]},
+        ], "ownership collision"),
+        ([
+            {"unit_id": "implementation", "kind": "implementation", "purpose": "x", "owns": ["pkg/__main__.py"], "depends_on": ["missing"], "instruction": "x", "acceptance": ["x"]},
+            {"unit_id": "tests", "kind": "tests", "purpose": "x", "owns": ["tests/test_x.py"], "depends_on": ["implementation"], "instruction": "x", "acceptance": ["x"]},
+        ], "invalid dependency"),
+        ([
+            {"unit_id": "implementation", "kind": "implementation", "purpose": "x", "owns": ["pkg/__main__.py"], "depends_on": ["tests"], "instruction": "x", "acceptance": ["x"]},
+            {"unit_id": "tests", "kind": "tests", "purpose": "x", "owns": ["tests/test_x.py"], "depends_on": ["implementation"], "instruction": "x", "acceptance": ["x"]},
+        ], "cycle"),
+    ],
+)
+def test_assembler_rejects_invalid_paths_ownership_and_dependencies(units, message) -> None:
+    contract = _public_contract()
+    contract["public_goal"] = "Build a tested CLI"
+    contract["public_acceptance"] = ["CLI behavior", "tests"]
+    with pytest.raises(ValueError, match=message):
+        assemble_project_blueprint("demo", _minimal_payload(units=units), contract)
+
+
+def test_assembler_requires_tests_and_readme_coverage() -> None:
+    implementation = _minimal_payload()["units"][0]
+    docs = _minimal_payload()["units"][2]
+    with pytest.raises(ValueError, match="tests coverage"):
+        assemble_project_blueprint("demo", _minimal_payload(units=[implementation, docs]), _public_contract())
+    tests = _minimal_payload()["units"][1]
+    with pytest.raises(ValueError, match="README coverage"):
+        assemble_project_blueprint("demo", _minimal_payload(units=[implementation, tests]), _public_contract())
+
+
+def test_minimal_payload_rejects_unit_and_file_count_limits() -> None:
+    base = _minimal_payload()["units"]
+    with pytest.raises(ValueError, match="two to four"):
+        MinimalBlueprintDesignPayload.from_dict(_minimal_payload(units=base + [dict(base[2], unit_id="docs2", owns=["DOCS.md"]), dict(base[2], unit_id="docs3", owns=["GUIDE.md"])]))
+    too_many = dict(base[0], owns=[f"pkg/f{i}.py" for i in range(6)])
+    with pytest.raises(ValueError, match="one to five"):
+        MinimalBlueprintDesignPayload.from_dict(_minimal_payload(units=[too_many, base[1], base[2]]))

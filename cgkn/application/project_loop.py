@@ -29,57 +29,20 @@ from .project_blueprint import (
     BlueprintUnit,
     FailureReport,
     FileBundle,
+    MINIMAL_BLUEPRINT_DESIGN_SCHEMA,
+    MinimalBlueprintDesignPayload,
     ObservedInterfaceManifest,
     PatchBundle,
     ProjectBlueprint,
     UnitKind,
     UnitResult,
-    apply_blueprint_edits,
+    assemble_project_blueprint,
     extract_python_interface,
     interface_breaks,
 )
 
 
-_STRING_LIST = {"type": "array", "items": {"type": "string"}, "uniqueItems": True}
-_UNIT_PROPERTIES: dict[str, Any] = {
-    "unit_id": {"type": "string", "minLength": 1}, "purpose": {"type": "string", "minLength": 1},
-    "kind": {"enum": ["implementation", "tests", "documentation"]}, "owns": {**_STRING_LIST, "minItems": 1, "maxItems": 5},
-    "reads": _STRING_LIST, "depends_on": _STRING_LIST, "executor_ref": {"const": "llm.cheap@1"},
-    "instruction": {"type": "string", "minLength": 1}, "required_interfaces": _STRING_LIST,
-    "acceptance": {**_STRING_LIST, "minItems": 1}, "allowed_effects": _STRING_LIST,
-    "max_actions": {"type": "integer", "minimum": 1, "maximum": 20},
-    "max_files": {"type": "integer", "minimum": 1, "maximum": 5},
-    "max_output_bytes": {"type": "integer", "minimum": 1, "maximum": 256000},
-    "status": {"const": "PENDING"},
-}
-_UNIT_REQUIRED = list(_UNIT_PROPERTIES)
-_CHECK_PROPERTIES: dict[str, Any] = {
-    "check_id": {"type": "string", "minLength": 1}, "kind": {"enum": ["verification", "acceptance"]},
-    "command": _STRING_LIST, "depends_on": {**_STRING_LIST, "minItems": 1},
-    "acceptance": {**_STRING_LIST, "minItems": 1},
-}
-
-
-def _edit(operation: str, payload: Mapping[str, Any], required: list[str]) -> dict[str, Any]:
-    return {"type": "object", "additionalProperties": False, "required": ["operation", "payload"], "properties": {
-        "operation": {"const": operation},
-        "payload": {"type": "object", "additionalProperties": False, "required": required, "properties": dict(payload)},
-    }}
-
-
-BLUEPRINT_EDIT_SCHEMA: dict[str, Any] = {
-    "type": "object", "additionalProperties": False, "required": ["edits"],
-    "properties": {"edits": {"type": "array", "minItems": 1, "items": {"oneOf": [
-        _edit("set_goal", {"goal": {"type": "string", "minLength": 1}}, ["goal"]),
-        _edit("add_constraint", {"constraint": {"type": "string", "minLength": 1}}, ["constraint"]),
-        _edit("add_unit", _UNIT_PROPERTIES, _UNIT_REQUIRED),
-        _edit("update_unit", _UNIT_PROPERTIES, ["unit_id"]),
-        _edit("remove_unit", {"unit_id": {"type": "string", "minLength": 1}}, ["unit_id"]),
-        _edit("add_check", _CHECK_PROPERTIES, list(_CHECK_PROPERTIES)),
-        _edit("remove_check", {"check_id": {"type": "string", "minLength": 1}}, ["check_id"]),
-        _edit("finish_design", {}, []),
-    ]}}},
-}
+BLUEPRINT_EDIT_SCHEMA = MINIMAL_BLUEPRINT_DESIGN_SCHEMA
 
 _FILE_ITEM = {"type": "object", "additionalProperties": False, "required": ["path", "content"], "properties": {"path": {"type": "string"}, "content": {"type": "string"}}}
 _PATCH_ITEM = {"type": "object", "additionalProperties": False, "required": ["path", "find", "replace"], "properties": {"path": {"type": "string"}, "find": {"type": "string"}, "replace": {"type": "string"}}}
@@ -126,7 +89,7 @@ def compile_blueprint(blueprint: ProjectBlueprint, *, case_id: str = "") -> Capa
         config: dict[str, Any] = {
             "executor_ref": unit.executor_ref, "goal": unit.instruction or unit.purpose,
             "unit": unit.as_dict(), "acceptance": list(unit.acceptance), "effects": list(unit.allowed_effects),
-            "timeout_seconds": 120,
+            "timeout_seconds": unit.timeout_seconds,
         }
         if unit.kind == UnitKind.VERIFICATION.value:
             config["command"] = list(unit.acceptance)
@@ -143,7 +106,7 @@ def compile_blueprint(blueprint: ProjectBlueprint, *, case_id: str = "") -> Capa
 
 
 class DesignClient(Protocol):
-    def design(self, blueprint: ProjectBlueprint, public_contract: Mapping[str, Any]) -> list[Mapping[str, Any]]: ...
+    def design(self, blueprint: ProjectBlueprint, public_contract: Mapping[str, Any]) -> MinimalBlueprintDesignPayload: ...
 
 
 class ProviderBlueprintDesigner:
@@ -153,17 +116,31 @@ class ProviderBlueprintDesigner:
         self.config = config
         self.calls: list[dict[str, Any]] = []
 
-    def design(self, blueprint: ProjectBlueprint, public_contract: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    def design(self, blueprint: ProjectBlueprint, public_contract: Mapping[str, Any]) -> MinimalBlueprintDesignPayload:
         started = time.perf_counter()
-        prompt = {"mode": "DESIGN", "draft": blueprint.as_dict(), "public_contract": dict(public_contract), "rules": {"cohesive_units_not_files": True, "max_provider_units": 3, "max_owned_files_per_unit": 5, "provider_unit_executor": "llm.cheap@1", "deterministic_checks": True, "finish_required": True}}
+        prompt = {
+            "public_goal": public_contract.get("public_goal"),
+            "constraints": list(public_contract.get("constraints", ())),
+            "public_acceptance": list(public_contract.get("public_acceptance", ())),
+            "required_entrypoint": public_contract.get("entrypoint"),
+        }
         generated = self.generation.generate(GenerationRequest(
-            task_class="project.compose", operation="COMPOSITION", project_id=blueprint.project_id,
+            task_class="project.blueprint", operation="BLUEPRINT_DESIGN", project_id=blueprint.project_id,
             capability_ref="project.blueprint.design@1", provider_id=self.config.model,
-            system="You are the sole project coordinator in DESIGN mode. Return only atomic BlueprintEdit objects. Do not output source code, shell actions, execution state, Candidate metadata, or test claims. Create no more than three cohesive implementation/tests/documentation units, then deterministic compile, pytest, smoke, and external acceptance checks. Every unit field required by the contract must be explicit.",
-            goal=prompt, contract={"blueprint": blueprint.as_dict()}, state={}, failure_evidence={},
-            schema_name="cgkn_blueprint_edits", schema=BLUEPRINT_EDIT_SCHEMA, model_config=self.config,
-            allowed_actions=("set_goal", "add_constraint", "add_unit", "update_unit", "remove_unit", "add_check", "remove_check", "finish_design"),
-            forbidden_actions=("source_write", "shell", "test_pass", "candidate_metadata"),
+            system=(
+                "You are the project coordinator in DESIGN mode. Return only one "
+                "MinimalBlueprintDesignPayload. Do not write source code or commands. Do not "
+                "generate checks, executor metadata, runtime limits, status, or governance fields. "
+                "Use 2-4 cohesive implementation/tests/documentation units; each unit may own at "
+                "most 5 tightly related files. Tests depend on their implementation. Documentation "
+                "may be independent or depend on implementation. Set finish_design to true."
+            ),
+            goal=prompt, contract={}, state={}, failure_evidence={},
+            schema_name="cgkn_minimal_blueprint_design", schema=MINIMAL_BLUEPRINT_DESIGN_SCHEMA,
+            model_config=self.config,
+            allowed_actions=("design_units",),
+            forbidden_actions=("source_write", "shell", "checks", "executor_metadata", "candidate_metadata"),
+            projected_prompt=prompt,
         ))
         self.calls.append({
             "request_id": generated.completion.request_id,
@@ -175,11 +152,10 @@ class ProviderBlueprintDesigner:
             "logical_calls": 1,
             "transport_attempts": generated.completion.attempts,
             "selection_receipt": dict(generated.completion.selection_receipt),
+            "transport_metadata": dict(generated.completion.transport_metadata),
         })
         value = parse_json_object(generated.completion.text)
-        edits = value.get("edits")
-        if not isinstance(edits, list): raise ValueError("Coordinator omitted BlueprintEdit list")
-        return edits
+        return MinimalBlueprintDesignPayload.from_dict(value)
 
 
 class BlueprintUnitExecutor:
@@ -219,7 +195,17 @@ class BlueprintUnitExecutor:
                 model_config=self.config, allowed_actions=("file_bundle",) if not failure else ("patch_bundle",), forbidden_actions=("shell", "network", "blueprint_change", "hidden_acceptance"), run_id=request.run_id,
             ))
             completion = generated.completion; usage = dict(completion.usage)
-            self.calls.append({"request_id": completion.request_id, "model": completion.model, "usage": usage, "role": "worker", "unit_id": unit.unit_id, "duration": int((time.perf_counter() - clock) * 1000), "attempt_count": completion.attempts})
+            self.calls.append({
+                "request_id": completion.request_id,
+                "model": completion.model,
+                "usage": usage,
+                "role": "worker",
+                "unit_id": unit.unit_id,
+                "duration": int((time.perf_counter() - clock) * 1000),
+                "attempt_count": completion.attempts,
+                "selection_receipt": dict(completion.selection_receipt),
+                "transport_metadata": dict(completion.transport_metadata),
+            })
             value = parse_json_object(completion.text)
             if str(value.get("unit_id", "")) != unit.unit_id: raise ValueError("bundle unit_id mismatch")
             if failure:
@@ -281,12 +267,26 @@ class MinimalProjectLoop:
     def __init__(self, repository_root: pathlib.Path | str, run_root: pathlib.Path | str, client: CompletionClient | ProductionGenerationClient, agent_config: ModelRoleConfig, worker_config: ModelRoleConfig):
         if agent_config.role != "agent" or worker_config.role != "worker": raise ValueError("coordinator and worker role contracts are required")
         self.repository_root = pathlib.Path(repository_root).resolve(); self.run_root = pathlib.Path(run_root).resolve()
-        self.client = client; self.agent_config = agent_config; self.worker_config = worker_config
+        self.client = client if isinstance(client, ProductionGenerationClient) else default_production_client(client)
+        if self.client.max_provider_calls is None:
+            self.client.max_provider_calls = 8
+        self.agent_config = agent_config; self.worker_config = worker_config
+        self.coordinator_calls: list[dict[str, Any]] = []
 
     def design(self, project_id: str, public_contract: Mapping[str, Any], designer: DesignClient | None = None) -> tuple[ProjectBlueprint, int]:
         draft = ProjectBlueprint("1.0", project_id, 1, str(public_contract["public_goal"]), tuple(str(item) for item in public_contract.get("constraints", ())), (), ())
         effective = designer or ProviderBlueprintDesigner(self.client, self.agent_config)
-        frozen = apply_blueprint_edits(draft, effective.design(draft, public_contract))
+        payload = effective.design(draft, public_contract)
+        frozen = assemble_project_blueprint(project_id, payload, public_contract)
+        calls = getattr(effective, "calls", ())
+        self.coordinator_calls = [dict(item) for item in calls]
+        if self.coordinator_calls:
+            receipt = dict(self.coordinator_calls[-1].get("selection_receipt") or {})
+            receipt["blueprint_hash"] = frozen.blueprint_hash
+            self.coordinator_calls[-1]["selection_receipt"] = receipt
+            self.coordinator_calls[-1]["blueprint_hash"] = frozen.blueprint_hash
+            self.coordinator_calls[-1]["unit_count"] = len(frozen.units)
+            self.coordinator_calls[-1]["check_count"] = len(frozen.checks)
         if frozen.status != BlueprintStatus.FROZEN.value: raise ValueError("Coordinator did not finish design")
         return frozen, 1
 
