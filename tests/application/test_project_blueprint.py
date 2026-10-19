@@ -60,6 +60,9 @@ def test_freeze_requires_acceptance_and_edit_is_atomic() -> None:
 def test_file_and_patch_bundles_are_strict_and_mutually_exclusive() -> None:
     file_value = {"schema_version": "1.0", "kind": "file_bundle", "unit_id": "core", "files": [{"path": "a.py", "content": "x=1\n"}], "summary": "ok", "needs_escalation": False, "escalation_reason": ""}
     assert FileBundle.from_dict(file_value).files == (("a.py", "x=1\n"),)
+    compact = {"schema_version": "2.0", "kind": "file_bundle", "unit_id": "core", "files": [{"path": "a.py", "content": "x=1\n"}]}
+    parsed = FileBundle.from_dict(compact)
+    assert parsed.files == (("a.py", "x=1\n"),) and parsed.schema_version == "2.0" and parsed.summary == ""
     with pytest.raises(ValueError): PatchBundle.from_dict(file_value)
     patch_value = {"schema_version": "1.0", "kind": "patch_bundle", "unit_id": "core", "patches": [{"path": "a.py", "find": "1", "replace": "2"}], "summary": "fix", "needs_escalation": False, "escalation_reason": ""}
     assert PatchBundle.from_dict(patch_value).patches[0][1:] == ("1", "2")

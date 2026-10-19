@@ -604,10 +604,12 @@ class FileBundle:
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "FileBundle":
-        if set(value) != {"schema_version", "kind", "unit_id", "files", "summary", "needs_escalation", "escalation_reason"} or value.get("schema_version") != "1.0" or value.get("kind") != "file_bundle": raise ValueError("invalid FileBundle envelope")
+        version = str(value.get("schema_version", ""))
+        expected = {"schema_version", "kind", "unit_id", "files"} if version == "2.0" else {"schema_version", "kind", "unit_id", "files", "summary", "needs_escalation", "escalation_reason"}
+        if set(value) != expected or version not in {"1.0", "2.0"} or value.get("kind") != "file_bundle": raise ValueError("invalid FileBundle envelope")
         files = tuple((_safe_path(str(item["path"])), str(item["content"])) for item in value.get("files", ()))
         if not files or len({path for path, _ in files}) != len(files): raise ValueError("FileBundle files must be non-empty and unique")
-        return cls(str(value["unit_id"]), files, str(value["summary"]), bool(value["needs_escalation"]), str(value["escalation_reason"]))
+        return cls(str(value["unit_id"]), files, str(value.get("summary", "")), bool(value.get("needs_escalation", False)), str(value.get("escalation_reason", "")), version)
 
 
 @dataclass(frozen=True)

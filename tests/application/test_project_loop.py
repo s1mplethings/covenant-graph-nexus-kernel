@@ -15,7 +15,7 @@ class QueueClient:
     def __init__(self, responses): self.responses = list(responses); self.calls = []
 
     def complete(self, *, system, user, schema_name, schema, config):
-        self.calls.append({"system": system, "user": user, "schema_name": schema_name, "role": config.role, "operation": config.operation})
+        self.calls.append({"system": system, "user": user, "schema_name": schema_name, "role": config.role, "operation": config.operation, "thinking_mode": config.thinking_mode})
         if not self.responses: raise AssertionError("unexpected Provider call")
         return ProviderCompletion(json.dumps(self.responses.pop(0)), config.model, f"req-{len(self.calls)}", {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30})
 
@@ -124,6 +124,24 @@ def test_fake_repair_preserves_blueprint_and_reruns_only_owner_and_checks(tmp_pa
     assert outcome.failure_reports[0].unit_id == "core"
     assert outcome.summary.actual_executions == ("core", "pytest", "accept")
     assert "return a + b" in (workspace / "math_utils.py").read_text(encoding="utf-8")
+
+
+def test_generation_and_repair_thinking_policies_are_independent(tmp_path: pathlib.Path) -> None:
+    units = (BlueprintUnit("core", "math", "implementation", ("math_utils.py",), executor_ref="llm.cheap@1", instruction="implement add", required_interfaces=("add",), acceptance=("addition",), allowed_effects=("filesystem.write",)),)
+    checks = (
+        BlueprintCheck("pytest", "verification", (sys.executable, "-m", "pytest", "-q"), ("core",), ("tests",)),
+        BlueprintCheck("accept", "acceptance", (), ("pytest",), ("hidden",)),
+    )
+    blueprint = ProjectBlueprint("1.0", "seeded_repair", 1, "repair", ("smallest change",), units, checks).freeze()
+    client = QueueClient([_bundle("core", {"math_utils.py": "def add(a, b):\n    return a - b\n"}), _patch("core", "math_utils.py", "return a - b", "return a + b")])
+    workspace = tmp_path / "workspace"; workspace.mkdir()
+    (workspace / "test_math_utils.py").write_text("from math_utils import add\ndef test_add(): assert add(2,3)==5\n", encoding="utf-8")
+    agent = ModelRoleConfig("agent", "qwen")
+    generation = ModelRoleConfig("worker", "deepseek", thinking_mode="disabled")
+    repair = ModelRoleConfig("worker", "deepseek", thinking_mode="default")
+    outcome = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", client, agent, generation, repair).run(blueprint, workspace, case_id="seeded_repair")
+    assert outcome.status == "SUCCEEDED"
+    assert [call["thinking_mode"] for call in client.calls] == ["disabled", "default"]
 
 
 def test_failed_worker_provider_call_is_recorded_with_reported_usage(tmp_path: pathlib.Path) -> None:

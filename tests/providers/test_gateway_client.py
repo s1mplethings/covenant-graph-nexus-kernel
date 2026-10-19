@@ -349,11 +349,13 @@ def test_routing_switch_grok_and_snapshot_are_immutable(tmp_path: pathlib.Path) 
 def test_project_route_separates_coordinator_and_worker_thinking_policies() -> None:
     root = pathlib.Path(__file__).resolve().parents[2]
     routing = CGKNModelRouting.load(root / "config" / "provider_profiles" / "gateway_model_routing.json")
-    from scripts.run_project_mvp import _coordinator_model_config
+    from scripts.run_project_mvp import _coordinator_model_config, _worker_generation_model_config, _worker_repair_model_config
     coordinator = _coordinator_model_config()
     assert coordinator.model == "deepseek"
     assert coordinator.thinking_mode == "disabled"
     assert coordinator.reasoning_effort == "none"
+    assert _worker_generation_model_config().thinking_mode == "disabled"
+    assert _worker_repair_model_config().thinking_mode == "default"
     assert routing.worker.thinking_mode == "default"
 
 

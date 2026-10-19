@@ -46,10 +46,13 @@ BLUEPRINT_EDIT_SCHEMA = MINIMAL_BLUEPRINT_DESIGN_SCHEMA
 
 _FILE_ITEM = {"type": "object", "additionalProperties": False, "required": ["path", "content"], "properties": {"path": {"type": "string"}, "content": {"type": "string"}}}
 _PATCH_ITEM = {"type": "object", "additionalProperties": False, "required": ["path", "find", "replace"], "properties": {"path": {"type": "string"}, "find": {"type": "string"}, "replace": {"type": "string"}}}
-UNIT_PAYLOAD_SCHEMA: dict[str, Any] = {"oneOf": [
-    {"type": "object", "additionalProperties": False, "required": ["schema_version", "kind", "unit_id", "files", "summary", "needs_escalation", "escalation_reason"], "properties": {"schema_version": {"const": "1.0"}, "kind": {"const": "file_bundle"}, "unit_id": {"type": "string"}, "files": {"type": "array", "minItems": 1, "maxItems": 5, "items": _FILE_ITEM}, "summary": {"type": "string"}, "needs_escalation": {"type": "boolean"}, "escalation_reason": {"type": "string"}}},
-    {"type": "object", "additionalProperties": False, "required": ["schema_version", "kind", "unit_id", "patches", "summary", "needs_escalation", "escalation_reason"], "properties": {"schema_version": {"const": "1.0"}, "kind": {"const": "patch_bundle"}, "unit_id": {"type": "string"}, "patches": {"type": "array", "minItems": 1, "maxItems": 5, "items": _PATCH_ITEM}, "summary": {"type": "string"}, "needs_escalation": {"type": "boolean"}, "escalation_reason": {"type": "string"}}},
+_ESCALATION_SCHEMA = {"type": "object", "additionalProperties": False, "required": ["schema_version", "kind", "unit_id", "reason"], "properties": {"schema_version": {"const": "2.0"}, "kind": {"const": "escalation"}, "unit_id": {"type": "string"}, "reason": {"type": "string", "minLength": 1}}}
+FILE_BUNDLE_SCHEMA: dict[str, Any] = {"oneOf": [
+    {"type": "object", "additionalProperties": False, "required": ["schema_version", "kind", "unit_id", "files"], "properties": {"schema_version": {"const": "2.0"}, "kind": {"const": "file_bundle"}, "unit_id": {"type": "string"}, "files": {"type": "array", "minItems": 1, "maxItems": 5, "items": _FILE_ITEM}}},
+    _ESCALATION_SCHEMA,
 ]}
+PATCH_BUNDLE_SCHEMA: dict[str, Any] = {"type": "object", "additionalProperties": False, "required": ["schema_version", "kind", "unit_id", "patches", "summary", "needs_escalation", "escalation_reason"], "properties": {"schema_version": {"const": "1.0"}, "kind": {"const": "patch_bundle"}, "unit_id": {"type": "string"}, "patches": {"type": "array", "minItems": 1, "maxItems": 5, "items": _PATCH_ITEM}, "summary": {"type": "string"}, "needs_escalation": {"type": "boolean"}, "escalation_reason": {"type": "string"}}}
+UNIT_PAYLOAD_SCHEMA = {"oneOf": [FILE_BUNDLE_SCHEMA["oneOf"][0], PATCH_BUNDLE_SCHEMA]}
 
 
 def _write_json(path: pathlib.Path, value: Mapping[str, Any]) -> None:
@@ -161,11 +164,13 @@ class ProviderBlueprintDesigner:
 class BlueprintUnitExecutor:
     descriptor = ExecutorDescriptor("llm.cheap@1", "blueprint_unit_worker", ("project.unit.implementation@1", "project.unit.tests@1", "project.unit.documentation@1"), ("filesystem.read", "filesystem.write"), supports_cost_reporting=True)
 
-    def __init__(self, root: pathlib.Path | str, client: CompletionClient | ProductionGenerationClient, config: ModelRoleConfig):
+    def __init__(self, root: pathlib.Path | str, client: CompletionClient | ProductionGenerationClient, config: ModelRoleConfig, repair_config: ModelRoleConfig | None = None):
         if config.role != "worker": raise ValueError("unit executor requires worker role")
+        if repair_config is not None and repair_config.role != "worker": raise ValueError("repair executor requires worker role")
         self.root = pathlib.Path(root).resolve()
         self.generation = client if isinstance(client, ProductionGenerationClient) else default_production_client(client)
         self.config = config
+        self.repair_config = repair_config or config
         self.failure_reports: dict[str, FailureReport] = {}
         self.calls: list[dict[str, Any]] = []
 
@@ -179,27 +184,39 @@ class BlueprintUnitExecutor:
             manifests = _manifests(sources)
             failure = self.failure_reports.get(unit.unit_id)
             mode = "REPAIR" if failure else "EXECUTE"
+            effective_config = self.repair_config if failure else self.config
             prompt = {
                 "mode": mode, "project_goal": request.task_context.node_goal, "public_constraints": list(request.task_context.project_constraints),
                 "unit": unit.as_dict(), "current_files": sources,
                 "observed_interfaces": {path: item.as_dict() for path, item in manifests.items()},
                 "direct_dependency_results": materialize_json(request.task_context.dependency_results), "acceptance": list(unit.acceptance),
                 "failure_report": failure.as_dict() if failure else None,
-                "output_contract": "PatchBundle only in REPAIR; FileBundle only in EXECUTE",
+                "output_contract": "PatchBundle only in REPAIR; compact FileBundle v2 only in EXECUTE",
             }
+            schema = PATCH_BUNDLE_SCHEMA if failure else FILE_BUNDLE_SCHEMA
+            system = (
+                "You are a bounded unit worker. Return exactly one compact FileBundle v2. "
+                "Emit each owned file exactly once as strict JSON, with no summary, metadata, schema echo, "
+                "Markdown fence, or natural-language explanation. Touch only unit.owns; never invent paths."
+                if not failure else
+                "You are a bounded unit repair worker. Return exactly one PatchBundle. Touch only unit.owns; "
+                "never change the blueprint, run commands, access hidden acceptance, create evidence, or invent paths. "
+                "Preserve every required and observed public interface."
+            )
             generated = self.generation.generate(GenerationRequest(
                 task_class="project.codegen", operation=mode, project_id=request.project_id,
                 capability_ref=request.component_ref, provider_id=self.config.model,
-                system="You are a bounded unit worker. Return exactly one FileBundle in EXECUTE or PatchBundle in REPAIR. Touch only unit.owns; never change the blueprint, run commands, access hidden acceptance, create evidence, or invent paths. Preserve every required and observed public interface during repair. Complete all tightly coupled owned files in one response.",
+                system=system,
                 goal=prompt, contract={"unit": unit.as_dict(), "required_interfaces": list(unit.required_interfaces)}, state={"files": sources, "interfaces": {key: value.as_dict() for key, value in manifests.items()}},
-                failure_evidence=failure.as_dict() if failure else {}, schema_name="cgkn_unit_bundle", schema=UNIT_PAYLOAD_SCHEMA,
-                model_config=self.config, allowed_actions=("file_bundle",) if not failure else ("patch_bundle",), forbidden_actions=("shell", "network", "blueprint_change", "hidden_acceptance"), run_id=request.run_id,
+                failure_evidence=failure.as_dict() if failure else {}, schema_name="cgkn_unit_bundle", schema=schema,
+                model_config=effective_config, allowed_actions=("file_bundle",) if not failure else ("patch_bundle",), forbidden_actions=("shell", "network", "blueprint_change", "hidden_acceptance"), run_id=request.run_id,
             ))
             completion = generated.completion; usage = dict(completion.usage)
-            self.calls.append(self._call_record(request, unit, mode, clock, completion=completion))
+            self.calls.append(self._call_record(request, unit, mode, clock, config=effective_config, completion=completion))
             provider_recorded = True
             value = parse_json_object(completion.text)
             if str(value.get("unit_id", "")) != unit.unit_id: raise ValueError("bundle unit_id mismatch")
+            if value.get("kind") == "escalation": raise RuntimeError(str(value.get("reason") or "worker escalation"))
             if failure:
                 bundle = PatchBundle.from_dict(value)
                 if bundle.needs_escalation: raise RuntimeError(bundle.escalation_reason or "worker escalation")
@@ -228,14 +245,15 @@ class BlueprintUnitExecutor:
             return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.SUCCEEDED, outputs=outputs, started_at=started, ended_at=utc_now(), duration_ms=unit_result.duration, usage=usage)
         except Exception as exc:
             if isinstance(exc, GatewayCompletionError) and unit is not None and not provider_recorded:
-                self.calls.append(self._call_record(request, unit, mode, clock, error=exc))
+                effective_config = self.repair_config if mode == "REPAIR" else self.config
+                self.calls.append(self._call_record(request, unit, mode, clock, config=effective_config, error=exc))
             policy = isinstance(exc, PermissionError)
             code = ExecutionErrorCode.POLICY_BLOCKED if policy else ExecutionErrorCode.INVALID_OUTPUT if isinstance(exc, ValueError) else ExecutionErrorCode.EXECUTION_ERROR
             return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.FAILED, error=ExecutionError(code, str(exc)), started_at=started, ended_at=utc_now(), duration_ms=max(0, int((time.perf_counter() - clock) * 1000)), usage=usage, retryable=not policy)
 
     def _call_record(
         self, request: BlockExecutionRequest, unit: BlueprintUnit, mode: str, clock: float, *,
-        completion: Any | None = None, error: GatewayCompletionError | None = None,
+        config: ModelRoleConfig, completion: Any | None = None, error: GatewayCompletionError | None = None,
     ) -> dict[str, Any]:
         receipt = dict(completion.selection_receipt) if completion is not None else dict(error.evidence if error else {})
         metadata = dict(completion.transport_metadata) if completion is not None else {}
@@ -253,21 +271,21 @@ class BlueprintUnitExecutor:
             "logical_call_id": f"{request.run_id}:{unit.unit_id}:{mode.lower()}:{len(self.calls) + 1}",
             "project_id": request.project_id, "run_id": request.run_id,
             "role": "worker", "operation": mode, "unit_id": unit.unit_id,
-            "provider": self.config.model,
-            "model": completion.model if completion is not None else str(receipt.get("model") or self.config.model),
+            "provider": config.model,
+            "model": completion.model if completion is not None else str(receipt.get("model") or config.model),
             "request_id": completion.request_id if completion is not None else str(receipt.get("request_id") or ""),
             "transport_attempts": attempts_detail if attempts_detail else attempt_count,
             "transport_attempt_count": int(attempt_count or (len(attempts_detail) if isinstance(attempts_detail, list) else 0)),
-            "thinking_mode_requested": self.config.thinking_mode,
+            "thinking_mode_requested": config.thinking_mode,
             "thinking_mode_forwarded": metadata.get("thinking_mode_forwarded", receipt.get("thinking_mode_forwarded")),
-            "reasoning_effort": self.config.reasoning_effort,
+            "reasoning_effort": config.reasoning_effort,
             "prompt_tokens": token("prompt_tokens", "input_tokens"),
             "completion_tokens": token("completion_tokens", "output_tokens"),
             "reasoning_tokens": token("reasoning_tokens"),
             "cached_tokens": token("cached_tokens"),
             "total_tokens": token("total_tokens"), "usage_status": usage_status,
             "finish_reason": receipt.get("finish_reason"),
-            "configured_timeout": self.config.timeout_seconds,
+            "configured_timeout": config.timeout_seconds,
             "effective_timeout": receipt.get("effective_request_timeout_seconds"),
             "elapsed_ms": int((time.perf_counter() - clock) * 1000),
             "schema_hash": receipt.get("schema_hash"), "prompt_hash": receipt.get("prompt_hash"),
@@ -302,13 +320,14 @@ class ProjectLoopOutcome:
 class MinimalProjectLoop:
     """L6 adapter: one frozen blueprint compiled to the canonical tree/DAG/runtime."""
 
-    def __init__(self, repository_root: pathlib.Path | str, run_root: pathlib.Path | str, client: CompletionClient | ProductionGenerationClient, agent_config: ModelRoleConfig, worker_config: ModelRoleConfig):
+    def __init__(self, repository_root: pathlib.Path | str, run_root: pathlib.Path | str, client: CompletionClient | ProductionGenerationClient, agent_config: ModelRoleConfig, worker_config: ModelRoleConfig, worker_repair_config: ModelRoleConfig | None = None):
         if agent_config.role != "agent" or worker_config.role != "worker": raise ValueError("coordinator and worker role contracts are required")
         self.repository_root = pathlib.Path(repository_root).resolve(); self.run_root = pathlib.Path(run_root).resolve()
         self.client = client if isinstance(client, ProductionGenerationClient) else default_production_client(client)
         if self.client.max_provider_calls is None:
             self.client.max_provider_calls = 8
         self.agent_config = agent_config; self.worker_config = worker_config
+        self.worker_repair_config = worker_repair_config or worker_config
         self.coordinator_calls: list[dict[str, Any]] = []
 
     def design(self, project_id: str, public_contract: Mapping[str, Any], designer: DesignClient | None = None) -> tuple[ProjectBlueprint, int]:
@@ -332,7 +351,7 @@ class MinimalProjectLoop:
         workspace = pathlib.Path(workspace).resolve(); workspace.mkdir(parents=True, exist_ok=True)
         run_id = f"blueprint-{blueprint.project_id}-{uuid.uuid4().hex[:10]}"; tree = compile_blueprint(blueprint, case_id=case_id); dag = compile_tree(tree)
         state_root = self.run_root / run_id; store = FileRunStore(state_root)
-        registry = ExecutorRegistry(); worker = BlueprintUnitExecutor(workspace, self.client, self.worker_config)
+        registry = ExecutorRegistry(); worker = BlueprintUnitExecutor(workspace, self.client, self.worker_config, self.worker_repair_config)
         if initial_failure is not None:
             worker.failure_reports[initial_failure.unit_id] = initial_failure
         registry.register(worker); registry.register(CommandExecutor(workspace)); registry.register(PythonTestExecutor(workspace)); registry.register(ExternalAcceptanceExecutor(workspace, self.repository_root / "benchmarks" / "real_project_generation" / "acceptance"))

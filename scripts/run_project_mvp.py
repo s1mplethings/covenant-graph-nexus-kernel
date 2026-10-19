@@ -67,6 +67,24 @@ def _coordinator_model_config(provider: str = "deepseek") -> ModelRoleConfig:
     )
 
 
+def _worker_generation_model_config(provider: str = "deepseek") -> ModelRoleConfig:
+    return ModelRoleConfig(
+        role="worker", model=provider, timeout_seconds=150, max_output_tokens=6000,
+        temperature=0.0, reasoning_effort="none", task_class="project.codegen",
+        operation="EXECUTE", outer_deadline_seconds=180, deadline_reserve_seconds=30,
+        thinking_mode="disabled",
+    )
+
+
+def _worker_repair_model_config(provider: str = "deepseek") -> ModelRoleConfig:
+    return ModelRoleConfig(
+        role="worker", model=provider, timeout_seconds=150, max_output_tokens=6000,
+        temperature=0.0, reasoning_effort="none", task_class="project.codegen",
+        operation="REPAIR", outer_deadline_seconds=180, deadline_reserve_seconds=30,
+        thinking_mode="default",
+    )
+
+
 def _live(profile: str, artifact_root: pathlib.Path) -> dict[str, Any]:
     case_id = "cli_csv_cleaner" if profile == "live-single" else "seeded_repair"
     client = completion_client_from_environment()
@@ -79,8 +97,9 @@ def _live(profile: str, artifact_root: pathlib.Path) -> dict[str, Any]:
     if agent_provider not in routing.allowed_providers:
         raise ValueError("explicit project MVP Agent Provider is not allowlisted")
     agent_config = _coordinator_model_config(agent_provider)
-    worker_config = ModelRoleConfig("worker", routing.worker.model, 180, routing.worker.max_output_tokens, routing.worker.temperature, routing.worker.reasoning_effort)
-    loop = MinimalProjectLoop(ROOT, artifact_root, run_client, agent_config, worker_config)
+    worker_config = _worker_generation_model_config(routing.worker.model)
+    worker_repair_config = _worker_repair_model_config(routing.worker.model)
+    loop = MinimalProjectLoop(ROOT, artifact_root, run_client, agent_config, worker_config, worker_repair_config)
     contract = _public_contract(case_id)
     blueprint, decisions = loop.design(case_id, contract)
     workspace = artifact_root / "workspaces" / run_token
@@ -330,12 +349,7 @@ def _worker_real_unit(
         workspace = artifact_root / "worker_real_unit" / run_id / "workspace"
         workspace.mkdir(parents=True, exist_ok=False)
         client = base_client.bind_run(run_id, blueprint.project_id, budget_purpose="GENERATION")
-        worker_config = ModelRoleConfig(
-            role="worker", model="deepseek", timeout_seconds=150, max_output_tokens=6000,
-            temperature=0.0, reasoning_effort="none", task_class="project.codegen",
-            operation="EXECUTE", outer_deadline_seconds=180, deadline_reserve_seconds=30,
-            thinking_mode="disabled",
-        )
+        worker_config = _worker_generation_model_config("deepseek")
         executor = BlueprintUnitExecutor(workspace, client, worker_config)
         request = BlockExecutionRequest(
             project_id=blueprint.project_id, run_id=run_id, attempt_id="attempt-1",
