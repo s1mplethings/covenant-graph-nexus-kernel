@@ -182,7 +182,9 @@ class BlueprintUnitExecutor:
             visible = tuple(dict.fromkeys((*unit.owns, *unit.reads)))
             sources = _read_sources(self.root, visible)
             manifests = _manifests(sources)
-            failure = self.failure_reports.get(unit.unit_id)
+            stored_failure = self.failure_reports.get(unit.unit_id)
+            has_patchable_baseline = bool(unit.owns) and all(path in sources for path in unit.owns)
+            failure = stored_failure if has_patchable_baseline else None
             mode = "REPAIR" if failure else "EXECUTE"
             effective_config = self.repair_config if failure else self.config
             prompt = {
@@ -370,7 +372,10 @@ class MinimalProjectLoop:
             if not owner or owner not in blueprint.by_id: break
             affected = downstream_closure(dag, {owner})
             report = self._failure_report(owner, failed_check, failed_result, affected)
-            reports.append(report); worker.failure_reports[owner] = report
+            reports.append(report)
+            owner_unit = blueprint.by_id[owner]
+            if self._has_patchable_baseline(workspace, owner_unit):
+                worker.failure_reports[owner] = report
             _write_json(state_root / "failure_reports" / f"repair-{repairs + 1}.json", report.as_dict())
             summary = runner.run(project_id=blueprint.project_id, run_id=run_id, tree=tree, dag=dag, resume=True, retry_node=owner, constraints=blueprint.constraints)
             repairs += 1
@@ -381,6 +386,10 @@ class MinimalProjectLoop:
         _write_json(state_root / "project_outcome.json", outcome.as_dict())
         _write_json(state_root / "provider_calls.json", {"calls": worker.calls})
         return outcome
+
+    @staticmethod
+    def _has_patchable_baseline(workspace: pathlib.Path, unit: BlueprintUnit) -> bool:
+        return bool(unit.owns) and all((workspace / pathlib.PurePosixPath(path)).is_file() for path in unit.owns)
 
     @staticmethod
     def _owner_from_failure(blueprint: ProjectBlueprint, result: BlockExecutionResult) -> str:

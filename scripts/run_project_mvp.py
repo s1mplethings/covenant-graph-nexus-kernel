@@ -21,7 +21,12 @@ from cgkn.application.project_blueprint import BlueprintUnit, FailureReport, Pro
 from cgkn.application.project_loop import BlueprintUnitExecutor, MinimalProjectLoop
 from cgkn.application.software_project.catalog import get_case
 from cgkn.execution import BlockExecutionRequest, TaskContext
-from cgkn.providers import CGKNModelRouting, GatewayCompletionClient, ModelRoleConfig, completion_client_from_environment
+from cgkn.providers import (
+    CGKNModelRouting, GatewayCompletionClient, ModelRoleConfig, ProviderCompletion,
+    completion_client_from_environment,
+)
+from cgkn.providers.gateway_client import API_LAB_COMMIT
+from cgkn.providers.structured_output import SELECTOR_VERSION, StructuredAnswerSelector
 
 
 PHASE_B_PROFILES = {"fake-parallel", "fake-conflict", "fake-standup", "live-parallel", "live-repeat"}
@@ -326,6 +331,165 @@ def _required_interfaces_present(workspace: pathlib.Path, unit: BlueprintUnit) -
     return required <= definitions
 
 
+class _AcceptedBundleReplayClient:
+    """Re-run accepted raw Provider text through the current selector without network I/O."""
+
+    def __init__(self, evidence: dict[str, Any]):
+        self.evidence = evidence
+        self.replay_invocations = 0
+        self.identity: dict[str, Any] = {}
+
+    def complete(self, *, system: str, user: str, schema_name: str, schema: dict[str, Any], config: ModelRoleConfig) -> ProviderCompletion:
+        self.replay_invocations += 1
+        if self.replay_invocations != 1:
+            raise RuntimeError("accepted bundle replay permits exactly one deterministic invocation")
+        call = dict(self.evidence.get("provider_call") or {})
+        receipt = dict(call.get("selection_receipt") or {})
+        metadata = dict(call.get("transport_metadata") or {})
+        raw_text = str(metadata.get("raw_text") or "")
+        prompt_hash = "sha256:" + hashlib.sha256(
+            json.dumps({"system": system, "user": user}, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+        selected, replay_receipt = StructuredAnswerSelector().select(
+            raw_text, schema, schema_name=schema_name,
+            provider_id=str(receipt.get("provider_id") or call.get("provider") or ""),
+            model=str(receipt.get("model") or call.get("model") or ""),
+            task_class=config.task_class, operation=config.operation, prompt_hash=prompt_hash,
+            transport_attempts=0, usage_status=str(receipt.get("usage_status") or "REPORTED"),
+            configured_timeout_seconds=config.timeout_seconds,
+            max_output_tokens=config.max_output_tokens, finish_reason=str(receipt.get("finish_reason") or ""),
+            usage=dict(receipt.get("usage") or {}), api_lab_commit=API_LAB_COMMIT,
+            api_lab_contract_version=str(receipt.get("api_lab_contract_version") or ""),
+            route_mode=str(receipt.get("route_mode") or "raw_defer"), request_id=str(receipt.get("request_id") or ""),
+            thinking_mode=config.thinking_mode, reasoning_effort=config.reasoning_effort,
+            reasoning_tokens=receipt.get("reasoning_tokens"),
+            reasoning_text_present=bool(receipt.get("reasoning_text_present")),
+            reasoning_text_length=int(receipt.get("reasoning_text_length") or 0),
+            prompt_tokens=receipt.get("prompt_tokens"), completion_tokens=receipt.get("completion_tokens"),
+            total_tokens=receipt.get("total_tokens"), cached_tokens=receipt.get("cached_tokens"),
+        )
+        checks = {
+            "provider": str(call.get("provider") or "") == "deepseek",
+            "model": str(call.get("model") or "") == "deepseek-flash",
+            "thinking_mode": config.thinking_mode == receipt.get("thinking_mode") == "disabled",
+            "reasoning_effort": config.reasoning_effort == receipt.get("reasoning_effort") == "none",
+            "operation": config.operation == receipt.get("operation") == "EXECUTE",
+            "prompt_hash": replay_receipt.prompt_hash == receipt.get("prompt_hash"),
+            "schema_hash": replay_receipt.schema_hash == receipt.get("schema_hash"),
+            "raw_response_hash": replay_receipt.raw_response_hash == receipt.get("raw_response_hash"),
+            "selected_candidate_hash": replay_receipt.selected_candidate_hash == receipt.get("selected_candidate_hash"),
+            "candidate_count": replay_receipt.json_candidate_count == receipt.get("json_candidate_count") == 1,
+            "valid_candidate_count": replay_receipt.schema_valid_candidate_count == receipt.get("schema_valid_candidate_count") == 1,
+            "api_lab_commit": receipt.get("api_lab_commit") == API_LAB_COMMIT,
+            "selector_version": receipt.get("selector_version") == SELECTOR_VERSION,
+            "finish_reason": receipt.get("finish_reason") == "stop",
+        }
+        self.identity = checks | {
+            "prompt_hash": prompt_hash, "schema_hash": replay_receipt.schema_hash,
+            "raw_response_hash": replay_receipt.raw_response_hash,
+            "selected_candidate_hash": replay_receipt.selected_candidate_hash,
+        }
+        failed = sorted(key for key, value in checks.items() if value is not True)
+        if failed:
+            raise ValueError("PROVIDER_EVIDENCE_IDENTITY_MISMATCH:" + ",".join(failed))
+        return ProviderCompletion(
+            json.dumps(selected, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+            str(call.get("model") or "deepseek-flash"), str(call.get("request_id") or ""),
+            dict(receipt.get("usage") or {}), 0, receipt,
+            {"evidence_replay": True, "external_provider_calls": 0},
+        )
+
+
+def _worker_cohesive_replay(artifact_root: pathlib.Path, *, replay_index: pathlib.Path) -> dict[str, Any]:
+    identity = _source_identity()
+    if not identity["tracked_worktree_clean"]:
+        raise RuntimeError("worker evidence replay requires a frozen clean Source Closure")
+    prior = json.loads(replay_index.read_text(encoding="utf-8"))
+    prior_runs = list(prior.get("runs") or ())
+    if len(prior_runs) != 3:
+        raise ValueError("worker evidence replay requires exactly three prior runs")
+    blueprint_path = pathlib.Path(str(prior.get("blueprint_path") or "")).resolve()
+    blueprint = ProjectBlueprint.from_dict(json.loads(blueprint_path.read_text(encoding="utf-8")))
+    implementations = [item for item in blueprint.units if item.kind == "implementation"]
+    if not implementations:
+        raise ValueError("replay blueprint has no implementation unit")
+    unit = implementations[0]
+    unit_hash = _hash(unit.as_dict())
+    constraints_hash = _hash({"constraints": list(blueprint.constraints)})
+    interface_hash = _hash({"required_interfaces": list(unit.required_interfaces)})
+    output_rows: list[dict[str, Any]] = []
+    for index, prior_row in enumerate(prior_runs, 1):
+        run_id = f"worker-cohesive-replay-{index}-{uuid.uuid4().hex[:10]}"
+        workspace = artifact_root / "worker_scope_replay" / run_id / "workspace"
+        workspace.mkdir(parents=True, exist_ok=False)
+        semantic_checks = {
+            "blueprint_hash": prior_row.get("blueprint_hash") == blueprint.blueprint_hash,
+            "unit_hash": prior_row.get("unit_hash") == unit_hash,
+            "unit_semantics": prior_row.get("unit") == unit.as_dict(),
+            "api_lab_commit": prior_row.get("api_lab_commit") == API_LAB_COMMIT,
+        }
+        if not all(semantic_checks.values()):
+            failed = sorted(key for key, value in semantic_checks.items() if not value)
+            raise ValueError("PROVIDER_EVIDENCE_SEMANTIC_IDENTITY_MISMATCH:" + ",".join(failed))
+        replay_client = _AcceptedBundleReplayClient(prior_row)
+        executor = BlueprintUnitExecutor(workspace, replay_client, _worker_generation_model_config("deepseek"))
+        request = BlockExecutionRequest(
+            project_id=blueprint.project_id, run_id=run_id, attempt_id="replay-1",
+            node_id=unit.unit_id, component_ref="project.unit.implementation@1", executor_ref="llm.cheap@1",
+            task_context=TaskContext(
+                unit.instruction or unit.purpose, node_config={"unit": unit.as_dict()},
+                dependency_results={}, project_constraints=blueprint.constraints, acceptance=unit.acceptance,
+            ),
+            timeout_seconds=unit.timeout_seconds, declared_effects=unit.allowed_effects,
+        )
+        started = time.perf_counter()
+        result = executor.execute(request)
+        files = [path for path in unit.owns if (workspace / pathlib.PurePosixPath(path)).is_file()]
+        syntax = result.succeeded and all(
+            not path.endswith(".py") or subprocess.run(
+                [sys.executable, "-m", "py_compile", str(workspace / pathlib.PurePosixPath(path))],
+                capture_output=True, text=True,
+            ).returncode == 0
+            for path in unit.owns
+        )
+        interface = result.succeeded and _required_interfaces_present(workspace, unit)
+        passed = result.succeeded and len(files) == len(unit.owns) == 4 and syntax and interface and all(replay_client.identity.get(key) is True for key in (
+            "provider", "model", "thinking_mode", "reasoning_effort", "operation", "prompt_hash", "schema_hash",
+            "raw_response_hash", "selected_candidate_hash", "candidate_count", "valid_candidate_count",
+            "api_lab_commit", "selector_version", "finish_reason",
+        ))
+        row = {
+            "run_id": run_id, "prior_run_id": prior_row.get("run_id"), "status": "PASS" if passed else "FAIL",
+            "provider_evidence_reused": True, "external_provider_calls": 0,
+            "deterministic_replay_invocations": replay_client.replay_invocations,
+            "source_commit": identity["cgkn_source_commit"], "prior_source_commit": prior_row.get("source_commit"),
+            "blueprint_hash": blueprint.blueprint_hash, "unit_hash": unit_hash,
+            "public_constraints_hash": constraints_hash, "interface_contract_hash": interface_hash,
+            "provider_identity": replay_client.identity, "semantic_identity": semantic_checks,
+            "selection_receipt_hash": prior_row.get("selection_receipt_hash"),
+            "file_count": len(files), "files": files,
+            "scope": "PASS" if result.succeeded else "FAIL", "syntax": "PASS" if syntax else "FAIL",
+            "interface": "PASS" if interface else "FAIL", "atomic_apply": "PASS" if len(files) == len(unit.owns) else "FAIL",
+            "no_undeclared_write": set(files) == set(unit.owns), "block_result": result.as_dict(),
+            "duration_ms": int((time.perf_counter() - started) * 1000),
+        }
+        target = artifact_root / "worker_scope_replay" / f"{run_id}.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(row, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        output_rows.append(row)
+    passed = all(row["status"] == "PASS" for row in output_rows)
+    result = {
+        "profile": "worker-cohesive-replay", "status": "PASS" if passed else "WORKER_SCOPE_REPLAY_FAILED",
+        "qualification": "3/3" if passed else f"{sum(row['status'] == 'PASS' for row in output_rows)}/3",
+        "provider_evidence_reused": True, "external_provider_calls": 0, "provider_calls_saved": 3,
+        "replay_index": str(replay_index), "blueprint_path": str(blueprint_path),
+        "source_identity": identity, "runs": output_rows,
+    }
+    index = artifact_root / "worker_scope_replay" / "index.json"
+    index.write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return result
+
+
 def _worker_real_unit(
     artifact_root: pathlib.Path, *, blueprint_path: pathlib.Path, count: int, diagnostic: bool,
 ) -> dict[str, Any]:
@@ -425,11 +589,12 @@ def _worker_real_unit(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the CGKN minimal ProjectBlueprint MVP profiles")
-    parser.add_argument("--profile", required=True, choices=("unit", "fake-single", "fake-repair", "coordinator-diagnostic", "coordinator-qualify", "worker-file-probe", "worker-patch-probe", "worker-real-unit-diagnostic", "worker-cohesive-qualify", "live-single", "live-repair", "fake-parallel", "fake-conflict", "fake-standup", "live-parallel", "live-repeat", "final"))
+    parser.add_argument("--profile", required=True, choices=("unit", "fake-single", "fake-repair", "coordinator-diagnostic", "coordinator-qualify", "worker-file-probe", "worker-patch-probe", "worker-real-unit-diagnostic", "worker-cohesive-qualify", "worker-cohesive-replay", "live-single", "live-repair", "fake-parallel", "fake-conflict", "fake-standup", "live-parallel", "live-repeat", "final"))
     parser.add_argument("--artifact-root", type=pathlib.Path, default=ROOT / ".service_evidence" / "project_mvp")
     parser.add_argument("--count", type=int, default=3)
     parser.add_argument("--provider", default="deepseek")
     parser.add_argument("--blueprint-path", type=pathlib.Path)
+    parser.add_argument("--replay-index", type=pathlib.Path)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv); args.artifact_root.mkdir(parents=True, exist_ok=True)
     if args.profile in PHASE_B_PROFILES:
@@ -448,6 +613,10 @@ def main(argv: list[str] | None = None) -> int:
             args.artifact_root.resolve(), blueprint_path=args.blueprint_path.resolve(), count=args.count,
             diagnostic=args.profile == "worker-real-unit-diagnostic",
         )
+    elif args.profile == "worker-cohesive-replay":
+        if args.replay_index is None:
+            raise ValueError("worker cohesive replay requires --replay-index")
+        result = _worker_cohesive_replay(args.artifact_root.resolve(), replay_index=args.replay_index.resolve())
     elif args.profile in {"live-single", "live-repair"}: result = _live(args.profile, args.artifact_root.resolve())
     else:
         result = {"profile": "final", "status": "NOT_READY", "reason": "run the ordered PHASE A and PHASE B profiles first"}

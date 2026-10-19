@@ -15,6 +15,7 @@ from cgkn.application.project_blueprint import (
     extract_python_interface, interface_breaks,
 )
 from cgkn.application.project_loop import compile_blueprint
+from cgkn.application.software_project.contracts import MAX_COHESIVE_WRITE_FILES, WorkerScope
 
 
 def _unit(unit_id: str = "core", *, owns: tuple[str, ...] = ("pkg/core.py",), depends: tuple[str, ...] = ()) -> BlueprintUnit:
@@ -187,3 +188,42 @@ def test_minimal_payload_rejects_unit_and_file_count_limits() -> None:
     too_many = dict(base[0], owns=[f"pkg/f{i}.py" for i in range(6)])
     with pytest.raises(ValueError, match="one to five"):
         MinimalBlueprintDesignPayload.from_dict(_minimal_payload(units=[too_many, base[1], base[2]]))
+
+
+def test_frozen_blueprint_worker_scope_contract_is_monotonic() -> None:
+    owns = tuple(f"pkg/file_{index}.py" for index in range(4))
+    unit = BlueprintUnit(
+        "core", "cohesive implementation", "implementation", owns,
+        reads=("contracts/public.py", "deps/types.py"), executor_ref="llm.cheap@1",
+        instruction="implement", acceptance=("works",), allowed_effects=("filesystem.read", "filesystem.write"),
+        max_files=4,
+    )
+    blueprint = ProjectBlueprint(
+        "1.0", "scope-contract", 1, "goal", ("offline",), (unit,),
+        (BlueprintCheck("accept", "acceptance", depends_on=("core",), acceptance=("hidden",)),),
+    ).freeze()
+    compiled = compile_blueprint(blueprint)
+    compiled_unit = BlueprintUnit.from_dict(compiled.nodes[0].config["unit"])
+    try:
+        scope = WorkerScope(
+            compiled_unit.owns + compiled_unit.reads,
+            compiled_unit.owns,
+            max_write_files=compiled_unit.max_files,
+        )
+    except ValueError as exc:
+        pytest.fail(f"BLUEPRINT_WORKER_SCOPE_CONTRACT_MISMATCH: {exc}")
+    assert len(scope.writable_paths) == 4
+
+    with pytest.raises(ValueError, match="max_files"):
+        BlueprintUnit(
+            "too-wide", "too wide", "implementation",
+            tuple(f"pkg/f{index}.py" for index in range(MAX_COHESIVE_WRITE_FILES + 1)),
+            executor_ref="llm.cheap@1", instruction="implement", acceptance=("works",),
+            allowed_effects=("filesystem.write",), max_files=MAX_COHESIVE_WRITE_FILES + 1,
+        )
+    with pytest.raises(ValueError, match="at most five"):
+        BlueprintUnit(
+            "underdeclared", "underdeclared", "implementation", owns,
+            executor_ref="llm.cheap@1", instruction="implement", acceptance=("works",),
+            allowed_effects=("filesystem.write",), max_files=3,
+        )

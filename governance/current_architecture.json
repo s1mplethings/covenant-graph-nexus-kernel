@@ -60,6 +60,9 @@
     "isolated_execution": ["ComponentSpec/PortSpec", "ExecutorRegistry", "DAGRunner", "BlockExecutionResult", "FileRunStore", "Agent checkpoint"],
     "failure_recovery": ["failed node", "downstream_closure", "explicit retry", "unaffected PASS reuse"]
   },
+  "scope_invariants": {
+    "BLUEPRINT_SCOPE_CONSISTENCY": "A WorkerScope may add runtime safety checks but cannot reject an unchanged ProjectBlueprint unit with a stricter duplicate business-level write-file ceiling; owned paths are writable, declared read paths are visible only, and both contracts share the canonical cohesive write-file limit."
+  },
   "compatibility_entrypoints": ["scripts/codex_conversation.py", "scripts/run_codex_conversation_generation.py", "scripts/run_local_pipeline.py", "scripts/run_local_pipeline_impl.py"],
   "compatibility_rule": "Compatibility entrypoints remain callable and are not the MVP planning or composition authority. The isolated MVP runtime has not replaced them.",
   "next_feature_increment": {"id": "MVP-017", "name": "Close minimal ProjectBlueprint generation and repair", "migration_target": "Prove one frozen blueprint, cohesive units, minimal Provider payloads, interface guarding, and affected-only repair through the existing CapabilityTree, DAGRunner, and FileRunStore."},

@@ -8,6 +8,9 @@ from enum import Enum
 from typing import Any, Mapping
 
 
+MAX_COHESIVE_WRITE_FILES = 5
+
+
 class ProjectResultStatus(str, Enum):
     PASS = "PASS"
     FAIL = "FAIL"
@@ -44,6 +47,16 @@ class WorkerScope:
     allow_patch: bool = True
     allow_delete: bool = False
 
+    @property
+    def visible_paths(self) -> tuple[str, ...]:
+        """Project-relative paths the worker may read."""
+        return self.allowed_paths
+
+    @property
+    def writable_paths(self) -> tuple[str, ...]:
+        """Project-relative paths the worker may modify."""
+        return self.target_paths
+
     def __post_init__(self) -> None:
         if not self.allowed_paths:
             raise ValueError("worker scope requires explicit allowed paths")
@@ -51,12 +64,16 @@ class WorkerScope:
             path = pathlib.PurePosixPath(str(raw).replace("\\", "/"))
             if path.is_absolute() or not str(path) or ".." in path.parts:
                 raise ValueError("worker scope paths must be safe and relative")
-        targets = self.target_paths or self.allowed_paths
-        if not targets or len(targets) > min(3, self.max_write_files) or any(item not in self.allowed_paths for item in targets):
-            raise ValueError("worker target_paths must fit the cohesive path and write-file limits")
-        object.__setattr__(self, "target_paths", tuple(targets))
-        if self.max_actions < 1 or self.max_write_files < 1 or self.max_total_output_bytes < 1:
+        if self.max_actions < 1 or self.max_total_output_bytes < 1:
             raise ValueError("worker scope limits must be positive")
+        if not 1 <= self.max_write_files <= MAX_COHESIVE_WRITE_FILES:
+            raise ValueError(
+                f"worker max_write_files must be between 1 and {MAX_COHESIVE_WRITE_FILES}"
+            )
+        targets = self.target_paths or self.allowed_paths
+        if not targets or len(targets) > self.max_write_files or any(item not in self.allowed_paths for item in targets):
+            raise ValueError("worker writable paths must fit the declared write-file limit and visible paths")
+        object.__setattr__(self, "target_paths", tuple(targets))
         if self.allow_delete:
             raise ValueError("project workers may not delete files")
 

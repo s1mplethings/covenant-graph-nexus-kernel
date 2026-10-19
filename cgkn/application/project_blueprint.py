@@ -9,6 +9,8 @@ from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Any, Iterable, Mapping
 
+from cgkn.application.software_project.contracts import MAX_COHESIVE_WRITE_FILES
+
 
 PROTECTED_PROJECT_PATHS = (
     ".git",
@@ -206,7 +208,11 @@ class BlueprintUnit:
             raise ValueError(f"invalid unit kind: {self.kind}")
         owns = tuple(_safe_path(item) for item in self.owns)
         reads = tuple(_safe_path(item) for item in self.reads)
-        if len(set(owns)) != len(owns) or len(owns) > 5 or len(owns) > self.max_files:
+        if not 1 <= self.max_files <= MAX_COHESIVE_WRITE_FILES:
+            raise ValueError(
+                f"unit max_files must be between 1 and {MAX_COHESIVE_WRITE_FILES}"
+            )
+        if len(set(owns)) != len(owns) or len(owns) > self.max_files:
             raise ValueError("unit owns must be unique and contain at most five paths")
         if set(owns) & set(reads):
             raise ValueError("unit reads and owns must not overlap")

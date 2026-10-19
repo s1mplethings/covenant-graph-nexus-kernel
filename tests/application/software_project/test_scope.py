@@ -15,6 +15,27 @@ def test_scoped_transaction_applies_fully_validated_writes(tmp_path):
     assert [row["path"] for row in rows] == ["pkg/a.py", "pkg/b.py"]
 
 
+@pytest.mark.security
+@pytest.mark.boundary
+def test_scoped_transaction_reads_visible_paths_but_writes_only_owned_paths(tmp_path):
+    owned = tuple(f"pkg/owned_{index}.py" for index in range(4))
+    reads = ("deps/a.py", "deps/b.py")
+    for relative in reads:
+        target = tmp_path / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("VALUE = 1\n", encoding="utf-8")
+    tx = ScopedFileTransaction(tmp_path, WorkerScope(owned + reads, owned, max_actions=6, max_write_files=4))
+    observations, planned = tx.validate(
+        [{"action": "read_file", "path": path} for path in reads]
+        + [{"action": "write_file", "path": path, "content": f"VALUE = {index}\n"} for index, path in enumerate(owned)]
+    )
+    assert len(observations) == 2 and len(planned) == 4
+    with pytest.raises(ScopeViolation, match="not declared in target_paths"):
+        tx.validate([{"action": "write_file", "path": reads[0], "content": "VALUE = 2\n"}])
+    with pytest.raises(ScopeViolation, match="outside declared worker scope"):
+        tx.validate([{"action": "write_file", "path": "other.py", "content": "VALUE = 2\n"}])
+
+
 @pytest.mark.negative
 @pytest.mark.security
 @pytest.mark.boundary

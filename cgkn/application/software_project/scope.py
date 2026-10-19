@@ -41,8 +41,8 @@ class ScopedFileTransaction:
     def __init__(self, project_root: pathlib.Path | str, scope: WorkerScope):
         self.root = pathlib.Path(project_root).resolve()
         self.scope = scope
-        self.allowed = frozenset(self._normalize(item) for item in scope.allowed_paths)
-        self.targets = frozenset(self._normalize(item) for item in scope.target_paths)
+        self.allowed = frozenset(self._normalize(item) for item in scope.visible_paths)
+        self.targets = frozenset(self._normalize(item) for item in scope.writable_paths)
 
     @staticmethod
     def _normalize(value: object) -> str:

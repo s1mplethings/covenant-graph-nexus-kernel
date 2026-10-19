@@ -20,7 +20,7 @@ from cgkn.application.capability_builder import CapabilityBuilderService, Capabi
 from cgkn.application.learning import GenerationRequest, LearningEvent, ProductionGenerationClient, StoreLessonRecorder, canonical_hash, record_feedback
 from cgkn.application.materialization import materialize_json
 from cgkn.application.self_growth import SelfGrowthService
-from cgkn.application.software_project.contracts import WorkerScope
+from cgkn.application.software_project.contracts import MAX_COHESIVE_WRITE_FILES, WorkerScope
 from cgkn.application.software_project.scope import ScopedFileTransaction
 from cgkn.execution import BlockExecutionRequest, BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode
 from cgkn.execution.contracts import utc_now
@@ -90,7 +90,7 @@ class _CoreExecutor:
             proposal = validate_worker_proposal(parse_json_object(result.completion.text), request.node_id)
             if proposal["needs_escalation"]:
                 raise ValueError(proposal["escalation_reason"] or "project core escalated")
-            scope = WorkerScope(tuple(self.case.target_paths), tuple(self.case.target_paths), protected_paths=("tests","pyproject.toml","README.md","LICENSE",".git","governance","artifacts"), max_actions=8, max_write_files=8, max_total_output_bytes=140_000, allow_create=True, allow_patch=True, allow_delete=False)
+            scope = WorkerScope(tuple(self.case.target_paths), tuple(self.case.target_paths), protected_paths=("tests","pyproject.toml","README.md","LICENSE",".git","governance","artifacts"), max_actions=8, max_write_files=MAX_COHESIVE_WRITE_FILES, max_total_output_bytes=140_000, allow_create=True, allow_patch=True, allow_delete=False)
             writes = ScopedFileTransaction(self.workspace, scope).apply(proposal["actions"])
             missing = [path for path in self.case.target_paths if not (self.workspace/path).is_file()]
             if missing:

@@ -17,7 +17,10 @@ class QueueClient:
     def complete(self, *, system, user, schema_name, schema, config):
         self.calls.append({"system": system, "user": user, "schema_name": schema_name, "role": config.role, "operation": config.operation, "thinking_mode": config.thinking_mode})
         if not self.responses: raise AssertionError("unexpected Provider call")
-        return ProviderCompletion(json.dumps(self.responses.pop(0)), config.model, f"req-{len(self.calls)}", {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30})
+        response = self.responses.pop(0)
+        if isinstance(response, Exception):
+            raise response
+        return ProviderCompletion(json.dumps(response), config.model, f"req-{len(self.calls)}", {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30})
 
 
 class TruncatedClient:
@@ -184,3 +187,32 @@ def test_failed_worker_provider_call_keeps_unknown_usage_null(tmp_path: pathlib.
     call = executor.calls[0]
     assert call["usage_status"] == "UNKNOWN_AFTER_FAILURE"
     assert call["prompt_tokens"] is call["completion_tokens"] is call["total_tokens"] is None
+
+
+def test_initial_generation_failure_retries_generation_before_any_repair(tmp_path: pathlib.Path) -> None:
+    first_failure = GatewayCompletionError(
+        "PROVIDER_OUTPUT_TRUNCATED", "first generation failed before materialization",
+        evidence={"request_id": "failed-generation", "finish_reason": "length"},
+    )
+    client = QueueClient([
+        first_failure,
+        _bundle("docs", {"README.md": "# CSV Cleaner\n\nUsage documented.\n"}),
+        _bundle("core", {
+            "csv_cleaner/__init__.py": "from .core import clean_file, clean_rows\n",
+            "csv_cleaner/__main__.py": MAIN,
+            "csv_cleaner/core.py": CORE,
+        }),
+        _bundle("tests", {"tests/test_csv_cleaner.py": "def test_ok():\n    assert True\n"}),
+    ])
+    agent, worker = _configs()
+    outcome = MinimalProjectLoop(
+        pathlib.Path(__file__).parents[2], tmp_path / "runs", client, agent, worker,
+    ).run(_csv_blueprint(), tmp_path / "workspace", case_id="cli_csv_cleaner")
+
+    assert outcome.status == "SUCCEEDED"
+    assert outcome.repair_rounds == 1
+    core_operations = [
+        call["operation"] for call in client.calls
+        if '"unit_id": "core"' in call["user"]
+    ]
+    assert core_operations[:2] == ["EXECUTE", "EXECUTE"]
