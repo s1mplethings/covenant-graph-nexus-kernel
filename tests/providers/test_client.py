@@ -31,6 +31,22 @@ def test_model_role_config_rejects_invalid_limits(changes, message) -> None:
         ModelRoleConfig("agent", "model", **changes)
 
 
+@pytest.mark.negative
+@pytest.mark.parametrize(
+    "changes, message",
+    [
+        ({"task_class": ""}, "task class"),
+        ({"operation": ""}, "operation"),
+        ({"outer_deadline_seconds": -1}, "non-negative"),
+        ({"deadline_reserve_seconds": -1}, "non-negative"),
+        ({"outer_deadline_seconds": 30, "deadline_reserve_seconds": 30}, "exceed"),
+    ],
+)
+def test_model_role_config_rejects_invalid_deadline_metadata(changes, message) -> None:
+    with pytest.raises(ValueError, match=message):
+        ModelRoleConfig("agent", "model", **changes)
+
+
 @pytest.mark.roundtrip
 def test_parse_json_object_plain_and_fenced() -> None:
     assert parse_json_object('{"a": 1}') == {"a": 1}
