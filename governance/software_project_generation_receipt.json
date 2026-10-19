@@ -1,35 +1,29 @@
 {
   "kind": "CGKNSoftwareProjectGenerationReceipt",
   "schema_version": "1.0",
-  "source_commit": "b078927711070cf12f7e58c7fc31bb624046efcc",
-  "source_tree_sha": "82d9b272c5513b2470e1eeca96415eaa3e94905d",
-  "suite_result": "PASS",
-  "formal_final_suite": "PASS",
+  "source_commit": "84e75b5a4e7d7e62f54b8014c0938d6dbefe281e",
+  "source_tree_sha": "d967b4ecd559c4dbba4c15a3fe5743027f56b798",
+  "suite_result": "PASS_WITH_LIMITS",
+  "formal_final_suite": "NOT_EVALUATED",
   "generation_readiness": "GENERATION_LEVEL_2",
-  "bundle_status": "COMPLETE",
+  "bundle_status": "PARTIAL",
   "application_validation": {
     "command": "python -m pytest -q tests/application",
-    "passed": 138,
+    "passed": 326,
     "failed": 0,
     "errors": 0,
+    "skipped": 1,
     "source_bound_mock_gateway_e2e": true,
     "provider_network_usage": false
   },
-  "final_run_receipt_hashes": [
-    "sha256:9d1a548fa95aafbea54425e25307da090e945627f64f6d4ea7c6bd0098eefb08",
-    "sha256:1ff34f6bd24b6a21dc1f820ecaf474bc7e1cc12f805f4dc959c490aaad9713af",
-    "sha256:84ac65b2e6a9eb514d3d53760f55318f999493d76a0e383b744fc30884ecb967"
-  ],
-  "exploratory_failure_receipt_hashes": [
-    "sha256:930f86d4aa368d31e0898aa21cdf0414dffbcccff551ee52cbb7bbbc6704a416",
-    "sha256:a07558bea61912937911f3ccc860fcacf73e29c6f6597217ae991994edc5cf59",
-    "sha256:a933d880a72fbdf9d10f1d529cbbf4505f3c4a2f8362dfa4a62536e7f5089ba1",
-    "sha256:1171c8079044230f0e4bb65d39bb222ab94ef26f060fcb5af84f1ce53946bee0"
-  ],
-  "exploratory_source_commit": "24ece2808ea904888944acae40c4ed872bc5b725",
-  "kernel_receipt_hash": "sha256:4ed5734ae753d4b613a01e822f5fbd78cd69f2259779bc0530c27cfb2432b7b9",
-  "stop_condition": "A",
+  "coordinator_qualification": "PASS_WITH_LIMITS",
+  "real_generation_status": "NOT_EVALUATED",
+  "real_repair_status": "NOT_EVALUATED",
+  "final_run_receipt_hashes": [],
+  "exploratory_failure_receipt_hashes": [],
+  "kernel_receipt_hash": "sha256:98b05597af5c9ec7a3f95e4b00c2d27f99c62a8c67d765f2a3583e813c2ec643",
+  "stop_condition": "B",
   "no_secret_assertion": true,
   "manual_candidate_edits": 0,
-  "receipt_hash": "sha256:23ca0b3c1e9b48b3a50147571f48bb635ef84919a985b24ff651645200772071"
+  "receipt_hash": "sha256:eefa0f7ad3b58e5e70b9c65bb1be899d2ce9c17df802c2225cc3f664853a694a"
 }
