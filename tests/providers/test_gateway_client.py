@@ -9,7 +9,7 @@ from typing import Any
 import pytest
 
 from cgkn.providers import CGKNModelRouting, GatewayCompletionClient, GatewayCompletionError, ModelRoleConfig, OpenAICompatibleClient
-from cgkn.providers.gateway_client import _safe_gateway_error, completion_client_from_environment
+from cgkn.providers.gateway_client import API_LAB_COMMIT, _safe_gateway_error, completion_client_from_environment
 from scripts import provider_api_budget
 
 
@@ -42,6 +42,8 @@ class Handler(BaseHTTPRequestHandler):
         type(self).requests.append({"path": self.path, "authorization": self.headers.get("Authorization"), "payload": payload})
         if self.status != 200:
             body = {"error": {"type": self.error_type, "message": "rejected"}}
+            if type(self).raw_defer is not None:
+                body["cgkn_raw_defer"] = type(self).raw_defer
         else:
             body = {
                 "id": "gateway-request",
@@ -100,6 +102,24 @@ def test_responses_preserve_roles_schema_usage_and_provider_alias(gateway) -> No
     assert sent["payload"]["text"]["format"]["schema"] == SCHEMA
     assert sent["payload"]["model"] == "qwen"
     assert completion.model == "qwen" and completion.usage["total_tokens"] == 18
+
+
+def test_thinking_policy_is_propagated_without_conflicting_reasoning(gateway) -> None:
+    client(gateway).complete(
+        system="s", user="u", schema_name="x", schema=SCHEMA,
+        config=ModelRoleConfig("agent", "deepseek", reasoning_effort="none", thinking_mode="disabled"),
+    )
+    payload = Handler.requests[-1]["payload"]
+    assert payload["thinking"] == {"type": "disabled"}
+    assert "reasoning" not in payload
+
+
+def test_worker_default_thinking_policy_is_unchanged(gateway) -> None:
+    client(gateway).complete(
+        system="s", user="u", schema_name="x", schema=SCHEMA,
+        config=ModelRoleConfig("worker", "deepseek"),
+    )
+    assert "thinking" not in Handler.requests[-1]["payload"]
 
 
 def test_chat_completions_compatibility_path_preserves_schema(gateway) -> None:
@@ -326,6 +346,17 @@ def test_routing_switch_grok_and_snapshot_are_immutable(tmp_path: pathlib.Path) 
     assert "access_token" not in text and "authorization" not in text and "temporary-local-token" not in text
 
 
+def test_project_route_separates_coordinator_and_worker_thinking_policies() -> None:
+    root = pathlib.Path(__file__).resolve().parents[2]
+    routing = CGKNModelRouting.load(root / "config" / "provider_profiles" / "gateway_model_routing.json")
+    from scripts.run_project_mvp import _coordinator_model_config
+    coordinator = _coordinator_model_config()
+    assert coordinator.model == "deepseek"
+    assert coordinator.thinking_mode == "disabled"
+    assert coordinator.reasoning_effort == "none"
+    assert routing.worker.thinking_mode == "default"
+
+
 @pytest.mark.negative
 @pytest.mark.security
 def test_fallback_configuration_is_rejected(tmp_path: pathlib.Path) -> None:
@@ -365,7 +396,11 @@ def test_gateway_selects_unique_schema_valid_object_and_returns_receipt(gateway)
 def test_gateway_binds_versioned_raw_defer_metadata_and_receipt(gateway) -> None:
     raw = '{"reasoning":"inspect"}\n{"ok":true}'
     Handler.raw_defer = {
-        "contract_version": "1.0", "raw_text": raw, "reasoning_text": "inspect",
+        "contract_version": "1.1", "raw_text": raw,
+        "thinking_mode_requested": "disabled", "thinking_mode_forwarded": "disabled",
+        "reasoning_effort_requested": "none", "reasoning_text_present": True,
+        "reasoning_text_length": 7, "reasoning_text_hash": "sha256:test",
+        "reasoning_tokens": 3, "cached_tokens": 2,
         "provider_id": "deepseek", "model": "deepseek", "request_id": "provider-raw-1",
         "finish_reason": "stop", "usage": {"prompt_tokens": 13, "completion_tokens": 5, "total_tokens": 18},
         "transport_attempts": [{"attempt_id": "provider-raw-1", "attempt": 1, "status": "COMPLETED", "elapsed_ms": 12}],
@@ -378,12 +413,16 @@ def test_gateway_binds_versioned_raw_defer_metadata_and_receipt(gateway) -> None
     )
     assert json.loads(completion.text) == {"ok": True}
     assert completion.request_id == "provider-raw-1"
-    assert completion.transport_metadata["api_lab_commit"] == "7380ee48681442426290d88c5c3496f567a990e1"
+    assert completion.transport_metadata["api_lab_commit"] == API_LAB_COMMIT
     assert completion.transport_metadata["route_mode"] == "raw_defer"
     receipt = completion.selection_receipt
     assert receipt["api_lab_commit"] == completion.transport_metadata["api_lab_commit"]
-    assert receipt["api_lab_contract_version"] == "1.0"
+    assert receipt["api_lab_contract_version"] == "1.1"
     assert receipt["finish_reason"] == "stop"
+    assert receipt["request_id"] == "provider-raw-1"
+    assert receipt["thinking_mode"] == "disabled"
+    assert receipt["reasoning_tokens"] == 3
+    assert receipt["reasoning_text_present"] is True
     assert receipt["usage"]["completion_tokens"] == 5
     assert receipt["schema_valid_candidate_count"] == 1
 
@@ -394,6 +433,35 @@ def test_gateway_rejects_two_schema_valid_objects_with_receipt(gateway) -> None:
         client(gateway).complete(system="s", user="u", schema_name="x", schema=SCHEMA, config=ModelRoleConfig("agent", "deepseek"))
     assert caught.value.category == "PROVIDER_AMBIGUOUS_STRUCTURED_OUTPUT"
     assert caught.value.evidence["schema_valid_candidate_count"] == 2
+
+
+def test_selector_never_selects_reasoning_text(gateway) -> None:
+    Handler.raw_defer = {
+        "contract_version": "1.1", "raw_text": "not valid JSON",
+        "reasoning_text": '{"ok":true}', "reasoning_text_present": True,
+        "reasoning_text_length": 11, "provider_id": "deepseek", "model": "deepseek-flash",
+        "request_id": "reasoning-only", "finish_reason": "stop", "usage": {},
+        "transport_attempts": [{"attempt": 1}], "transport_status": "COMPLETED",
+    }
+    with pytest.raises(GatewayCompletionError) as caught:
+        client(gateway).complete(system="s", user="u", schema_name="x", schema=SCHEMA, config=ModelRoleConfig("agent", "deepseek", thinking_mode="disabled"))
+    assert caught.value.category == "PROVIDER_SCHEMA_FAILURE"
+    assert caught.value.evidence["schema_valid_candidate_count"] == 0
+    assert caught.value.evidence["request_id"] == "reasoning-only"
+
+
+def test_failure_path_preserves_gateway_request_id(gateway) -> None:
+    Handler.status = 502
+    Handler.error_type = "provider_error"
+    Handler.raw_defer = {
+        "contract_version": "1.1", "raw_text": "", "provider_id": "deepseek",
+        "model": "deepseek-flash", "request_id": "failed-provider-request",
+        "finish_reason": None, "usage": {}, "transport_attempts": [{"attempt": 1}],
+        "transport_status": "FAILED", "reasoning_tokens": None,
+    }
+    with pytest.raises(GatewayCompletionError) as caught:
+        client(gateway).complete(system="s", user="u", schema_name="x", schema=SCHEMA, config=ModelRoleConfig("agent", "deepseek", thinking_mode="disabled"))
+    assert caught.value.evidence["request_id"] == "failed-provider-request"
 
 
 @pytest.mark.negative

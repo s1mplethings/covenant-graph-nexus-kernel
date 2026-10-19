@@ -57,6 +57,15 @@ def _public_contract(case_id: str) -> dict[str, Any]:
     }
 
 
+def _coordinator_model_config(provider: str = "deepseek") -> ModelRoleConfig:
+    return ModelRoleConfig(
+        role="agent", model=provider, timeout_seconds=150, max_output_tokens=3500,
+        temperature=0.0, reasoning_effort="none", task_class="project.blueprint",
+        operation="BLUEPRINT_DESIGN", outer_deadline_seconds=180,
+        deadline_reserve_seconds=30, thinking_mode="disabled",
+    )
+
+
 def _live(profile: str, artifact_root: pathlib.Path) -> dict[str, Any]:
     case_id = "cli_csv_cleaner" if profile == "live-single" else "seeded_repair"
     client = completion_client_from_environment()
@@ -68,11 +77,7 @@ def _live(profile: str, artifact_root: pathlib.Path) -> dict[str, Any]:
     agent_provider = str(os.environ.get("CGKN_PROJECT_MVP_AGENT_PROVIDER", routing.agent.model)).strip().lower()
     if agent_provider not in routing.allowed_providers:
         raise ValueError("explicit project MVP Agent Provider is not allowlisted")
-    agent_config = ModelRoleConfig(
-        "agent", agent_provider, 150, min(3500, routing.agent.max_output_tokens),
-        routing.agent.temperature, routing.agent.reasoning_effort,
-        outer_deadline_seconds=180, deadline_reserve_seconds=30,
-    )
+    agent_config = _coordinator_model_config(agent_provider)
     worker_config = ModelRoleConfig("worker", routing.worker.model, 180, routing.worker.max_output_tokens, routing.worker.temperature, routing.worker.reasoning_effort)
     loop = MinimalProjectLoop(ROOT, artifact_root, run_client, agent_config, worker_config)
     contract = _public_contract(case_id)
@@ -111,9 +116,11 @@ def _coordinator_qualify(
     *,
     count: int,
     provider: str,
+    diagnostic: bool = False,
 ) -> dict[str, Any]:
-    if count != 3 or provider != "deepseek":
-        raise ValueError("coordinator qualification requires exactly three DeepSeek runs")
+    expected = 1 if diagnostic else 3
+    if count != expected or provider != "deepseek":
+        raise ValueError(f"coordinator {'diagnostic' if diagnostic else 'qualification'} requires exactly {expected} DeepSeek run{'s' if expected != 1 else ''}")
     identity = _source_identity()
     if not identity["tracked_worktree_clean"]:
         raise RuntimeError("coordinator qualification requires a frozen clean Source Closure")
@@ -128,12 +135,7 @@ def _coordinator_qualify(
         row: dict[str, Any] = {"run_id": run_id, "provider": provider, "logical_calls": 1}
         try:
             client = base_client.bind_run(run_id, "cli_csv_cleaner", budget_purpose="PLANNING")
-            agent = ModelRoleConfig(
-                role="agent", model=provider, timeout_seconds=150, max_output_tokens=3500,
-                temperature=0.0, reasoning_effort="none", task_class="project.blueprint",
-                operation="BLUEPRINT_DESIGN", outer_deadline_seconds=180,
-                deadline_reserve_seconds=30,
-            )
+            agent = _coordinator_model_config(provider)
             worker = ModelRoleConfig("worker", "deepseek")
             loop = MinimalProjectLoop(ROOT, artifact_root / "coordinator", client, agent, worker)
             blueprint, decisions = loop.design("cli_csv_cleaner", contract)
@@ -146,6 +148,14 @@ def _coordinator_qualify(
                 "transport_attempts": call.get("transport_attempts"),
                 "effective_timeout": receipt.get("effective_request_timeout_seconds"),
                 "finish_reason": receipt.get("finish_reason"), "usage": receipt.get("usage"),
+                "thinking_mode": receipt.get("thinking_mode"),
+                "thinking_mode_forwarded": call.get("transport_metadata", {}).get("thinking_mode_forwarded"),
+                "reasoning_effort": receipt.get("reasoning_effort"),
+                "reasoning_tokens": receipt.get("reasoning_tokens"),
+                "cached_tokens": receipt.get("cached_tokens"),
+                "reasoning_text_present": receipt.get("reasoning_text_present"),
+                "reasoning_text_length": receipt.get("reasoning_text_length"),
+                "raw_final_content_length": receipt.get("raw_length"),
                 "candidate_count": receipt.get("json_candidate_count"),
                 "valid_candidate_count": receipt.get("schema_valid_candidate_count"),
                 "selection_receipt": receipt, "selection_receipt_hash": _hash(receipt),
@@ -173,13 +183,15 @@ def _coordinator_qualify(
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(row | identity, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         runs.append(row)
+    passed = all(row["status"] == "PASS" for row in runs)
     result = {
-        "profile": "coordinator-qualify", "status": "PASS" if all(row["status"] == "PASS" for row in runs) else "COORDINATOR_NOT_QUALIFIED",
-        "qualification": "3/3" if all(row["status"] == "PASS" for row in runs) else f"{sum(row['status'] == 'PASS' for row in runs)}/3",
+        "profile": "coordinator-diagnostic" if diagnostic else "coordinator-qualify",
+        "status": ("PASS" if passed else "DIAGNOSTIC_FAILED") if diagnostic else ("PASS" if passed else "COORDINATOR_NOT_QUALIFIED"),
+        "qualification": None if diagnostic else ("3/3" if passed else f"{sum(row['status'] == 'PASS' for row in runs)}/3"),
         "provider": provider, "model_limits": {"temperature": 0, "max_output_tokens": 3500, "configured_timeout": 150, "outer_deadline": 180, "reserve": 30},
         "source_identity": identity, "runs": runs,
     }
-    index = artifact_root / "coordinator_qualification" / "index.json"
+    index = artifact_root / "coordinator_qualification" / ("diagnostic_index.json" if diagnostic else "index.json")
     index.write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return result
 
@@ -281,7 +293,7 @@ def _worker_probe(artifact_root: pathlib.Path, *, patch_mode: bool) -> dict[str,
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the CGKN minimal ProjectBlueprint MVP profiles")
-    parser.add_argument("--profile", required=True, choices=("unit", "fake-single", "fake-repair", "coordinator-qualify", "worker-file-probe", "worker-patch-probe", "live-single", "live-repair", "fake-parallel", "fake-conflict", "fake-standup", "live-parallel", "live-repeat", "final"))
+    parser.add_argument("--profile", required=True, choices=("unit", "fake-single", "fake-repair", "coordinator-diagnostic", "coordinator-qualify", "worker-file-probe", "worker-patch-probe", "live-single", "live-repair", "fake-parallel", "fake-conflict", "fake-standup", "live-parallel", "live-repeat", "final"))
     parser.add_argument("--artifact-root", type=pathlib.Path, default=ROOT / ".service_evidence" / "project_mvp")
     parser.add_argument("--count", type=int, default=3)
     parser.add_argument("--provider", default="deepseek")
@@ -292,6 +304,7 @@ def main(argv: list[str] | None = None) -> int:
     elif args.profile == "unit": result = _run_pytest("")
     elif args.profile == "fake-single": result = _run_pytest("fake_greenfield")
     elif args.profile == "fake-repair": result = _run_pytest("fake_repair")
+    elif args.profile == "coordinator-diagnostic": result = _coordinator_qualify(args.artifact_root.resolve(), count=1, provider=args.provider, diagnostic=True)
     elif args.profile == "coordinator-qualify": result = _coordinator_qualify(args.artifact_root.resolve(), count=args.count, provider=args.provider)
     elif args.profile == "worker-file-probe": result = _worker_probe(args.artifact_root.resolve(), patch_mode=False)
     elif args.profile == "worker-patch-probe": result = _worker_probe(args.artifact_root.resolve(), patch_mode=True)

@@ -69,6 +69,16 @@ class StructuredSelectionReceipt:
     api_lab_commit: str = ""
     api_lab_contract_version: str = ""
     route_mode: str = ""
+    request_id: str = ""
+    thinking_mode: str = "default"
+    reasoning_effort: str = "none"
+    reasoning_tokens: int | None = None
+    reasoning_text_present: bool = False
+    reasoning_text_length: int = 0
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    total_tokens: int | None = None
+    cached_tokens: int | None = None
     selector_version: str = SELECTOR_VERSION
 
     def as_dict(self) -> dict[str, Any]:
@@ -98,6 +108,16 @@ class StructuredSelectionReceipt:
             "api_lab_commit": self.api_lab_commit,
             "api_lab_contract_version": self.api_lab_contract_version,
             "route_mode": self.route_mode,
+            "request_id": self.request_id,
+            "thinking_mode": self.thinking_mode,
+            "reasoning_effort": self.reasoning_effort,
+            "reasoning_tokens": self.reasoning_tokens,
+            "reasoning_text_present": self.reasoning_text_present,
+            "reasoning_text_length": self.reasoning_text_length,
+            "prompt_tokens": self.prompt_tokens,
+            "completion_tokens": self.completion_tokens,
+            "total_tokens": self.total_tokens,
+            "cached_tokens": self.cached_tokens,
             "contains_credentials": False,
         }
 
@@ -152,6 +172,11 @@ class StructuredAnswerSelector:
         finish_reason: str = "", transport_status: str = "",
         usage: Mapping[str, Any] | None = None, api_lab_commit: str = "",
         api_lab_contract_version: str = "", route_mode: str = "",
+        request_id: str = "", thinking_mode: str = "default", reasoning_effort: str = "none",
+        reasoning_tokens: int | None = None, reasoning_text_present: bool = False,
+        reasoning_text_length: int = 0, prompt_tokens: int | None = None,
+        completion_tokens: int | None = None, total_tokens: int | None = None,
+        cached_tokens: int | None = None,
     ) -> tuple[dict[str, Any], StructuredSelectionReceipt]:
         started = time.monotonic()
         raw = str(raw_text or "")
@@ -210,6 +235,12 @@ class StructuredAnswerSelector:
             finish_reason=str(finish_reason), transport_status=str(transport_status),
             usage=dict(usage or {}), api_lab_commit=str(api_lab_commit),
             api_lab_contract_version=str(api_lab_contract_version), route_mode=str(route_mode),
+            request_id=str(request_id), thinking_mode=str(thinking_mode),
+            reasoning_effort=str(reasoning_effort), reasoning_tokens=reasoning_tokens,
+            reasoning_text_present=bool(reasoning_text_present),
+            reasoning_text_length=max(0, int(reasoning_text_length)),
+            prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
+            total_tokens=total_tokens, cached_tokens=cached_tokens,
         )
         if selected is None:
             raise StructuredSelectionError(status, receipt)

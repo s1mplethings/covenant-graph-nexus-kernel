@@ -19,6 +19,7 @@ class ModelRoleConfig:
     operation: str = "STRUCTURED_COMPLETION"
     outer_deadline_seconds: int = 0
     deadline_reserve_seconds: int = 30
+    thinking_mode: str = "default"
 
     def __post_init__(self) -> None:
         if self.role not in {"agent", "worker"} or not self.model.strip():
@@ -35,6 +36,8 @@ class ModelRoleConfig:
             raise ValueError("provider deadline values must be non-negative")
         if self.outer_deadline_seconds and self.outer_deadline_seconds <= self.deadline_reserve_seconds:
             raise ValueError("outer deadline must exceed its reserve")
+        if self.thinking_mode not in {"default", "enabled", "disabled"}:
+            raise ValueError("thinking mode must be default, enabled, or disabled")
 
 
 @dataclass(frozen=True)

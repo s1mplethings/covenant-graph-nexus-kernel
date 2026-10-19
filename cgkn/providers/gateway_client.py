@@ -18,9 +18,9 @@ from .structured_output import StructuredAnswerSelector, StructuredSelectionErro
 MAX_RESPONSE_BYTES = 2_097_152
 MAX_REQUEST_BYTES = 1_048_576
 API_LAB_REPOSITORY = "https://github.com/s1mplethings/cgkn-provider-api-lab.git"
-API_LAB_BRANCH = "codex/raw-defer-structured-output-20261019"
-API_LAB_COMMIT = "7380ee48681442426290d88c5c3496f567a990e1"
-API_LAB_RAW_DEFER_CONTRACT_VERSION = "1.0"
+API_LAB_BRANCH = "codex/deepseek-thinking-control-20261019"
+API_LAB_COMMIT = "999dff096afe45f058fe67016aee28a73912d5d4"
+API_LAB_RAW_DEFER_CONTRACT_VERSION = "1.1"
 
 
 class GatewayCompletionError(RuntimeError):
@@ -118,7 +118,9 @@ class GatewayCompletionClient:
                 "max_output_tokens": config.max_output_tokens,
                 "text": {"format": {"type": "json_schema", "name": schema_name, "strict": True, "schema": schema_doc}},
             }
-        if config.reasoning_effort != "none":
+        if config.thinking_mode != "default":
+            payload["thinking"] = {"type": config.thinking_mode}
+        if config.reasoning_effort != "none" and config.thinking_mode != "disabled":
             payload["reasoning"] = {"effort": config.reasoning_effort}
         encoded = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
         if len(encoded) > MAX_REQUEST_BYTES:
@@ -217,6 +219,16 @@ class GatewayCompletionClient:
                 "api_lab_commit": API_LAB_COMMIT,
                 "api_lab_contract_version": API_LAB_RAW_DEFER_CONTRACT_VERSION,
                 "route_mode": "raw_defer",
+                "request_id": str(transport_metadata.get("request_id") or decoded.get("id") or ""),
+                "thinking_mode": str(transport_metadata.get("thinking_mode_requested") or config.thinking_mode),
+                "reasoning_effort": str(transport_metadata.get("reasoning_effort_requested") or config.reasoning_effort),
+                "reasoning_tokens": transport_metadata.get("reasoning_tokens"),
+                "reasoning_text_present": bool(transport_metadata.get("reasoning_text_present")),
+                "reasoning_text_length": int(transport_metadata.get("reasoning_text_length") or 0),
+                "prompt_tokens": usage.get("prompt_tokens"),
+                "completion_tokens": usage.get("completion_tokens"),
+                "total_tokens": usage.get("total_tokens"),
+                "cached_tokens": transport_metadata.get("cached_tokens"),
             }
             selection_error: StructuredSelectionError | None = None
             selected: dict[str, Any] | None = None

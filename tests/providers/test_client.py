@@ -47,6 +47,13 @@ def test_model_role_config_rejects_invalid_deadline_metadata(changes, message) -
         ModelRoleConfig("agent", "model", **changes)
 
 
+def test_thinking_mode_is_strict_and_defaults_without_changing_workers() -> None:
+    assert ModelRoleConfig("worker", "model").thinking_mode == "default"
+    assert ModelRoleConfig("agent", "model", thinking_mode="disabled").thinking_mode == "disabled"
+    with pytest.raises(ValueError, match="thinking mode"):
+        ModelRoleConfig("agent", "model", thinking_mode="other")
+
+
 @pytest.mark.roundtrip
 def test_parse_json_object_plain_and_fenced() -> None:
     assert parse_json_object('{"a": 1}') == {"a": 1}

@@ -46,7 +46,7 @@ class CGKNModelRouting:
         configs: dict[str, ModelRoleConfig] = {}
         for role in ("agent", "worker"):
             value = roles[role]
-            if not isinstance(value, dict) or set(value) - {"provider_id", "timeout_seconds", "max_output_tokens", "temperature", "reasoning_effort"}:
+            if not isinstance(value, dict) or set(value) - {"provider_id", "timeout_seconds", "max_output_tokens", "temperature", "reasoning_effort", "thinking_mode"}:
                 raise ValueError(f"invalid {role} routing fields")
             provider_id = str(value.get("provider_id", "")).strip().lower()
             if provider_id not in allowed:
@@ -58,6 +58,7 @@ class CGKNModelRouting:
                 int(value.get("max_output_tokens", 6000)),
                 float(value.get("temperature", 0.0)),
                 str(value.get("reasoning_effort", "none")),
+                thinking_mode=str(value.get("thinking_mode", "default")),
             )
         return cls(configs["agent"], configs["worker"], allowed, fallback)
 
@@ -69,6 +70,7 @@ class CGKNModelRouting:
                 "max_output_tokens": config.max_output_tokens,
                 "temperature": config.temperature,
                 "reasoning_effort": config.reasoning_effort,
+                "thinking_mode": config.thinking_mode,
             }
 
         return {
