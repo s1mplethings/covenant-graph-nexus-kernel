@@ -355,7 +355,7 @@ def test_project_route_separates_coordinator_and_worker_thinking_policies() -> N
     assert coordinator.thinking_mode == "disabled"
     assert coordinator.reasoning_effort == "none"
     assert _worker_generation_model_config().thinking_mode == "disabled"
-    assert _worker_repair_model_config().thinking_mode == "default"
+    assert _worker_repair_model_config().thinking_mode == "disabled"
     assert routing.worker.thinking_mode == "default"
 
 

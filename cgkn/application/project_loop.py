@@ -575,6 +575,7 @@ class BlueprintUnitExecutor:
                     failure_evidence=failure.as_dict(), schema_name="cgnk_unit_bundle", schema=PATCH_BUNDLE_SCHEMA,
                     model_config=effective_config, allowed_actions=("patch_bundle",),
                     forbidden_actions=("shell", "network", "blueprint_change", "hidden_acceptance"), run_id=request.run_id,
+                    projected_prompt=prompt, prompt_projection_hash=canonical_hash(prompt),
                 ))
                 completion = generated.completion; usage = dict(completion.usage)
                 self.calls.append(self._call_record(
@@ -675,6 +676,7 @@ class BlueprintUnitExecutor:
                         schema_name="cgnk_unit_bundle", schema=file_bundle_schema(requested_paths),
                         model_config=effective_config, allowed_actions=("file_bundle",),
                         forbidden_actions=("shell", "network", "blueprint_change", "hidden_acceptance"), run_id=request.run_id,
+                        projected_prompt=prompt, prompt_projection_hash=canonical_hash(prompt),
                     ))
                 except GatewayCompletionError as exc:
                     self.calls.append(self._call_record(

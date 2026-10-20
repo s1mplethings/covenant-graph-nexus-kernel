@@ -108,7 +108,7 @@ def _worker_repair_model_config(provider: str = "deepseek") -> ModelRoleConfig:
         role="worker", model=provider, timeout_seconds=150, max_output_tokens=6000,
         temperature=0.0, reasoning_effort="none", task_class="project.codegen",
         operation="REPAIR", outer_deadline_seconds=180, deadline_reserve_seconds=30,
-        thinking_mode="default",
+        thinking_mode="disabled",
     )
 
 

@@ -198,6 +198,29 @@ def test_generation_and_repair_thinking_policies_are_independent(tmp_path: pathl
     assert [call["thinking_mode"] for call in client.calls] == ["disabled", "default"]
 
 
+def test_generation_and_repair_use_single_bounded_prompt_projection(tmp_path: pathlib.Path) -> None:
+    units = (BlueprintUnit("core", "math", "implementation", ("math_utils.py",), executor_ref="llm.cheap@1", instruction="implement add", required_interfaces=("add",), acceptance=("addition",), allowed_effects=("filesystem.write",)),)
+    checks = (
+        BlueprintCheck("pytest", "verification", (sys.executable, "-m", "pytest", "-q"), ("core",), ("tests",)),
+        BlueprintCheck("accept", "acceptance", (), ("pytest",), get_case("seeded_repair").public_acceptance),
+    )
+    blueprint = ProjectBlueprint("1.0", "seeded_repair", 1, "repair", ("smallest change",), units, checks).freeze()
+    client = QueueClient([_bundle("core", {"math_utils.py": "def add(a, b):\n    return a - b\n"}), _patch("core", "math_utils.py", "return a - b", "return a + b")])
+    workspace = tmp_path / "workspace"; workspace.mkdir()
+    (workspace / "test_math_utils.py").write_text("from math_utils import add\ndef test_add(): assert add(2,3)==5\n", encoding="utf-8")
+    agent = ModelRoleConfig("agent", "qwen")
+    worker = ModelRoleConfig("worker", "deepseek", thinking_mode="disabled")
+    outcome = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", client, agent, worker, worker).run(blueprint, workspace, case_id="seeded_repair")
+    assert outcome.status == "SUCCEEDED"
+    generation_prompt, repair_prompt = (json.loads(call["user"]) for call in client.calls)
+    assert "AUTHORITATIVE CONTRACT" not in generation_prompt
+    assert "AUTHORITATIVE CONTRACT" not in repair_prompt
+    assert generation_prompt["current_files"] == {}
+    assert repair_prompt["current_files"] == {"math_utils.py": "def add(a, b):\n    return a - b\n"}
+    assert repair_prompt["failure_report"]["failed_check"] == "pytest"
+    assert repair_prompt["lessons"] == []
+
+
 def test_failed_worker_provider_call_is_recorded_with_reported_usage(tmp_path: pathlib.Path) -> None:
     unit = BlueprintUnit(
         "core", "CSV core", "implementation", ("core.py",), executor_ref="llm.cheap@1",
@@ -269,7 +292,7 @@ def test_initial_generation_failure_retries_generation_before_any_repair(tmp_pat
     assert outcome.generation_retry_calls == 1
     core_operations = [
         call["operation"] for call in client.calls
-        if '"unit_id": "core"' in call["user"]
+        if json.loads(call["user"]).get("unit", {}).get("unit_id") == "core"
     ]
     assert core_operations[:2] == ["EXECUTE", "EXECUTE"]
 
@@ -291,12 +314,19 @@ def test_partial_tests_generation_continues_only_missing_path_without_failure_re
     assert outcome.status == "SUCCEEDED"
     assert outcome.generation_continuations == 1 and outcome.generation_retries == 0
     assert outcome.failure_reports == () and outcome.repair_rounds == outcome.repair_calls == 0
-    tests_operations = [call["operation"] for call in client.calls if '"unit_id": "tests"' in call["user"]]
+    tests_operations = [
+        call["operation"] for call in client.calls
+        if json.loads(call["user"]).get("unit", {}).get("unit_id") == "tests"
+    ]
     assert tests_operations == ["EXECUTE", "EXECUTE"]
-    tests_prompts = [call for call in client.calls if '"unit_id": "tests"' in call["user"]]
-    assert '"failure_report": null' in tests_prompts[0]["user"]
-    assert '"requested_paths": ["tests/test_cli.py"]' in tests_prompts[1]["user"]
-    file_item = tests_prompts[1]["schema"]["oneOf"][0]["properties"]["files"]
+    tests_calls = [
+        call for call in client.calls
+        if json.loads(call["user"]).get("unit", {}).get("unit_id") == "tests"
+    ]
+    tests_prompts = [json.loads(call["user"]) for call in tests_calls]
+    assert tests_prompts[0]["failure_report"] is None
+    assert tests_prompts[1]["requested_paths"] == ["tests/test_cli.py"]
+    file_item = tests_calls[1]["schema"]["oneOf"][0]["properties"]["files"]
     assert file_item["maxItems"] == 1
     assert file_item["items"]["properties"]["path"]["enum"] == ["tests/test_cli.py"]
 
