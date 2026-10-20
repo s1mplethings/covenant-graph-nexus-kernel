@@ -31,6 +31,14 @@ class CohesiveWorkerScope:
     allow_patch: bool
     allow_delete: bool = False
 
+    @property
+    def visible_paths(self) -> tuple[str, ...]:
+        return self.allowed_paths
+
+    @property
+    def writable_paths(self) -> tuple[str, ...]:
+        return self.target_paths
+
     @classmethod
     def from_mapping(cls, value: Mapping[str, Any]) -> "CohesiveWorkerScope":
         allowed = tuple(str(item) for item in value.get("allowed_paths", ()))
