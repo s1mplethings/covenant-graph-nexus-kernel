@@ -1,15 +1,15 @@
 {
   "kind": "CGKNSoftwareProjectGenerationReceipt",
   "schema_version": "1.0",
-  "source_commit": "7d9a0c9698376457db11770848c3efd4acae1cae",
-  "source_tree_sha": "5caa658df63ce5566c122416e0fd5df47fcdde36",
+  "source_commit": "22f4433129d00191cd585ca52ab99f65c6648ad9",
+  "source_tree_sha": "a5cb6ce5b52cd69b645319e5c82af15596c46fba",
   "suite_result": "PASS_WITH_LIMITS",
   "formal_final_suite": "NOT_EVALUATED",
   "generation_readiness": "GENERATION_LEVEL_2",
   "bundle_status": "PARTIAL",
   "application_validation": {
     "command": "python -m pytest -q tests/application",
-    "passed": 391,
+    "passed": 394,
     "failed": 0,
     "errors": 0,
     "skipped": 1,
@@ -25,5 +25,5 @@
   "stop_condition": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
   "no_secret_assertion": true,
   "manual_candidate_edits": 0,
-  "receipt_hash": "sha256:37e24754eaeee8268077a08c9b4ee645995647072317bf60ef20a2bd85310150"
+  "receipt_hash": "sha256:70104f3ecd4985b7bc5977b0aac8c6d3312ce5eb0c662baad2d830b039be041d"
 }
