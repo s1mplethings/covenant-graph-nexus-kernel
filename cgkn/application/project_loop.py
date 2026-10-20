@@ -1254,10 +1254,31 @@ class MinimalProjectLoop:
                     matches.append((min(positions), unit.unit_id))
         return min(matches)[1] if matches else ""
 
+    @staticmethod
+    def _public_failure_summary(result: BlockExecutionResult) -> str:
+        """Project actionable public-check facts without forwarding a traceback."""
+        output = (str(result.outputs.get("stderr", "")) + "\n" + str(result.outputs.get("stdout", "")))[:12000]
+        summaries: list[str] = []
+        for raw in output.splitlines():
+            line = raw.strip()
+            if line.startswith("FAILED ") or re.match(
+                r"^E\s+(?:AssertionError|TypeError|ValueError|SystemExit|SyntaxError|ImportError|ModuleNotFoundError|FileNotFoundError|NameError|OSError|PermissionError)\b",
+                line,
+            ):
+                normalized = re.sub(r"^E\s+", "", line)[:500]
+                if normalized not in summaries:
+                    summaries.append(normalized)
+            if len(summaries) >= 12:
+                break
+        generic = str(result.error.message if result.error else "").strip()
+        if summaries:
+            return "Public check failure summary:\n" + "\n".join(summaries)
+        return generic or "public check failed without a safe summary"
+
     @classmethod
     def _failure_report(cls, blueprint: ProjectBlueprint, failed_check: str, result: BlockExecutionResult, dag: Any, worker: BlueprintUnitExecutor, owner_hint: str = "") -> FailureReport:
         observed = (str(result.outputs.get("stderr", "")) + "\n" + str(result.outputs.get("stdout", "")))[:4000]
-        message = result.error.message if result.error else observed
+        message = cls._public_failure_summary(result) if failed_check == "pytest" else result.error.message if result.error else observed
         details = dict(result.error.details) if result.error else {}
         stage_by_check = {"compile": FailureStage.COMPILE.value, "pytest": FailureStage.TEST.value, "runtime_smoke": FailureStage.RUNTIME.value, "external_acceptance": FailureStage.ACCEPTANCE.value}
         stage = str(details.get("failure_stage") or stage_by_check.get(failed_check, FailureStage.UNKNOWN.value))

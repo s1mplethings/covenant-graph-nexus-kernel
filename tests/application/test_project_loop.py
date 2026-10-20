@@ -738,6 +738,24 @@ def test_cross_unit_attribution_uses_evidence_and_never_implementation_fallback(
     assert nested_report.owner_unit_id == "core"
     assert nested_report.owner_file == "csv_cleaner/core.py"
     assert nested_report.first_project_frame == "csv_cleaner/core.py:14"
+    assert nested_report.observed == "Public check failure summary:\nFileNotFoundError: missing.csv"
+    assert "raise FileNotFoundError" not in nested_report.observed
+
+    summarized_result = BlockExecutionResult(
+        "p", "r", "summary", "pytest", "local.python-test@1", BlockStatus.FAILED,
+        outputs={"stdout": (
+            "tests/test_csv_cleaner.py:10: in test_public\n"
+            "    hidden_like_source_line()\n"
+            "E   TypeError: CsvCleaner.__init__() got an unexpected keyword argument 'fill'\n"
+            "FAILED tests/test_csv_cleaner.py::test_public - TypeError: bad call\n"
+        )},
+        error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR, "command exited 1"),
+    )
+    summarized_report = MinimalProjectLoop._failure_report(blueprint, "pytest", summarized_result, dag, executor)
+    assert "TypeError: CsvCleaner.__init__()" in summarized_report.observed
+    assert "FAILED tests/test_csv_cleaner.py::test_public" in summarized_report.observed
+    assert "hidden_like_source_line" not in summarized_report.observed
+    assert "command exited 1" not in summarized_report.observed
 
     unknown_result = BlockExecutionResult("p", "r", "c", "pytest", "local.python-test@1", BlockStatus.FAILED, error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR, "assertion failed without a project path"))
     unknown_report = MinimalProjectLoop._failure_report(blueprint, "pytest", unknown_result, dag, executor)
