@@ -711,7 +711,7 @@ def _worker_cohesive_live(artifact_root: pathlib.Path, *, count: int) -> dict[st
             block.succeeded and len(executor.calls) <= 2 and len(owned_present) == len(unit.owns)
             and syntax and receipts_complete and materialization.get("status") == "COMMITTED"
         )
-        row = {
+        row = materialize_json({
             "run_id": run_id, "status": "PASS" if passed else "FAIL",
             "source_commit": identity["cgkn_source_commit"], "unit_id": unit.unit_id,
             "owns": list(unit.owns), "logical_calls": len(executor.calls),
@@ -731,8 +731,8 @@ def _worker_cohesive_live(artifact_root: pathlib.Path, *, count: int) -> dict[st
             "syntax": "PASS" if syntax else "FAIL", "atomic_commit": materialization.get("status"),
             "materialization": materialization, "manual_edits": 0,
             "duration_ms": int((time.perf_counter() - started) * 1000),
-            "block_result": materialize_json(block.as_dict()),
-        }
+            "block_result": block.as_dict(),
+        })
         target = artifact_root / "worker_cohesive_live" / f"{run_id}.json"
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(row, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
