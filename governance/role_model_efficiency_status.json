@@ -1,25 +1,28 @@
 {
   "kind": "CGKNRoleModelEfficiencyStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-FAILURE-ROUTING-REPAIR-SEMANTICS-038",
-  "source_commit": "497132af2e65fc0c4834f0f5f3a3bdbf22ba0fe7",
+  "iteration": "ITER-SAFE-ACCEPTANCE-ATTRIBUTION-039",
+  "source_commit": "46b85c1ec161d36eeae016e99533469ef8da9fa7",
   "coordinator_qualification": "PASS_3_OF_3",
   "worker_protocol_qualification": true,
-  "worker_cohesive_unit_qualification": "PASS",
-  "worker_patch_bundle_qualification": "PASS_V2_1_OF_1",
+  "worker_cohesive_unit_qualification": "PASS_RETAINED",
+  "worker_patch_bundle_qualification": "PASS_V2_1_OF_1_RETAINED",
   "failure_routing_status": "PASS",
   "generation_retry_status": "PASS",
   "repair_subset_contract": "PASS",
   "patch_bundle_version": 2,
   "worker_generation_thinking_policy": "disabled",
   "worker_repair_thinking_policy": "default",
+  "acceptance_requirement_mapping": "PASS_TESTED",
+  "acceptance_attribution": "PASS_OFFLINE_NOT_LIVE_EXERCISED",
+  "hidden_source_exposed": false,
   "minimal_blueprint_status": "PARTIAL",
-  "real_generation_status": "FAIL_HIDDEN_ACCEPTANCE",
+  "real_generation_status": "FAIL_GENERATION_FILE_BUNDLE_INCOMPLETE",
   "real_repair_status": "NOT_EVALUATED",
   "csv_repeatability": "NOT_EVALUATED",
   "efficiency_experiment_ready": false,
   "manual_candidate_edits": 0,
-  "stop_condition": "C",
+  "stop_condition": "C_EQUIVALENT_PRE_ACCEPTANCE_PROJECT_FAILURE",
   "stop_status": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
   "api_lab_dependency": {
     "commit": "999dff096afe45f058fe67016aee28a73912d5d4",
@@ -32,7 +35,7 @@
     {
       "priority": "P0",
       "code": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
-      "detail": "CSV Single stopped fail-closed after hidden acceptance failed without safely attributable owner evidence; Seeded Repair and CSV repeatability were not started."
+      "detail": "The frozen-source CSV Single failed before acceptance after the tests Unit omitted one owned file in the initial generation and two bounded retries. No attribution or repair call was made."
     }
   ]
 }

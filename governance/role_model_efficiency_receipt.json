@@ -1,10 +1,10 @@
 {
   "kind": "CGKNRoleModelEfficiencyReceipt",
   "schema_version": "1.0",
-  "iteration": "ITER-FAILURE-ROUTING-REPAIR-SEMANTICS-038",
-  "source_closure_commit": "497132af2e65fc0c4834f0f5f3a3bdbf22ba0fe7",
-  "source_tree_sha": "60d77634e6ab2c87338f1ff7813a85f3e8ff90a1",
-  "execution_head": "497132af2e65fc0c4834f0f5f3a3bdbf22ba0fe7",
+  "iteration": "ITER-SAFE-ACCEPTANCE-ATTRIBUTION-039",
+  "source_closure_commit": "46b85c1ec161d36eeae016e99533469ef8da9fa7",
+  "source_tree_sha": "1a612396e61eae5bc713d5802eb974dc2dfce3d5",
+  "execution_head": "46b85c1ec161d36eeae016e99533469ef8da9fa7",
   "api_lab_dependency": {
     "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
     "branch": "codex/deepseek-thinking-control-20261019",
@@ -17,121 +17,113 @@
     "coordinator": "PASS_3_OF_3_NOT_RERUN",
     "worker_file_bundle": "PASS_NOT_RERUN",
     "worker_cohesive_unit": "PASS_NOT_RERUN",
-    "reason": "This iteration changed failure routing and PatchBundle repair semantics, not the already-qualified Coordinator or generation route."
+    "worker_patch_bundle": "PASS_NOT_RERUN",
+    "reason": "This iteration changed only L6 acceptance evidence and owner attribution; the user prohibited rerunning established DESIGN and Worker qualifications."
   },
-  "failure_routing_contract": {
-    "status": "PASS",
-    "generation_incomplete_owner": "CURRENT_GENERATION_UNIT",
-    "generation_without_baseline_action": "RETRY_GENERATION",
+  "acceptance_requirement_mapping": {
+    "status": "PASS_TESTED",
+    "public_id_rule": "public acceptance list index, one-based and stable",
+    "manifest_location": "hidden acceptance fixture sidecar only",
+    "manifest_published_content": "HASH_ONLY",
+    "unknown_node_action": "HARNESS_ATTRIBUTION_UNAVAILABLE",
+    "unknown_requirement_action": "HARNESS_ATTRIBUTION_UNAVAILABLE",
+    "case_mismatch_action": "HARNESS_ATTRIBUTION_UNAVAILABLE",
+    "failure_count_fallback": false
+  },
+  "acceptance_attribution_contract": {
+    "status": "PASS_OFFLINE_NOT_LIVE_EXERCISED",
+    "deterministic_first": true,
+    "coordinator_operation": "ACCEPTANCE_ATTRIBUTION",
+    "coordinator_thinking": "disabled",
+    "max_attribution_calls_per_failure": 1,
+    "owner_must_be_existing_unit": true,
     "repair_requires_materialized_baseline": true,
-    "baseline_identity": "SORTED_PATHS_AND_CANONICAL_CONTENT_HASH",
-    "repair_scope": "NON_EMPTY_SUBSET_OF_UNIT_OWNS",
-    "unresolved_attribution_action": "STOP",
-    "generation_retry_counts_as_repair": false,
-    "targeted_tests": "PASS_75",
-    "compileall": "PASS"
+    "resolved_action": "REPAIR_EXISTING",
+    "unresolved_action": "STOP",
+    "hidden_context_allowed": false
   },
-  "patch_bundle_v2_probe": {
-    "status": "PASS",
-    "run_id": "worker-patch-probe-8dbae2c198",
-    "provider": "deepseek",
-    "model": "deepseek-flash",
-    "logical_calls": 1,
-    "transport_attempts": 1,
-    "input_tokens": 2769,
-    "output_tokens": 93,
-    "cached_tokens": 2560,
-    "reasoning_tokens": 38,
-    "total_tokens": 2862,
-    "finish_reason": "stop",
-    "selection_receipt_hash": "sha256:ada31f62b34b665156ca4c2dc65fe6a4ad0abe2a382b8c17f8e89a81207d5422",
-    "schema_hash": "sha256:e3f55cce537ea7e18683366100b031dc51b4b139b752cb2fa5b0f83dbbf23f7a",
-    "scope": "PASS",
-    "interface_guard": "PASS",
-    "pytest": "PASS",
-    "atomic_apply": "PASS",
-    "evidence_root": "D:/CGKN/.service_evidence/ITER-FAILURE-ROUTING-REPAIR-SEMANTICS-038/patch_probe_final"
+  "leakage_audit": {
+    "hidden_source_exposed": false,
+    "hidden_names_exposed": false,
+    "hidden_assertions_exposed": false,
+    "hidden_expected_values_exposed": false,
+    "hidden_traceback_exposed": false,
+    "hidden_identity_occurrences_in_live_evidence": 0,
+    "secret_marker_occurrences_in_live_evidence": 0,
+    "manifest_files_in_generated_workspace": 0,
+    "acceptance_fixture_files_in_generated_workspace": 0
+  },
+  "source_verification": {
+    "compileall_application": "PASS",
+    "targeted_application_tests": "PASS_145",
+    "product_direction_gate": "PASS",
+    "source_publish_receipt_hash": "sha256:9594e811c19327d4804b504b6b6ef52fca288dd9738ebd9598c9d8bea26b8720",
+    "source_test_receipt_hash": "sha256:d41b6b31f5b5e8283d8e312c10b6ee5a6c5bf69e96a1bea8080bcc1a716d50fb"
   },
   "real_csv_single": {
-    "status": "FAIL_HIDDEN_ACCEPTANCE_ATTRIBUTION_UNRESOLVED",
-    "run_id": "blueprint-cli_csv_cleaner-79cb5a6750",
-    "blueprint_hash": "sha256:d34984be1d17baf09cd17d34c8714a589842d1688a6ee511bdf42c33b3bac5d4",
+    "status": "FAIL_GENERATION_FILE_BUNDLE_INCOMPLETE",
+    "run_id": "blueprint-cli_csv_cleaner-642bbbe1f9",
+    "blueprint_hash": "sha256:62790812bec87c364e33a0cdc8779e1219c5d17e7cb1c2d86db8ee8ed13107db",
     "units": [
-      {"unit_id": "core-cli", "owned_file_count": 4},
-      {"unit_id": "tests", "owned_file_count": 2},
-      {"unit_id": "docs", "owned_file_count": 1}
+      {"unit_id": "core-cli", "owned_file_count": 4, "status": "SUCCEEDED"},
+      {"unit_id": "tests", "owned_file_count": 2, "status": "FAILED"},
+      {"unit_id": "docs", "owned_file_count": 1, "status": "SUCCEEDED"}
     ],
-    "coordinator_calls": 1,
+    "coordinator_design_calls": 1,
+    "coordinator_attribution_calls": 0,
     "worker_generation_calls": 3,
     "generation_retry_calls": 2,
-    "repair_calls": 0,
+    "worker_repair_calls": 0,
     "total_logical_calls": 6,
     "call_budget": 8,
     "repair_rounds": 0,
     "repair_round_budget": 2,
     "manual_edits": 0,
     "token_totals": {
-      "input_tokens": 42252,
-      "output_tokens": 7473,
-      "cached_tokens": 11136,
+      "input_tokens": 25970,
+      "output_tokens": 6654,
       "actual_usage_complete": true,
-      "estimated_cost": 0.057198
+      "estimated_cost": 0.039278
     },
     "role_tokens": {
-      "coordinator": {"input_tokens": 612, "output_tokens": 1158, "cached_tokens": 384, "reasoning_tokens": null},
-      "generation": {"input_tokens": 20582, "output_tokens": 3155, "cached_tokens": 384, "reasoning_tokens": null},
-      "generation_retry": {"input_tokens": 21058, "output_tokens": 3160, "cached_tokens": 10368, "reasoning_tokens": null},
-      "repair": {"input_tokens": 0, "output_tokens": 0, "cached_tokens": 0, "reasoning_tokens": 0}
+      "coordinator_design": {"calls": 1, "input_tokens": 612, "output_tokens": 1151, "cached_tokens": 384, "reasoning_tokens": null},
+      "coordinator_attribution": {"calls": 0, "input_tokens": 0, "output_tokens": 0, "cached_tokens": 0, "reasoning_tokens": 0},
+      "worker_generation": {"calls": 3, "input_tokens": 13406, "output_tokens": 3372, "cached_tokens": 384, "reasoning_tokens": null},
+      "generation_retry": {"calls": 2, "input_tokens": 11952, "output_tokens": 2131, "cached_tokens": 5888, "reasoning_tokens": null},
+      "worker_repair": {"calls": 0, "input_tokens": 0, "output_tokens": 0, "cached_tokens": 0, "reasoning_tokens": 0}
     },
-    "generation_failure_chain": [
-      {
-        "origin_unit_id": "tests",
-        "owner_unit_id": "tests",
-        "failure_stage": "UNIT_OUTPUT_VALIDATION",
-        "failure_type": "UNIT_OUTPUT_INCOMPLETE",
-        "materialized_baseline": false,
-        "recovery_action": "RETRY_GENERATION"
-      },
-      {
-        "origin_unit_id": "tests",
-        "owner_unit_id": "tests",
-        "failure_stage": "UNIT_OUTPUT_VALIDATION",
-        "failure_type": "UNIT_OUTPUT_INCOMPLETE",
-        "materialized_baseline": false,
-        "recovery_action": "RETRY_GENERATION"
-      }
-    ],
-    "compile": "PASS",
-    "pytest": "PASS",
-    "runtime_smoke": "PASS",
-    "hidden_acceptance": "FAIL",
-    "failed_requirement_ids": ["public-requirement-1"],
     "terminal_failure": {
-      "origin_unit_id": "external_acceptance",
-      "owner_unit_id": null,
-      "failure_stage": "ACCEPTANCE",
-      "failure_type": "ATTRIBUTION_UNRESOLVED",
+      "origin_unit_id": "tests",
+      "owner_unit_id": "tests",
+      "failure_stage": "UNIT_OUTPUT_VALIDATION",
+      "failure_type": "UNIT_OUTPUT_INCOMPLETE",
       "materialized_baseline": false,
-      "recovery_action": "STOP",
-      "failure_report_hash": "sha256:0158c19d74e60f874a48b016dcd51ea2c062fc21a1f804725f5e372cf2a2feb8"
+      "recovery_action": "RETRY_GENERATION_EXHAUSTED",
+      "public_observation": "FileBundle omitted tests/test_cli.py in the initial generation and both bounded retries."
     },
+    "compile": "BLOCKED",
+    "pytest": "BLOCKED",
+    "runtime_smoke": "BLOCKED",
+    "hidden_acceptance": "NOT_RUN",
+    "failed_requirement_ids": [],
+    "attribution": "NOT_TRIGGERED",
     "reused_units": ["core-cli", "docs"],
-    "node_wall_time_ms": 29505,
-    "evidence": "D:/CGKN/.service_evidence/ITER-FAILURE-ROUTING-REPAIR-SEMANTICS-038/csv_single/blueprint-cli_csv_cleaner-79cb5a6750/live-single_receipt.json"
+    "evidence": "D:/CGKN/.service_evidence/ITER-SAFE-ACCEPTANCE-ATTRIBUTION-039/csv_single/blueprint-cli_csv_cleaner-642bbbe1f9/live-single_receipt.json"
   },
-  "real_seeded_repair": "NOT_RUN_DUE_STOP_CONDITION_C",
-  "real_csv_repeatability": "NOT_RUN_DUE_STOP_CONDITION_C",
+  "real_seeded_repair": "NOT_RUN_DUE_MINIMAL_BLUEPRINT_NEEDS_REWORK",
+  "real_csv_repeatability": "NOT_RUN_DUE_MINIMAL_BLUEPRINT_NEEDS_REWORK",
   "regression": {
-    "compileall": "PASS",
-    "targeted_tests": "PASS_75",
-    "application_tests": "NOT_RUN_DUE_STOP_CONDITION_C",
-    "kernel_profiles": "NOT_RUN_DUE_STOP_CONDITION_C",
-    "full_pytest": "NOT_RUN_DUE_STOP_CONDITION_C",
+    "compileall_application": "PASS",
+    "targeted_tests": "PASS_145",
+    "product_direction_gate": "PASS",
+    "application_tests": "NOT_RUN_DUE_STOP",
+    "kernel_profiles": "NOT_RUN_DUE_STOP",
+    "full_pytest": "NOT_RUN_DUE_STOP",
     "kernel_evidence_fresh": false
   },
   "efficiency_experiment_ready": false,
-  "stop_condition": "C",
+  "stop_condition": "C_EQUIVALENT_PRE_ACCEPTANCE_PROJECT_FAILURE",
   "stop_status": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
   "contains_credentials": false,
-  "receipt_hash": "sha256:323441fd6242d01a38c6b68d2976ac99c63d424f95e72b458448e3eceb15a150"
+  "receipt_hash": "sha256:66c395747d2ebcb74967e5c192906edbe79284dcac40ccb7054cb1ec7df5f5b7"
 }

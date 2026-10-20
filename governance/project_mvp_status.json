@@ -1,26 +1,29 @@
 {
   "kind": "CGKNProjectMVPStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-FAILURE-ROUTING-REPAIR-SEMANTICS-038",
-  "source_commit": "497132af2e65fc0c4834f0f5f3a3bdbf22ba0fe7",
+  "iteration": "ITER-SAFE-ACCEPTANCE-ATTRIBUTION-039",
+  "source_commit": "46b85c1ec161d36eeae016e99533469ef8da9fa7",
   "minimal_blueprint_status": "PARTIAL",
   "coordinator_qualification": "PASS_3_OF_3",
   "worker_protocol_qualification": true,
-  "worker_file_bundle_qualification": "PASS",
-  "worker_patch_bundle_qualification": "PASS_V2_1_OF_1",
+  "worker_file_bundle_qualification": "PASS_RETAINED",
+  "worker_patch_bundle_qualification": "PASS_V2_1_OF_1_RETAINED",
   "worker_thinking_root_cause": "CONFIRMED",
   "worker_generation_thinking_policy": "disabled",
   "worker_repair_thinking_policy": "default",
-  "worker_cohesive_unit_qualification": "PASS",
+  "worker_cohesive_unit_qualification": "PASS_RETAINED",
   "failure_routing_status": "PASS",
   "generation_retry_status": "PASS",
   "repair_subset_contract": "PASS",
   "patch_bundle_version": 2,
   "materialized_baseline_contract": "PASS",
   "failed_provider_calls_recorded": true,
-  "real_csv_single": "FAIL_HIDDEN_ACCEPTANCE_ATTRIBUTION_UNRESOLVED",
-  "real_csv_repeatability": "NOT_RUN_DUE_STOP_CONDITION_C",
-  "real_seeded_repair": "NOT_RUN_DUE_STOP_CONDITION_C",
+  "acceptance_requirement_mapping": "PASS_TESTED",
+  "acceptance_attribution": "PASS_OFFLINE_NOT_LIVE_EXERCISED",
+  "hidden_source_exposed": false,
+  "real_csv_single": "FAIL_GENERATION_FILE_BUNDLE_INCOMPLETE",
+  "real_csv_repeatability": "NOT_RUN_DUE_MINIMAL_BLUEPRINT_NEEDS_REWORK",
+  "real_seeded_repair": "NOT_RUN_DUE_MINIMAL_BLUEPRINT_NEEDS_REWORK",
   "real_generation": "FAIL",
   "real_repair": "NOT_EVALUATED",
   "kernel_evidence_fresh": false,
@@ -38,17 +41,17 @@
     {
       "priority": "P0",
       "code": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
-      "detail": "CSV Single materialized every Unit after two correctly routed tests-generation retries and passed compile, pytest, and runtime smoke, but external acceptance failed. Its sanitized evidence exposed no file, traceback, interface, or mappable test target, so deterministic attribution correctly stopped fail-closed instead of guessing an implementation owner."
+      "detail": "The fresh frozen-source CSV Single stopped before compile and hidden acceptance because the tests Unit omitted tests/test_cli.py in its initial FileBundle and both bounded generation retries. The run used 6 of 8 logical calls; no second project was launched to replace this evidence."
     },
     {
       "priority": "P1",
-      "code": "HIDDEN_ACCEPTANCE_OWNER_EVIDENCE_INSUFFICIENT",
-      "detail": "The external acceptance result reported only public-requirement-1 and withheld diagnostics. A future design increment must provide safe, contract-level attribution evidence or an Agent decision path without exposing hidden acceptance implementation."
+      "code": "ACCEPTANCE_ATTRIBUTION_NOT_LIVE_EXERCISED",
+      "detail": "Exact requirement mapping, fail-closed manifest validation, deterministic owner attribution, bounded Coordinator attribution, and hidden-leak prevention passed 145 application tests, but the real project did not reach external acceptance."
     },
     {
       "priority": "P1",
       "code": "KERNEL_EVIDENCE_NOT_REFRESHED_AFTER_STOP",
-      "detail": "Kernel profiles, full pytest, and source-bound evidence refresh were intentionally not run after stop condition C."
+      "detail": "Seeded Repair, CSV repeatability, Kernel profiles, and full pytest were intentionally not run after the required Single-run stop."
     }
   ]
 }
