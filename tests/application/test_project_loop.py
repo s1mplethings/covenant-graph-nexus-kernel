@@ -480,6 +480,45 @@ def test_whole_unit_required_interface_failure_keeps_workspace_unchanged(tmp_pat
     assert not executor.has_materialized_baseline(unit.unit_id)
 
 
+def test_test_unit_validates_required_interfaces_from_bounded_read_dependencies(tmp_path: pathlib.Path) -> None:
+    (tmp_path / "csv_cleaner").mkdir()
+    (tmp_path / "csv_cleaner" / "cleaner.py").write_text(
+        "def dedupe_rows(rows):\n    return rows\n\ndef fill_empty(rows, value):\n    return rows\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "csv_cleaner" / "cli.py").write_text(
+        "def main(argv=None):\n    return 0\n",
+        encoding="utf-8",
+    )
+    unit = BlueprintUnit(
+        "tests", "CSV tests", "tests", ("tests/test_cleaner.py", "tests/test_cli.py"),
+        reads=("csv_cleaner/cleaner.py", "csv_cleaner/cli.py"),
+        executor_ref="llm.cheap@1", instruction="test public interfaces",
+        required_interfaces=(
+            "csv_cleaner.cleaner.dedupe_rows",
+            "csv_cleaner.cleaner.fill_empty",
+            "csv_cleaner.cli.main",
+        ),
+        acceptance=("tests exist",), allowed_effects=("filesystem.read", "filesystem.write"),
+        max_actions=2, max_files=2,
+    )
+    client = QueueClient([_bundle("tests", {
+        "tests/test_cleaner.py": "from csv_cleaner.cleaner import dedupe_rows, fill_empty\n\ndef test_cleaner():\n    assert dedupe_rows([]) == []\n    assert fill_empty([], 'x') == []\n",
+        "tests/test_cli.py": "from csv_cleaner.cli import main\n\ndef test_cli():\n    assert main([]) == 0\n",
+    })])
+    executor = BlueprintUnitExecutor(tmp_path, client, ModelRoleConfig("worker", "deepseek", thinking_mode="disabled"))
+    request = BlockExecutionRequest(
+        "project", "run", "attempt", unit.unit_id, "project.unit.tests@1", "llm.cheap@1",
+        TaskContext("materialize tests", node_config={"unit": unit.as_dict()}),
+    )
+
+    result = executor.execute(request)
+
+    assert result.succeeded
+    assert executor.has_materialized_baseline(unit.unit_id)
+    assert all((tmp_path / path).is_file() for path in unit.owns)
+
+
 def test_whole_unit_cross_file_import_failure_keeps_workspace_unchanged(tmp_path: pathlib.Path) -> None:
     result, executor, _client, unit = _run_unit_materialization(tmp_path, [
         _bundle("cohesive", {

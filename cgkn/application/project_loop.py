@@ -244,9 +244,13 @@ def _required_interface_failures(
 ) -> tuple[str, ...]:
     available: set[str] = set()
     for manifest in manifests.values():
-        available.update(manifest.exports)
-        available.update(item.name for item in manifest.functions)
-        available.update(item.name for item in manifest.classes)
+        symbols = {
+            *manifest.exports,
+            *(item.name for item in manifest.functions),
+            *(item.name for item in manifest.classes),
+        }
+        available.update(symbols)
+        available.update(f"{manifest.module}.{name}" for name in symbols)
         available.update(manifest.cli_options)
     return tuple(f"required interface missing: {item}" for item in required if item not in available)
 
@@ -819,7 +823,16 @@ class BlueprintUnitExecutor:
             if consistency_failures:
                 raise PermissionError("interface guard: " + "; ".join(consistency_failures))
             new_manifests = _manifests({path: new_sources[path] for path in unit.owns})
-            required_failures = _required_interface_failures(new_manifests, unit.required_interfaces)
+            # Implementation Units must provide their declared interfaces. Tests and
+            # documentation consume interfaces from their bounded read dependencies,
+            # so validate those declarations against the complete visible Unit scope.
+            required_interface_paths = unit.owns if unit.kind == "implementation" else tuple(
+                dict.fromkeys((*unit.owns, *unit.reads))
+            )
+            required_manifests = _manifests({
+                path: new_sources[path] for path in required_interface_paths if path in new_sources
+            })
+            required_failures = _required_interface_failures(required_manifests, unit.required_interfaces)
             if required_failures:
                 raise PermissionError("interface guard: " + "; ".join(required_failures))
             for path, before in manifests.items():
