@@ -296,7 +296,10 @@ class OracleExecutor:
         if "stdout_csv" in spec.expected:
             rows = [row for row in csv.reader(io.StringIO(last.stdout)) if row]
             csv_expected = spec.expected["stdout_csv"]
-            if not rows or rows[0] != list(csv_expected["header"]) or rows[1:] != [list(row) for row in csv_expected["rows"]]:
+            expected_rows = [list(row) for row in csv_expected["rows"]]
+            if "header" in csv_expected:
+                expected_rows.insert(0, list(csv_expected["header"]))
+            if rows != expected_rows:
                 errors.append("preview stdout CSV mismatch")
         output_declared = (
             "output_path" in spec.setup

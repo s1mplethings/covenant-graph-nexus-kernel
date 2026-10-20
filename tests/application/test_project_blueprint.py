@@ -133,6 +133,16 @@ def test_minimal_payload_round_trip_and_strict_schema() -> None:
     Draft202012Validator(MINIMAL_BLUEPRINT_DESIGN_SCHEMA).validate(value)
     invalid = json.loads(json.dumps(value)); invalid["units"][0]["executor_ref"] = "llm.cheap@1"
     assert not Draft202012Validator(MINIMAL_BLUEPRINT_DESIGN_SCHEMA).is_valid(invalid)
+    assert "uniqueItems" not in json.dumps(MINIMAL_BLUEPRINT_DESIGN_SCHEMA)
+
+
+@pytest.mark.parametrize("field", ["owns", "reads", "depends_on", "required_interfaces"])
+def test_minimal_payload_enforces_uniqueness_after_provider_schema_selection(field: str) -> None:
+    value = _minimal_payload()
+    unit = value["units"][0]
+    unit[field] = ["pkg/value.py", "pkg/value.py"]
+    with pytest.raises(ValueError, match="must be unique"):
+        MinimalBlueprintDesignPayload.from_dict(value)
 
 
 def test_assembler_expands_defaults_checks_and_stable_hash() -> None:

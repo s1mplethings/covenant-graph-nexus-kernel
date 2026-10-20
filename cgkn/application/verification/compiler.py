@@ -155,7 +155,7 @@ class OraclePlanCompiler:
                 "ORACLE-CLI-PREVIEW", ("OBL-CSV-PREVIEW", "OBL-CSV-PREVIEW-WRITES-OUTPUT"), OracleKind.CLI,
                 setup=common_setup | {"rows": [["1", "Ada", ""], ["2", "Lin", "Paris"]]},
                 operation={"commands": [{"argv": command + ["input.csv", "output.csv", "--preview", "1"]}]},
-                expected={"exit_code": 0, "stdout_csv": {"header": ["id", "name", "city"], "rows": [["1", "Ada", ""]]}, "output_created": True},
+                expected={"exit_code": 0, "stdout_csv": {"rows": [["1", "Ada", ""]]}, "output_created": True},
                 side_effects={"output_created": True, "preview_does_not_suppress_output": True},
             ),
             _spec(

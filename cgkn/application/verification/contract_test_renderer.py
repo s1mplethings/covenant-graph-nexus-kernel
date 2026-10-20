@@ -156,7 +156,7 @@ def _run(args):
     _write_csv(source, {preview_setup["header"]!r}, {preview_setup["rows"]!r})
     result = _run([str(source), str(output), "--preview", "1"])
     assert result.returncode == {preview_expected["exit_code"]!r}, result.stderr
-    assert [row for row in csv.reader(io.StringIO(result.stdout)) if row] == {[preview_expected["stdout_csv"]["header"], *preview_expected["stdout_csv"]["rows"]]!r}
+    assert [row for row in csv.reader(io.StringIO(result.stdout)) if row] == {preview_expected["stdout_csv"]["rows"]!r}
     assert output.is_file()
     with output.open(newline="", encoding="utf-8") as handle: output_rows = list(csv.reader(handle))
     assert output_rows == {[preview_setup["header"], *preview_setup["rows"]]!r}

@@ -10,6 +10,7 @@ import pytest
 from cgkn.application.project_blueprint import BlueprintCheck, BlueprintUnit, FailureAction, FailureReport, FailureStage, ProjectBlueprint
 from cgkn.application.project_loop import AcceptanceAttributionDecision, BlueprintUnitExecutor, MinimalProjectLoop, compile_blueprint
 from cgkn.application.software_project.catalog import get_case
+from cgkn.application.software_project.scope import CommitFailure
 from cgkn.execution import BlockExecutionRequest, BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode, TaskContext
 from cgkn.orchestration import compile_tree
 from cgkn.providers import GatewayCompletionError, ModelRoleConfig, ProviderCompletion
@@ -19,7 +20,7 @@ class QueueClient:
     def __init__(self, responses): self.responses = list(responses); self.calls = []
 
     def complete(self, *, system, user, schema_name, schema, config):
-        self.calls.append({"system": system, "user": user, "schema_name": schema_name, "role": config.role, "operation": config.operation, "thinking_mode": config.thinking_mode})
+        self.calls.append({"system": system, "user": user, "schema_name": schema_name, "schema": schema, "role": config.role, "operation": config.operation, "thinking_mode": config.thinking_mode})
         if not self.responses: raise AssertionError("unexpected Provider call")
         response = self.responses.pop(0)
         if isinstance(response, Exception):
@@ -213,7 +214,7 @@ def test_failed_worker_provider_call_is_recorded_with_reported_usage(tmp_path: p
     )
     result = executor.execute(request)
     assert not result.succeeded
-    assert len(executor.calls) == 1
+    assert len(executor.calls) == 3
     call = executor.calls[0]
     assert call["result"] == "FAILED"
     assert call["failure_type"] == "PROVIDER_OUTPUT_TRUNCATED"
@@ -223,6 +224,10 @@ def test_failed_worker_provider_call_is_recorded_with_reported_usage(tmp_path: p
     assert call["reasoning_tokens"] is None and call["cached_tokens"] == 4
     assert call["usage_status"] == "REPORTED"
     assert call["transport_attempt_count"] == 1
+    assert [item["call_class"] for item in executor.calls] == [
+        "GENERATION", "GENERATION_RETRY", "GENERATION_RETRY",
+    ]
+    assert result.error.details["failure_type"] == "PROVIDER_FAILURE"
 
 
 def test_failed_worker_provider_call_keeps_unknown_usage_null(tmp_path: pathlib.Path) -> None:
@@ -246,12 +251,12 @@ def test_initial_generation_failure_retries_generation_before_any_repair(tmp_pat
     )
     client = QueueClient([
         first_failure,
-        _bundle("docs", {"README.md": "# CSV Cleaner\n\nUsage documented.\n"}),
         _bundle("core", {
             "csv_cleaner/__init__.py": "from .core import clean_file, clean_rows\n",
             "csv_cleaner/__main__.py": MAIN,
             "csv_cleaner/core.py": CORE,
         }),
+        _bundle("docs", {"README.md": "# CSV Cleaner\n\nUsage documented.\n"}),
         _bundle("tests", {"tests/test_csv_cleaner.py": "def test_ok():\n    assert True\n"}),
     ])
     agent, worker = _configs()
@@ -260,7 +265,8 @@ def test_initial_generation_failure_retries_generation_before_any_repair(tmp_pat
     ).run(_csv_blueprint(), tmp_path / "workspace", case_id="cli_csv_cleaner")
 
     assert outcome.status == "SUCCEEDED"
-    assert outcome.repair_rounds == 0 and outcome.generation_retries == 1
+    assert outcome.repair_rounds == 0 and outcome.generation_retries == 0
+    assert outcome.generation_retry_calls == 1
     core_operations = [
         call["operation"] for call in client.calls
         if '"unit_id": "core"' in call["user"]
@@ -268,12 +274,12 @@ def test_initial_generation_failure_retries_generation_before_any_repair(tmp_pat
     assert core_operations[:2] == ["EXECUTE", "EXECUTE"]
 
 
-def test_incomplete_tests_generation_retries_same_unit_without_repair(tmp_path: pathlib.Path) -> None:
+def test_partial_tests_generation_continues_only_missing_path_without_failure_report(tmp_path: pathlib.Path) -> None:
     client = QueueClient([
         _bundle("core", {"csv_cleaner/__init__.py": "from .core import clean_file, clean_rows\n", "csv_cleaner/__main__.py": MAIN, "csv_cleaner/core.py": CORE}),
         _bundle("docs", {"README.md": "# CSV Cleaner\n\nUsage documented.\n"}),
         _bundle("tests", {"tests/test_csv_cleaner.py": "def test_partial():\n    assert True\n"}),
-        _bundle("tests", {"tests/test_csv_cleaner.py": "def test_public():\n    assert True\n", "tests/test_cli.py": "def test_cli():\n    assert True\n"}),
+        _bundle("tests", {"tests/test_cli.py": "def test_cli():\n    assert True\n"}),
     ])
     blueprint = _csv_blueprint()
     tests = blueprint.by_id["tests"]
@@ -283,17 +289,273 @@ def test_incomplete_tests_generation_retries_same_unit_without_repair(tmp_path: 
     outcome = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", client, agent, worker).run(blueprint, tmp_path / "workspace", case_id="cli_csv_cleaner")
 
     assert outcome.status == "SUCCEEDED"
-    assert outcome.generation_retries == 1 and outcome.repair_rounds == outcome.repair_calls == 0
-    report = outcome.failure_reports[0]
-    assert report.failure_stage == FailureStage.UNIT_OUTPUT_VALIDATION.value
-    assert report.failure_type == "UNIT_OUTPUT_INCOMPLETE"
-    assert report.origin_unit_id == report.owner_unit_id == "tests"
-    assert report.recovery_action == FailureAction.RETRY_GENERATION.value
+    assert outcome.generation_continuations == 1 and outcome.generation_retries == 0
+    assert outcome.failure_reports == () and outcome.repair_rounds == outcome.repair_calls == 0
     tests_operations = [call["operation"] for call in client.calls if '"unit_id": "tests"' in call["user"]]
     assert tests_operations == ["EXECUTE", "EXECUTE"]
     tests_prompts = [call for call in client.calls if '"unit_id": "tests"' in call["user"]]
     assert '"failure_report": null' in tests_prompts[0]["user"]
-    assert '"recovery_action": "RETRY_GENERATION"' in tests_prompts[1]["user"]
+    assert '"requested_paths": ["tests/test_cli.py"]' in tests_prompts[1]["user"]
+    file_item = tests_prompts[1]["schema"]["oneOf"][0]["properties"]["files"]
+    assert file_item["maxItems"] == 1
+    assert file_item["items"]["properties"]["path"]["enum"] == ["tests/test_cli.py"]
+
+
+def _run_unit_materialization(
+    tmp_path: pathlib.Path, responses: list[object], *,
+    owns: tuple[str, ...] = ("pkg/a.py", "pkg/b.py", "pkg/c.py"),
+    max_output_bytes: int = 64_000,
+    required_interfaces: tuple[str, ...] = (),
+):
+    unit = BlueprintUnit(
+        "cohesive", "cohesive package", "implementation", owns,
+        executor_ref="llm.cheap@1", instruction="materialize the cohesive package",
+        acceptance=("all owned files exist",), allowed_effects=("filesystem.write",),
+        required_interfaces=required_interfaces,
+        max_actions=len(owns), max_files=len(owns), max_output_bytes=max_output_bytes,
+    )
+    client = QueueClient(responses)
+    executor = BlueprintUnitExecutor(tmp_path, client, ModelRoleConfig("worker", "deepseek", thinking_mode="disabled"))
+    request = BlockExecutionRequest(
+        "project", "run", "attempt", unit.unit_id, "project.unit.implementation@1", "llm.cheap@1",
+        TaskContext("materialize", node_config={"unit": unit.as_dict()}),
+    )
+    return executor.execute(request), executor, client, unit
+
+
+def test_incremental_materialization_two_slices_commits_atomically(tmp_path: pathlib.Path) -> None:
+    result, executor, client, unit = _run_unit_materialization(tmp_path, [
+        _bundle("cohesive", {"pkg/a.py": "A = 1\n", "pkg/b.py": "B = 2\n"}),
+        _bundle("cohesive", {"pkg/c.py": "C = 3\n"}),
+    ])
+    assert result.succeeded and executor.has_materialized_baseline(unit.unit_id)
+    assert [call["call_class"] for call in executor.calls] == ["GENERATION", "GENERATION_CONTINUATION"]
+    assert executor.calls[0]["unit_result"] == "PARTIAL_VALID_OUTPUT"
+    assert executor.calls[1]["requested_paths"] == ["pkg/c.py"]
+    assert result.outputs["unit_materialization"]["status"] == "COMMITTED"
+    assert result.outputs["unit_materialization"]["materialization_calls"] == 2
+    assert result.outputs["unit_materialization"]["generation_calls"] == 1
+    assert result.outputs["unit_materialization"]["continuation_calls"] == 1
+    assert result.outputs["unit_materialization"]["generation_retry_calls"] == 0
+    assert [row["status"] for row in result.outputs["unit_materialization"]["transitions"]] == [
+        "EMPTY", "PARTIAL", "COMPLETE", "VALIDATING", "VALIDATED", "COMMITTING", "COMMITTED",
+    ]
+    assert all((tmp_path / path).is_file() for path in unit.owns)
+    assert len(client.calls) == 2
+
+
+def test_incremental_materialization_three_single_file_slices_passes(tmp_path: pathlib.Path) -> None:
+    result, executor, _client, unit = _run_unit_materialization(tmp_path, [
+        _bundle("cohesive", {"pkg/a.py": "A = 1\n"}),
+        _bundle("cohesive", {"pkg/b.py": "B = 2\n"}),
+        _bundle("cohesive", {"pkg/c.py": "C = 3\n"}),
+    ])
+    assert result.succeeded and executor.has_materialized_baseline(unit.unit_id)
+    assert [call["call_class"] for call in executor.calls] == ["GENERATION", "GENERATION_CONTINUATION", "GENERATION_CONTINUATION"]
+    state = result.outputs["unit_materialization"]
+    assert state["materialization_calls"] == 3 and state["generation_calls"] == 1
+    assert state["continuation_calls"] == 2 and state["generation_retry_calls"] == 0
+
+
+def test_continuation_repeating_staged_path_is_scope_violation_and_discards(tmp_path: pathlib.Path) -> None:
+    result, executor, _client, unit = _run_unit_materialization(tmp_path, [
+        _bundle("cohesive", {"pkg/a.py": "A = 1\n", "pkg/b.py": "B = 2\n"}),
+        _bundle("cohesive", {"pkg/a.py": "A = 9\n"}),
+    ])
+    assert not result.succeeded
+    assert result.error.details["failure_type"] == "UNIT_OUTPUT_SCOPE_VIOLATION"
+    assert result.outputs["unit_materialization"]["status"] == "DISCARDED"
+    assert not executor.has_materialized_baseline(unit.unit_id)
+    assert all(not (tmp_path / path).exists() for path in unit.owns)
+
+
+def test_incremental_materialization_rejects_extra_path_without_workspace_effect(tmp_path: pathlib.Path) -> None:
+    result, executor, _client, unit = _run_unit_materialization(tmp_path, [
+        _bundle("cohesive", {"pkg/a.py": "A = 1\n", "pkg/b.py": "B = 2\n", "outside.py": "D = 4\n"}),
+    ])
+    assert not result.succeeded
+    assert result.error.details["failure_type"] == "UNIT_OUTPUT_SCOPE_VIOLATION"
+    assert not executor.has_materialized_baseline(unit.unit_id)
+    assert not (tmp_path / "outside.py").exists()
+
+
+def test_invalid_continuation_syntax_preserves_staging_for_generation_retry(tmp_path: pathlib.Path) -> None:
+    result, executor, _client, unit = _run_unit_materialization(tmp_path, [
+        _bundle("cohesive", {"pkg/a.py": "A = 1\n", "pkg/b.py": "B = 2\n"}),
+        _bundle("cohesive", {"pkg/c.py": "def broken(:\n"}),
+        _bundle("cohesive", {"pkg/c.py": "C = 3\n"}),
+    ])
+    assert result.succeeded and executor.has_materialized_baseline(unit.unit_id)
+    assert [call["call_class"] for call in executor.calls] == ["GENERATION", "GENERATION_CONTINUATION", "GENERATION_RETRY"]
+    assert executor.calls[1]["failure_type"] == "SYNTAX_ERROR"
+    assert executor.calls[2]["staged_paths_before_call"] == ["pkg/a.py", "pkg/b.py"]
+    assert all((tmp_path / path).is_file() for path in unit.owns)
+
+
+def test_provider_failure_after_partial_preserves_staging_for_retry(tmp_path: pathlib.Path) -> None:
+    failure = GatewayCompletionError("outcome_unknown", "timeout", evidence={"request_id": "continuation-timeout"})
+    result, executor, _client, unit = _run_unit_materialization(tmp_path, [
+        _bundle("cohesive", {"pkg/a.py": "A = 1\n", "pkg/b.py": "B = 2\n"}),
+        failure,
+        _bundle("cohesive", {"pkg/c.py": "C = 3\n"}),
+    ])
+    assert result.succeeded and executor.has_materialized_baseline(unit.unit_id)
+    assert executor.calls[1]["request_id"] == "continuation-timeout"
+    assert [call["call_class"] for call in executor.calls] == ["GENERATION", "GENERATION_CONTINUATION", "GENERATION_RETRY"]
+    assert executor.calls[2]["staged_paths_before_call"] == ["pkg/a.py", "pkg/b.py"]
+
+
+def test_materialization_call_budget_exhaustion_discards_partial_state(tmp_path: pathlib.Path) -> None:
+    owns = ("pkg/a.py", "pkg/b.py", "pkg/c.py", "pkg/d.py")
+    result, executor, _client, unit = _run_unit_materialization(tmp_path, [
+        _bundle("cohesive", {"pkg/a.py": "A = 1\n"}),
+        _bundle("cohesive", {"pkg/b.py": "B = 2\n"}),
+        _bundle("cohesive", {"pkg/c.py": "C = 3\n"}),
+    ], owns=owns)
+    assert not result.succeeded
+    assert result.error.details["failure_type"] == "UNIT_MATERIALIZATION_INCOMPLETE"
+    assert len(executor.calls) == 3 and not executor.has_materialized_baseline(unit.unit_id)
+    assert all(not (tmp_path / path).exists() for path in owns)
+
+
+def test_duplicate_file_in_slice_is_invalid_and_never_committed(tmp_path: pathlib.Path) -> None:
+    duplicate = {
+        "schema_version": "1.0", "kind": "file_bundle", "unit_id": "cohesive",
+        "files": [{"path": "pkg/a.py", "content": "A = 1\n"}, {"path": "pkg/a.py", "content": "A = 2\n"}],
+        "summary": "", "needs_escalation": False, "escalation_reason": "",
+    }
+    result, executor, _client, unit = _run_unit_materialization(tmp_path, [duplicate])
+    assert not result.succeeded and result.error.details["failure_type"] == "UNIT_OUTPUT_INVALID"
+    assert all(not (tmp_path / path).exists() for path in unit.owns)
+    assert not executor.has_materialized_baseline(unit.unit_id)
+
+
+def test_complete_first_materialization_call_preserves_original_success_path(tmp_path: pathlib.Path) -> None:
+    result, executor, _client, unit = _run_unit_materialization(tmp_path, [
+        _bundle("cohesive", {"pkg/a.py": "A = 1\n", "pkg/b.py": "B = 2\n", "pkg/c.py": "C = 3\n"}),
+    ])
+    assert result.succeeded and len(executor.calls) == 1
+    assert executor.calls[0]["call_class"] == "GENERATION"
+    assert executor.calls[0]["materialization_status"] == "COMMITTED"
+    assert executor.has_materialized_baseline(unit.unit_id)
+
+
+def test_continuation_ledger_records_bounded_context_and_slice_identity(tmp_path: pathlib.Path) -> None:
+    result, executor, _client, _unit = _run_unit_materialization(tmp_path, [
+        _bundle("cohesive", {"pkg/a.py": "A = 1\n", "pkg/b.py": "B = 2\n"}),
+        _bundle("cohesive", {"pkg/c.py": "C = 3\n"}),
+    ])
+    assert result.succeeded
+    first, continuation = executor.calls
+    assert first["requested_paths"] == ["pkg/a.py", "pkg/b.py", "pkg/c.py"]
+    assert continuation["requested_paths"] == ["pkg/c.py"]
+    assert continuation["staged_paths_before_call"] == ["pkg/a.py", "pkg/b.py"]
+    assert continuation["context_chars"] > 0
+    assert continuation["context_tokens"] == 10
+    assert continuation["staged_sibling_chars"] == len("A = 1\n") + len("B = 2\n")
+    assert continuation["included_dependencies"] == []
+
+
+def test_two_no_progress_responses_for_same_missing_set_are_stalled(tmp_path: pathlib.Path) -> None:
+    result, executor, _client, unit = _run_unit_materialization(tmp_path, [
+        _bundle("cohesive", {"pkg/a.py": "A = 1\n", "pkg/b.py": "B = 2\n"}),
+        _bundle("cohesive", {"pkg/c.py": "def broken(:\n"}),
+        _bundle("cohesive", {"pkg/c.py": "def still_broken(:\n"}),
+    ])
+    assert not result.succeeded
+    assert result.error.details["failure_type"] == "UNIT_MATERIALIZATION_STALLED"
+    assert [call["call_class"] for call in executor.calls] == ["GENERATION", "GENERATION_CONTINUATION", "GENERATION_RETRY"]
+    assert all(not (tmp_path / path).exists() for path in unit.owns)
+
+
+def test_whole_unit_required_interface_failure_keeps_workspace_unchanged(tmp_path: pathlib.Path) -> None:
+    result, executor, _client, unit = _run_unit_materialization(
+        tmp_path,
+        [_bundle("cohesive", {"pkg/a.py": "A = 1\n", "pkg/b.py": "B = 2\n", "pkg/c.py": "C = 3\n"})],
+        required_interfaces=("required_symbol",),
+    )
+    assert not result.succeeded
+    assert result.error.details["failure_type"] == "INTERFACE_MISMATCH"
+    assert all(not (tmp_path / path).exists() for path in unit.owns)
+    assert not executor.has_materialized_baseline(unit.unit_id)
+
+
+def test_whole_unit_cross_file_import_failure_keeps_workspace_unchanged(tmp_path: pathlib.Path) -> None:
+    result, executor, _client, unit = _run_unit_materialization(tmp_path, [
+        _bundle("cohesive", {
+            "pkg/a.py": "from .missing import VALUE\n",
+            "pkg/b.py": "B = 2\n",
+            "pkg/c.py": "C = 3\n",
+        }),
+    ])
+    assert not result.succeeded
+    assert result.error.details["failure_type"] == "INTERFACE_MISMATCH"
+    assert all(not (tmp_path / path).exists() for path in unit.owns)
+    assert not executor.has_materialized_baseline(unit.unit_id)
+
+
+def test_controlled_commit_failure_rolls_back_and_is_classified(tmp_path: pathlib.Path, monkeypatch) -> None:
+    import cgkn.application.software_project.scope as scope_module
+
+    real_replace = scope_module.os.replace
+    calls = 0
+
+    def fail_second(source, target):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError("injected commit failure")
+        return real_replace(source, target)
+
+    monkeypatch.setattr(scope_module.os, "replace", fail_second)
+    result, executor, _client, unit = _run_unit_materialization(tmp_path, [
+        _bundle("cohesive", {"pkg/a.py": "A = 1\n", "pkg/b.py": "B = 2\n", "pkg/c.py": "C = 3\n"}),
+    ])
+    assert not result.succeeded
+    assert result.error.details["failure_type"] == "COMMIT_FAILURE"
+    assert all(not (tmp_path / path).exists() for path in unit.owns)
+    assert not (tmp_path / "pkg").exists()
+    assert not executor.has_materialized_baseline(unit.unit_id)
+
+
+def test_continuation_request_contains_no_hidden_acceptance_payload(tmp_path: pathlib.Path) -> None:
+    result, _executor, client, _unit = _run_unit_materialization(tmp_path, [
+        _bundle("cohesive", {"pkg/a.py": "A = 1\n", "pkg/b.py": "B = 2\n"}),
+        _bundle("cohesive", {"pkg/c.py": "C = 3\n"}),
+    ])
+    assert result.succeeded
+    continuation = client.calls[1]
+    assert "SECRET_HIDDEN_ASSERTION" not in continuation["user"]
+    assert continuation["schema"]["oneOf"][0]["properties"]["files"]["items"]["properties"]["path"]["enum"] == ["pkg/c.py"]
+
+
+def test_full_retry_benchmark_policy_discards_partial_and_requests_whole_unit_again(tmp_path: pathlib.Path) -> None:
+    owns = ("pkg/a.py", "pkg/b.py", "pkg/c.py")
+    unit = BlueprintUnit(
+        "cohesive", "cohesive package", "implementation", owns,
+        executor_ref="llm.cheap@1", instruction="materialize package",
+        acceptance=("complete",), allowed_effects=("filesystem.write",),
+        max_actions=3, max_files=3,
+    )
+    client = QueueClient([
+        _bundle("cohesive", {"pkg/a.py": "A = 1\n", "pkg/b.py": "B = 2\n"}),
+        _bundle("cohesive", {"pkg/a.py": "A = 1\n", "pkg/b.py": "B = 2\n", "pkg/c.py": "C = 3\n"}),
+    ])
+    executor = BlueprintUnitExecutor(
+        tmp_path, client, ModelRoleConfig("worker", "deepseek"),
+        materialization_policy="FULL_RETRY",
+    )
+    request = BlockExecutionRequest(
+        "project", "run", "attempt", unit.unit_id, "project.unit.implementation@1", "llm.cheap@1",
+        TaskContext("materialize", node_config={"unit": unit.as_dict()}),
+    )
+    first = executor.execute(request)
+    assert not first.succeeded and first.error.details["failure_type"] == "UNIT_OUTPUT_INCOMPLETE"
+    assert all(not (tmp_path / path).exists() for path in owns)
+    second = executor.execute(request)
+    assert second.succeeded and all((tmp_path / path).is_file() for path in owns)
+    assert [call["call_class"] for call in executor.calls] == ["GENERATION", "GENERATION_RETRY"]
+    assert executor.calls[1]["requested_paths"] == list(owns)
 
 
 def test_initial_repair_without_materialized_baseline_is_forbidden(tmp_path: pathlib.Path) -> None:
@@ -391,6 +653,22 @@ def test_cross_unit_attribution_uses_evidence_and_never_implementation_fallback(
     test_result = BlockExecutionResult("p", "r", "b", "pytest", "local.python-test@1", BlockStatus.FAILED, outputs={"stderr": "tests/test_csv_cleaner.py:9: assert False"}, error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR, "tests/test_csv_cleaner.py:9: assert False"))
     test_report = MinimalProjectLoop._failure_report(blueprint, "pytest", test_result, dag, executor)
     assert test_report.owner_unit_id == "tests"
+
+    nested_result = BlockExecutionResult(
+        "p", "r", "nested", "pytest", "local.python-test@1", BlockStatus.FAILED,
+        outputs={"stdout": (
+            "tests/test_csv_cleaner.py:21: in test_missing_input\n"
+            "    read_csv(missing)\n"
+            "csv_cleaner/core.py:14: in read_csv\n"
+            "    raise FileNotFoundError(path)\n"
+            "E   FileNotFoundError: missing.csv\n"
+        )},
+        error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR, "command exited 1"),
+    )
+    nested_report = MinimalProjectLoop._failure_report(blueprint, "pytest", nested_result, dag, executor)
+    assert nested_report.owner_unit_id == "core"
+    assert nested_report.owner_file == "csv_cleaner/core.py"
+    assert nested_report.first_project_frame == "csv_cleaner/core.py:14"
 
     unknown_result = BlockExecutionResult("p", "r", "c", "pytest", "local.python-test@1", BlockStatus.FAILED, error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR, "assertion failed without a project path"))
     unknown_report = MinimalProjectLoop._failure_report(blueprint, "pytest", unknown_result, dag, executor)

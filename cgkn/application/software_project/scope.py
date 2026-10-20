@@ -23,6 +23,14 @@ class ScopeViolation(ValueError):
     pass
 
 
+class CommitFailure(RuntimeError):
+    """A controlled multi-file commit failed after rollback was attempted."""
+
+    def __init__(self, message: str, *, rollback_succeeded: bool):
+        super().__init__(message)
+        self.rollback_succeeded = rollback_succeeded
+
+
 _plain = materialize_json
 
 
@@ -134,10 +142,19 @@ class ScopedFileTransaction:
         observations, planned = self.validate(actions)
         staged: list[tuple[PlannedWrite, pathlib.Path]] = []
         replaced: list[PlannedWrite] = []
+        created_directories: list[pathlib.Path] = []
+        commit_error: Exception | None = None
+        rollback_errors: list[str] = []
         try:
             for item in planned:
+                missing_parents: list[pathlib.Path] = []
+                current = item.target.parent
+                while current != self.root and not current.exists():
+                    missing_parents.append(current)
+                    current = current.parent
                 item.target.parent.mkdir(parents=True, exist_ok=True)
-                fd, name = tempfile.mkstemp(prefix=f".{item.target.name}.", suffix=".cgkn-stage", dir=item.target.parent)
+                created_directories.extend(path for path in reversed(missing_parents) if path not in created_directories)
+                fd, name = tempfile.mkstemp(prefix=f".{item.target.name}.", suffix=".cgnk-stage", dir=item.target.parent)
                 with os.fdopen(fd, "wb") as handle:
                     handle.write(item.content)
                     handle.flush()
@@ -148,19 +165,37 @@ class ScopedFileTransaction:
                 replaced.append(item)
             observations.extend({"action": "write_file", "path": item.relative, "bytes": len(item.content)} for item in planned)
             return observations
-        except Exception:
+        except Exception as exc:
+            commit_error = exc
             for item in reversed(replaced):
                 try:
                     if item.existed and item.previous is not None:
                         item.target.write_bytes(item.previous)
                     else:
                         item.target.unlink(missing_ok=True)
-                except OSError:
-                    pass
-            raise
+                except OSError as rollback_exc:
+                    rollback_errors.append(f"{item.relative}: {type(rollback_exc).__name__}")
         finally:
             for _, temporary in staged:
                 temporary.unlink(missing_ok=True)
+            if commit_error is not None:
+                for directory in reversed(created_directories):
+                    try:
+                        directory.rmdir()
+                    except OSError as cleanup_exc:
+                        rollback_errors.append(f"{directory}: {type(cleanup_exc).__name__}")
+        if commit_error is not None:
+            if rollback_errors:
+                raise CommitFailure(
+                    "controlled commit failed and rollback could not fully restore the workspace: "
+                    + "; ".join(rollback_errors),
+                    rollback_succeeded=False,
+                ) from commit_error
+            raise CommitFailure(
+                "controlled commit failed; rollback restored the pre-commit workspace",
+                rollback_succeeded=True,
+            ) from commit_error
+        raise AssertionError("controlled commit completed without a result")
 
 
 class ScopedProjectLLMExecutor:

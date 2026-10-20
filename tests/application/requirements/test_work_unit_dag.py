@@ -51,8 +51,8 @@ def main(argv=None):
     try:
         fields, rows = clean_csv(args.input, args.output, args.dedupe_column, args.fill)
         if args.preview:
-            stream = io.StringIO(); writer = csv.DictWriter(stream, fieldnames=fields)
-            writer.writeheader(); writer.writerows(rows[:args.preview]); sys.stdout.write(stream.getvalue())
+            stream = io.StringIO(); writer = csv.DictWriter(stream, fieldnames=fields, lineterminator="\\n")
+            writer.writerows(rows[:args.preview]); sys.stdout.write(stream.getvalue())
         return 0
     except (OSError, ValueError, csv.Error) as exc:
         parser.error(str(exc))

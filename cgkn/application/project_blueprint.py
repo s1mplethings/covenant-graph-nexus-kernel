@@ -42,12 +42,12 @@ MINIMAL_BLUEPRINT_DESIGN_SCHEMA: dict[str, Any] = {
                     "purpose": {"type": "string", "minLength": 1},
                     "owns": {
                         "type": "array", "minItems": 1, "maxItems": 5,
-                        "uniqueItems": True, "items": {"type": "string"},
+                        "items": {"type": "string"},
                     },
-                    "reads": {"type": "array", "uniqueItems": True, "items": {"type": "string"}},
-                    "depends_on": {"type": "array", "uniqueItems": True, "items": {"type": "string"}},
+                    "reads": {"type": "array", "items": {"type": "string"}},
+                    "depends_on": {"type": "array", "items": {"type": "string"}},
                     "instruction": {"type": "string", "minLength": 1},
-                    "required_interfaces": {"type": "array", "uniqueItems": True, "items": {"type": "string"}},
+                    "required_interfaces": {"type": "array", "items": {"type": "string"}},
                     "acceptance": {"type": "array", "minItems": 1, "items": {"type": "string"}},
                 },
             },
@@ -135,12 +135,16 @@ class MinimalBlueprintUnitDesign:
             raise ValueError("minimal unit requires one to five owned paths and acceptance")
         owns = tuple(_safe_path(item) for item in self.owns)
         reads = tuple(_safe_path(item) for item in self.reads)
-        if len(set(owns)) != len(owns) or len(set(reads)) != len(reads):
-            raise ValueError("minimal unit paths must be unique")
+        depends_on = tuple(str(item) for item in self.depends_on)
+        required_interfaces = tuple(str(item) for item in self.required_interfaces)
+        if any(len(set(values)) != len(values) for values in (owns, reads, depends_on, required_interfaces)):
+            raise ValueError("minimal unit paths, dependencies, and interfaces must be unique")
         if set(owns) & set(reads):
             raise ValueError("minimal unit reads and owns must not overlap")
         object.__setattr__(self, "owns", owns)
         object.__setattr__(self, "reads", reads)
+        object.__setattr__(self, "depends_on", depends_on)
+        object.__setattr__(self, "required_interfaces", required_interfaces)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -613,7 +617,7 @@ class FailureReport:
     origin_unit_id: str; failure_type: str; failure_stage: str = FailureStage.UNKNOWN.value; owner_unit_id: str = ""; recovery_action: str = FailureAction.STOP.value; materialized_baseline: bool = False; owner_file: str = ""; owner_interface: str = ""; first_project_frame: str = ""; failed_check: str = ""; expected: str = ""; observed: str = ""; affected_units: tuple[str, ...] = (); suggested_action: str = ""; evidence_refs: tuple[str, ...] = (); failed_requirement_ids: tuple[str, ...] = (); public_requirement_summaries: tuple[tuple[str, str], ...] = (); requirement_manifest_hash: str = ""; mapping_complete: bool = False; candidate_owner_unit_ids: tuple[str, ...] = (); attribution_source: str = ""; attribution_status: str = ""; failure_hash: str = ""
 
     def __post_init__(self) -> None:
-        allowed = {"SYNTAX_ERROR", "IMPORT_ERROR", "NAME_ERROR", "INTERFACE_MISMATCH", "TEST_FAILURE", "RUNTIME_FAILURE", "ACCEPTANCE_FAILURE", "HARNESS_ATTRIBUTION_UNAVAILABLE", "SCOPE_VIOLATION", "PROVIDER_FAILURE", "UNIT_OUTPUT_INCOMPLETE", "UNIT_OUTPUT_SCOPE_VIOLATION", "UNIT_OUTPUT_INVALID", "ATTRIBUTION_UNRESOLVED", "REPAIR_WITHOUT_BASELINE", "UNKNOWN"}
+        allowed = {"SYNTAX_ERROR", "IMPORT_ERROR", "NAME_ERROR", "INTERFACE_MISMATCH", "TEST_FAILURE", "RUNTIME_FAILURE", "ACCEPTANCE_FAILURE", "HARNESS_ATTRIBUTION_UNAVAILABLE", "SCOPE_VIOLATION", "PROVIDER_FAILURE", "UNIT_OUTPUT_INCOMPLETE", "UNIT_MATERIALIZATION_INCOMPLETE", "UNIT_MATERIALIZATION_STALLED", "UNIT_OUTPUT_BUDGET_EXCEEDED", "UNIT_OUTPUT_SCOPE_VIOLATION", "UNIT_OUTPUT_INVALID", "COMMIT_FAILURE", "ATTRIBUTION_UNRESOLVED", "REPAIR_WITHOUT_BASELINE", "UNKNOWN"}
         if self.failure_type not in allowed: raise ValueError("invalid failure type")
         if self.failure_stage not in {item.value for item in FailureStage}: raise ValueError("invalid failure stage")
         if self.recovery_action not in {item.value for item in FailureAction}: raise ValueError("invalid failure action")

@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from cgkn.application.project_blueprint import BlueprintUnit, FailureAction, FailureReport, FailureStage, ProjectBlueprint
+from cgkn.application.materialization import materialize_json
 from cgkn.application.project_loop import BlueprintUnitExecutor, MinimalProjectLoop
 from cgkn.application.software_project.catalog import get_case
 from cgkn.execution import BlockExecutionRequest, TaskContext
@@ -29,7 +30,7 @@ from cgkn.providers.gateway_client import API_LAB_COMMIT
 from cgkn.providers.structured_output import SELECTOR_VERSION, StructuredAnswerSelector
 
 
-PHASE_B_PROFILES = {"fake-parallel", "fake-conflict", "fake-standup", "live-parallel", "live-repeat"}
+PHASE_B_PROFILES = {"fake-parallel", "fake-conflict", "fake-standup", "live-parallel"}
 
 
 def _hash(value: Any) -> str:
@@ -63,7 +64,7 @@ def _source_identity() -> dict[str, Any]:
     dirty = subprocess.check_output(
         ["git", "status", "--short", "--untracked-files=no"], cwd=ROOT, text=True,
     ).strip()
-    return {"cgkn_source_commit": sha, "tracked_worktree_clean": not bool(dirty)}
+    return {"cgnk_source_commit": sha, "tracked_worktree_clean": not bool(dirty)}
 
 
 def _run_pytest(expression: str) -> dict[str, Any]:
@@ -111,7 +112,17 @@ def _worker_repair_model_config(provider: str = "deepseek") -> ModelRoleConfig:
     )
 
 
-def _live(profile: str, artifact_root: pathlib.Path) -> dict[str, Any]:
+def _live(
+    profile: str,
+    artifact_root: pathlib.Path,
+    *,
+    agent_provider_override: str = "",
+    worker_provider_override: str = "",
+    frozen_blueprint: ProjectBlueprint | None = None,
+) -> dict[str, Any]:
+    identity = _source_identity()
+    if not identity["tracked_worktree_clean"]:
+        raise RuntimeError("live project validation requires a frozen clean Source Closure")
     case_id = "cli_csv_cleaner" if profile == "live-single" else "seeded_repair"
     client = completion_client_from_environment()
     route_path = ROOT / "config" / "provider_profiles" / "gateway_model_routing.json"
@@ -119,15 +130,23 @@ def _live(profile: str, artifact_root: pathlib.Path) -> dict[str, Any]:
     if routing is None: raise RuntimeError("live project MVP requires the reviewed local Gateway route")
     run_token = f"mvp-{case_id}-{uuid.uuid4().hex[:10]}"
     run_client = client.bind_run(run_token, case_id)
-    agent_provider = str(os.environ.get("CGKN_PROJECT_MVP_AGENT_PROVIDER", routing.agent.model)).strip().lower()
+    agent_provider = str(agent_provider_override or os.environ.get("CGKN_PROJECT_MVP_AGENT_PROVIDER", routing.agent.model)).strip().lower()
     if agent_provider not in routing.allowed_providers:
         raise ValueError("explicit project MVP Agent Provider is not allowlisted")
     agent_config = _coordinator_model_config(agent_provider)
-    worker_config = _worker_generation_model_config(routing.worker.model)
-    worker_repair_config = _worker_repair_model_config(routing.worker.model)
+    worker_provider = str(worker_provider_override or routing.worker.model).strip().lower()
+    if worker_provider not in routing.allowed_providers:
+        raise ValueError("explicit project MVP Worker Provider is not allowlisted")
+    worker_config = _worker_generation_model_config(worker_provider)
+    worker_repair_config = _worker_repair_model_config(worker_provider)
     loop = MinimalProjectLoop(ROOT, artifact_root, run_client, agent_config, worker_config, worker_repair_config)
     contract = _public_contract(case_id)
-    blueprint, decisions = loop.design(case_id, contract)
+    if frozen_blueprint is None:
+        blueprint, decisions = loop.design(case_id, contract)
+    else:
+        blueprint, decisions = frozen_blueprint, 0
+        if blueprint.status != "FROZEN":
+            raise ValueError("experiment blueprint must be frozen")
     workspace = artifact_root / "workspaces" / run_token
     initial_failure = None
     if case_id == "seeded_repair":
@@ -140,19 +159,59 @@ def _live(profile: str, artifact_root: pathlib.Path) -> dict[str, Any]:
     coordinator_calls = list(loop.coordinator_calls)
     attribution_calls = list(loop.attribution_calls)
     generations = [call for call in worker_calls if call.get("call_class") == "GENERATION"]
+    continuations = [call for call in worker_calls if call.get("call_class") == "GENERATION_CONTINUATION"]
     generation_retries = [call for call in worker_calls if call.get("call_class") == "GENERATION_RETRY"]
     repairs = [call for call in worker_calls if call.get("call_class") == "REPAIR"]
     ledger = {
         "coordinator_design": _summarize_calls(coordinator_calls),
         "coordinator_attribution": _summarize_calls(attribution_calls),
         "generation": _summarize_calls(generations),
+        "generation_continuation": _summarize_calls(continuations),
         "generation_retry": _summarize_calls(generation_retries),
         "repair": _summarize_calls(repairs),
         "calls": {"coordinator_design": coordinator_calls, "coordinator_attribution": attribution_calls, "worker": worker_calls},
     }
-    value = outcome.as_dict() | {"agent_decisions": decisions + len(attribution_calls), "design_calls": decisions, "attribution_calls": len(attribution_calls), "total_logical_calls": decisions + outcome.provider_calls, "manual_edits": 0, "profile": profile, "provider_ledger": ledger}
+    calls_by_unit: dict[str, int] = {}
+    for call in worker_calls:
+        if call.get("call_class") in {"GENERATION", "GENERATION_CONTINUATION", "GENERATION_RETRY"}:
+            unit_id = str(call.get("unit_id") or "")
+            calls_by_unit[unit_id] = calls_by_unit.get(unit_id, 0) + 1
+    unit_limits = {
+        unit.unit_id: 3 if unit.kind == "tests" else 2
+        for unit in blueprint.units
+    }
+    total_logical_calls = decisions + outcome.provider_calls
+    budget_compliance = total_logical_calls <= 8 and all(
+        calls_by_unit.get(unit_id, 0) <= limit for unit_id, limit in unit_limits.items()
+    )
+    value = outcome.as_dict() | {
+        "agent_decisions": decisions + len(attribution_calls), "design_calls": decisions,
+        "attribution_calls": len(attribution_calls), "total_logical_calls": total_logical_calls,
+        "manual_edits": 0, "profile": profile, "provider_ledger": ledger,
+        "source_identity": identity, "materialization_calls_by_unit": calls_by_unit,
+        "materialization_call_limits": unit_limits, "budget_compliance": budget_compliance,
+    }
+    if not budget_compliance:
+        value["status"] = "FAILED"
+        value["gate_failure"] = "PROVIDER_CALL_BUDGET_EXCEEDED"
     target = outcome.run_root / f"{profile}_receipt.json"; target.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return value
+
+
+def _live_repeat(artifact_root: pathlib.Path, *, count: int) -> dict[str, Any]:
+    if count != 2:
+        raise ValueError("live repeat profile runs exactly two new workspaces after the accepted Single")
+    runs = [_live("live-single", artifact_root / f"repeat-{index}") for index in range(1, count + 1)]
+    passed = all(row.get("status") == "SUCCEEDED" and row.get("budget_compliance") for row in runs)
+    result = {
+        "profile": "live-repeat", "status": "PASS" if passed else "FAIL",
+        "qualification": "2/2" if passed else f"{sum(row.get('status') == 'SUCCEEDED' for row in runs)}/2",
+        "runs": runs,
+    }
+    target = artifact_root / "live_repeat_index.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return result
 
 
 def _coordinator_receipt_complete(call: dict[str, Any]) -> bool:
@@ -511,7 +570,7 @@ def _worker_cohesive_replay(artifact_root: pathlib.Path, *, replay_index: pathli
             "run_id": run_id, "prior_run_id": prior_row.get("run_id"), "status": "PASS" if passed else "FAIL",
             "provider_evidence_reused": True, "external_provider_calls": 0,
             "deterministic_replay_invocations": replay_client.replay_invocations,
-            "source_commit": identity["cgkn_source_commit"], "prior_source_commit": prior_row.get("source_commit"),
+            "source_commit": identity["cgnk_source_commit"], "prior_source_commit": prior_row.get("source_commit"),
             "blueprint_hash": blueprint.blueprint_hash, "unit_hash": unit_hash,
             "public_constraints_hash": constraints_hash, "interface_contract_hash": interface_hash,
             "provider_identity": replay_client.identity, "semantic_identity": semantic_checks,
@@ -596,7 +655,7 @@ def _worker_real_unit(
             and call.get("thinking_mode_requested") == call.get("thinking_mode_forwarded") == "disabled"
         )
         row = {
-            "run_id": run_id, "source_commit": identity["cgkn_source_commit"],
+            "run_id": run_id, "source_commit": identity["cgnk_source_commit"],
             "api_lab_commit": receipt.get("api_lab_commit"), "project_id": blueprint.project_id,
             "blueprint_hash": blueprint.blueprint_hash, "unit_id": unit.unit_id,
             "unit_hash": _hash(unit.as_dict()), "unit": unit.as_dict(),
@@ -636,9 +695,118 @@ def _worker_real_unit(
     return result
 
 
+def _worker_cohesive_live(artifact_root: pathlib.Path, *, count: int) -> dict[str, Any]:
+    if count != 2:
+        raise ValueError("worker cohesive live probe requires exactly two independent runs")
+    identity = _source_identity()
+    if not identity["tracked_worktree_clean"]:
+        raise RuntimeError("worker cohesive live probe requires a frozen clean Source Closure")
+    base_client = completion_client_from_environment()
+    if not isinstance(base_client, GatewayCompletionClient):
+        raise RuntimeError("worker cohesive live probe requires the reviewed API Lab Gateway route")
+    runs: list[dict[str, Any]] = []
+    for index in range(1, count + 1):
+        run_id = f"worker-cohesive-live-{index}-{uuid.uuid4().hex[:10]}"
+        workspace = artifact_root / "worker_cohesive_live" / run_id / "workspace"
+        (workspace / "csv_cleaner").mkdir(parents=True, exist_ok=False)
+        (workspace / "csv_cleaner" / "cleaner.py").write_text(
+            "def dedupe_rows(header, rows, column=None):\n"
+            "    index = header.index(column) if column else None\n"
+            "    seen = set(); result = []\n"
+            "    for row in rows:\n"
+            "        key = row[index] if index is not None else tuple(row)\n"
+            "        if key not in seen:\n"
+            "            seen.add(key); result.append(row)\n"
+            "    return result\n\n"
+            "def fill_empty(header, rows, value):\n"
+            "    return [[value if item == '' else item for item in row] for row in rows]\n",
+            encoding="utf-8",
+        )
+        (workspace / "csv_cleaner" / "cli.py").write_text(
+            "def main(argv=None):\n    return 0\n", encoding="utf-8",
+        )
+        unit = BlueprintUnit(
+            "tests", "public CSV cleaner tests", "tests",
+            ("tests/test_cleaner.py", "tests/test_cli.py"),
+            reads=("csv_cleaner/cleaner.py", "csv_cleaner/cli.py"),
+            executor_ref="llm.cheap@1",
+            instruction=(
+                "Create cohesive pytest coverage in both owned files. test_cleaner.py covers whole-row and selected-column "
+                "dedupe plus fill_empty. test_cli.py covers the public main(argv) entrypoint. Use only stdlib and pytest."
+            ),
+            required_interfaces=("csv_cleaner.cleaner.dedupe_rows", "csv_cleaner.cleaner.fill_empty", "csv_cleaner.cli.main"),
+            acceptance=("both owned test files are complete and syntactically valid", "tests cover the declared public interfaces"),
+            allowed_effects=("filesystem.read", "filesystem.write"), max_actions=2, max_files=2,
+        )
+        client = base_client.bind_run(run_id, "worker_cohesive_tests_probe", budget_purpose="GENERATION")
+        executor = BlueprintUnitExecutor(workspace, client, _worker_generation_model_config("deepseek"))
+        request = BlockExecutionRequest(
+            project_id="worker_cohesive_tests_probe", run_id=run_id, attempt_id="attempt-1",
+            node_id=unit.unit_id, component_ref="project.unit.tests@1", executor_ref="llm.cheap@1",
+            task_context=TaskContext(
+                unit.instruction, node_config={"unit": unit.as_dict()},
+                dependency_results={"core": {"public_interfaces": list(unit.required_interfaces)}},
+                project_constraints=("stdlib implementation", "offline", "no hidden acceptance access"),
+                acceptance=unit.acceptance,
+            ),
+            timeout_seconds=150, declared_effects=unit.allowed_effects,
+        )
+        started = time.perf_counter()
+        block = executor.execute(request)
+        owned_present = [path for path in unit.owns if (workspace / pathlib.PurePosixPath(path)).is_file()]
+        syntax = block.succeeded and all(
+            subprocess.run(
+                [sys.executable, "-m", "py_compile", str(workspace / pathlib.PurePosixPath(path))],
+                capture_output=True, text=True,
+            ).returncode == 0
+            for path in unit.owns
+        )
+        receipts_complete = bool(executor.calls) and all(_worker_receipt_complete(call) for call in executor.calls)
+        materialization = dict(block.outputs.get("unit_materialization") or {})
+        passed = (
+            block.succeeded and len(executor.calls) <= 2 and len(owned_present) == len(unit.owns)
+            and syntax and receipts_complete and materialization.get("status") == "COMMITTED"
+        )
+        row = materialize_json({
+            "run_id": run_id, "status": "PASS" if passed else "FAIL",
+            "source_commit": identity["cgnk_source_commit"], "unit_id": unit.unit_id,
+            "owns": list(unit.owns), "logical_calls": len(executor.calls),
+            "call_classes": [call.get("call_class") for call in executor.calls],
+            "calls": [
+                {
+                    "call_class": call.get("call_class"), "requested_paths": call.get("requested_paths"),
+                    "returned_paths": call.get("returned_paths"), "missing_paths_after_call": call.get("missing_paths_after_call"),
+                    "staged_paths_before_call": call.get("staged_paths_before_call"), "context_chars": call.get("context_chars"),
+                    "input_tokens": call.get("prompt_tokens"), "output_tokens": call.get("completion_tokens"),
+                    "cached_tokens": call.get("cached_tokens"), "reasoning_tokens": call.get("reasoning_tokens"),
+                    "selection_receipt_hash": call.get("selection_receipt_hash"),
+                }
+                for call in executor.calls
+            ],
+            "file_count": len(owned_present), "files": owned_present,
+            "syntax": "PASS" if syntax else "FAIL", "atomic_commit": materialization.get("status"),
+            "materialization": materialization, "manual_edits": 0,
+            "duration_ms": int((time.perf_counter() - started) * 1000),
+            "block_result": block.as_dict(),
+        })
+        target = artifact_root / "worker_cohesive_live" / f"{run_id}.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(json.dumps(row, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        runs.append(row)
+    passed = all(row["status"] == "PASS" for row in runs)
+    result = {
+        "profile": "worker-cohesive-live", "status": "PASS" if passed else "BLOCKED_WORKER_MATERIALIZATION",
+        "qualification": "2/2" if passed else f"{sum(row['status'] == 'PASS' for row in runs)}/2",
+        "source_identity": identity, "runs": runs,
+    }
+    index = artifact_root / "worker_cohesive_live" / "index.json"
+    index.write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return result
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Run the CGKN minimal ProjectBlueprint MVP profiles")
-    parser.add_argument("--profile", required=True, choices=("unit", "fake-single", "fake-repair", "coordinator-diagnostic", "coordinator-qualify", "worker-file-probe", "worker-patch-probe", "worker-real-unit-diagnostic", "worker-cohesive-qualify", "worker-cohesive-replay", "live-single", "live-repair", "fake-parallel", "fake-conflict", "fake-standup", "live-parallel", "live-repeat", "final"))
+    parser = argparse.ArgumentParser(description="Run the CGNK minimal ProjectBlueprint MVP profiles")
+    parser.add_argument("--profile", required=True, choices=("unit", "unit-materialization", "fake-single", "fake-repair", "coordinator-diagnostic", "coordinator-qualify", "worker-file-probe", "worker-patch-probe", "worker-real-unit-diagnostic", "worker-cohesive-qualify", "worker-cohesive-replay", "worker-cohesive-live", "live-single", "live-repair", "fake-parallel", "fake-conflict", "fake-standup", "live-parallel", "live-repeat", "final"))
     parser.add_argument("--artifact-root", type=pathlib.Path, default=ROOT / ".service_evidence" / "project_mvp")
     parser.add_argument("--count", type=int, default=3)
     parser.add_argument("--provider", default="deepseek")
@@ -649,6 +817,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.profile in PHASE_B_PROFILES:
         result = {"profile": args.profile, "status": "BLOCKED_BY_PHASE_A", "reason": "PHASE B may start only after the complete PHASE A gate passes"}
     elif args.profile == "unit": result = _run_pytest("")
+    elif args.profile == "unit-materialization": result = _run_pytest("materialization or continuation")
     elif args.profile == "fake-single": result = _run_pytest("fake_greenfield")
     elif args.profile == "fake-repair": result = _run_pytest("fake_repair")
     elif args.profile == "coordinator-diagnostic": result = _coordinator_qualify(args.artifact_root.resolve(), count=1, provider=args.provider, diagnostic=True)
@@ -666,7 +835,10 @@ def main(argv: list[str] | None = None) -> int:
         if args.replay_index is None:
             raise ValueError("worker cohesive replay requires --replay-index")
         result = _worker_cohesive_replay(args.artifact_root.resolve(), replay_index=args.replay_index.resolve())
+    elif args.profile == "worker-cohesive-live":
+        result = _worker_cohesive_live(args.artifact_root.resolve(), count=args.count)
     elif args.profile in {"live-single", "live-repair"}: result = _live(args.profile, args.artifact_root.resolve())
+    elif args.profile == "live-repeat": result = _live_repeat(args.artifact_root.resolve(), count=args.count)
     else:
         result = {"profile": "final", "status": "NOT_READY", "reason": "run the ordered PHASE A and PHASE B profiles first"}
     print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) if args.json else f"{args.profile}: {result.get('status', 'UNKNOWN')}")

@@ -3,7 +3,7 @@ import os
 import pytest
 
 from cgkn.application.software_project.contracts import WorkerScope
-from cgkn.application.software_project.scope import ScopeViolation, ScopedFileTransaction
+from cgkn.application.software_project.scope import CommitFailure, ScopeViolation, ScopedFileTransaction
 from cgkn.application.software_project.service import SoftwareProjectGenerationService
 
 
@@ -66,10 +66,12 @@ def test_scoped_transaction_rolls_back_partial_replace(tmp_path, monkeypatch):
         if calls == 2: raise OSError("injected")
         return real(source, target)
     monkeypatch.setattr(os, "replace", fail_second)
-    with pytest.raises(OSError, match="injected"):
+    with pytest.raises(CommitFailure, match="rollback restored") as captured:
         tx.apply([{"action": "write_file", "path": "a.py", "content": "new-a"}, {"action": "write_file", "path": "b.py", "content": "new-b"}])
+    assert captured.value.rollback_succeeded is True
     assert (tmp_path / "a.py").read_text(encoding="utf-8") == "old-a"
     assert (tmp_path / "b.py").read_text(encoding="utf-8") == "old-b"
+    assert not list(tmp_path.glob("*.cgnk-stage"))
 
 
 @pytest.mark.security
