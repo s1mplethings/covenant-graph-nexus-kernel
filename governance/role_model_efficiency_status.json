@@ -1,9 +1,10 @@
 {
   "kind": "CGKNRoleModelEfficiencyStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-MATERIALIZATION-FULL-VALIDATION-AND-MODEL-CAPABILITY-037",
-  "source_commit": "d7d9ca4b774044d5915e8f917d578220f3d48e42",
-  "coordinator_qualification": "PASS_3_OF_3",
+  "iteration": "ITER-CGNK-COORDINATOR-RELIABILITY-AND-CAPABILITY-038",
+  "source_commit": "f841f2666392240e52eeaa24a19c2acaa651a380",
+  "coordinator_qualification": "PASS_5_OF_5",
+  "coordinator_provider_reliability": "QUALIFIED",
   "worker_protocol_qualification": true,
   "worker_cohesive_unit_qualification": "PASS_2_OF_2",
   "incremental_materialization_status": "PASS",
@@ -16,12 +17,13 @@
   "worker_generation_thinking_policy": "disabled",
   "worker_repair_thinking_policy": "disabled",
   "acceptance_requirement_mapping": "PASS_TESTED",
-  "acceptance_attribution": "PASS_OFFLINE_NOT_LIVE_EXERCISED",
+  "acceptance_attribution": "PASS_LIVE_EXERCISED",
   "hidden_source_exposed": false,
   "minimal_blueprint_status": "PARTIAL",
-  "real_generation_status": "FAIL_COORDINATOR_ROUTE_AND_FIXED_BUDGET",
+  "real_generation_status": "FAIL_GENERATED_TEST_CONTRACT_CONFLICT_WITHIN_FIXED_BUDGET",
   "real_repair_status": "NOT_EVALUATED",
   "csv_repeatability": "NOT_EVALUATED",
+  "project_budget_convergence": "FAIL",
   "efficiency_experiment_ready": false,
   "blueprint_benefit": "NOT_EVALUATED",
   "role_separation_benefit": "NOT_EVALUATED",
@@ -31,7 +33,7 @@
   "model_capability_evaluation": "NOT_EVALUATED_DUE_PHASE_E_GATE",
   "raw_model_capability": "NOT_EVALUATED",
   "structured_output_capability": "NOT_EVALUATED",
-  "coordinator_capability": "PASS_3_OF_3_RETAINED",
+  "coordinator_capability": "STRONG_5_OF_5",
   "worker_generation_capability": "PASS_2_OF_2",
   "continuation_capability": "PASS_FAKE_NOT_LIVE_EXERCISED",
   "local_repair_capability": "NOT_EVALUATED",
@@ -42,20 +44,20 @@
   "cgnk_context_efficiency_benefit": "NOT_EVALUATED",
   "cgnk_structure_benefit": "NOT_EVALUATED",
   "manual_candidate_edits": 0,
-  "stop_condition": "C_EQUIVALENT_PRE_ACCEPTANCE_PROJECT_FAILURE",
+  "stop_condition": "CSV_SINGLE_GENERATED_TEST_CONTRACT_CONFLICT_AFTER_SIX_FRAMEWORK_REPAIRS",
   "stop_status": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
   "api_lab_dependency": {
-    "commit": "999dff096afe45f058fe67016aee28a73912d5d4",
+    "commit": "7c15f2546ec007cc7e601fa62ae4d88b9ba12f80",
     "contract_version": "1.1",
     "route_mode": "raw_defer",
     "selector_authority": "CGKN",
-    "modified_this_iteration": false
+    "modified_this_iteration": true
   },
   "blockers": [
     {
       "priority": "P0",
       "code": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
-      "detail": "The final frozen-source Worker probe passed 2/2, but the final CSV qualification group could not complete: one Coordinator response failed schema selection and one timed out. Prior diagnostic runs that reached generation remained unsuccessful within the fixed eight-call budget."
+      "detail": "The Qwen Coordinator route is qualified 5/5 after raw-defer thinking control, but the final CSV run failed at 7/8 calls because generated tests encoded a preview convention inconsistent with the normative public contract and bounded owner-local repairs did not reconcile the conflict."
     }
   ]
 }

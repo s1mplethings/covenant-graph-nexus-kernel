@@ -1,18 +1,18 @@
 {
   "kind": "CGKNRoleModelEfficiencyReceipt",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-MATERIALIZATION-FULL-VALIDATION-AND-MODEL-CAPABILITY-037",
-  "source_closure_commit": "d7d9ca4b774044d5915e8f917d578220f3d48e42",
-  "source_tree_sha": "7832a018b941bac9237d05cbad2e07996a5b42c6",
-  "execution_head": "d7d9ca4b774044d5915e8f917d578220f3d48e42",
+  "iteration": "ITER-CGNK-COORDINATOR-RELIABILITY-AND-CAPABILITY-038",
+  "source_closure_commit": "f841f2666392240e52eeaa24a19c2acaa651a380",
+  "source_tree_sha": "b1786c68dfe9b0b957873c7fdda1cbb1915ec572",
+  "execution_head": "ea577628615ff55932ee22ed742535a356dca70c",
   "api_lab_dependency": {
     "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
-    "branch": "codex/deepseek-thinking-control-20261019",
-    "commit": "999dff096afe45f058fe67016aee28a73912d5d4",
+    "branch": "codex/qwen-thinking-control-20261021",
+    "commit": "7c15f2546ec007cc7e601fa62ae4d88b9ba12f80",
     "contract_version": "1.1",
     "route_mode": "raw_defer",
     "selector_authority": "CGKN",
-    "modified_this_iteration": false
+    "modified_this_iteration": true
   },
   "incremental_materialization": {
     "status": "PASS",
@@ -55,41 +55,50 @@
       }
     ]
   },
-  "real_csv_single": {
-    "status": "FAIL_COORDINATOR_ROUTE_AND_FIXED_BUDGET",
-    "final_source_attempts": [
-      {
-        "run_id": "mvp-cli_csv_cleaner-e4288f37bd",
-        "logical_calls": 1,
-        "provider": "qwen",
-        "input_tokens": 335,
-        "output_tokens": 2889,
-        "failure": "PROVIDER_SCHEMA_FAILURE",
-        "evidence": "D:/CGKN/.service_evidence/ITER-CGNK-MATERIALIZATION-FULL-VALIDATION-AND-MODEL-CAPABILITY-037/live-single-source-d7d9ca4/provider_budget.json"
-      },
-      {
-        "run_id": "mvp-cli_csv_cleaner-1e3e978d56",
-        "logical_calls": 1,
-        "provider": "qwen",
-        "input_tokens": null,
-        "output_tokens": null,
-        "usage_status": "UNKNOWN_AFTER_TRANSPORT_FAILURE",
-        "failure": "PROVIDER_TIMEOUT_504",
-        "duration_seconds": 90.5,
-        "evidence": "D:/CGKN/.service_evidence/ITER-CGNK-MATERIALIZATION-FULL-VALIDATION-AND-MODEL-CAPABILITY-037/live-single-source-d7d9ca4-attempt2/provider_budget.json"
-      }
-    ],
-    "diagnostic_execution_result": "FAILED_WITHIN_8_LOGICAL_CALL_BUDGET",
-    "manual_edits": 0,
-    "hidden_acceptance": "NOT_REACHED",
-    "acceptance_attribution": "PASS_OFFLINE_NOT_LIVE_EXERCISED"
+  "coordinator_qualification": {
+    "status": "PASS_5_OF_5",
+    "provider_reliability": "QUALIFIED",
+    "provider": "qwen",
+    "thinking_mode": "disabled",
+    "normalized_signature_count": 1,
+    "unit_count_each": 3,
+    "check_count_each": 4,
+    "transport_attempts_each": 1,
+    "input_tokens_each": 338,
+    "output_tokens": [163, 170, 151, 165, 162],
+    "duration_ms": [4590, 5714, 3006, 3321, 3110],
+    "evidence_root": "D:/CGKN/.service_evidence/ITER-CGNK-COORDINATOR-RELIABILITY-AND-CAPABILITY-038/source_f841f266/coordinator-5of5/coordinator_qualification"
   },
-  "real_seeded_repair": "NOT_EVALUATED_DUE_PHASE_E_GATE",
-  "real_csv_repeatability": "NOT_EVALUATED_DUE_PHASE_E_GATE",
-  "materialization_benchmark": "NOT_EVALUATED_DUE_PHASE_E_GATE",
-  "tier1_efficiency": "NOT_EVALUATED_DUE_PHASE_E_GATE",
-  "formal_server_evaluation": "NOT_EVALUATED_DUE_PHASE_E_GATE",
-  "model_capability_evaluation": "NOT_EVALUATED_DUE_PHASE_E_GATE",
+  "real_csv_single": {
+    "status": "FAIL_GENERATED_TEST_CONTRACT_CONFLICT_WITHIN_FIXED_BUDGET",
+    "run_id": "blueprint-cli_csv_cleaner-2497ea9108",
+    "blueprint_hash": "sha256:c05541e95682d5606682658e6249377d2e4505fc4ec769c369adcbc0028c4215",
+    "logical_calls": 7,
+    "budget_limit": 8,
+    "budget_compliance": true,
+    "calls": {
+      "coordinator_design": 1,
+      "generation": 3,
+      "continuation": 0,
+      "repair": 3
+    },
+    "final_failure": "TEST_FAILURE",
+    "final_owner": "tests-1",
+    "failed_nodes": ["pytest"],
+    "blocked_nodes": ["runtime_smoke", "external_acceptance"],
+    "root_cause": "Generated tests retained a preview-header convention after implementation repair aligned preview with the literal public contract; bounded test-owner repairs did not reconcile the contract conflict.",
+    "evidence": "D:/CGKN/.service_evidence/ITER-CGNK-COORDINATOR-RELIABILITY-AND-CAPABILITY-038/source_f841f266/csv-single-final/blueprint-cli_csv_cleaner-2497ea9108/live-single_receipt.json",
+    "manual_edits": 0,
+    "hidden_acceptance": "REACHED_AND_FAILED_BEFORE_FINAL_PYTEST_FAILURE",
+    "acceptance_attribution": "PASS_LIVE_EXERCISED",
+    "hidden_source_exposed": false
+  },
+  "real_seeded_repair": "NOT_EVALUATED_DUE_CSV_SINGLE_GATE",
+  "real_csv_repeatability": "NOT_EVALUATED_DUE_CSV_SINGLE_GATE",
+  "materialization_benchmark": "NOT_EVALUATED_DUE_CSV_SINGLE_GATE",
+  "tier1_efficiency": "NOT_EVALUATED_DUE_CSV_SINGLE_GATE",
+  "formal_server_evaluation": "NOT_EVALUATED_DUE_CSV_SINGLE_GATE",
+  "model_capability_evaluation": "NOT_EVALUATED_DUE_CSV_SINGLE_GATE",
   "cost_evaluated": false,
   "cost_note": "Official price snapshot was not captured; zero-valued ledger price fields are not treated as zero cost.",
   "security": {
@@ -99,8 +108,8 @@
     "manual_candidate_edits": 0
   },
   "regression": {
-    "targeted_tests": "PASS_107",
-    "application_tests": "PASS_392_SKIP_1",
+    "targeted_tests": "PASS_67",
+    "application_tests": "PASS_394_SKIP_1",
     "kernel_profiles": "PASS",
     "active_repository": "PASS_2584_SKIP_351",
     "live_provider_profile": "BLOCKED_ENVIRONMENT_1_SKIP",
@@ -112,5 +121,5 @@
   "multi_agent_status": "BLOCKED_BY_EFFICIENCY_EXPERIMENT",
   "stop_status": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
   "contains_credentials": false,
-  "receipt_hash": "sha256:d6c3a1cdb677cd3a8bac3dcf07acd4f7244a4169c096c7a574933ea0dc07aae6"
+  "receipt_hash": "sha256:75bcdde222e2779a578be33a5df1e89c84bf65fa216823b44e3aa7595d6e43df"
 }

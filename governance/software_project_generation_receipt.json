@@ -16,14 +16,14 @@
     "source_bound_mock_gateway_e2e": true,
     "provider_network_usage": false
   },
-  "coordinator_qualification": "PASS_WITH_LIMITS",
-  "real_generation_status": "FAIL_COORDINATOR_ROUTE_AND_FIXED_BUDGET",
+  "coordinator_qualification": "PASS_5_OF_5",
+  "real_generation_status": "FAIL_GENERATED_TEST_CONTRACT_CONFLICT_WITHIN_FIXED_BUDGET",
   "real_repair_status": "NOT_EVALUATED",
   "final_run_receipt_hashes": [],
   "exploratory_failure_receipt_hashes": [],
   "kernel_receipt_hash": "sha256:e7227478fbdf9bb87e011e26a7f66c384fb34aa432eebc5593ec84cdefeab8bb",
-  "stop_condition": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
+  "stop_condition": "MINIMAL_BLUEPRINT_NEEDS_REWORK_AFTER_SIX_FRAMEWORK_REPAIRS",
   "no_secret_assertion": true,
   "manual_candidate_edits": 0,
-  "receipt_hash": "sha256:c56de0ec72c8ff3e5d03d67734418b9f1f135b100527017d7bb416f5a7b1f0d1"
+  "receipt_hash": "sha256:3a6d008bd1654978b4a0d9732b85ef9e79c65c1610bc51dc7a17c3badc081fe0"
 }
