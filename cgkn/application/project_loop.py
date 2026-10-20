@@ -600,8 +600,14 @@ class BlueprintUnitExecutor:
                     started_at=started, ended_at=utc_now(), duration_ms=duration,
                 )
             if failure:
+                repair_attempt_number = 1 + sum(
+                    call.get("unit_id") == unit.unit_id and call.get("call_class") == "REPAIR"
+                    for call in self.calls
+                )
                 prompt = {
                     "mode": mode, "project_goal": project_goal,
+                    "normative_public_contract": project_goal,
+                    "repair_attempt_number": repair_attempt_number,
                     "public_constraints": list(request.task_context.project_constraints),
                     "unit": unit.as_dict(), "current_files": sources,
                     "observed_interfaces": {path: item.as_dict() for path, item in manifests.items()},
@@ -613,7 +619,10 @@ class BlueprintUnitExecutor:
                     "You are a bounded unit repair worker. Return exactly one PatchBundle. Touch only unit.owns; "
                     "never change the blueprint, run commands, access hidden acceptance, create evidence, or invent paths. "
                     "Use PatchBundle v2 with one unique files[] object per modified file and one or more ordered edits. "
-                    "Modify only the smallest non-empty subset needed. Preserve every required and observed public interface."
+                    "Modify only the smallest non-empty subset needed. Preserve every required and observed public interface. "
+                    "Treat normative_public_contract as authoritative and generated tests as non-authoritative examples. "
+                    "Compare current files literally against every failed public requirement; on a repeated repair attempt, "
+                    "look for a different remaining contract mismatch instead of repeating an already-applied change."
                 )
                 generated = self.generation.generate(GenerationRequest(
                     task_class="project.codegen", operation=mode, project_id=request.project_id,

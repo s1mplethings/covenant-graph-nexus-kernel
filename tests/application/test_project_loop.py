@@ -202,6 +202,9 @@ def test_fake_repair_preserves_blueprint_and_reruns_only_owner_and_checks(tmp_pa
     assert outcome.summary.actual_executions == ("core", "pytest", "accept")
     assert "return a + b" in (workspace / "math_utils.py").read_text(encoding="utf-8")
     assert all(blueprint.goal in call["user"] for call in client.calls)
+    assert '"normative_public_contract":"repair arithmetic"' in client.calls[1]["user"]
+    assert '"repair_attempt_number":1' in client.calls[1]["user"]
+    assert "generated tests as non-authoritative examples" in client.calls[1]["system"]
 
 
 def test_generation_and_repair_thinking_policies_are_independent(tmp_path: pathlib.Path) -> None:
