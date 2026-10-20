@@ -560,6 +560,22 @@ def test_cross_unit_attribution_uses_evidence_and_never_implementation_fallback(
     test_report = MinimalProjectLoop._failure_report(blueprint, "pytest", test_result, dag, executor)
     assert test_report.owner_unit_id == "tests"
 
+    nested_result = BlockExecutionResult(
+        "p", "r", "nested", "pytest", "local.python-test@1", BlockStatus.FAILED,
+        outputs={"stdout": (
+            "tests/test_csv_cleaner.py:21: in test_missing_input\n"
+            "    read_csv(missing)\n"
+            "csv_cleaner/core.py:14: in read_csv\n"
+            "    raise FileNotFoundError(path)\n"
+            "E   FileNotFoundError: missing.csv\n"
+        )},
+        error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR, "command exited 1"),
+    )
+    nested_report = MinimalProjectLoop._failure_report(blueprint, "pytest", nested_result, dag, executor)
+    assert nested_report.owner_unit_id == "core"
+    assert nested_report.owner_file == "csv_cleaner/core.py"
+    assert nested_report.first_project_frame == "csv_cleaner/core.py:14"
+
     unknown_result = BlockExecutionResult("p", "r", "c", "pytest", "local.python-test@1", BlockStatus.FAILED, error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR, "assertion failed without a project path"))
     unknown_report = MinimalProjectLoop._failure_report(blueprint, "pytest", unknown_result, dag, executor)
     assert unknown_report.owner_unit_id == "" and unknown_report.failure_type == "ATTRIBUTION_UNRESOLVED"

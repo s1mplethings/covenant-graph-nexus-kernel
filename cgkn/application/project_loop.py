@@ -1032,7 +1032,27 @@ class MinimalProjectLoop:
         )
 
     @staticmethod
-    def _owner_from_failure(blueprint: ProjectBlueprint, result: BlockExecutionResult) -> str:
+    def _owned_traceback_frames(
+        blueprint: ProjectBlueprint, result: BlockExecutionResult,
+    ) -> tuple[tuple[int, str, str, str], ...]:
+        observed = (str(result.outputs.get("stderr", "")) + "\n" + str(result.outputs.get("stdout", ""))).replace("\\", "/")
+        matches: list[tuple[int, str, str, str]] = []
+        for frame in re.finditer(r"(?m)([^\r\n]*?\.py):(\d+)", observed):
+            path = frame.group(1).strip().lstrip('> ').replace("\\", "/")
+            for unit in blueprint.units:
+                for owned in unit.owns:
+                    if path == owned or path.endswith("/" + owned):
+                        matches.append((frame.start(), unit.unit_id, owned, f"{owned}:{frame.group(2)}"))
+        return tuple(matches)
+
+    @classmethod
+    def _owner_from_failure(cls, blueprint: ProjectBlueprint, result: BlockExecutionResult) -> str:
+        frames = cls._owned_traceback_frames(blueprint, result)
+        if frames:
+            # Pytest renders the calling test frame before the innermost project
+            # frame. The final owned traceback frame therefore identifies the
+            # narrowest deterministic repair owner.
+            return frames[-1][1]
         text = json.dumps(result.as_dict(), ensure_ascii=False).replace("\\\\", "/").replace("\\", "/")
         matches: list[tuple[int, str]] = []
         for unit in blueprint.units:
@@ -1074,9 +1094,10 @@ class MinimalProjectLoop:
             action = FailureAction.STOP.value
         if failure_type == "RUNTIME_FAILURE":
             failure_type = "SYNTAX_ERROR" if "SyntaxError" in message else "IMPORT_ERROR" if "ImportError" in message or "ModuleNotFoundError" in message else "NAME_ERROR" if "NameError" in message else failure_type
-        match = re.search(r'([^\s"\']+\.py):(\d+)', message + "\n" + observed)
-        frame = match.group(0) if match else ""
-        owner_file = frame.rsplit(":", 1)[0] if frame else ""
+        owned_frames = cls._owned_traceback_frames(blueprint, result)
+        selected_frame = next((item for item in reversed(owned_frames) if item[1] == owner), None)
+        frame = selected_frame[3] if selected_frame else ""
+        owner_file = selected_frame[2] if selected_frame else ""
         affected = downstream_closure(dag, {owner}) if owner else ()
         suggestion = "retry generation for the same unit with failure context" if action == FailureAction.RETRY_GENERATION.value else "patch the owner unit while preserving observed interfaces" if action == FailureAction.REPAIR_EXISTING.value else "stop fail-closed; attribution is unresolved"
         return FailureReport(origin, failure_type, failure_stage=stage, owner_unit_id=owner, recovery_action=action, materialized_baseline=baseline, owner_file=owner_file, first_project_frame=frame, failed_check=failed_check, expected="check exit code 0", observed=message[:2000], affected_units=affected, suggested_action=suggestion, evidence_refs=(f"node_results/{failed_check}.json",))
