@@ -1,8 +1,8 @@
 {
   "kind": "CGKNKernelCoverageReport",
   "schema_version": "2.0",
-  "source_commit": "5f909d3026ad134c98f7a98354df25cc2b8d4206",
-  "source_tree_sha": "e849294f5f3f76c6b6f97b9455e350a5aec35b47",
+  "source_commit": "d7d9ca4b774044d5915e8f917d578220f3d48e42",
+  "source_tree_sha": "7832a018b941bac9237d05cbad2e07996a5b42c6",
   "core_source_hash": "sha256:73bcc06202bff23ee061182dd31785029609a147247fee1c0ea8c4f0a6c930c5",
   "command": "coverage run --branch --source=cgkn -m pytest -q (bootstrap excluding two receipt-cycle tests)",
   "pytest_result": {

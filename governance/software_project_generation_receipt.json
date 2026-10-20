@@ -1,15 +1,15 @@
 {
   "kind": "CGKNSoftwareProjectGenerationReceipt",
   "schema_version": "1.0",
-  "source_commit": "2900611ee5960d4650aa9cecd5b3e3fe48f87327",
-  "source_tree_sha": "a1aafda04beadc5f0ea2406ff943aff8f4f97f0c",
+  "source_commit": "d7d9ca4b774044d5915e8f917d578220f3d48e42",
+  "source_tree_sha": "7832a018b941bac9237d05cbad2e07996a5b42c6",
   "suite_result": "PASS_WITH_LIMITS",
   "formal_final_suite": "NOT_EVALUATED",
   "generation_readiness": "GENERATION_LEVEL_2",
   "bundle_status": "PARTIAL",
   "application_validation": {
     "command": "python -m pytest -q tests/application",
-    "passed": 390,
+    "passed": 392,
     "failed": 0,
     "errors": 0,
     "skipped": 1,
@@ -17,13 +17,13 @@
     "provider_network_usage": false
   },
   "coordinator_qualification": "PASS_WITH_LIMITS",
-  "real_generation_status": "NOT_EVALUATED",
+  "real_generation_status": "FAIL_COORDINATOR_ROUTE_AND_FIXED_BUDGET",
   "real_repair_status": "NOT_EVALUATED",
   "final_run_receipt_hashes": [],
   "exploratory_failure_receipt_hashes": [],
-  "kernel_receipt_hash": "sha256:31f651063be7456a508aa32a2197613a89941eac9a33ab7e6524643571ec74de",
-  "stop_condition": "B",
+  "kernel_receipt_hash": "sha256:9417888f1f82c49a883d632e873f1acd02d070702b1f738ad9109dc43f132727",
+  "stop_condition": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
   "no_secret_assertion": true,
   "manual_candidate_edits": 0,
-  "receipt_hash": "sha256:89ec27245f3fdb28fb397e1c57ed85b6a1fc80923bf379267f6b6893081038d9"
+  "receipt_hash": "sha256:d0eba3390d15ae9f88d72cdb66ff4bcc71aa622982ca097fbd35d578c87abf29"
 }
