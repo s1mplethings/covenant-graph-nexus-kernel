@@ -42,12 +42,12 @@ MINIMAL_BLUEPRINT_DESIGN_SCHEMA: dict[str, Any] = {
                     "purpose": {"type": "string", "minLength": 1},
                     "owns": {
                         "type": "array", "minItems": 1, "maxItems": 5,
-                        "uniqueItems": True, "items": {"type": "string"},
+                        "items": {"type": "string"},
                     },
-                    "reads": {"type": "array", "uniqueItems": True, "items": {"type": "string"}},
-                    "depends_on": {"type": "array", "uniqueItems": True, "items": {"type": "string"}},
+                    "reads": {"type": "array", "items": {"type": "string"}},
+                    "depends_on": {"type": "array", "items": {"type": "string"}},
                     "instruction": {"type": "string", "minLength": 1},
-                    "required_interfaces": {"type": "array", "uniqueItems": True, "items": {"type": "string"}},
+                    "required_interfaces": {"type": "array", "items": {"type": "string"}},
                     "acceptance": {"type": "array", "minItems": 1, "items": {"type": "string"}},
                 },
             },
@@ -135,12 +135,16 @@ class MinimalBlueprintUnitDesign:
             raise ValueError("minimal unit requires one to five owned paths and acceptance")
         owns = tuple(_safe_path(item) for item in self.owns)
         reads = tuple(_safe_path(item) for item in self.reads)
-        if len(set(owns)) != len(owns) or len(set(reads)) != len(reads):
-            raise ValueError("minimal unit paths must be unique")
+        depends_on = tuple(str(item) for item in self.depends_on)
+        required_interfaces = tuple(str(item) for item in self.required_interfaces)
+        if any(len(set(values)) != len(values) for values in (owns, reads, depends_on, required_interfaces)):
+            raise ValueError("minimal unit paths, dependencies, and interfaces must be unique")
         if set(owns) & set(reads):
             raise ValueError("minimal unit reads and owns must not overlap")
         object.__setattr__(self, "owns", owns)
         object.__setattr__(self, "reads", reads)
+        object.__setattr__(self, "depends_on", depends_on)
+        object.__setattr__(self, "required_interfaces", required_interfaces)
 
     def as_dict(self) -> dict[str, Any]:
         return {
