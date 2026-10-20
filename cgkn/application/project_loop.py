@@ -297,6 +297,7 @@ def compile_blueprint(blueprint: ProjectBlueprint, *, case_id: str = "") -> Capa
         }[unit.kind]
         config: dict[str, Any] = {
             "executor_ref": unit.executor_ref, "goal": unit.instruction or unit.purpose,
+            "project_goal": blueprint.goal,
             "unit": unit.as_dict(), "acceptance": list(unit.acceptance), "effects": list(unit.allowed_effects),
             "timeout_seconds": unit.timeout_seconds,
         }
@@ -577,6 +578,7 @@ class BlueprintUnitExecutor:
             failure = stored_failure if has_patchable_baseline else None
             mode = "REPAIR" if failure else "EXECUTE"
             effective_config = self.repair_config if failure else self.config
+            project_goal = str(request.task_context.node_config.get("project_goal") or request.task_context.node_goal)
             if has_patchable_baseline and stored_failure is None and generation_failure is None:
                 reused_manifests = _manifests({path: sources[path] for path in unit.owns})
                 duration = max(0, int((time.perf_counter() - clock) * 1000))
@@ -599,7 +601,7 @@ class BlueprintUnitExecutor:
                 )
             if failure:
                 prompt = {
-                    "mode": mode, "project_goal": request.task_context.node_goal,
+                    "mode": mode, "project_goal": project_goal,
                     "public_constraints": list(request.task_context.project_constraints),
                     "unit": unit.as_dict(), "current_files": sources,
                     "observed_interfaces": {path: item.as_dict() for path, item in manifests.items()},
@@ -677,7 +679,7 @@ class BlueprintUnitExecutor:
                 staged_interfaces = _manifests(materialization.staged_files)
                 staged_sibling_context = {path: materialization.staged_files[path] for path in staged_paths}
                 prompt = {
-                    "mode": "EXECUTE", "project_goal": request.task_context.node_goal,
+                    "mode": "EXECUTE", "project_goal": project_goal,
                     "public_constraints": list(request.task_context.project_constraints),
                     "unit": {
                         "unit_id": unit.unit_id, "kind": unit.kind,

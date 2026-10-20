@@ -186,6 +186,7 @@ def test_fake_greenfield_runs_real_filesystem_pytest_and_hidden_acceptance(tmp_p
     assert outcome.status == "SUCCEEDED"
     assert outcome.provider_calls == 3 and outcome.repair_rounds == 0
     assert (workspace / "csv_cleaner/core.py").is_file()
+    assert all(_csv_blueprint().goal in call["user"] for call in client.calls)
 
 
 def test_fake_repair_preserves_blueprint_and_reruns_only_owner_and_checks(tmp_path: pathlib.Path) -> None:
@@ -200,6 +201,7 @@ def test_fake_repair_preserves_blueprint_and_reruns_only_owner_and_checks(tmp_pa
     assert outcome.failure_reports[0].unit_id == "core"
     assert outcome.summary.actual_executions == ("core", "pytest", "accept")
     assert "return a + b" in (workspace / "math_utils.py").read_text(encoding="utf-8")
+    assert all(blueprint.goal in call["user"] for call in client.calls)
 
 
 def test_generation_and_repair_thinking_policies_are_independent(tmp_path: pathlib.Path) -> None:
