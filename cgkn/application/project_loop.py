@@ -1254,6 +1254,18 @@ class MinimalProjectLoop:
                     matches.append((min(positions), unit.unit_id))
         return min(matches)[1] if matches else ""
 
+    @classmethod
+    def _pytest_owner_from_failure(cls, blueprint: ProjectBlueprint, result: BlockExecutionResult) -> str:
+        frames = cls._owned_traceback_frames(blueprint, result)
+        implementation_frames = [
+            frame for frame in frames
+            if blueprint.by_id.get(frame[1]) is not None
+            and blueprint.by_id[frame[1]].kind == UnitKind.IMPLEMENTATION.value
+        ]
+        if implementation_frames:
+            return implementation_frames[-1][1]
+        return cls._owner_from_failure(blueprint, result)
+
     @staticmethod
     def _public_failure_summary(result: BlockExecutionResult) -> str:
         """Project actionable public-check facts without forwarding a traceback."""
@@ -1291,7 +1303,11 @@ class MinimalProjectLoop:
         if failed_check in blueprint.by_id and stage in local_stages:
             owner = failed_check
         else:
-            owner = owner_hint or cls._owner_from_failure(blueprint, result)
+            owner = owner_hint or (
+                cls._pytest_owner_from_failure(blueprint, result)
+                if failed_check == "pytest"
+                else cls._owner_from_failure(blueprint, result)
+            )
         baseline = bool(owner and worker.has_materialized_baseline(owner))
         if not owner:
             failure_type = "ATTRIBUTION_UNRESOLVED"

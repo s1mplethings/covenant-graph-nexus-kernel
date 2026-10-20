@@ -757,6 +757,23 @@ def test_cross_unit_attribution_uses_evidence_and_never_implementation_fallback(
     assert "hidden_like_source_line" not in summarized_report.observed
     assert "command exited 1" not in summarized_report.observed
 
+    mixed_result = BlockExecutionResult(
+        "p", "r", "mixed", "pytest", "local.python-test@1", BlockStatus.FAILED,
+        outputs={"stdout": (
+            "tests/test_csv_cleaner.py:20: in test_cli\n"
+            "csv_cleaner/core.py:12: in clean_rows\n"
+            "E   ValueError: public operation failed\n"
+            "tests/test_csv_cleaner.py:40: in test_later_assertion\n"
+            "E   AssertionError: later generated test also failed\n"
+            "FAILED tests/test_csv_cleaner.py::test_cli - ValueError\n"
+            "FAILED tests/test_csv_cleaner.py::test_later_assertion - AssertionError\n"
+        )},
+        error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR, "command exited 1"),
+    )
+    mixed_report = MinimalProjectLoop._failure_report(blueprint, "pytest", mixed_result, dag, executor)
+    assert mixed_report.owner_unit_id == "core"
+    assert mixed_report.owner_file == "csv_cleaner/core.py"
+
     unknown_result = BlockExecutionResult("p", "r", "c", "pytest", "local.python-test@1", BlockStatus.FAILED, error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR, "assertion failed without a project path"))
     unknown_report = MinimalProjectLoop._failure_report(blueprint, "pytest", unknown_result, dag, executor)
     assert unknown_report.owner_unit_id == "" and unknown_report.failure_type == "ATTRIBUTION_UNRESOLVED"
