@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from cgkn.application.project_blueprint import BlueprintUnit, FailureAction, FailureReport, FailureStage, ProjectBlueprint
+from cgkn.application.materialization import materialize_json
 from cgkn.application.project_loop import BlueprintUnitExecutor, MinimalProjectLoop
 from cgkn.application.software_project.catalog import get_case
 from cgkn.execution import BlockExecutionRequest, TaskContext
@@ -730,7 +731,7 @@ def _worker_cohesive_live(artifact_root: pathlib.Path, *, count: int) -> dict[st
             "syntax": "PASS" if syntax else "FAIL", "atomic_commit": materialization.get("status"),
             "materialization": materialization, "manual_edits": 0,
             "duration_ms": int((time.perf_counter() - started) * 1000),
-            "block_result": block.as_dict(),
+            "block_result": materialize_json(block.as_dict()),
         }
         target = artifact_root / "worker_cohesive_live" / f"{run_id}.json"
         target.parent.mkdir(parents=True, exist_ok=True)
