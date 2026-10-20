@@ -56,7 +56,7 @@ def main():
         print(str(exc), file=sys.stderr)
         return 2
     if args.preview is not None:
-        csv.writer(sys.stdout, lineterminator="\\n").writerows([header, *rows[:args.preview]])
+        csv.writer(sys.stdout, lineterminator="\\n").writerows(rows[:args.preview])
     return 0
 
 if __name__ == "__main__":

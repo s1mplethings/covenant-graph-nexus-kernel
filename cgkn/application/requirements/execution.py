@@ -31,6 +31,14 @@ class _ScopeAdapter:
     allow_patch: bool = True
     allow_delete: bool = False
 
+    @property
+    def visible_paths(self) -> tuple[str, ...]:
+        return self.allowed_paths
+
+    @property
+    def writable_paths(self) -> tuple[str, ...]:
+        return self.target_paths
+
 
 def validate_dependency_actions(root: pathlib.Path, actions: list[Mapping[str, Any]], policy: DependencyPolicy) -> None:
     project_modules = {path.name for path in root.iterdir()} if root.exists() else set()

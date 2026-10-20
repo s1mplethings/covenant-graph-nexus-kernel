@@ -325,6 +325,9 @@ def test_incremental_materialization_two_slices_commits_atomically(tmp_path: pat
     assert executor.calls[0]["unit_result"] == "PARTIAL_VALID_OUTPUT"
     assert executor.calls[1]["requested_paths"] == ["pkg/c.py"]
     assert result.outputs["unit_materialization"]["status"] == "COMMITTED"
+    assert [row["status"] for row in result.outputs["unit_materialization"]["transitions"]] == [
+        "EMPTY", "PARTIAL", "COMPLETE", "VALIDATED", "COMMITTED",
+    ]
     assert all((tmp_path / path).is_file() for path in unit.owns)
     assert len(client.calls) == 2
 

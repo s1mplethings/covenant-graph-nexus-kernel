@@ -521,6 +521,7 @@ class BlueprintUnitExecutor:
                 return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.SUCCEEDED, outputs=outputs, started_at=started, ended_at=utc_now(), duration_ms=unit_result.duration, usage=usage)
 
             materialization = UnitMaterializationState(unit.unit_id, unit.owns)
+            materialization.record("EMPTY")
             prior_calls = self.materialization_call_counts.get(unit.unit_id, 0)
             last_summary = ""
             while materialization.missing_paths:
