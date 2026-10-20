@@ -138,17 +138,19 @@ def _live(profile: str, artifact_root: pathlib.Path) -> dict[str, Any]:
     outcome = loop.run(blueprint, workspace, case_id=case_id, initial_failure=initial_failure)
     worker_calls = list(json.loads((outcome.run_root / "provider_calls.json").read_text(encoding="utf-8")).get("calls") or ())
     coordinator_calls = list(loop.coordinator_calls)
+    attribution_calls = list(loop.attribution_calls)
     generations = [call for call in worker_calls if call.get("call_class") == "GENERATION"]
     generation_retries = [call for call in worker_calls if call.get("call_class") == "GENERATION_RETRY"]
     repairs = [call for call in worker_calls if call.get("call_class") == "REPAIR"]
     ledger = {
-        "coordinator": _summarize_calls(coordinator_calls),
+        "coordinator_design": _summarize_calls(coordinator_calls),
+        "coordinator_attribution": _summarize_calls(attribution_calls),
         "generation": _summarize_calls(generations),
         "generation_retry": _summarize_calls(generation_retries),
         "repair": _summarize_calls(repairs),
-        "calls": {"coordinator": coordinator_calls, "worker": worker_calls},
+        "calls": {"coordinator_design": coordinator_calls, "coordinator_attribution": attribution_calls, "worker": worker_calls},
     }
-    value = outcome.as_dict() | {"agent_decisions": decisions, "manual_edits": 0, "profile": profile, "provider_ledger": ledger}
+    value = outcome.as_dict() | {"agent_decisions": decisions + len(attribution_calls), "design_calls": decisions, "attribution_calls": len(attribution_calls), "total_logical_calls": decisions + outcome.provider_calls, "manual_edits": 0, "profile": profile, "provider_ledger": ledger}
     target = outcome.run_root / f"{profile}_receipt.json"; target.write_text(json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return value
 

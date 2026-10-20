@@ -1,0 +1,12 @@
+{
+  "schema_version": "1.0",
+  "case_id": "seeded_repair",
+  "tests": {
+    "test_seeded_repair.py::test_hidden_arithmetic_and_public_suite": [
+      "public-requirement-1",
+      "public-requirement-2",
+      "public-requirement-3",
+      "public-requirement-4"
+    ]
+  }
+}

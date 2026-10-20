@@ -1,0 +1,9 @@
+{
+  "schema_version": "1.0",
+  "case_id": "local_json_notes",
+  "tests": {
+    "test_local_json_notes.py::test_hidden_stateful_contract": ["public-requirement-1", "public-requirement-2", "public-requirement-3", "public-requirement-4"],
+    "test_local_json_notes.py::test_hidden_errors_and_help": ["public-requirement-4"],
+    "test_local_json_notes.py::test_hidden_assets_and_boundaries": ["public-requirement-5"]
+  }
+}

@@ -610,16 +610,19 @@ class UnitResult:
 
 @dataclass(frozen=True)
 class FailureReport:
-    origin_unit_id: str; failure_type: str; failure_stage: str = FailureStage.UNKNOWN.value; owner_unit_id: str = ""; recovery_action: str = FailureAction.STOP.value; materialized_baseline: bool = False; owner_file: str = ""; owner_interface: str = ""; first_project_frame: str = ""; failed_check: str = ""; expected: str = ""; observed: str = ""; affected_units: tuple[str, ...] = (); suggested_action: str = ""; evidence_refs: tuple[str, ...] = (); failure_hash: str = ""
+    origin_unit_id: str; failure_type: str; failure_stage: str = FailureStage.UNKNOWN.value; owner_unit_id: str = ""; recovery_action: str = FailureAction.STOP.value; materialized_baseline: bool = False; owner_file: str = ""; owner_interface: str = ""; first_project_frame: str = ""; failed_check: str = ""; expected: str = ""; observed: str = ""; affected_units: tuple[str, ...] = (); suggested_action: str = ""; evidence_refs: tuple[str, ...] = (); failed_requirement_ids: tuple[str, ...] = (); public_requirement_summaries: tuple[tuple[str, str], ...] = (); requirement_manifest_hash: str = ""; mapping_complete: bool = False; candidate_owner_unit_ids: tuple[str, ...] = (); attribution_source: str = ""; attribution_status: str = ""; failure_hash: str = ""
 
     def __post_init__(self) -> None:
-        allowed = {"SYNTAX_ERROR", "IMPORT_ERROR", "NAME_ERROR", "INTERFACE_MISMATCH", "TEST_FAILURE", "RUNTIME_FAILURE", "SCOPE_VIOLATION", "PROVIDER_FAILURE", "UNIT_OUTPUT_INCOMPLETE", "UNIT_OUTPUT_SCOPE_VIOLATION", "UNIT_OUTPUT_INVALID", "ATTRIBUTION_UNRESOLVED", "REPAIR_WITHOUT_BASELINE", "UNKNOWN"}
+        allowed = {"SYNTAX_ERROR", "IMPORT_ERROR", "NAME_ERROR", "INTERFACE_MISMATCH", "TEST_FAILURE", "RUNTIME_FAILURE", "ACCEPTANCE_FAILURE", "HARNESS_ATTRIBUTION_UNAVAILABLE", "SCOPE_VIOLATION", "PROVIDER_FAILURE", "UNIT_OUTPUT_INCOMPLETE", "UNIT_OUTPUT_SCOPE_VIOLATION", "UNIT_OUTPUT_INVALID", "ATTRIBUTION_UNRESOLVED", "REPAIR_WITHOUT_BASELINE", "UNKNOWN"}
         if self.failure_type not in allowed: raise ValueError("invalid failure type")
         if self.failure_stage not in {item.value for item in FailureStage}: raise ValueError("invalid failure stage")
         if self.recovery_action not in {item.value for item in FailureAction}: raise ValueError("invalid failure action")
         if not self.origin_unit_id: raise ValueError("failure origin is required")
         if self.recovery_action != FailureAction.STOP.value and not self.owner_unit_id: raise ValueError("recoverable failure requires an owner")
         if self.recovery_action == FailureAction.REPAIR_EXISTING.value and not self.materialized_baseline: raise ValueError("REPAIR_WITHOUT_BASELINE")
+        if self.attribution_status not in {"", "RESOLVED", "UNRESOLVED", "UNAVAILABLE"}: raise ValueError("invalid attribution status")
+        if self.failure_type == "ACCEPTANCE_FAILURE" and not self.failed_requirement_ids: raise ValueError("acceptance failure requires public requirement evidence")
+        if self.failure_stage == FailureStage.ACCEPTANCE.value and self.recovery_action == FailureAction.REPAIR_EXISTING.value and self.attribution_status != "RESOLVED": raise ValueError("acceptance repair requires resolved attribution")
         expected = _hash(self.as_dict(include_hash=False))
         if self.failure_hash and self.failure_hash != expected: raise ValueError("failure hash mismatch")
         object.__setattr__(self, "failure_hash", expected)
@@ -630,7 +633,7 @@ class FailureReport:
         return self.owner_unit_id or self.origin_unit_id
 
     def as_dict(self, *, include_hash: bool = True) -> dict[str, Any]:
-        value = {"unit_id": self.unit_id, "origin_unit_id": self.origin_unit_id, "owner_unit_id": self.owner_unit_id or None, "failure_stage": self.failure_stage, "failure_type": self.failure_type, "recovery_action": self.recovery_action, "materialized_baseline": self.materialized_baseline, "owner_file": self.owner_file, "owner_interface": self.owner_interface, "first_project_frame": self.first_project_frame, "failed_check": self.failed_check, "expected": self.expected, "observed": self.observed, "affected_units": list(self.affected_units), "suggested_action": self.suggested_action, "evidence_refs": list(self.evidence_refs)}
+        value = {"unit_id": self.unit_id, "origin_unit_id": self.origin_unit_id, "owner_unit_id": self.owner_unit_id or None, "failure_stage": self.failure_stage, "failure_type": self.failure_type, "recovery_action": self.recovery_action, "materialized_baseline": self.materialized_baseline, "owner_file": self.owner_file, "owner_interface": self.owner_interface, "first_project_frame": self.first_project_frame, "failed_check": self.failed_check, "expected": self.expected, "observed": self.observed, "affected_units": list(self.affected_units), "suggested_action": self.suggested_action, "evidence_refs": list(self.evidence_refs), "failed_requirement_ids": list(self.failed_requirement_ids), "public_requirement_summaries": dict(self.public_requirement_summaries), "requirement_manifest_hash": self.requirement_manifest_hash, "mapping_complete": self.mapping_complete, "candidate_owner_unit_ids": list(self.candidate_owner_unit_ids), "attribution_source": self.attribution_source, "attribution_status": self.attribution_status}
         return value | ({"failure_hash": self.failure_hash} if include_hash else {})
 
 

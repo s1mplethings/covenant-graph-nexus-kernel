@@ -23,6 +23,7 @@ class FailureClass(str, Enum):
     PROJECT_FAILURE = "PROJECT_FAILURE"
     ENVIRONMENT_BLOCKED = "ENVIRONMENT_BLOCKED"
     HARNESS_FAILURE = "HARNESS_FAILURE"
+    HARNESS_ATTRIBUTION_UNAVAILABLE = "HARNESS_ATTRIBUTION_UNAVAILABLE"
     TIMEOUT = "TIMEOUT"
     SECURITY_BLOCK = "SECURITY_BLOCK"
     CONTRACT_FAILURE = "CONTRACT_FAILURE"
@@ -98,6 +99,9 @@ class AcceptanceResult:
     failure_class: FailureClass | None
     sanitized_summary: str
     failed_requirement_ids: tuple[str, ...] = ()
+    public_requirement_summaries: Mapping[str, str] = field(default_factory=dict)
+    requirement_manifest_hash: str = ""
+    mapping_complete: bool = False
     return_codes: tuple[int, ...] = ()
     stdout_tail: str = ""
     stderr_tail: str = ""
@@ -113,6 +117,9 @@ class AcceptanceResult:
             "failure_class": self.failure_class.value if self.failure_class else None,
             "sanitized_summary": self.sanitized_summary,
             "failed_requirement_ids": list(self.failed_requirement_ids),
+            "public_requirement_summaries": dict(self.public_requirement_summaries),
+            "requirement_manifest_hash": self.requirement_manifest_hash,
+            "mapping_complete": self.mapping_complete,
             "return_codes": list(self.return_codes),
             "stdout_tail": self.stdout_tail,
             "stderr_tail": self.stderr_tail,

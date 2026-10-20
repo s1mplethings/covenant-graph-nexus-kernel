@@ -59,6 +59,28 @@ PATCH_BUNDLE_SCHEMA: dict[str, Any] = {"oneOf": [
     _ESCALATION_SCHEMA,
 ]}
 UNIT_PAYLOAD_SCHEMA = {"oneOf": [FILE_BUNDLE_SCHEMA["oneOf"][0], PATCH_BUNDLE_SCHEMA["oneOf"][0]]}
+ACCEPTANCE_ATTRIBUTION_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["schema_version", "decisions"],
+    "properties": {
+        "schema_version": {"const": "1.0"},
+        "decisions": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["requirement_id", "owner_unit_id", "action"],
+                "properties": {
+                    "requirement_id": {"type": "string", "minLength": 1},
+                    "owner_unit_id": {"type": "string"},
+                    "action": {"enum": ["REPAIR_EXISTING", "STOP"]},
+                },
+            },
+        },
+    },
+}
 
 
 class UnitOutputValidationError(ValueError):
@@ -171,6 +193,144 @@ class ProviderBlueprintDesigner:
         })
         value = parse_json_object(generated.completion.text)
         return MinimalBlueprintDesignPayload.from_dict(value)
+
+
+@dataclass(frozen=True)
+class AcceptanceAttributionDecision:
+    requirement_id: str
+    owner_unit_id: str
+    action: str
+
+    @classmethod
+    def from_dict(cls, value: Mapping[str, Any]) -> "AcceptanceAttributionDecision":
+        if set(value) != {"requirement_id", "owner_unit_id", "action"}:
+            raise ValueError("invalid acceptance attribution decision")
+        decision = cls(str(value["requirement_id"]), str(value["owner_unit_id"]), str(value["action"]))
+        if not decision.requirement_id or decision.action not in {FailureAction.REPAIR_EXISTING.value, FailureAction.STOP.value}:
+            raise ValueError("invalid acceptance attribution decision")
+        if decision.action == FailureAction.REPAIR_EXISTING.value and not decision.owner_unit_id:
+            raise ValueError("repair attribution requires an owner")
+        if decision.action == FailureAction.STOP.value and decision.owner_unit_id:
+            raise ValueError("STOP attribution cannot name an owner")
+        return decision
+
+
+class AcceptanceAttributor(Protocol):
+    calls: list[dict[str, Any]]
+
+    def attribute(
+        self, *, project_id: str, public_goal: str,
+        failed_requirement_ids: tuple[str, ...], public_requirement_summaries: Mapping[str, str],
+        blueprint: ProjectBlueprint, candidate_owner_unit_ids: tuple[str, ...],
+        observed_public_interfaces: Mapping[str, Any], run_id: str,
+    ) -> tuple[AcceptanceAttributionDecision, ...]: ...
+
+
+class ProviderAcceptanceAttributor:
+    """Bounded project-level decision over public contract facts only."""
+
+    def __init__(self, client: ProductionGenerationClient, config: ModelRoleConfig):
+        if config.role != "agent":
+            raise ValueError("acceptance attributor requires agent role")
+        self.generation = client
+        self.config = replace(
+            config, task_class="project.attribution", operation="ACCEPTANCE_ATTRIBUTION",
+            max_output_tokens=min(config.max_output_tokens, 1200), reasoning_effort="none",
+            thinking_mode="disabled",
+        )
+        self.calls: list[dict[str, Any]] = []
+
+    def attribute(
+        self, *, project_id: str, public_goal: str,
+        failed_requirement_ids: tuple[str, ...], public_requirement_summaries: Mapping[str, str],
+        blueprint: ProjectBlueprint, candidate_owner_unit_ids: tuple[str, ...],
+        observed_public_interfaces: Mapping[str, Any], run_id: str,
+    ) -> tuple[AcceptanceAttributionDecision, ...]:
+        prompt = {
+            "public_goal": public_goal,
+            "failed_requirements": [
+                {"requirement_id": requirement_id, "summary": public_requirement_summaries[requirement_id]}
+                for requirement_id in failed_requirement_ids
+            ],
+            "units": [
+                {
+                    "unit_id": unit.unit_id, "kind": unit.kind, "purpose": unit.purpose,
+                    "owns": list(unit.owns), "required_interfaces": list(unit.required_interfaces),
+                    "acceptance": list(unit.acceptance),
+                }
+                for unit in blueprint.units
+            ],
+            "deterministic_candidate_owner_unit_ids": list(candidate_owner_unit_ids),
+            "observed_public_interfaces": dict(observed_public_interfaces),
+        }
+        started = time.perf_counter()
+        try:
+            generated = self.generation.generate(GenerationRequest(
+                task_class="project.attribution", operation="ACCEPTANCE_ATTRIBUTION",
+                project_id=project_id, capability_ref="project.acceptance.attribution@1",
+                provider_id=self.config.model,
+                system=(
+                    "You are the existing project coordinator in bounded ATTRIBUTION mode. "
+                    "Return only the requested attribution object. For every failed public requirement, "
+                    "choose REPAIR_EXISTING with one existing Unit ID only when that Unit owns the public "
+                    "contract responsibility; otherwise choose STOP with an empty owner. Do not modify the "
+                    "Blueprint, write source code, run commands, or infer any hidden test detail."
+                ),
+                goal=prompt, contract={"existing_unit_ids": [unit.unit_id for unit in blueprint.units]},
+                state={"observed_public_interfaces": dict(observed_public_interfaces)},
+                failure_evidence={"failed_requirements": prompt["failed_requirements"]},
+                schema_name="cgkn_acceptance_attribution", schema=ACCEPTANCE_ATTRIBUTION_SCHEMA,
+                model_config=self.config, lesson_policy="DISABLED_BY_POLICY",
+                allowed_actions=(FailureAction.REPAIR_EXISTING.value, FailureAction.STOP.value),
+                forbidden_actions=("blueprint_change", "source_write", "shell", "hidden_acceptance"),
+                run_id=run_id, projected_prompt=prompt,
+            ))
+        except GatewayCompletionError as exc:
+            receipt = dict(exc.evidence or {})
+            self.calls.append(self._call_record(started, receipt, None, failed=True))
+            raise
+        completion = generated.completion
+        receipt = dict(completion.selection_receipt)
+        self.calls.append(self._call_record(started, receipt, completion, failed=False))
+        try:
+            value = parse_json_object(completion.text)
+            if set(value) != {"schema_version", "decisions"} or value.get("schema_version") != "1.0":
+                raise ValueError("invalid acceptance attribution envelope")
+            decisions = tuple(AcceptanceAttributionDecision.from_dict(item) for item in value.get("decisions", ()))
+            if not decisions:
+                raise ValueError("acceptance attribution requires decisions")
+            return decisions
+        except (TypeError, ValueError):
+            self.calls[-1].update({"result": "FAILED", "failure_type": "INVALID_ATTRIBUTION_OUTPUT"})
+            raise
+
+    def _call_record(self, started: float, receipt: Mapping[str, Any], completion: Any | None, *, failed: bool) -> dict[str, Any]:
+        usage = dict(completion.usage) if completion is not None else dict(receipt.get("usage") or {})
+        metadata = dict(completion.transport_metadata) if completion is not None else {}
+        def token(primary: str, alternate: str = "") -> int | None:
+            value = usage.get(primary, receipt.get(primary))
+            if value is None and alternate:
+                value = usage.get(alternate, receipt.get(alternate))
+            return int(value) if value is not None else None
+        attempts = completion.attempts if completion is not None else receipt.get("transport_attempts")
+        return {
+            "role": "coordinator_attribution", "operation": "ACCEPTANCE_ATTRIBUTION",
+            "model": completion.model if completion is not None else str(receipt.get("model") or self.config.model),
+            "request_id": completion.request_id if completion is not None else str(receipt.get("request_id") or ""),
+            "logical_calls": 1, "transport_attempts": attempts,
+            "prompt_tokens": token("prompt_tokens", "input_tokens"),
+            "completion_tokens": token("completion_tokens", "output_tokens"),
+            "cached_tokens": token("cached_tokens"), "reasoning_tokens": token("reasoning_tokens"),
+            "total_tokens": token("total_tokens"),
+            "usage_status": "REPORTED" if usage else "UNKNOWN_AFTER_FAILURE" if failed else "UNREPORTED",
+            "finish_reason": receipt.get("finish_reason"),
+            "thinking_mode": self.config.thinking_mode, "reasoning_effort": self.config.reasoning_effort,
+            "schema_hash": receipt.get("schema_hash"), "prompt_hash": receipt.get("prompt_hash"),
+            "selection_receipt_hash": canonical_hash(receipt) if receipt else None,
+            "selection_receipt": dict(receipt), "transport_metadata": metadata,
+            "duration_ms": int((time.perf_counter() - started) * 1000),
+            "result": "FAILED" if failed else "SUCCEEDED",
+        }
 
 
 class BlueprintUnitExecutor:
@@ -382,6 +542,7 @@ class ProjectLoopOutcome:
     generation_retries: int
     repair_calls: int
     repair_rounds: int
+    attribution_calls: int
     failure_reports: tuple[FailureReport, ...]
     workspace: pathlib.Path
     run_root: pathlib.Path
@@ -390,13 +551,13 @@ class ProjectLoopOutcome:
     def status(self) -> str: return self.summary.status
 
     def as_dict(self) -> dict[str, Any]:
-        return {"project_id": self.project_id, "run_id": self.run_id, "status": self.status, "blueprint": self.blueprint.as_dict(), "capability_tree": self.tree.as_dict(), "summary": self.summary.as_dict(), "provider_calls": self.provider_calls, "agent_decisions": self.agent_decisions, "generation_attempts": self.generation_attempts, "generation_retries": self.generation_retries, "generation_retry_calls": self.generation_retries, "repair_calls": self.repair_calls, "repair_rounds": self.repair_rounds, "failure_reports": [item.as_dict() for item in self.failure_reports], "workspace": str(self.workspace), "run_root": str(self.run_root)}
+        return {"project_id": self.project_id, "run_id": self.run_id, "status": self.status, "blueprint": self.blueprint.as_dict(), "capability_tree": self.tree.as_dict(), "summary": self.summary.as_dict(), "provider_calls": self.provider_calls, "agent_decisions": self.agent_decisions, "generation_attempts": self.generation_attempts, "generation_retries": self.generation_retries, "generation_retry_calls": self.generation_retries, "repair_calls": self.repair_calls, "repair_rounds": self.repair_rounds, "attribution_calls": self.attribution_calls, "failure_reports": [item.as_dict() for item in self.failure_reports], "workspace": str(self.workspace), "run_root": str(self.run_root)}
 
 
 class MinimalProjectLoop:
     """L6 adapter: one frozen blueprint compiled to the canonical tree/DAG/runtime."""
 
-    def __init__(self, repository_root: pathlib.Path | str, run_root: pathlib.Path | str, client: CompletionClient | ProductionGenerationClient, agent_config: ModelRoleConfig, worker_config: ModelRoleConfig, worker_repair_config: ModelRoleConfig | None = None):
+    def __init__(self, repository_root: pathlib.Path | str, run_root: pathlib.Path | str, client: CompletionClient | ProductionGenerationClient, agent_config: ModelRoleConfig, worker_config: ModelRoleConfig, worker_repair_config: ModelRoleConfig | None = None, acceptance_attributor: AcceptanceAttributor | None = None):
         if agent_config.role != "agent" or worker_config.role != "worker": raise ValueError("coordinator and worker role contracts are required")
         self.repository_root = pathlib.Path(repository_root).resolve(); self.run_root = pathlib.Path(run_root).resolve()
         self.client = client if isinstance(client, ProductionGenerationClient) else default_production_client(client)
@@ -405,6 +566,8 @@ class MinimalProjectLoop:
         self.agent_config = agent_config; self.worker_config = worker_config
         self.worker_repair_config = worker_repair_config or worker_config
         self.coordinator_calls: list[dict[str, Any]] = []
+        self.acceptance_attributor = acceptance_attributor or ProviderAcceptanceAttributor(self.client, agent_config)
+        self.attribution_calls = self.acceptance_attributor.calls
 
     def design(self, project_id: str, public_contract: Mapping[str, Any], designer: DesignClient | None = None) -> tuple[ProjectBlueprint, int]:
         draft = ProjectBlueprint("1.0", project_id, 1, str(public_contract["public_goal"]), tuple(str(item) for item in public_contract.get("constraints", ())), (), ())
@@ -447,7 +610,15 @@ class MinimalProjectLoop:
             failed_check = next(iter(summary.failed_nodes), "")
             if not failed_check: break
             failed_result = store.load_result(blueprint.project_id, run_id, failed_check)
-            report = self._failure_report(blueprint, failed_check, failed_result, dag, worker, failure_owner_hint)
+            is_acceptance_failure = any(
+                check.check_id == failed_check and check.kind == UnitKind.ACCEPTANCE.value
+                for check in blueprint.checks
+            )
+            report = (
+                self._acceptance_failure_report(blueprint, failed_result, dag, worker, run_id)
+                if is_acceptance_failure
+                else self._failure_report(blueprint, failed_check, failed_result, dag, worker, failure_owner_hint)
+            )
             reports.append(report)
             owner = report.owner_unit_id
             if report.recovery_action == FailureAction.RETRY_GENERATION.value:
@@ -473,10 +644,121 @@ class MinimalProjectLoop:
         _write_json(state_root / "project_blueprint_final.json", final_blueprint.as_dict())
         generation_attempts = sum(call.get("operation") == "EXECUTE" for call in worker.calls)
         repair_calls = sum(call.get("operation") == "REPAIR" for call in worker.calls)
-        outcome = ProjectLoopOutcome(blueprint.project_id, run_id, final_blueprint, tree, summary, len(worker.calls), 0, generation_attempts, generation_retries, repair_calls, repairs, tuple(reports), workspace, state_root)
+        outcome = ProjectLoopOutcome(blueprint.project_id, run_id, final_blueprint, tree, summary, len(worker.calls) + len(self.attribution_calls), len(self.attribution_calls), generation_attempts, generation_retries, repair_calls, repairs, len(self.attribution_calls), tuple(reports), workspace, state_root)
         _write_json(state_root / "project_outcome.json", outcome.as_dict())
         _write_json(state_root / "provider_calls.json", {"calls": worker.calls})
+        _write_json(state_root / "attribution_calls.json", {"calls": self.attribution_calls})
         return outcome
+
+    @staticmethod
+    def _deterministic_acceptance_candidates(
+        blueprint: ProjectBlueprint,
+        requirement_summaries: Mapping[str, str],
+    ) -> tuple[str, ...]:
+        """Return exact public-contract matches only; semantic similarity is never authority."""
+        candidates: set[str] = set()
+        for summary in requirement_summaries.values():
+            normalized = summary.casefold().strip()
+            for unit in blueprint.units:
+                exact_acceptance = any(normalized == item.casefold().strip() for item in unit.acceptance)
+                explicit_path = any(path.casefold() in normalized or pathlib.PurePosixPath(path).name.casefold() in normalized for path in unit.owns)
+                explicit_interface = any(
+                    re.search(rf"\b{re.escape(interface.split('(', 1)[0].rsplit('.', 1)[-1].casefold())}\b", normalized)
+                    for interface in unit.required_interfaces if interface.strip()
+                )
+                if exact_acceptance or explicit_path or explicit_interface:
+                    candidates.add(unit.unit_id)
+        return tuple(unit.unit_id for unit in blueprint.units if unit.unit_id in candidates)
+
+    @staticmethod
+    def _observed_public_interfaces(blueprint: ProjectBlueprint, worker: BlueprintUnitExecutor) -> dict[str, Any]:
+        observed: dict[str, Any] = {}
+        for unit in blueprint.units:
+            manifests = _manifests(_read_sources(worker.root, unit.owns))
+            observed[unit.unit_id] = {path: manifest.as_dict() for path, manifest in manifests.items()}
+        return observed
+
+    def _acceptance_failure_report(
+        self, blueprint: ProjectBlueprint, result: BlockExecutionResult, dag: Any,
+        worker: BlueprintUnitExecutor, run_id: str,
+    ) -> FailureReport:
+        details = dict(result.error.details) if result.error else {}
+        failure_class = str(details.get("failure_class") or result.outputs.get("failure_class") or "")
+        manifest_hash = str(details.get("requirement_manifest_hash") or result.outputs.get("requirement_manifest_hash") or "")
+        mapping_complete = bool(details.get("mapping_complete", result.outputs.get("mapping_complete", False)))
+        failed_requirement_ids = tuple(str(item) for item in details.get("failed_requirement_ids", result.outputs.get("failed_requirement_ids", ())))
+        raw_summaries = details.get("public_requirement_summaries", result.outputs.get("public_requirement_summaries", {}))
+        summaries = {str(key): str(value) for key, value in dict(raw_summaries or {}).items()}
+        if failure_class == "HARNESS_ATTRIBUTION_UNAVAILABLE" or not mapping_complete or not failed_requirement_ids or set(summaries) != set(failed_requirement_ids):
+            return FailureReport(
+                "external_acceptance", "HARNESS_ATTRIBUTION_UNAVAILABLE",
+                failure_stage=FailureStage.ACCEPTANCE.value, failed_check="external_acceptance",
+                expected="mapped public acceptance requirements pass",
+                observed="external acceptance requirement mapping unavailable",
+                suggested_action="stop fail-closed; repair attribution evidence is unavailable",
+                evidence_refs=("node_results/external_acceptance.json",),
+                failed_requirement_ids=failed_requirement_ids,
+                public_requirement_summaries=tuple((key, summaries[key]) for key in failed_requirement_ids if key in summaries),
+                requirement_manifest_hash=manifest_hash, mapping_complete=False,
+                attribution_status="UNAVAILABLE",
+            )
+
+        candidates = self._deterministic_acceptance_candidates(blueprint, summaries)
+        owner = ""
+        attribution_source = "DETERMINISTIC"
+        attribution_status = "UNRESOLVED"
+        if len(candidates) == 1 and worker.has_materialized_baseline(candidates[0]):
+            owner = candidates[0]
+            attribution_status = "RESOLVED"
+        else:
+            attribution_source = "COORDINATOR"
+            try:
+                decisions = self.acceptance_attributor.attribute(
+                    project_id=blueprint.project_id, public_goal=blueprint.goal,
+                    failed_requirement_ids=failed_requirement_ids,
+                    public_requirement_summaries=summaries, blueprint=blueprint,
+                    candidate_owner_unit_ids=candidates,
+                    observed_public_interfaces=self._observed_public_interfaces(blueprint, worker),
+                    run_id=run_id,
+                )
+                if len(decisions) != len(failed_requirement_ids) or {item.requirement_id for item in decisions} != set(failed_requirement_ids):
+                    raise ValueError("attribution decisions must cover each failed public requirement exactly once")
+                existing = set(blueprint.by_id)
+                if any(item.owner_unit_id and item.owner_unit_id not in existing for item in decisions):
+                    raise ValueError("attribution invented a Unit")
+                if any(item.action == FailureAction.STOP.value for item in decisions):
+                    owner = ""
+                else:
+                    owners = {item.owner_unit_id for item in decisions}
+                    if len(owners) != 1:
+                        raise ValueError("acceptance attribution must resolve to one repair owner")
+                    proposed = next(iter(owners))
+                    if not worker.has_materialized_baseline(proposed):
+                        raise ValueError("attribution selected a Unit without materialized baseline")
+                    owner = proposed
+                    attribution_status = "RESOLVED"
+            except (GatewayCompletionError, TypeError, ValueError):
+                owner = ""
+                attribution_status = "UNRESOLVED"
+
+        action = FailureAction.REPAIR_EXISTING.value if owner else FailureAction.STOP.value
+        baseline = bool(owner and worker.has_materialized_baseline(owner))
+        affected = downstream_closure(dag, {owner}) if owner else ()
+        return FailureReport(
+            "external_acceptance", "ACCEPTANCE_FAILURE",
+            failure_stage=FailureStage.ACCEPTANCE.value, owner_unit_id=owner,
+            recovery_action=action, materialized_baseline=baseline,
+            failed_check="external_acceptance", expected="public acceptance requirements pass",
+            observed="public requirements remain unsatisfied",
+            affected_units=affected,
+            suggested_action="patch the attributed owner using public requirement evidence" if owner else "stop fail-closed; acceptance owner is unresolved",
+            evidence_refs=("node_results/external_acceptance.json",),
+            failed_requirement_ids=failed_requirement_ids,
+            public_requirement_summaries=tuple((key, summaries[key]) for key in failed_requirement_ids),
+            requirement_manifest_hash=manifest_hash, mapping_complete=True,
+            candidate_owner_unit_ids=candidates, attribution_source=attribution_source,
+            attribution_status=attribution_status,
+        )
 
     @staticmethod
     def _owner_from_failure(blueprint: ProjectBlueprint, result: BlockExecutionResult) -> str:

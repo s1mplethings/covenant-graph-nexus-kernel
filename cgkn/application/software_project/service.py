@@ -406,7 +406,7 @@ class SoftwareProjectGenerationService:
         catalog["project.python.pytest@1"] |= {"executor_ref": "local.python-test@1", "config": {"pytest_args": ["-q"], "goal": "Run public project tests"}}
         catalog["project.command.smoke@1"] |= {"executor_ref": "local.command@1", "config": {"command": [sys.executable, *case.runtime_command[1:]], "goal": "Run the declared public runtime smoke"}}
         catalog["project.snapshot@1"] |= {"executor_ref": "project.snapshot@1", "config": {"entrypoints": [case.entrypoint], "test_commands": [f"{sys.executable} -m pytest -q"], "runtime_commands": [" ".join((sys.executable, *case.runtime_command[1:]))], "goal": "Create deterministic project snapshot"}}
-        catalog["project.acceptance.external@1"] |= {"executor_ref": "project.acceptance@1", "config": {"case_id": case.case_id, "goal": "Run isolated external acceptance"}}
+        catalog["project.acceptance.external@1"] |= {"executor_ref": "project.acceptance@1", "config": {"case_id": case.case_id, "goal": "Run isolated external acceptance", "acceptance": list(case.public_acceptance)}}
         return catalog
 
     def _resolved_config(self) -> dict[str, Any]:

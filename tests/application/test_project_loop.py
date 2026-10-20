@@ -8,7 +8,8 @@ import sys
 import pytest
 
 from cgkn.application.project_blueprint import BlueprintCheck, BlueprintUnit, FailureAction, FailureReport, FailureStage, ProjectBlueprint
-from cgkn.application.project_loop import BlueprintUnitExecutor, MinimalProjectLoop, compile_blueprint
+from cgkn.application.project_loop import AcceptanceAttributionDecision, BlueprintUnitExecutor, MinimalProjectLoop, compile_blueprint
+from cgkn.application.software_project.catalog import get_case
 from cgkn.execution import BlockExecutionRequest, BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode, TaskContext
 from cgkn.orchestration import compile_tree
 from cgkn.providers import GatewayCompletionError, ModelRoleConfig, ProviderCompletion
@@ -39,6 +40,17 @@ class TruncatedClient:
         })
 
 
+class FakeAttributor:
+    def __init__(self, decisions=(), error=None):
+        self.decisions = tuple(decisions); self.error = error; self.calls = []
+
+    def attribute(self, **kwargs):
+        self.calls.append(kwargs)
+        if self.error:
+            raise self.error
+        return self.decisions
+
+
 def _bundle(unit_id, files):
     return {"schema_version": "1.0", "kind": "file_bundle", "unit_id": unit_id, "files": [{"path": path, "content": content} for path, content in files.items()], "summary": "generated", "needs_escalation": False, "escalation_reason": ""}
 
@@ -64,9 +76,40 @@ def _csv_blueprint() -> ProjectBlueprint:
     checks = (
         BlueprintCheck("compile", "verification", (sys.executable, "-m", "compileall", "-q", "."), ("core", "tests", "docs"), ("syntax",)),
         BlueprintCheck("pytest", "verification", (sys.executable, "-m", "pytest", "-q"), ("compile",), ("public tests",)),
-        BlueprintCheck("accept", "acceptance", (), ("pytest",), ("hidden acceptance",)),
+        BlueprintCheck("accept", "acceptance", (), ("pytest",), get_case("cli_csv_cleaner").public_acceptance),
     )
     return ProjectBlueprint("1.0", "cli_csv_cleaner", 1, "Build a stdlib CSV cleaner", ("stdlib only", "offline"), units, checks).freeze()
+
+
+def _materialized_executor(tmp_path: pathlib.Path, blueprint: ProjectBlueprint, *, skip=()) -> BlueprintUnitExecutor:
+    executor = BlueprintUnitExecutor(tmp_path, QueueClient([]), _configs()[1])
+    for unit in blueprint.units:
+        if unit.unit_id in skip:
+            continue
+        for relative in unit.owns:
+            target = tmp_path / relative; target.parent.mkdir(parents=True, exist_ok=True)
+            if relative.endswith(".py"):
+                content = "def clean_rows(*args):\n    return []\n" if relative.endswith("core.py") else "value = 1\n"
+            else:
+                content = "# README\n"
+            target.write_text(content, encoding="utf-8")
+        executor.register_materialized_baseline(unit)
+    return executor
+
+
+def _acceptance_failure(*, summary="public behavior", marker="") -> BlockExecutionResult:
+    details = {
+        "failure_class": "PROJECT_FAILURE",
+        "failed_requirement_ids": ["public-requirement-1"],
+        "public_requirement_summaries": {"public-requirement-1": summary},
+        "requirement_manifest_hash": "sha256:manifest",
+        "mapping_complete": True,
+    }
+    return BlockExecutionResult(
+        "p", "r", "a", "external_acceptance", "project.acceptance@1", BlockStatus.FAILED,
+        outputs=details | {"stdout": marker},
+        error=ExecutionError(ExecutionErrorCode.INVALID_OUTPUT, "one or more external requirements failed", details),
+    )
 
 
 CORE = '''from __future__ import annotations
@@ -102,7 +145,7 @@ def main(argv=None):
     try: fieldnames, rows = clean_file(args.input, args.output, args.dedupe_column, args.fill)
     except (OSError, ValueError) as exc: parser.error(str(exc))
     if args.preview:
-        writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames, lineterminator="\\n"); writer.writeheader(); writer.writerows(rows[:args.preview])
+        writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames, lineterminator="\\n"); writer.writerows(rows[:args.preview])
     return 0
 
 if __name__ == "__main__": raise SystemExit(main())
@@ -124,7 +167,7 @@ def test_fake_greenfield_runs_real_filesystem_pytest_and_hidden_acceptance(tmp_p
 
 def test_fake_repair_preserves_blueprint_and_reruns_only_owner_and_checks(tmp_path: pathlib.Path) -> None:
     units = (BlueprintUnit("core", "math implementation", "implementation", ("math_utils.py",), executor_ref="llm.cheap@1", instruction="implement add", required_interfaces=("add",), acceptance=("addition",), allowed_effects=("filesystem.write",)),)
-    checks = (BlueprintCheck("pytest", "verification", (sys.executable, "-m", "pytest", "-q"), ("core",), ("public tests",)), BlueprintCheck("accept", "acceptance", (), ("pytest",), ("hidden",)))
+    checks = (BlueprintCheck("pytest", "verification", (sys.executable, "-m", "pytest", "-q"), ("core",), ("public tests",)), BlueprintCheck("accept", "acceptance", (), ("pytest",), get_case("seeded_repair").public_acceptance))
     blueprint = ProjectBlueprint("1.0", "seeded_repair", 1, "repair arithmetic", ("smallest change",), units, checks).freeze()
     client = QueueClient([_bundle("core", {"math_utils.py": "def add(a, b):\n    return a - b\n"}), _patch("core", "math_utils.py", "return a - b", "return a + b")])
     workspace = tmp_path / "workspace"; workspace.mkdir(); (workspace / "test_math_utils.py").write_text("from math_utils import add\ndef test_add(): assert add(2,3)==5\n", encoding="utf-8")
@@ -140,7 +183,7 @@ def test_generation_and_repair_thinking_policies_are_independent(tmp_path: pathl
     units = (BlueprintUnit("core", "math", "implementation", ("math_utils.py",), executor_ref="llm.cheap@1", instruction="implement add", required_interfaces=("add",), acceptance=("addition",), allowed_effects=("filesystem.write",)),)
     checks = (
         BlueprintCheck("pytest", "verification", (sys.executable, "-m", "pytest", "-q"), ("core",), ("tests",)),
-        BlueprintCheck("accept", "acceptance", (), ("pytest",), ("hidden",)),
+        BlueprintCheck("accept", "acceptance", (), ("pytest",), get_case("seeded_repair").public_acceptance),
     )
     blueprint = ProjectBlueprint("1.0", "seeded_repair", 1, "repair", ("smallest change",), units, checks).freeze()
     client = QueueClient([_bundle("core", {"math_utils.py": "def add(a, b):\n    return a - b\n"}), _patch("core", "math_utils.py", "return a - b", "return a + b")])
@@ -353,3 +396,90 @@ def test_cross_unit_attribution_uses_evidence_and_never_implementation_fallback(
     unknown_report = MinimalProjectLoop._failure_report(blueprint, "pytest", unknown_result, dag, executor)
     assert unknown_report.owner_unit_id == "" and unknown_report.failure_type == "ATTRIBUTION_UNRESOLVED"
     assert unknown_report.recovery_action == FailureAction.STOP.value
+
+
+def test_acceptance_unique_exact_interface_owner_is_deterministic(tmp_path: pathlib.Path) -> None:
+    blueprint = _csv_blueprint(); executor = _materialized_executor(tmp_path, blueprint)
+    fake = FakeAttributor(error=AssertionError("Coordinator attribution must not be called"))
+    loop = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", QueueClient([]), *_configs(), acceptance_attributor=fake)
+    dag = compile_tree(compile_blueprint(blueprint, case_id="cli_csv_cleaner"))
+    report = loop._acceptance_failure_report(
+        blueprint, _acceptance_failure(summary="clean_rows must satisfy the public contract"), dag, executor, "run",
+    )
+    assert report.owner_unit_id == "core"
+    assert report.recovery_action == FailureAction.REPAIR_EXISTING.value
+    assert report.attribution_source == "DETERMINISTIC" and report.attribution_status == "RESOLVED"
+    assert fake.calls == []
+
+
+def test_acceptance_ambiguous_candidates_call_coordinator_once(tmp_path: pathlib.Path) -> None:
+    blueprint = _csv_blueprint(); executor = _materialized_executor(tmp_path, blueprint)
+    fake = FakeAttributor((AcceptanceAttributionDecision("public-requirement-1", "core", FailureAction.REPAIR_EXISTING.value),))
+    loop = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", QueueClient([]), *_configs(), acceptance_attributor=fake)
+    dag = compile_tree(compile_blueprint(blueprint, case_id="cli_csv_cleaner"))
+    report = loop._acceptance_failure_report(
+        blueprint, _acceptance_failure(summary="clean_rows behavior and README.md documentation"), dag, executor, "run",
+    )
+    assert report.owner_unit_id == "core" and report.attribution_source == "COORDINATOR"
+    assert set(report.candidate_owner_unit_ids) == {"core", "docs"}
+    assert len(fake.calls) == 1
+
+
+@pytest.mark.parametrize("decisions,skip", [
+    ((AcceptanceAttributionDecision("public-requirement-1", "invented", FailureAction.REPAIR_EXISTING.value),), ()),
+    ((AcceptanceAttributionDecision("public-requirement-1", "core", FailureAction.REPAIR_EXISTING.value),), ("core",)),
+    ((AcceptanceAttributionDecision("public-requirement-1", "", FailureAction.STOP.value),), ()),
+])
+def test_acceptance_invalid_unmaterialized_or_stop_decisions_fail_closed(tmp_path: pathlib.Path, decisions, skip) -> None:
+    blueprint = _csv_blueprint(); executor = _materialized_executor(tmp_path, blueprint, skip=skip)
+    fake = FakeAttributor(decisions)
+    loop = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", QueueClient([]), *_configs(), acceptance_attributor=fake)
+    dag = compile_tree(compile_blueprint(blueprint, case_id="cli_csv_cleaner"))
+    report = loop._acceptance_failure_report(blueprint, _acceptance_failure(), dag, executor, "run")
+    assert report.owner_unit_id == "" and report.recovery_action == FailureAction.STOP.value
+    assert report.attribution_status == "UNRESOLVED"
+
+
+@pytest.mark.parametrize("error", [
+    ValueError("invalid attribution schema"),
+    GatewayCompletionError("transport_failure", "bounded"),
+])
+def test_acceptance_attribution_failure_never_guesses_owner(tmp_path: pathlib.Path, error: Exception) -> None:
+    blueprint = _csv_blueprint(); executor = _materialized_executor(tmp_path, blueprint)
+    loop = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", QueueClient([]), *_configs(), acceptance_attributor=FakeAttributor(error=error))
+    dag = compile_tree(compile_blueprint(blueprint, case_id="cli_csv_cleaner"))
+    report = loop._acceptance_failure_report(blueprint, _acceptance_failure(), dag, executor, "run")
+    assert report.owner_unit_id == "" and report.failure_type == "ACCEPTANCE_FAILURE"
+    assert report.recovery_action == FailureAction.STOP.value
+
+
+def test_coordinator_attribution_prompt_and_failure_report_never_include_hidden_markers(tmp_path: pathlib.Path) -> None:
+    marker_name = "SUPER_SECRET_HIDDEN_TEST_NAME"; marker_value = "SUPER_SECRET_EXPECTED_VALUE"
+    blueprint = _csv_blueprint(); executor = _materialized_executor(tmp_path, blueprint)
+    client = QueueClient([{
+        "schema_version": "1.0",
+        "decisions": [{"requirement_id": "public-requirement-1", "owner_unit_id": "core", "action": "REPAIR_EXISTING"}],
+    }])
+    loop = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", client, *_configs())
+    dag = compile_tree(compile_blueprint(blueprint, case_id="cli_csv_cleaner"))
+    report = loop._acceptance_failure_report(
+        blueprint, _acceptance_failure(marker=marker_name + marker_value), dag, executor, "run",
+    )
+    rendered = json.dumps(report.as_dict(), ensure_ascii=False) + json.dumps(client.calls, ensure_ascii=False)
+    assert marker_name not in rendered and marker_value not in rendered
+    assert report.owner_unit_id == "core" and report.attribution_status == "RESOLVED"
+    assert client.calls[0]["operation"] == "ACCEPTANCE_ATTRIBUTION"
+    assert client.calls[0]["thinking_mode"] == "disabled"
+
+
+def test_harness_mapping_unavailable_stops_without_attribution_call(tmp_path: pathlib.Path) -> None:
+    blueprint = _csv_blueprint(); executor = _materialized_executor(tmp_path, blueprint)
+    fake = FakeAttributor(error=AssertionError("must not call attributor"))
+    loop = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", QueueClient([]), *_configs(), acceptance_attributor=fake)
+    dag = compile_tree(compile_blueprint(blueprint, case_id="cli_csv_cleaner"))
+    details = {"failure_class": "HARNESS_ATTRIBUTION_UNAVAILABLE", "failed_requirement_ids": [], "public_requirement_summaries": {}, "mapping_complete": False}
+    result = BlockExecutionResult("p", "r", "a", "external_acceptance", "project.acceptance@1", BlockStatus.FAILED, outputs=details, error=ExecutionError(ExecutionErrorCode.INVALID_OUTPUT, "mapping unavailable", details))
+    report = loop._acceptance_failure_report(blueprint, result, dag, executor, "run")
+    assert report.failure_type == "HARNESS_ATTRIBUTION_UNAVAILABLE"
+    assert report.attribution_status == "UNAVAILABLE" and report.recovery_action == FailureAction.STOP.value
+    assert fake.calls == []
