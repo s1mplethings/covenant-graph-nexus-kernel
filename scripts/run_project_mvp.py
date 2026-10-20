@@ -324,6 +324,16 @@ def _worker_receipt_complete(call: dict[str, Any]) -> bool:
     return isinstance(receipt, dict) and receipt.get("final_status") == "ACCEPTED" and receipt.get("schema_valid_candidate_count") == 1 and receipt.get("selected_candidate_index") is not None and all(str(receipt.get(key) or "").strip() for key in required)
 
 
+def _worker_receipt_recorded(call: dict[str, Any]) -> bool:
+    """Require auditable selection evidence without relabeling a rejected call."""
+    receipt = call.get("selection_receipt")
+    required = (
+        "final_status", "raw_response_hash", "schema_hash", "prompt_hash",
+        "api_lab_commit", "selector_version",
+    )
+    return isinstance(receipt, dict) and all(str(receipt.get(key) or "").strip() for key in required)
+
+
 def _worker_probe(artifact_root: pathlib.Path, *, patch_mode: bool) -> dict[str, Any]:
     identity = _source_identity()
     if not identity["tracked_worktree_clean"]:
@@ -761,7 +771,11 @@ def _worker_cohesive_live(artifact_root: pathlib.Path, *, count: int) -> dict[st
             ).returncode == 0
             for path in unit.owns
         )
-        receipts_complete = bool(executor.calls) and all(_worker_receipt_complete(call) for call in executor.calls)
+        receipts_complete = (
+            bool(executor.calls)
+            and all(_worker_receipt_recorded(call) for call in executor.calls)
+            and _worker_receipt_complete(executor.calls[-1])
+        )
         materialization = dict(block.outputs.get("unit_materialization") or {})
         passed = (
             block.succeeded and len(executor.calls) <= 2 and len(owned_present) == len(unit.owns)
@@ -780,6 +794,10 @@ def _worker_cohesive_live(artifact_root: pathlib.Path, *, count: int) -> dict[st
                     "input_tokens": call.get("prompt_tokens"), "output_tokens": call.get("completion_tokens"),
                     "cached_tokens": call.get("cached_tokens"), "reasoning_tokens": call.get("reasoning_tokens"),
                     "selection_receipt_hash": call.get("selection_receipt_hash"),
+                    "result": call.get("result"), "failure_type": call.get("failure_type"),
+                    "selection_final_status": dict(call.get("selection_receipt") or {}).get("final_status"),
+                    "schema_valid_candidate_count": dict(call.get("selection_receipt") or {}).get("schema_valid_candidate_count"),
+                    "selected_candidate_index": dict(call.get("selection_receipt") or {}).get("selected_candidate_index"),
                 }
                 for call in executor.calls
             ],

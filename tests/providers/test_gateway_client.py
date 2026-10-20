@@ -359,6 +359,29 @@ def test_project_route_separates_coordinator_and_worker_thinking_policies() -> N
     assert routing.worker.thinking_mode == "default"
 
 
+def test_worker_retry_receipts_remain_auditable_without_relabeling_failure() -> None:
+    from scripts.run_project_mvp import _worker_receipt_complete, _worker_receipt_recorded
+
+    base = {
+        "raw_response_hash": "sha256:raw", "schema_hash": "sha256:schema",
+        "prompt_hash": "sha256:prompt", "api_lab_commit": "abc123",
+        "selector_version": "1.0",
+    }
+    rejected = {"selection_receipt": base | {
+        "final_status": "PROVIDER_SCHEMA_FAILURE",
+        "schema_valid_candidate_count": 0, "selected_candidate_index": None,
+    }}
+    accepted = {"selection_receipt": base | {
+        "final_status": "ACCEPTED", "schema_valid_candidate_count": 1,
+        "selected_candidate_index": 0, "selected_candidate_hash": "sha256:selected",
+    }}
+
+    assert _worker_receipt_recorded(rejected)
+    assert not _worker_receipt_complete(rejected)
+    assert _worker_receipt_recorded(accepted)
+    assert _worker_receipt_complete(accepted)
+
+
 @pytest.mark.negative
 @pytest.mark.security
 def test_fallback_configuration_is_rejected(tmp_path: pathlib.Path) -> None:
