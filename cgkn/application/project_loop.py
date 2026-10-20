@@ -335,7 +335,9 @@ def coordinator_design_request(public_contract: Mapping[str, Any]) -> dict[str, 
         "Return only the schema object for 2-4 cohesive project units. Choose each unit's kind, short "
         "purpose, owned project-relative paths, and primary public requirement IDs. Assign every "
         "requirement ID exactly once. Include implementation, tests, and README documentation when "
-        "required. Emit no source, commands, dependencies, interfaces, runtime fields, or explanation."
+        "required. Minimize owned paths: prefer one main file plus an optional package marker per "
+        "responsibility, and do not split tests into separate files by requirement. Emit no source, "
+        "commands, dependencies, interfaces, runtime fields, or explanation."
     )
     return {
         "contract_version": "minimal-blueprint-design-v2",

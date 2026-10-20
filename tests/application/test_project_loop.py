@@ -172,6 +172,7 @@ def test_coordinator_request_is_minimal_public_only_and_has_stable_requirement_i
     unit_properties = request["schema"]["properties"]["units"]["items"]["properties"]
     assert set(unit_properties) == {"kind", "purpose", "owns", "requirement_ids"}
     assert request["schema"]["additionalProperties"] is False
+    assert "do not split tests into separate files by requirement" in request["system"]
 
 
 def test_fake_greenfield_runs_real_filesystem_pytest_and_hidden_acceptance(tmp_path: pathlib.Path) -> None:
