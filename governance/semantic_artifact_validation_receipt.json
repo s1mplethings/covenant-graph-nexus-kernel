@@ -1,8 +1,8 @@
 {
   "kind": "CGKNSemanticArtifactValidationReceipt",
   "schema_version": "1.0",
-  "source_commit": "136dd97004be10c06a975d8564bacd4998bde4c6",
-  "source_tree": "f0ecd1c5a181662ab6bde725be4a49e86c227d8c",
+  "source_commit": "8c1203490f55f78b5841305b9c37a576fb5fc49d",
+  "source_tree": "d372edc152bbcf447a7505fa9c7accc56b40fffc",
   "evidence_status": "NEEDS_REWORK",
   "semantic_artifact_interface": "PARTIAL",
   "winner": "NONE",
@@ -13,7 +13,8 @@
     "hash_stability": "PASS",
     "interface_extractor": "PASS",
     "interface_guard": "PASS",
-    "failure_attribution": "PASS"
+    "failure_attribution": "PASS",
+    "suite": {"status": "PASS", "passed": 27, "failed": 0, "errors": 0}
   },
   "real_provider_validation": {
     "live_single": {"A": "FAIL", "B": "FAIL", "C": "FAIL"},
@@ -35,11 +36,11 @@
     "kernel_architecture_gate": "PASS",
     "test_architecture_gate": "PASS",
     "kernel_test_receipt_verification": "PASS",
-    "kernel_completeness_gate": "NEEDS_REWORK",
-    "unit_profile": "NEEDS_REWORK",
-    "unit_profile_detail": "326 passed, 1 skipped, 1 failed; the only failure was test_current_kernel_governance_passes_all_gates delegating to the same source-bound completeness check",
-    "remaining_profiles": "NOT_EVALUATED",
-    "note": "The old kernel receipt remains valid for the unchanged L0-L5 core hash, but the completeness gate intentionally rejects source files added after its c607705 source boundary. Production integration did not occur, so a new kernel source/evidence closure was not created; the combined profile command stopped after the unit profile failed."
+    "kernel_completeness_gate": "PASS",
+    "unit_profile": "PASS",
+    "unit_profile_detail": "478 passed, 1 skipped, 0 failed, 0 errors",
+    "remaining_profiles": "PASS",
+    "note": "All source-bound Kernel profiles pass on the current closure; live-provider remains BLOCKED_ENVIRONMENT and is not counted as an offline failure."
   },
   "stop_condition": "B"
 }
