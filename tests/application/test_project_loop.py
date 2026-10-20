@@ -221,6 +221,32 @@ def test_generation_and_repair_use_single_bounded_prompt_projection(tmp_path: pa
     assert repair_prompt["lessons"] == []
 
 
+def test_unchanged_committed_downstream_unit_reuses_baseline_without_provider_call(tmp_path: pathlib.Path) -> None:
+    unit = BlueprintUnit(
+        "tests", "public tests", "tests", ("tests/test_public.py",),
+        executor_ref="llm.cheap@1", instruction="test the public contract",
+        acceptance=("public tests pass",), allowed_effects=("filesystem.write",),
+    )
+    target = tmp_path / "tests" / "test_public.py"
+    target.parent.mkdir(parents=True)
+    target.write_text("def test_public():\n    assert True\n", encoding="utf-8")
+    client = QueueClient([])
+    executor = BlueprintUnitExecutor(tmp_path, client, ModelRoleConfig("worker", "deepseek"))
+    executor.register_materialized_baseline(unit)
+    request = BlockExecutionRequest(
+        "project", "run", "attempt", unit.unit_id, "project.unit.tests@1", "llm.cheap@1",
+        TaskContext(unit.instruction, node_config={"unit": unit.as_dict()}),
+        declared_effects=unit.allowed_effects,
+    )
+
+    result = executor.execute(request)
+
+    assert result.succeeded
+    assert result.outputs["reused_materialized_baseline"] is True
+    assert result.outputs["modified_files"] == ()
+    assert client.calls == [] and executor.calls == []
+
+
 def test_failed_worker_provider_call_is_recorded_with_reported_usage(tmp_path: pathlib.Path) -> None:
     unit = BlueprintUnit(
         "core", "CSV core", "implementation", ("core.py",), executor_ref="llm.cheap@1",

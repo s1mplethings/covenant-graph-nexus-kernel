@@ -550,6 +550,26 @@ class BlueprintUnitExecutor:
             failure = stored_failure if has_patchable_baseline else None
             mode = "REPAIR" if failure else "EXECUTE"
             effective_config = self.repair_config if failure else self.config
+            if has_patchable_baseline and stored_failure is None and generation_failure is None:
+                reused_manifests = _manifests({path: sources[path] for path in unit.owns})
+                duration = max(0, int((time.perf_counter() - clock) * 1000))
+                unit_result = UnitResult(
+                    unit.unit_id, "SUCCEEDED", unit.owns,
+                    observed_interfaces=tuple(item.manifest_hash for item in reused_manifests.values()),
+                    duration=duration, materialized_baseline=True,
+                )
+                return BlockExecutionResult(
+                    request.project_id, request.run_id, request.attempt_id, request.node_id,
+                    request.executor_ref, BlockStatus.SUCCEEDED,
+                    outputs={
+                        "unit_result": unit_result.as_dict(),
+                        "summary": "reused unchanged committed Unit baseline",
+                        "modified_files": [],
+                        "observed_interfaces": {path: item.as_dict() for path, item in reused_manifests.items()},
+                        "reused_materialized_baseline": True,
+                    },
+                    started_at=started, ended_at=utc_now(), duration_ms=duration,
+                )
             if failure:
                 prompt = {
                     "mode": mode, "project_goal": request.task_context.node_goal,
