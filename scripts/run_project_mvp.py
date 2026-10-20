@@ -17,9 +17,13 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from cgkn.application.project_blueprint import BlueprintUnit, FailureAction, FailureReport, FailureStage, ProjectBlueprint
+from cgkn.application.project_blueprint import (
+    BlueprintUnit, FailureAction, FailureReport, FailureStage,
+    LEGACY_MINIMAL_BLUEPRINT_DESIGN_SCHEMA, MinimalBlueprintDesignPayload,
+    ProjectBlueprint, assemble_project_blueprint, normalized_blueprint_signature,
+)
 from cgkn.application.materialization import materialize_json
-from cgkn.application.project_loop import BlueprintUnitExecutor, MinimalProjectLoop
+from cgkn.application.project_loop import BlueprintUnitExecutor, MinimalProjectLoop, coordinator_design_request
 from cgkn.application.software_project.catalog import get_case
 from cgkn.execution import BlockExecutionRequest, TaskContext
 from cgkn.providers import (
@@ -85,9 +89,9 @@ def _public_contract(case_id: str) -> dict[str, Any]:
     }
 
 
-def _coordinator_model_config(provider: str = "deepseek") -> ModelRoleConfig:
+def _coordinator_model_config(provider: str = "qwen") -> ModelRoleConfig:
     return ModelRoleConfig(
-        role="agent", model=provider, timeout_seconds=150, max_output_tokens=3500,
+        role="agent", model=provider, timeout_seconds=150, max_output_tokens=1600,
         temperature=0.0, reasoning_effort="none", task_class="project.blueprint",
         operation="BLUEPRINT_DESIGN", outer_deadline_seconds=180,
         deadline_reserve_seconds=30, thinking_mode="disabled",
@@ -230,6 +234,94 @@ def _coordinator_receipt_complete(call: dict[str, Any]) -> bool:
     )
 
 
+def _coordinator_contract_probe(
+    artifact_root: pathlib.Path,
+    *,
+    provider: str,
+    contract_mode: str,
+) -> dict[str, Any]:
+    if contract_mode not in {"c0", "c1", "c2"}:
+        raise ValueError("Coordinator contract mode must be c0, c1, or c2")
+    identity = _source_identity()
+    if not identity["tracked_worktree_clean"]:
+        raise RuntimeError("Coordinator contract probe requires a frozen clean Source Closure")
+    base_client = completion_client_from_environment()
+    if not isinstance(base_client, GatewayCompletionClient):
+        raise RuntimeError("Coordinator contract probe requires the reviewed API Lab Gateway route")
+    contract = _public_contract("cli_csv_cleaner")
+    current = coordinator_design_request(contract)
+    if contract_mode == "c0":
+        system = (
+            "You are the project coordinator in DESIGN mode. Return only one MinimalBlueprintDesignPayload. "
+            "Do not write source code or commands. Do not generate checks, executor metadata, runtime limits, "
+            "status, or governance fields. Use 2-4 cohesive implementation/tests/documentation units; each "
+            "unit may own at most 5 tightly related files. Tests depend on their implementation. Documentation "
+            "may be independent or depend on implementation. Set finish_design to true."
+        )
+        prompt = {
+            "public_goal": contract["public_goal"],
+            "constraints": list(contract["constraints"]),
+            "public_acceptance": list(contract["public_acceptance"]),
+            "required_entrypoint": contract["entrypoint"],
+        }
+        schema_name = "cgnk_minimal_blueprint_design_c0"
+        schema = LEGACY_MINIMAL_BLUEPRINT_DESIGN_SCHEMA
+    else:
+        system = str(current["system"])
+        prompt = dict(current["prompt"])
+        schema_name = f"cgnk_minimal_blueprint_design_{contract_mode}"
+        schema = dict(current["schema"])
+    prompt["lessons"] = []
+    run_id = f"coordinator-contract-{contract_mode}-{uuid.uuid4().hex[:10]}"
+    client = base_client.bind_run(run_id, "cli_csv_cleaner", budget_purpose="PLANNING")
+    started = time.perf_counter()
+    row: dict[str, Any] = {
+        "profile": "coordinator-contract-probe", "contract_mode": contract_mode,
+        "run_id": run_id, "provider": provider, "logical_calls": 1,
+        "schema_chars": len(json.dumps(schema, ensure_ascii=False, separators=(",", ":"))),
+        "system_prompt_chars": len(system),
+        "user_prompt_chars": len(json.dumps(prompt, ensure_ascii=False, separators=(",", ":"))),
+    }
+    try:
+        completion = client.complete(
+            system=system,
+            user=json.dumps(prompt, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+            schema_name=schema_name,
+            schema=schema,
+            config=_coordinator_model_config(provider),
+        )
+        receipt = dict(completion.selection_receipt)
+        value = json.loads(completion.text)
+        semantic_valid = True
+        blueprint = None
+        if contract_mode in {"c1", "c2"}:
+            payload = MinimalBlueprintDesignPayload.from_dict(value)
+            if contract_mode == "c2":
+                blueprint = assemble_project_blueprint("cli_csv_cleaner", payload, contract)
+        row.update({
+            "status": "PASS", "schema_valid": True, "semantic_valid": semantic_valid,
+            "request_id": completion.request_id, "usage": dict(completion.usage),
+            "transport_attempts": completion.attempts,
+            "selection_receipt": receipt, "selection_receipt_hash": _hash(receipt),
+            "blueprint_hash": blueprint.blueprint_hash if blueprint else None,
+            "normalized_blueprint_signature": normalized_blueprint_signature(blueprint) if blueprint else None,
+        })
+    except Exception as exc:
+        evidence = dict(getattr(exc, "evidence", {}) or {})
+        row.update({
+            "status": "FAIL", "schema_valid": evidence.get("schema_valid_candidate_count") == 1,
+            "semantic_valid": False, "error_type": str(getattr(exc, "category", type(exc).__name__)),
+            "redacted_error": str(exc)[:1000], "selection_receipt": evidence,
+            "selection_receipt_hash": _hash(evidence) if evidence else None,
+        })
+    row["duration_ms"] = int((time.perf_counter() - started) * 1000)
+    row.update(identity)
+    target = artifact_root / "coordinator_contract_probe" / f"{run_id}.json"
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(row, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return row
+
+
 def _coordinator_qualify(
     artifact_root: pathlib.Path,
     *,
@@ -237,9 +329,9 @@ def _coordinator_qualify(
     provider: str,
     diagnostic: bool = False,
 ) -> dict[str, Any]:
-    expected = 1 if diagnostic else 3
-    if count != expected or provider != "deepseek":
-        raise ValueError(f"coordinator {'diagnostic' if diagnostic else 'qualification'} requires exactly {expected} DeepSeek run{'s' if expected != 1 else ''}")
+    expected = 1 if diagnostic else 5
+    if count != expected or provider not in {"qwen", "deepseek", "grok"}:
+        raise ValueError(f"coordinator {'diagnostic' if diagnostic else 'qualification'} requires exactly {expected} reviewed-route run{'s' if expected != 1 else ''}")
     identity = _source_identity()
     if not identity["tracked_worktree_clean"]:
         raise RuntimeError("coordinator qualification requires a frozen clean Source Closure")
@@ -252,6 +344,7 @@ def _coordinator_qualify(
         run_id = f"coordinator-qualify-{index}-{uuid.uuid4().hex[:10]}"
         started = time.perf_counter()
         row: dict[str, Any] = {"run_id": run_id, "provider": provider, "logical_calls": 1}
+        loop: MinimalProjectLoop | None = None
         try:
             client = base_client.bind_run(run_id, "cli_csv_cleaner", budget_purpose="PLANNING")
             agent = _coordinator_model_config(provider)
@@ -279,6 +372,7 @@ def _coordinator_qualify(
                 "valid_candidate_count": receipt.get("schema_valid_candidate_count"),
                 "selection_receipt": receipt, "selection_receipt_hash": _hash(receipt),
                 "blueprint": blueprint.as_dict(), "blueprint_hash": blueprint.blueprint_hash,
+                "normalized_blueprint_signature": normalized_blueprint_signature(blueprint),
                 "unit_count": len(blueprint.units), "check_count": len(blueprint.checks),
                 "agent_decisions": decisions, "no_source_code": no_source,
                 "duration_ms": int((time.perf_counter() - started) * 1000),
@@ -292,22 +386,42 @@ def _coordinator_qualify(
             ) else "FAIL"
         except Exception as exc:
             evidence = dict(getattr(exc, "evidence", {}) or {})
+            call = loop.coordinator_calls[-1] if loop is not None and loop.coordinator_calls else {}
+            if call and not evidence:
+                evidence = dict(call.get("selection_receipt") or {})
+            category = str(getattr(exc, "category", type(exc).__name__))
+            if category == "PROVIDER_SCHEMA_FAILURE":
+                failure_stage = "CGKN_STRUCTURED_SELECTION"
+            elif category in {"provider_timeout", "outcome_unknown"}:
+                failure_stage = "UPSTREAM_PROVIDER_TRANSPORT"
+            elif call:
+                failure_stage = "BLUEPRINT_SEMANTIC_VALIDATION"
+            else:
+                failure_stage = "COORDINATOR_REQUEST"
             row.update({
-                "status": "FAIL", "error_type": str(getattr(exc, "category", type(exc).__name__)),
+                "status": "FAIL", "error_type": category, "failure_stage": failure_stage,
                 "redacted_error": str(exc)[:1000], "selection_receipt": evidence,
                 "selection_receipt_hash": _hash(evidence) if evidence else None,
+                "request_id": evidence.get("request_id"),
+                "finish_reason": evidence.get("finish_reason"),
+                "usage": evidence.get("usage"),
+                "candidate_count": evidence.get("json_candidate_count"),
+                "valid_candidate_count": evidence.get("schema_valid_candidate_count"),
+                "raw_final_content_length": evidence.get("raw_length"),
                 "duration_ms": int((time.perf_counter() - started) * 1000),
             })
         target = artifact_root / "coordinator_qualification" / f"{run_id}.json"
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(row | identity, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         runs.append(row)
-    passed = all(row["status"] == "PASS" for row in runs)
+    signatures = {str(row.get("normalized_blueprint_signature")) for row in runs if row.get("status") == "PASS"}
+    passed = all(row["status"] == "PASS" for row in runs) and len(signatures) == 1
     result = {
         "profile": "coordinator-diagnostic" if diagnostic else "coordinator-qualify",
-        "status": ("PASS" if passed else "DIAGNOSTIC_FAILED") if diagnostic else ("PASS" if passed else "COORDINATOR_NOT_QUALIFIED"),
-        "qualification": None if diagnostic else ("3/3" if passed else f"{sum(row['status'] == 'PASS' for row in runs)}/3"),
-        "provider": provider, "model_limits": {"temperature": 0, "max_output_tokens": 3500, "configured_timeout": 150, "outer_deadline": 180, "reserve": 30},
+        "status": ("PASS" if passed else "DIAGNOSTIC_FAILED") if diagnostic else ("PASS" if passed else ("COORDINATOR_SEMANTIC_INSTABILITY" if len(runs) == count and all(row["status"] == "PASS" for row in runs) else "COORDINATOR_ROUTE_NOT_RELIABLE")),
+        "qualification": None if diagnostic else ("5/5" if passed else f"{sum(row['status'] == 'PASS' for row in runs)}/5"),
+        "normalized_signature_count": len(signatures),
+        "provider": provider, "model_limits": {"temperature": 0, "max_output_tokens": 1600, "configured_timeout": 150, "outer_deadline": 180, "reserve": 30},
         "source_identity": identity, "runs": runs,
     }
     index = artifact_root / "coordinator_qualification" / ("diagnostic_index.json" if diagnostic else "index.json")
@@ -824,10 +938,11 @@ def _worker_cohesive_live(artifact_root: pathlib.Path, *, count: int) -> dict[st
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the CGNK minimal ProjectBlueprint MVP profiles")
-    parser.add_argument("--profile", required=True, choices=("unit", "unit-materialization", "fake-single", "fake-repair", "coordinator-diagnostic", "coordinator-qualify", "worker-file-probe", "worker-patch-probe", "worker-real-unit-diagnostic", "worker-cohesive-qualify", "worker-cohesive-replay", "worker-cohesive-live", "live-single", "live-repair", "fake-parallel", "fake-conflict", "fake-standup", "live-parallel", "live-repeat", "final"))
+    parser.add_argument("--profile", required=True, choices=("unit", "unit-materialization", "fake-single", "fake-repair", "coordinator-contract-probe", "coordinator-diagnostic", "coordinator-qualify", "worker-file-probe", "worker-patch-probe", "worker-real-unit-diagnostic", "worker-cohesive-qualify", "worker-cohesive-replay", "worker-cohesive-live", "live-single", "live-repair", "fake-parallel", "fake-conflict", "fake-standup", "live-parallel", "live-repeat", "final"))
     parser.add_argument("--artifact-root", type=pathlib.Path, default=ROOT / ".service_evidence" / "project_mvp")
-    parser.add_argument("--count", type=int, default=3)
-    parser.add_argument("--provider", default="deepseek")
+    parser.add_argument("--count", type=int, default=5)
+    parser.add_argument("--provider", default="qwen")
+    parser.add_argument("--contract-mode", choices=("c0", "c1", "c2"), default="c2")
     parser.add_argument("--blueprint-path", type=pathlib.Path)
     parser.add_argument("--replay-index", type=pathlib.Path)
     parser.add_argument("--json", action="store_true")
@@ -838,6 +953,7 @@ def main(argv: list[str] | None = None) -> int:
     elif args.profile == "unit-materialization": result = _run_pytest("materialization or continuation")
     elif args.profile == "fake-single": result = _run_pytest("fake_greenfield")
     elif args.profile == "fake-repair": result = _run_pytest("fake_repair")
+    elif args.profile == "coordinator-contract-probe": result = _coordinator_contract_probe(args.artifact_root.resolve(), provider=args.provider, contract_mode=args.contract_mode)
     elif args.profile == "coordinator-diagnostic": result = _coordinator_qualify(args.artifact_root.resolve(), count=1, provider=args.provider, diagnostic=True)
     elif args.profile == "coordinator-qualify": result = _coordinator_qualify(args.artifact_root.resolve(), count=args.count, provider=args.provider)
     elif args.profile == "worker-file-probe": result = _worker_probe(args.artifact_root.resolve(), patch_mode=False)

@@ -79,6 +79,11 @@ class StructuredSelectionReceipt:
     completion_tokens: int | None = None
     total_tokens: int | None = None
     cached_tokens: int | None = None
+    schema_chars: int = 0
+    system_prompt_chars: int = 0
+    user_prompt_chars: int = 0
+    endpoint_family: str = ""
+    response_format_mode: str = "json_schema"
     selector_version: str = SELECTOR_VERSION
 
     def as_dict(self) -> dict[str, Any]:
@@ -118,6 +123,11 @@ class StructuredSelectionReceipt:
             "completion_tokens": self.completion_tokens,
             "total_tokens": self.total_tokens,
             "cached_tokens": self.cached_tokens,
+            "schema_chars": self.schema_chars,
+            "system_prompt_chars": self.system_prompt_chars,
+            "user_prompt_chars": self.user_prompt_chars,
+            "endpoint_family": self.endpoint_family,
+            "response_format_mode": self.response_format_mode,
             "contains_credentials": False,
         }
 
@@ -177,6 +187,9 @@ class StructuredAnswerSelector:
         reasoning_text_length: int = 0, prompt_tokens: int | None = None,
         completion_tokens: int | None = None, total_tokens: int | None = None,
         cached_tokens: int | None = None,
+        schema_chars: int = 0, system_prompt_chars: int = 0,
+        user_prompt_chars: int = 0, endpoint_family: str = "",
+        response_format_mode: str = "json_schema",
     ) -> tuple[dict[str, Any], StructuredSelectionReceipt]:
         started = time.monotonic()
         raw = str(raw_text or "")
@@ -241,6 +254,10 @@ class StructuredAnswerSelector:
             reasoning_text_length=max(0, int(reasoning_text_length)),
             prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,
             total_tokens=total_tokens, cached_tokens=cached_tokens,
+            schema_chars=max(0, int(schema_chars)),
+            system_prompt_chars=max(0, int(system_prompt_chars)),
+            user_prompt_chars=max(0, int(user_prompt_chars)),
+            endpoint_family=str(endpoint_family), response_format_mode=str(response_format_mode),
         )
         if selected is None:
             raise StructuredSelectionError(status, receipt)

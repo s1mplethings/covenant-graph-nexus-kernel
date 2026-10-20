@@ -8,7 +8,7 @@ import sys
 import pytest
 
 from cgkn.application.project_blueprint import BlueprintCheck, BlueprintUnit, FailureAction, FailureReport, FailureStage, ProjectBlueprint
-from cgkn.application.project_loop import AcceptanceAttributionDecision, BlueprintUnitExecutor, MinimalProjectLoop, compile_blueprint
+from cgkn.application.project_loop import AcceptanceAttributionDecision, BlueprintUnitExecutor, MinimalProjectLoop, compile_blueprint, coordinator_design_request
 from cgkn.application.software_project.catalog import get_case
 from cgkn.application.software_project.scope import CommitFailure
 from cgkn.execution import BlockExecutionRequest, BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode, TaskContext
@@ -151,6 +151,27 @@ def main(argv=None):
 
 if __name__ == "__main__": raise SystemExit(main())
 '''
+
+
+def test_coordinator_request_is_minimal_public_only_and_has_stable_requirement_ids() -> None:
+    case = get_case("cli_csv_cleaner")
+    contract = {
+        "public_goal": case.public_goal,
+        "public_acceptance": list(case.public_acceptance),
+        "constraints": ["stdlib only", "offline"],
+        "entrypoint": case.entrypoint,
+        "hidden_acceptance": "DO-NOT-EXPOSE",
+        "traceback": "SECRET-TRACE",
+    }
+    request = coordinator_design_request(contract)
+    serialized = json.dumps(request, sort_keys=True)
+    assert "DO-NOT-EXPOSE" not in serialized and "SECRET-TRACE" not in serialized
+    assert list(request["prompt"]["public_requirements"]) == [
+        f"REQ-{index:03d}" for index in range(1, len(case.public_acceptance) + 1)
+    ]
+    unit_properties = request["schema"]["properties"]["units"]["items"]["properties"]
+    assert set(unit_properties) == {"kind", "purpose", "owns", "requirement_ids"}
+    assert request["schema"]["additionalProperties"] is False
 
 
 def test_fake_greenfield_runs_real_filesystem_pytest_and_hidden_acceptance(tmp_path: pathlib.Path) -> None:

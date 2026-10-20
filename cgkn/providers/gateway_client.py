@@ -229,6 +229,11 @@ class GatewayCompletionClient:
                 "completion_tokens": usage.get("completion_tokens"),
                 "total_tokens": usage.get("total_tokens"),
                 "cached_tokens": transport_metadata.get("cached_tokens"),
+                "schema_chars": len(json.dumps(schema_doc, ensure_ascii=False, separators=(",", ":"))),
+                "system_prompt_chars": len(system),
+                "user_prompt_chars": len(user),
+                "endpoint_family": self.api_method,
+                "response_format_mode": "json_schema",
             }
             selection_error: StructuredSelectionError | None = None
             selected: dict[str, Any] | None = None
@@ -290,7 +295,21 @@ class GatewayCompletionClient:
                 response_doc = {}
             category, message = _safe_gateway_error(response_doc, self.access_token, f"gateway HTTP {http_status}")
             provider_api_budget.finalize_call(reservation, usage=None, http_status=http_status, status="FAILED")
-            evidence = response_doc.get("cgkn_raw_defer") if isinstance(response_doc.get("cgkn_raw_defer"), Mapping) else {}
+            raw_evidence = response_doc.get("cgkn_raw_defer") if isinstance(response_doc.get("cgkn_raw_defer"), Mapping) else {}
+            evidence = dict(raw_evidence)
+            evidence.update({
+                "http_status": http_status,
+                "configured_timeout_seconds": config.timeout_seconds,
+                "effective_request_timeout_seconds": effective_timeout,
+                "remaining_outer_seconds": max(0, int(remaining_outer)),
+                "max_output_tokens": config.max_output_tokens,
+                "schema_chars": len(json.dumps(schema_doc, ensure_ascii=False, separators=(",", ":"))),
+                "system_prompt_chars": len(system),
+                "user_prompt_chars": len(user),
+                "endpoint_family": self.api_method,
+                "response_format_mode": "json_schema",
+                "thinking_mode_requested": config.thinking_mode,
+            })
             raise GatewayCompletionError(category, message, http_status=http_status, evidence=evidence) from None
         except GatewayCompletionError:
             provider_api_budget.finalize_call(reservation, usage=(response_doc or {}).get("usage") if response_doc else None, http_status=http_status, status="FAILED")

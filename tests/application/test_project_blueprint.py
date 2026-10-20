@@ -12,6 +12,7 @@ from cgkn.application.project_blueprint import (
     BlueprintCheck, BlueprintUnit, FailureAction, FailureReport, FailureStage, FileBundle, PatchBundle,
     MINIMAL_BLUEPRINT_DESIGN_SCHEMA, MinimalBlueprintDesignPayload,
     ProjectBlueprint, apply_blueprint_edits, assemble_project_blueprint,
+    minimal_blueprint_design_schema, normalized_blueprint_signature,
     extract_python_interface, interface_breaks,
 )
 from cgkn.application.project_loop import PATCH_BUNDLE_SCHEMA, compile_blueprint
@@ -91,28 +92,21 @@ def test_failure_report_is_hashable_and_versioned_by_content() -> None:
 
 def _minimal_payload(*, units: list[dict] | None = None) -> dict:
     return {
-        "schema_version": "1.0",
         "units": units or [
             {
-                "unit_id": "implementation", "kind": "implementation",
+                "kind": "implementation",
                 "purpose": "implement CLI", "owns": ["pkg/__init__.py", "pkg/__main__.py"],
-                "reads": [], "depends_on": [], "instruction": "implement public behavior",
-                "required_interfaces": ["main"], "acceptance": ["CLI works"],
+                "requirement_ids": ["REQ-001"],
             },
             {
-                "unit_id": "tests", "kind": "tests", "purpose": "test CLI",
-                "owns": ["tests/test_cli.py"], "reads": ["pkg/__main__.py"],
-                "depends_on": [], "instruction": "test public behavior", "acceptance": ["pytest passes"],
-                "required_interfaces": [],
+                "kind": "tests", "purpose": "test CLI",
+                "owns": ["tests/test_cli.py"], "requirement_ids": [],
             },
             {
-                "unit_id": "docs", "kind": "documentation", "purpose": "document CLI",
-                "owns": ["README.md"], "reads": [], "depends_on": [], "instruction": "document usage",
-                "required_interfaces": [],
-                "acceptance": ["README covers usage"],
+                "kind": "documentation", "purpose": "document CLI",
+                "owns": ["README.md"], "requirement_ids": ["REQ-002"],
             },
         ],
-        "finish_design": True,
     }
 
 
@@ -130,17 +124,18 @@ def test_minimal_payload_round_trip_and_strict_schema() -> None:
     value = _minimal_payload()
     payload = MinimalBlueprintDesignPayload.from_dict(value)
     assert payload.as_dict() == value
-    Draft202012Validator(MINIMAL_BLUEPRINT_DESIGN_SCHEMA).validate(value)
+    Draft202012Validator(minimal_blueprint_design_schema(_public_contract())).validate(value)
     invalid = json.loads(json.dumps(value)); invalid["units"][0]["executor_ref"] = "llm.cheap@1"
     assert not Draft202012Validator(MINIMAL_BLUEPRINT_DESIGN_SCHEMA).is_valid(invalid)
     assert "uniqueItems" not in json.dumps(MINIMAL_BLUEPRINT_DESIGN_SCHEMA)
 
 
-@pytest.mark.parametrize("field", ["owns", "reads", "depends_on", "required_interfaces"])
+@pytest.mark.parametrize("field", ["owns", "requirement_ids"])
 def test_minimal_payload_enforces_uniqueness_after_provider_schema_selection(field: str) -> None:
     value = _minimal_payload()
     unit = value["units"][0]
-    unit[field] = ["pkg/value.py", "pkg/value.py"]
+    duplicate = "pkg/value.py" if field == "owns" else "REQ-001"
+    unit[field] = [duplicate, duplicate]
     with pytest.raises(ValueError, match="must be unique"):
         MinimalBlueprintDesignPayload.from_dict(value)
 
@@ -150,7 +145,8 @@ def test_assembler_expands_defaults_checks_and_stable_hash() -> None:
     second = assemble_project_blueprint("demo", _minimal_payload(), _public_contract())
     assert first == second and first.blueprint_hash == second.blueprint_hash
     assert [item.check_id for item in first.checks] == ["compile", "pytest", "runtime_smoke", "external_acceptance"]
-    assert first.by_id["tests"].depends_on == ("implementation",)
+    assert first.by_id["tests-1"].depends_on == ("implementation-1",)
+    assert first.by_id["tests-1"].reads == ("pkg/__init__.py", "pkg/__main__.py")
     assert all(item.executor_ref == "llm.cheap@1" for item in first.units)
     assert all(item.status == "PENDING" and item.timeout_seconds == 120 for item in first.units)
     assert all(item.protected_paths for item in first.units)
@@ -160,21 +156,13 @@ def test_assembler_expands_defaults_checks_and_stable_hash() -> None:
     ("units", "message"),
     [
         ([
-            {"unit_id": "implementation", "kind": "implementation", "purpose": "x", "owns": ["../x.py"], "depends_on": [], "instruction": "x", "acceptance": ["x"]},
-            {"unit_id": "tests", "kind": "tests", "purpose": "x", "owns": ["tests/test_x.py"], "depends_on": ["implementation"], "instruction": "x", "acceptance": ["x"]},
+            {"kind": "implementation", "purpose": "x", "owns": ["../x.py"], "requirement_ids": ["REQ-001"]},
+            {"kind": "tests", "purpose": "x", "owns": ["tests/test_x.py"], "requirement_ids": ["REQ-002"]},
         ], "unsafe"),
         ([
-            {"unit_id": "implementation", "kind": "implementation", "purpose": "x", "owns": ["pkg/__main__.py"], "depends_on": [], "instruction": "x", "acceptance": ["x"]},
-            {"unit_id": "tests", "kind": "tests", "purpose": "x", "owns": ["pkg/__main__.py"], "depends_on": ["implementation"], "instruction": "x", "acceptance": ["x"]},
+            {"kind": "implementation", "purpose": "x", "owns": ["pkg/__main__.py"], "requirement_ids": ["REQ-001"]},
+            {"kind": "tests", "purpose": "x", "owns": ["pkg/__main__.py"], "requirement_ids": ["REQ-002"]},
         ], "ownership collision"),
-        ([
-            {"unit_id": "implementation", "kind": "implementation", "purpose": "x", "owns": ["pkg/__main__.py"], "depends_on": ["missing"], "instruction": "x", "acceptance": ["x"]},
-            {"unit_id": "tests", "kind": "tests", "purpose": "x", "owns": ["tests/test_x.py"], "depends_on": ["implementation"], "instruction": "x", "acceptance": ["x"]},
-        ], "invalid dependency"),
-        ([
-            {"unit_id": "implementation", "kind": "implementation", "purpose": "x", "owns": ["pkg/__main__.py"], "depends_on": ["tests"], "instruction": "x", "acceptance": ["x"]},
-            {"unit_id": "tests", "kind": "tests", "purpose": "x", "owns": ["tests/test_x.py"], "depends_on": ["implementation"], "instruction": "x", "acceptance": ["x"]},
-        ], "cycle"),
     ],
 )
 def test_assembler_rejects_invalid_paths_ownership_and_dependencies(units, message) -> None:
@@ -190,7 +178,7 @@ def test_assembler_requires_tests_and_readme_coverage() -> None:
     docs = _minimal_payload()["units"][2]
     with pytest.raises(ValueError, match="tests coverage"):
         assemble_project_blueprint("demo", _minimal_payload(units=[implementation, docs]), _public_contract())
-    tests = _minimal_payload()["units"][1]
+    tests = dict(_minimal_payload()["units"][1], requirement_ids=["REQ-002"])
     with pytest.raises(ValueError, match="README coverage"):
         assemble_project_blueprint("demo", _minimal_payload(units=[implementation, tests]), _public_contract())
 
@@ -198,10 +186,31 @@ def test_assembler_requires_tests_and_readme_coverage() -> None:
 def test_minimal_payload_rejects_unit_and_file_count_limits() -> None:
     base = _minimal_payload()["units"]
     with pytest.raises(ValueError, match="two to four"):
-        MinimalBlueprintDesignPayload.from_dict(_minimal_payload(units=base + [dict(base[2], unit_id="docs2", owns=["DOCS.md"]), dict(base[2], unit_id="docs3", owns=["GUIDE.md"])]))
+        MinimalBlueprintDesignPayload.from_dict(_minimal_payload(units=base + [dict(base[2], purpose="docs2", owns=["DOCS.md"], requirement_ids=[]), dict(base[2], purpose="docs3", owns=["GUIDE.md"], requirement_ids=[])]))
     too_many = dict(base[0], owns=[f"pkg/f{i}.py" for i in range(6)])
     with pytest.raises(ValueError, match="one to five"):
         MinimalBlueprintDesignPayload.from_dict(_minimal_payload(units=[too_many, base[1], base[2]]))
+
+
+def test_assembler_rejects_unknown_missing_and_duplicate_requirement_owners() -> None:
+    base = _minimal_payload()["units"]
+    unknown = [dict(base[0], requirement_ids=["REQ-999"]), base[1], base[2]]
+    with pytest.raises(ValueError, match="unknown public requirement ID"):
+        assemble_project_blueprint("demo", _minimal_payload(units=unknown), _public_contract())
+    missing = [dict(base[0], requirement_ids=[]), base[1], base[2]]
+    with pytest.raises(ValueError, match="has no owner"):
+        assemble_project_blueprint("demo", _minimal_payload(units=missing), _public_contract())
+    duplicate = [base[0], dict(base[1], requirement_ids=["REQ-001"]), base[2]]
+    with pytest.raises(ValueError, match="duplicate public requirement owner"):
+        assemble_project_blueprint("demo", _minimal_payload(units=duplicate), _public_contract())
+
+
+def test_provider_unit_order_normalizes_to_the_same_frozen_blueprint() -> None:
+    first = assemble_project_blueprint("demo", _minimal_payload(), _public_contract())
+    reversed_units = list(reversed(_minimal_payload()["units"]))
+    second = assemble_project_blueprint("demo", _minimal_payload(units=reversed_units), _public_contract())
+    assert first == second
+    assert normalized_blueprint_signature(first) == normalized_blueprint_signature(second)
 
 
 def test_frozen_blueprint_worker_scope_contract_is_monotonic() -> None:

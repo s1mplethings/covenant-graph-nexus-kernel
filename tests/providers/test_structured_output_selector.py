@@ -10,18 +10,15 @@ from cgkn.providers.structured_output import StructuredAnswerSelector, Structure
 
 def unit(unit_id: str, purpose: str = "implement") -> dict:
     return {
-        "unit_id": unit_id,
         "kind": "implementation" if unit_id.startswith("impl") else "tests",
         "purpose": purpose,
         "owns": [f"{unit_id}.py"],
-        "depends_on": [] if unit_id.startswith("impl") else ["impl"],
-        "instruction": purpose,
-        "acceptance": ["works"],
+        "requirement_ids": ["REQ-001"] if unit_id.startswith("impl") else [],
     }
 
 
-VALID = {"schema_version": "1.0", "units": [unit("impl"), unit("tests")], "finish_design": True}
-OTHER_VALID = {"schema_version": "1.0", "units": [unit("impl2"), unit("tests2")], "finish_design": True}
+VALID = {"units": [unit("impl"), unit("tests")]}
+OTHER_VALID = {"units": [unit("impl2"), unit("tests2")]}
 
 
 def select(text: str):
@@ -62,7 +59,7 @@ def test_unique_schema_valid_candidate_is_selected(name: str, text: str, expecte
     [
         ("unknown_nested_envelope", json.dumps({"wrapper": {"answer": VALID}})),
         ("zero_valid", '{"reasoning":"only"}'),
-        ("truncated", '{"schema_version":"1.0","units":['),
+        ("truncated", '{"units":['),
         ("array", json.dumps([VALID])),
         ("json_inside_string", json.dumps(json.dumps(VALID))),
         ("extra_field", json.dumps({**VALID, "extra": True})),

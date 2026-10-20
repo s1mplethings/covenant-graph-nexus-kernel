@@ -42,6 +42,8 @@ from .project_blueprint import (
     assemble_project_blueprint,
     extract_python_interface,
     interface_breaks,
+    minimal_blueprint_design_schema,
+    public_requirement_catalog,
 )
 
 
@@ -316,6 +318,34 @@ class DesignClient(Protocol):
     def design(self, blueprint: ProjectBlueprint, public_contract: Mapping[str, Any]) -> MinimalBlueprintDesignPayload: ...
 
 
+def coordinator_design_request(public_contract: Mapping[str, Any]) -> dict[str, Any]:
+    """Return the bounded public-only Coordinator request used by probes and production."""
+
+    requirements = {
+        requirement_id: summary
+        for requirement_id, summary in public_requirement_catalog(public_contract)
+    }
+    prompt = {
+        "public_goal": public_contract.get("public_goal"),
+        "constraints": list(public_contract.get("constraints", ())),
+        "public_requirements": requirements,
+        "required_entrypoint": public_contract.get("entrypoint"),
+    }
+    system = (
+        "Return only the schema object for 2-4 cohesive project units. Choose each unit's kind, short "
+        "purpose, owned project-relative paths, and primary public requirement IDs. Assign every "
+        "requirement ID exactly once. Include implementation, tests, and README documentation when "
+        "required. Emit no source, commands, dependencies, interfaces, runtime fields, or explanation."
+    )
+    return {
+        "contract_version": "minimal-blueprint-design-v2",
+        "schema_name": "cgnk_minimal_blueprint_design_v2",
+        "schema": minimal_blueprint_design_schema(public_contract),
+        "system": system,
+        "prompt": prompt,
+    }
+
+
 class ProviderBlueprintDesigner:
     def __init__(self, client: CompletionClient | ProductionGenerationClient, config: ModelRoleConfig):
         if config.role != "agent": raise ValueError("designer requires agent role")
@@ -325,25 +355,16 @@ class ProviderBlueprintDesigner:
 
     def design(self, blueprint: ProjectBlueprint, public_contract: Mapping[str, Any]) -> MinimalBlueprintDesignPayload:
         started = time.perf_counter()
-        prompt = {
-            "public_goal": public_contract.get("public_goal"),
-            "constraints": list(public_contract.get("constraints", ())),
-            "public_acceptance": list(public_contract.get("public_acceptance", ())),
-            "required_entrypoint": public_contract.get("entrypoint"),
-        }
+        request_contract = coordinator_design_request(public_contract)
+        prompt = request_contract["prompt"]
+        schema = request_contract["schema"]
+        system = request_contract["system"]
         generated = self.generation.generate(GenerationRequest(
             task_class="project.blueprint", operation="BLUEPRINT_DESIGN", project_id=blueprint.project_id,
             capability_ref="project.blueprint.design@1", provider_id=self.config.model,
-            system=(
-                "You are the project coordinator in DESIGN mode. Return only one "
-                "MinimalBlueprintDesignPayload. Do not write source code or commands. Do not "
-                "generate checks, executor metadata, runtime limits, status, or governance fields. "
-                "Use 2-4 cohesive implementation/tests/documentation units; each unit may own at "
-                "most 5 tightly related files. Tests depend on their implementation. Documentation "
-                "may be independent or depend on implementation. Set finish_design to true."
-            ),
+            system=system,
             goal=prompt, contract={}, state={}, failure_evidence={},
-            schema_name="cgnk_minimal_blueprint_design", schema=MINIMAL_BLUEPRINT_DESIGN_SCHEMA,
+            schema_name=request_contract["schema_name"], schema=schema,
             model_config=self.config,
             allowed_actions=("design_units",),
             forbidden_actions=("source_write", "shell", "checks", "executor_metadata", "candidate_metadata"),
@@ -360,6 +381,10 @@ class ProviderBlueprintDesigner:
             "transport_attempts": generated.completion.attempts,
             "selection_receipt": dict(generated.completion.selection_receipt),
             "transport_metadata": dict(generated.completion.transport_metadata),
+            "contract_version": request_contract["contract_version"],
+            "schema_chars": len(json.dumps(schema, ensure_ascii=False, separators=(",", ":"))),
+            "system_prompt_chars": len(system),
+            "projected_prompt_chars": len(json.dumps(prompt, ensure_ascii=False, separators=(",", ":"))),
         })
         value = parse_json_object(generated.completion.text)
         return MinimalBlueprintDesignPayload.from_dict(value)
@@ -1052,10 +1077,12 @@ class MinimalProjectLoop:
     def design(self, project_id: str, public_contract: Mapping[str, Any], designer: DesignClient | None = None) -> tuple[ProjectBlueprint, int]:
         draft = ProjectBlueprint("1.0", project_id, 1, str(public_contract["public_goal"]), tuple(str(item) for item in public_contract.get("constraints", ())), (), ())
         effective = designer or ProviderBlueprintDesigner(self.client, self.agent_config)
-        payload = effective.design(draft, public_contract)
-        frozen = assemble_project_blueprint(project_id, payload, public_contract)
-        calls = getattr(effective, "calls", ())
-        self.coordinator_calls = [dict(item) for item in calls]
+        try:
+            payload = effective.design(draft, public_contract)
+            frozen = assemble_project_blueprint(project_id, payload, public_contract)
+        finally:
+            calls = getattr(effective, "calls", ())
+            self.coordinator_calls = [dict(item) for item in calls]
         if self.coordinator_calls:
             receipt = dict(self.coordinator_calls[-1].get("selection_receipt") or {})
             receipt["blueprint_hash"] = frozen.blueprint_hash

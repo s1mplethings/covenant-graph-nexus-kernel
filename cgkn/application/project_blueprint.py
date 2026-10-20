@@ -19,7 +19,7 @@ PROTECTED_PROJECT_PATHS = (
     "governance",
 )
 
-MINIMAL_BLUEPRINT_DESIGN_SCHEMA: dict[str, Any] = {
+LEGACY_MINIMAL_BLUEPRINT_DESIGN_SCHEMA: dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
     "required": ["schema_version", "units", "finish_design"],
@@ -55,6 +55,57 @@ MINIMAL_BLUEPRINT_DESIGN_SCHEMA: dict[str, Any] = {
         "finish_design": {"const": True},
     },
 }
+
+
+MINIMAL_BLUEPRINT_DESIGN_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["units"],
+    "properties": {
+        "units": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 4,
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["kind", "purpose", "owns", "requirement_ids"],
+                "properties": {
+                    "kind": {"enum": ["implementation", "tests", "documentation"]},
+                    "purpose": {"type": "string", "minLength": 1, "maxLength": 240},
+                    "owns": {
+                        "type": "array", "minItems": 1, "maxItems": 5,
+                        "items": {"type": "string", "minLength": 1},
+                    },
+                    "requirement_ids": {
+                        "type": "array",
+                        "items": {"type": "string", "minLength": 1},
+                    },
+                },
+            },
+        },
+    },
+}
+
+
+def public_requirement_catalog(public_contract: Mapping[str, Any]) -> tuple[tuple[str, str], ...]:
+    """Assign stable, public-only IDs without asking the Provider to repeat text."""
+
+    return tuple(
+        (f"REQ-{index:03d}", str(summary))
+        for index, summary in enumerate(public_contract.get("public_acceptance", ()), start=1)
+    )
+
+
+def minimal_blueprint_design_schema(public_contract: Mapping[str, Any]) -> dict[str, Any]:
+    """Build the small Provider contract with an exact public requirement vocabulary."""
+
+    requirement_ids = [requirement_id for requirement_id, _ in public_requirement_catalog(public_contract)]
+    schema = json.loads(json.dumps(MINIMAL_BLUEPRINT_DESIGN_SCHEMA))
+    schema["properties"]["units"]["items"]["properties"]["requirement_ids"]["items"] = {
+        "enum": requirement_ids,
+    }
+    return schema
 
 
 def _hash(value: Any) -> str:
@@ -112,15 +163,10 @@ class FailureAction(str, Enum):
 
 @dataclass(frozen=True)
 class MinimalBlueprintUnitDesign:
-    unit_id: str
     kind: str
     purpose: str
     owns: tuple[str, ...]
-    depends_on: tuple[str, ...]
-    instruction: str
-    acceptance: tuple[str, ...]
-    reads: tuple[str, ...] = ()
-    required_interfaces: tuple[str, ...] = ()
+    requirement_ids: tuple[str, ...]
 
     def __post_init__(self) -> None:
         if self.kind not in {
@@ -129,79 +175,54 @@ class MinimalBlueprintUnitDesign:
             UnitKind.DOCUMENTATION.value,
         }:
             raise ValueError(f"invalid minimal unit kind: {self.kind}")
-        if not self.unit_id or not self.purpose.strip() or not self.instruction.strip():
-            raise ValueError("minimal unit identity, purpose, and instruction are required")
-        if not self.owns or len(self.owns) > 5 or not self.acceptance:
-            raise ValueError("minimal unit requires one to five owned paths and acceptance")
+        if not self.purpose.strip():
+            raise ValueError("minimal unit purpose is required")
+        if not self.owns or len(self.owns) > 5:
+            raise ValueError("minimal unit requires one to five owned paths")
         owns = tuple(_safe_path(item) for item in self.owns)
-        reads = tuple(_safe_path(item) for item in self.reads)
-        depends_on = tuple(str(item) for item in self.depends_on)
-        required_interfaces = tuple(str(item) for item in self.required_interfaces)
-        if any(len(set(values)) != len(values) for values in (owns, reads, depends_on, required_interfaces)):
-            raise ValueError("minimal unit paths, dependencies, and interfaces must be unique")
-        if set(owns) & set(reads):
-            raise ValueError("minimal unit reads and owns must not overlap")
+        requirement_ids = tuple(str(item) for item in self.requirement_ids)
+        if len(set(owns)) != len(owns) or len(set(requirement_ids)) != len(requirement_ids):
+            raise ValueError("minimal unit paths and requirement IDs must be unique")
         object.__setattr__(self, "owns", owns)
-        object.__setattr__(self, "reads", reads)
-        object.__setattr__(self, "depends_on", depends_on)
-        object.__setattr__(self, "required_interfaces", required_interfaces)
+        object.__setattr__(self, "requirement_ids", requirement_ids)
 
     def as_dict(self) -> dict[str, Any]:
         return {
-            "unit_id": self.unit_id,
             "kind": self.kind,
             "purpose": self.purpose,
             "owns": list(self.owns),
-            "reads": list(self.reads),
-            "depends_on": list(self.depends_on),
-            "instruction": self.instruction,
-            "required_interfaces": list(self.required_interfaces),
-            "acceptance": list(self.acceptance),
+            "requirement_ids": list(self.requirement_ids),
         }
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "MinimalBlueprintUnitDesign":
+        if set(value) != {"kind", "purpose", "owns", "requirement_ids"}:
+            raise ValueError("minimal unit contains unknown or missing semantic fields")
         return cls(
-            unit_id=str(value.get("unit_id", "")),
             kind=str(value.get("kind", "")),
             purpose=str(value.get("purpose", "")),
             owns=_tuple(value.get("owns")),
-            depends_on=_tuple(value.get("depends_on")),
-            instruction=str(value.get("instruction", "")),
-            acceptance=_tuple(value.get("acceptance")),
-            reads=_tuple(value.get("reads")),
-            required_interfaces=_tuple(value.get("required_interfaces")),
+            requirement_ids=_tuple(value.get("requirement_ids")),
         )
 
 
 @dataclass(frozen=True)
 class MinimalBlueprintDesignPayload:
-    schema_version: str
     units: tuple[MinimalBlueprintUnitDesign, ...]
-    finish_design: bool
 
     def __post_init__(self) -> None:
-        if self.schema_version != "1.0" or self.finish_design is not True:
-            raise ValueError("minimal blueprint design identity is invalid")
         if not 2 <= len(self.units) <= 4:
             raise ValueError("minimal blueprint design requires two to four units")
-        ids = [item.unit_id for item in self.units]
-        if len(ids) != len(set(ids)):
-            raise ValueError("duplicate unit id")
 
     def as_dict(self) -> dict[str, Any]:
-        return {
-            "schema_version": self.schema_version,
-            "units": [item.as_dict() for item in self.units],
-            "finish_design": self.finish_design,
-        }
+        return {"units": [item.as_dict() for item in self.units]}
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "MinimalBlueprintDesignPayload":
+        if set(value) != {"units"}:
+            raise ValueError("minimal blueprint payload contains unknown or missing fields")
         return cls(
-            str(value.get("schema_version", "")),
             tuple(MinimalBlueprintUnitDesign.from_dict(item) for item in value.get("units", ())),
-            value.get("finish_design") is True,
         )
 
 
@@ -396,6 +417,27 @@ class ProjectBlueprint:
         return replace(self, status=BlueprintStatus.FROZEN.value, blueprint_hash="")
 
 
+def normalized_blueprint_signature(blueprint: ProjectBlueprint) -> str:
+    """Hash the responsibility graph while ignoring Provider prose variance."""
+
+    return _hash({
+        "units": [
+            {
+                "unit_id": unit.unit_id,
+                "kind": unit.kind,
+                "owns": list(unit.owns),
+                "depends_on": list(unit.depends_on),
+                "acceptance": list(unit.acceptance),
+            }
+            for unit in blueprint.units
+        ],
+        "checks": [
+            {"check_id": check.check_id, "kind": check.kind, "depends_on": list(check.depends_on)}
+            for check in blueprint.checks
+        ],
+    })
+
+
 def assemble_project_blueprint(
     project_id: str,
     payload: MinimalBlueprintDesignPayload | Mapping[str, Any],
@@ -409,26 +451,70 @@ def assemble_project_blueprint(
         raise ValueError("project identity and public goal are required")
     public_acceptance = tuple(str(item) for item in public_contract.get("public_acceptance", ()))
     constraints = tuple(str(item) for item in public_contract.get("constraints", ()))
-    implementation_ids = tuple(item.unit_id for item in design.units if item.kind == UnitKind.IMPLEMENTATION.value)
+    requirement_catalog = public_requirement_catalog(public_contract)
+    requirement_summaries = dict(requirement_catalog)
+    known_requirement_ids = set(requirement_summaries)
+    claimed_requirement_ids = [requirement_id for item in design.units for requirement_id in item.requirement_ids]
+    unknown_requirement_ids = set(claimed_requirement_ids) - known_requirement_ids
+    if unknown_requirement_ids:
+        raise ValueError(f"unknown public requirement ID: {sorted(unknown_requirement_ids)[0]}")
+    if len(claimed_requirement_ids) != len(set(claimed_requirement_ids)):
+        raise ValueError("duplicate public requirement owner")
+    missing_requirement_ids = known_requirement_ids - set(claimed_requirement_ids)
+    if missing_requirement_ids:
+        raise ValueError(f"public requirement has no owner: {sorted(missing_requirement_ids)[0]}")
+
+    kind_order = {
+        UnitKind.IMPLEMENTATION.value: 0,
+        UnitKind.TESTS.value: 1,
+        UnitKind.DOCUMENTATION.value: 2,
+    }
+    normalized_design = tuple(sorted(
+        design.units,
+        key=lambda item: (kind_order[item.kind], tuple(sorted(item.owns)), item.purpose.strip()),
+    ))
+    ordinal_by_kind: dict[str, int] = {}
+    identified: list[tuple[str, MinimalBlueprintUnitDesign]] = []
+    for item in normalized_design:
+        ordinal_by_kind[item.kind] = ordinal_by_kind.get(item.kind, 0) + 1
+        identified.append((f"{item.kind}-{ordinal_by_kind[item.kind]}", item))
+    implementation_ids = tuple(unit_id for unit_id, item in identified if item.kind == UnitKind.IMPLEMENTATION.value)
     if not implementation_ids:
         raise ValueError("minimal blueprint requires an implementation unit")
 
+    implementation_paths = tuple(
+        path for _, item in identified if item.kind == UnitKind.IMPLEMENTATION.value for path in item.owns
+    )
+    all_owned_paths = [path for _, item in identified for path in item.owns]
+    if len(all_owned_paths) != len(set(all_owned_paths)):
+        raise ValueError("ownership collision")
+
     units: list[BlueprintUnit] = []
-    for item in design.units:
-        dependencies = item.depends_on
-        if item.kind == UnitKind.TESTS.value and not dependencies:
-            dependencies = implementation_ids
+    for unit_id, item in identified:
+        dependencies = implementation_ids if item.kind == UnitKind.TESTS.value else ()
+        reads = implementation_paths if item.kind == UnitKind.TESTS.value else ()
+        acceptance = tuple(requirement_summaries[requirement_id] for requirement_id in item.requirement_ids)
+        if not acceptance:
+            acceptance = {
+                UnitKind.IMPLEMENTATION.value: ("implementation satisfies its public contract",),
+                UnitKind.TESTS.value: ("public tests pass",),
+                UnitKind.DOCUMENTATION.value: ("README documents public usage",),
+            }[item.kind]
+        instruction = (
+            f"{item.purpose.strip()} Own only: {', '.join(item.owns)}. "
+            f"Satisfy these public requirements: {'; '.join(acceptance)}."
+        )
         units.append(BlueprintUnit(
-            unit_id=item.unit_id,
+            unit_id=unit_id,
             purpose=item.purpose,
             kind=item.kind,
             owns=item.owns,
-            reads=item.reads,
+            reads=reads,
             depends_on=dependencies,
             executor_ref="llm.cheap@1",
-            instruction=item.instruction,
-            required_interfaces=item.required_interfaces,
-            acceptance=item.acceptance,
+            instruction=instruction,
+            required_interfaces=(),
+            acceptance=acceptance,
             allowed_effects=("filesystem.read", "filesystem.write"),
             max_actions=max(5, len(item.owns)),
             max_files=len(item.owns),
