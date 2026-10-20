@@ -5,7 +5,7 @@ import pathlib
 import re
 import time
 import uuid
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import Any, Mapping, Protocol
 
 from cgkn.application.learning import GenerationRequest, ProductionGenerationClient, canonical_hash, default_production_client
@@ -59,6 +59,84 @@ PATCH_BUNDLE_SCHEMA: dict[str, Any] = {"oneOf": [
     _ESCALATION_SCHEMA,
 ]}
 UNIT_PAYLOAD_SCHEMA = {"oneOf": [FILE_BUNDLE_SCHEMA["oneOf"][0], PATCH_BUNDLE_SCHEMA["oneOf"][0]]}
+MAX_UNIT_MATERIALIZATION_CALLS = 3
+
+
+def file_bundle_schema(requested_paths: tuple[str, ...]) -> dict[str, Any]:
+    """Bind a generation response to the current materialization slice."""
+    if not requested_paths:
+        raise ValueError("requested_paths must be non-empty")
+    item = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["path", "content"],
+        "properties": {
+            "path": {"enum": list(requested_paths)},
+            "content": {"type": "string"},
+        },
+    }
+    return {"oneOf": [
+        {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["schema_version", "kind", "unit_id", "files"],
+            "properties": {
+                "schema_version": {"const": "2.0"},
+                "kind": {"const": "file_bundle"},
+                "unit_id": {"type": "string"},
+                "files": {
+                    "type": "array", "minItems": 1,
+                    "maxItems": len(requested_paths), "items": item,
+                },
+            },
+        },
+        _ESCALATION_SCHEMA,
+    ]}
+
+
+@dataclass
+class UnitMaterializationState:
+    unit_id: str
+    expected_paths: tuple[str, ...]
+    staged_files: dict[str, str] = field(default_factory=dict)
+    materialization_calls: int = 0
+    total_output_bytes: int = 0
+    started_at: float = field(default_factory=time.perf_counter)
+    status: str = "EMPTY"
+    transitions: list[dict[str, Any]] = field(default_factory=list)
+
+    @property
+    def missing_paths(self) -> tuple[str, ...]:
+        return tuple(path for path in self.expected_paths if path not in self.staged_files)
+
+    def record(
+        self, status: str, *, returned_paths: tuple[str, ...] = (),
+        call_class: str = "", reason: str = "",
+    ) -> None:
+        self.status = status
+        self.transitions.append({
+            "status": status,
+            "materialization_call": self.materialization_calls,
+            "call_class": call_class,
+            "returned_paths": list(returned_paths),
+            "staged_paths": [path for path in self.expected_paths if path in self.staged_files],
+            "missing_paths": list(self.missing_paths),
+            "total_output_bytes": self.total_output_bytes,
+            "reason": reason,
+        })
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "unit_id": self.unit_id,
+            "expected_paths": list(self.expected_paths),
+            "staged_paths": [path for path in self.expected_paths if path in self.staged_files],
+            "missing_paths": list(self.missing_paths),
+            "materialization_calls": self.materialization_calls,
+            "total_output_bytes": self.total_output_bytes,
+            "status": self.status,
+            "duration_ms": max(0, int((time.perf_counter() - self.started_at) * 1000)),
+            "transitions": list(self.transitions),
+        }
 ACCEPTANCE_ATTRIBUTION_SCHEMA: dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
@@ -336,16 +414,19 @@ class ProviderAcceptanceAttributor:
 class BlueprintUnitExecutor:
     descriptor = ExecutorDescriptor("llm.cheap@1", "blueprint_unit_worker", ("project.unit.implementation@1", "project.unit.tests@1", "project.unit.documentation@1"), ("filesystem.read", "filesystem.write"), supports_cost_reporting=True)
 
-    def __init__(self, root: pathlib.Path | str, client: CompletionClient | ProductionGenerationClient, config: ModelRoleConfig, repair_config: ModelRoleConfig | None = None):
+    def __init__(self, root: pathlib.Path | str, client: CompletionClient | ProductionGenerationClient, config: ModelRoleConfig, repair_config: ModelRoleConfig | None = None, *, materialization_policy: str = "INCREMENTAL"):
         if config.role != "worker": raise ValueError("unit executor requires worker role")
         if repair_config is not None and repair_config.role != "worker": raise ValueError("repair executor requires worker role")
+        if materialization_policy not in {"INCREMENTAL", "FULL_RETRY"}: raise ValueError("invalid materialization policy")
         self.root = pathlib.Path(root).resolve()
         self.generation = client if isinstance(client, ProductionGenerationClient) else default_production_client(client)
         self.config = config
         self.repair_config = repair_config or config
+        self.materialization_policy = materialization_policy
         self.failure_reports: dict[str, FailureReport] = {}
         self.generation_failure_reports: dict[str, FailureReport] = {}
         self.materialized_units: dict[str, tuple[tuple[str, ...], str]] = {}
+        self.materialization_call_counts: dict[str, int] = {}
         self.calls: list[dict[str, Any]] = []
 
     def register_materialized_baseline(self, unit: BlueprintUnit) -> None:
@@ -365,6 +446,7 @@ class BlueprintUnitExecutor:
     def execute(self, request: BlockExecutionRequest) -> BlockExecutionResult:
         started, clock = utc_now(), time.perf_counter(); usage: dict[str, Any] = {}
         unit: BlueprintUnit | None = None; mode = "UNKNOWN"; provider_recorded = False
+        materialization: UnitMaterializationState | None = None
         try:
             unit = BlueprintUnit.from_dict(request.task_context.node_config["unit"])
             visible = tuple(dict.fromkeys((*unit.owns, *unit.reads)))
@@ -376,83 +458,240 @@ class BlueprintUnitExecutor:
             failure = stored_failure if has_patchable_baseline else None
             mode = "REPAIR" if failure else "EXECUTE"
             effective_config = self.repair_config if failure else self.config
-            prompt = {
-                "mode": mode, "project_goal": request.task_context.node_goal, "public_constraints": list(request.task_context.project_constraints),
-                "unit": unit.as_dict(), "current_files": sources,
-                "observed_interfaces": {path: item.as_dict() for path, item in manifests.items()},
-                "direct_dependency_results": materialize_json(request.task_context.dependency_results), "acceptance": list(unit.acceptance),
-                "failure_report": (failure or generation_failure).as_dict() if (failure or generation_failure) else None,
-                "output_contract": "PatchBundle only in REPAIR; compact FileBundle v2 only in EXECUTE",
-            }
-            schema = PATCH_BUNDLE_SCHEMA if failure else FILE_BUNDLE_SCHEMA
-            system = (
-                "You are a bounded unit worker. Return exactly one compact FileBundle v2. "
-                "Emit each owned file exactly once as strict JSON, with no summary, metadata, schema echo, "
-                "Markdown fence, or natural-language explanation. Touch only unit.owns; never invent paths."
-                + (" The previous generation was rejected. Use its failure report and return the complete exact owned file set again." if generation_failure else "")
-                if not failure else
-                "You are a bounded unit repair worker. Return exactly one PatchBundle. Touch only unit.owns; "
-                "never change the blueprint, run commands, access hidden acceptance, create evidence, or invent paths. "
-                "Use PatchBundle v2 with one unique files[] object per modified file and one or more ordered edits. "
-                "Modify only the smallest non-empty subset needed. Preserve every required and observed public interface."
-            )
-            generated = self.generation.generate(GenerationRequest(
-                task_class="project.codegen", operation=mode, project_id=request.project_id,
-                capability_ref=request.component_ref, provider_id=self.config.model,
-                system=system,
-                goal=prompt, contract={"unit": unit.as_dict(), "required_interfaces": list(unit.required_interfaces)}, state={"files": sources, "interfaces": {key: value.as_dict() for key, value in manifests.items()}},
-                failure_evidence=(failure or generation_failure).as_dict() if (failure or generation_failure) else {}, schema_name="cgkn_unit_bundle", schema=schema,
-                model_config=effective_config, allowed_actions=("file_bundle",) if not failure else ("patch_bundle",), forbidden_actions=("shell", "network", "blueprint_change", "hidden_acceptance"), run_id=request.run_id,
-            ))
-            completion = generated.completion; usage = dict(completion.usage)
-            self.calls.append(self._call_record(request, unit, mode, clock, config=effective_config, completion=completion))
-            provider_recorded = True
-            value = parse_json_object(completion.text)
-            if str(value.get("unit_id", "")) != unit.unit_id: raise UnitOutputValidationError("UNIT_OUTPUT_INVALID", "bundle unit_id mismatch")
-            if value.get("kind") == "escalation": raise RuntimeError(str(value.get("reason") or "worker escalation"))
             if failure:
+                prompt = {
+                    "mode": mode, "project_goal": request.task_context.node_goal,
+                    "public_constraints": list(request.task_context.project_constraints),
+                    "unit": unit.as_dict(), "current_files": sources,
+                    "observed_interfaces": {path: item.as_dict() for path, item in manifests.items()},
+                    "direct_dependency_results": materialize_json(request.task_context.dependency_results),
+                    "acceptance": list(unit.acceptance), "failure_report": failure.as_dict(),
+                    "output_contract": "PatchBundle v2 only in REPAIR",
+                }
+                system = (
+                    "You are a bounded unit repair worker. Return exactly one PatchBundle. Touch only unit.owns; "
+                    "never change the blueprint, run commands, access hidden acceptance, create evidence, or invent paths. "
+                    "Use PatchBundle v2 with one unique files[] object per modified file and one or more ordered edits. "
+                    "Modify only the smallest non-empty subset needed. Preserve every required and observed public interface."
+                )
+                generated = self.generation.generate(GenerationRequest(
+                    task_class="project.codegen", operation=mode, project_id=request.project_id,
+                    capability_ref=request.component_ref, provider_id=self.config.model,
+                    system=system, goal=prompt,
+                    contract={"unit": unit.as_dict(), "required_interfaces": list(unit.required_interfaces)},
+                    state={"files": sources, "interfaces": {key: value.as_dict() for key, value in manifests.items()}},
+                    failure_evidence=failure.as_dict(), schema_name="cgkn_unit_bundle", schema=PATCH_BUNDLE_SCHEMA,
+                    model_config=effective_config, allowed_actions=("patch_bundle",),
+                    forbidden_actions=("shell", "network", "blueprint_change", "hidden_acceptance"), run_id=request.run_id,
+                ))
+                completion = generated.completion; usage = dict(completion.usage)
+                self.calls.append(self._call_record(
+                    request, unit, mode, clock, config=effective_config, completion=completion,
+                    call_class="REPAIR", prompt=prompt,
+                ))
+                provider_recorded = True
+                value = parse_json_object(completion.text)
+                if str(value.get("unit_id", "")) != unit.unit_id:
+                    raise UnitOutputValidationError("UNIT_OUTPUT_INVALID", "bundle unit_id mismatch")
+                if value.get("kind") == "escalation":
+                    raise RuntimeError(str(value.get("reason") or "worker escalation"))
                 bundle = PatchBundle.from_dict(value)
                 if bundle.needs_escalation: raise RuntimeError(bundle.escalation_reason or "worker escalation")
                 actions = [{"action": "patch_file", "path": path, "edits": [{"find": find, "replace": replacement} for find, replacement in edits]} for path, edits in bundle.files]
                 summary = bundle.summary
-            else:
-                bundle = FileBundle.from_dict(value)
-                if bundle.needs_escalation: raise RuntimeError(bundle.escalation_reason or "worker escalation")
-                actions = [{"action": "write_file", "path": path, "content": content} for path, content in bundle.files]
-                summary = bundle.summary
-            changed = tuple(item["path"] for item in actions)
-            if failure:
+                changed = tuple(item["path"] for item in actions)
                 if not changed or not set(changed) <= set(unit.owns):
                     raise UnitOutputValidationError("UNIT_OUTPUT_SCOPE_VIOLATION", "repair bundle must modify a non-empty subset of unit.owns")
-            else:
-                missing = tuple(path for path in unit.owns if path not in changed)
-                extra = tuple(path for path in changed if path not in unit.owns)
-                if missing:
-                    raise UnitOutputValidationError("UNIT_OUTPUT_INCOMPLETE", "FileBundle incomplete; missing owned paths: " + ", ".join(missing))
-                if extra or len(changed) != len(unit.owns):
-                    raise UnitOutputValidationError("UNIT_OUTPUT_SCOPE_VIOLATION", "FileBundle must write exactly unit.owns")
-            scope = WorkerScope(unit.owns + unit.reads, unit.owns, max_actions=unit.max_actions, max_write_files=unit.max_files, max_total_output_bytes=unit.max_output_bytes, allow_create=not failure, allow_patch=True, allow_delete=False)
+                scope = WorkerScope(unit.owns + unit.reads, unit.owns, max_actions=unit.max_actions, max_write_files=unit.max_files, max_total_output_bytes=unit.max_output_bytes, allow_create=False, allow_patch=True, allow_delete=False)
+                transaction = ScopedFileTransaction(self.root, scope)
+                _, planned = transaction.validate(actions)
+                new_sources = dict(sources)
+                for item in planned: new_sources[item.relative] = item.content.decode("utf-8")
+                new_manifests = _manifests({path: new_sources[path] for path in unit.owns if path in new_sources})
+                for path, before in manifests.items():
+                    if path in unit.owns and path in new_manifests:
+                        breaks = interface_breaks(before, new_manifests[path], unit.required_interfaces)
+                        if breaks: raise PermissionError("interface guard: " + "; ".join(breaks))
+                results = transaction.apply(actions)
+                self.register_materialized_baseline(unit)
+                self.generation_failure_reports.pop(unit.unit_id, None)
+                unit_result = UnitResult(unit.unit_id, "SUCCEEDED", changed, observed_interfaces=tuple(item.manifest_hash for item in new_manifests.values()), provider_usage=tuple((str(key), str(value)) for key, value in sorted(usage.items())), duration=int((time.perf_counter() - clock) * 1000), materialized_baseline=True)
+                self.calls[-1]["unit_result"] = "SUCCEEDED"
+                outputs = {"unit_result": unit_result.as_dict(), "summary": summary, "modified_files": list(changed), "observed_interfaces": {path: item.as_dict() for path, item in new_manifests.items()}, "context_chars": len(json.dumps(prompt, ensure_ascii=False, sort_keys=True)), "included_files": list(sources), "included_interfaces": list(manifests), "included_dependencies": list(request.task_context.dependency_results), "action_results": results}
+                return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.SUCCEEDED, outputs=outputs, started_at=started, ended_at=utc_now(), duration_ms=unit_result.duration, usage=usage)
+
+            materialization = UnitMaterializationState(unit.unit_id, unit.owns)
+            prior_calls = self.materialization_call_counts.get(unit.unit_id, 0)
+            last_summary = ""
+            while materialization.missing_paths:
+                if self.materialization_call_counts.get(unit.unit_id, 0) >= MAX_UNIT_MATERIALIZATION_CALLS:
+                    raise UnitOutputValidationError(
+                        "UNIT_MATERIALIZATION_INCOMPLETE",
+                        "Unit materialization call limit reached; missing owned paths: " + ", ".join(materialization.missing_paths),
+                    )
+                requested_paths = materialization.missing_paths
+                staged_paths = tuple(path for path in unit.owns if path in materialization.staged_files)
+                call_class = (
+                    "GENERATION_CONTINUATION" if materialization.materialization_calls
+                    else "GENERATION_RETRY" if prior_calls else "GENERATION"
+                )
+                staged_interfaces = _manifests(materialization.staged_files)
+                prompt = {
+                    "mode": "EXECUTE", "project_goal": request.task_context.node_goal,
+                    "public_constraints": list(request.task_context.project_constraints),
+                    "unit": {
+                        "unit_id": unit.unit_id, "kind": unit.kind,
+                        "purpose": unit.purpose, "instruction": unit.instruction,
+                    },
+                    "requested_paths": list(requested_paths),
+                    "already_staged_paths": list(staged_paths),
+                    "staged_sibling_context": {path: materialization.staged_files[path] for path in staged_paths},
+                    "current_files": sources,
+                    "observed_interfaces": {
+                        **{path: item.as_dict() for path, item in manifests.items()},
+                        **{path: item.as_dict() for path, item in staged_interfaces.items()},
+                    },
+                    "direct_dependency_results": materialize_json(request.task_context.dependency_results),
+                    "acceptance": list(unit.acceptance),
+                    "failure_report": generation_failure.as_dict() if generation_failure else None,
+                    "missing_path_reason": "complete the cohesive Unit without regenerating staged siblings",
+                    "materialization_policy": self.materialization_policy,
+                    "output_contract": "compact FileBundle v2 containing a non-empty subset of requested_paths only",
+                }
+                system = (
+                    "You are a bounded cohesive-Unit materialization worker. Return exactly one compact FileBundle v2. "
+                    "Return only a non-empty subset of requested_paths and prefer completing every requested path in this call. "
+                    "Never return already_staged_paths, any path outside requested_paths, Blueprint edits, shell actions, hidden acceptance, "
+                    "schema echoes, Markdown fences, summaries, or natural-language explanation. Staged sibling context is read-only."
+                )
+                materialization.materialization_calls += 1
+                self.materialization_call_counts[unit.unit_id] = self.materialization_call_counts.get(unit.unit_id, 0) + 1
+                try:
+                    generated = self.generation.generate(GenerationRequest(
+                        task_class="project.codegen", operation="EXECUTE", project_id=request.project_id,
+                        capability_ref=request.component_ref, provider_id=self.config.model,
+                        system=system, goal=prompt,
+                        contract={
+                            "unit_id": unit.unit_id, "requested_paths": list(requested_paths),
+                            "required_interfaces": list(unit.required_interfaces),
+                        },
+                        state={
+                            "formal_files": sources, "staged_paths": list(staged_paths),
+                            "interfaces": prompt["observed_interfaces"],
+                        },
+                        failure_evidence=generation_failure.as_dict() if generation_failure else {},
+                        schema_name="cgkn_unit_bundle", schema=file_bundle_schema(requested_paths),
+                        model_config=effective_config, allowed_actions=("file_bundle",),
+                        forbidden_actions=("shell", "network", "blueprint_change", "hidden_acceptance"), run_id=request.run_id,
+                    ))
+                except GatewayCompletionError as exc:
+                    self.calls.append(self._call_record(
+                        request, unit, mode, clock, config=effective_config, error=exc,
+                        call_class=call_class, prompt=prompt, requested_paths=requested_paths,
+                        staged_paths=staged_paths,
+                    ))
+                    provider_recorded = True
+                    raise
+                completion = generated.completion
+                usage = self._merge_usage(usage, dict(completion.usage))
+                self.calls.append(self._call_record(
+                    request, unit, mode, clock, config=effective_config, completion=completion,
+                    call_class=call_class, prompt=prompt, requested_paths=requested_paths,
+                    staged_paths=staged_paths,
+                ))
+                provider_recorded = True
+                value = parse_json_object(completion.text)
+                if str(value.get("unit_id", "")) != unit.unit_id:
+                    raise UnitOutputValidationError("UNIT_OUTPUT_INVALID", "bundle unit_id mismatch")
+                if value.get("kind") == "escalation":
+                    raise RuntimeError(str(value.get("reason") or "worker escalation"))
+                bundle = FileBundle.from_dict(value)
+                if bundle.needs_escalation:
+                    raise RuntimeError(bundle.escalation_reason or "worker escalation")
+                returned_paths = tuple(path for path, _ in bundle.files)
+                staged_repeats = tuple(path for path in returned_paths if path in materialization.staged_files)
+                outside_unit = tuple(path for path in returned_paths if path not in unit.owns)
+                outside_request = tuple(path for path in returned_paths if path not in requested_paths)
+                if staged_repeats:
+                    raise UnitOutputValidationError(
+                        "UNIT_MATERIALIZATION_STALLED",
+                        "continuation repeated already staged paths: " + ", ".join(staged_repeats),
+                    )
+                if outside_unit or outside_request:
+                    raise UnitOutputValidationError(
+                        "UNIT_OUTPUT_SCOPE_VIOLATION",
+                        "FileBundle returned paths outside requested_paths",
+                    )
+                slice_actions = [{"action": "write_file", "path": path, "content": content} for path, content in bundle.files]
+                candidate_files = dict(materialization.staged_files)
+                candidate_files.update(dict(bundle.files))
+                candidate_bytes = sum(len(content.encode("utf-8")) for content in candidate_files.values())
+                if candidate_bytes > unit.max_output_bytes:
+                    raise UnitOutputValidationError("UNIT_OUTPUT_BUDGET_EXCEEDED", "Unit staged output exceeds max_output_bytes")
+                scope = WorkerScope(unit.owns + unit.reads, unit.owns, max_actions=unit.max_actions, max_write_files=unit.max_files, max_total_output_bytes=unit.max_output_bytes, allow_create=True, allow_patch=True, allow_delete=False)
+                ScopedFileTransaction(self.root, scope).validate(slice_actions)
+                if self.materialization_policy == "FULL_RETRY" and set(returned_paths) != set(requested_paths):
+                    raise UnitOutputValidationError(
+                        "UNIT_OUTPUT_INCOMPLETE",
+                        "FULL_RETRY policy discards partial output; missing owned paths: "
+                        + ", ".join(path for path in requested_paths if path not in returned_paths),
+                    )
+                materialization.staged_files.update(dict(bundle.files))
+                materialization.total_output_bytes = candidate_bytes
+                last_summary = bundle.summary
+                self.calls[-1].update({
+                    "returned_paths": list(returned_paths), "newly_materialized_paths": list(returned_paths),
+                    "returned_bytes_by_path": {path: len(content.encode("utf-8")) for path, content in bundle.files},
+                    "missing_paths_after_call": list(materialization.missing_paths),
+                    "materialization_status": "PARTIAL" if materialization.missing_paths else "COMPLETE",
+                })
+                if materialization.missing_paths:
+                    materialization.record("PARTIAL", returned_paths=returned_paths, call_class=call_class)
+                    self.calls[-1]["unit_result"] = "PARTIAL_VALID_OUTPUT"
+                    continue
+                materialization.record("COMPLETE", returned_paths=returned_paths, call_class=call_class)
+
+            aggregate_actions = [
+                {"action": "write_file", "path": path, "content": materialization.staged_files[path]}
+                for path in unit.owns
+            ]
+            scope = WorkerScope(unit.owns + unit.reads, unit.owns, max_actions=unit.max_actions, max_write_files=unit.max_files, max_total_output_bytes=unit.max_output_bytes, allow_create=True, allow_patch=True, allow_delete=False)
             transaction = ScopedFileTransaction(self.root, scope)
-            _, planned = transaction.validate(actions)
+            _, planned = transaction.validate(aggregate_actions)
             new_sources = dict(sources)
             for item in planned: new_sources[item.relative] = item.content.decode("utf-8")
-            new_manifests = _manifests({path: new_sources[path] for path in unit.owns if path in new_sources})
+            if set(materialization.staged_files) != set(unit.owns):
+                raise UnitOutputValidationError("UNIT_MATERIALIZATION_INCOMPLETE", "Unit staging does not cover exact owned paths")
+            new_manifests = _manifests({path: new_sources[path] for path in unit.owns})
             for path, before in manifests.items():
                 if path in unit.owns and path in new_manifests:
                     breaks = interface_breaks(before, new_manifests[path], unit.required_interfaces)
                     if breaks: raise PermissionError("interface guard: " + "; ".join(breaks))
-            results = transaction.apply(actions)
+            materialization.record("VALIDATED")
+            results = transaction.apply(aggregate_actions)
             self.register_materialized_baseline(unit)
             self.generation_failure_reports.pop(unit.unit_id, None)
+            materialization.record("COMMITTED")
+            changed = unit.owns
             unit_result = UnitResult(unit.unit_id, "SUCCEEDED", changed, observed_interfaces=tuple(item.manifest_hash for item in new_manifests.values()), provider_usage=tuple((str(key), str(value)) for key, value in sorted(usage.items())), duration=int((time.perf_counter() - clock) * 1000), materialized_baseline=True)
-            if self.calls:
-                self.calls[-1]["unit_result"] = "SUCCEEDED"
-            outputs = {"unit_result": unit_result.as_dict(), "summary": summary, "modified_files": list(changed), "observed_interfaces": {path: item.as_dict() for path, item in new_manifests.items()}, "context_chars": len(json.dumps(prompt, ensure_ascii=False, sort_keys=True)), "included_files": list(sources), "included_interfaces": list(manifests), "included_dependencies": list(request.task_context.dependency_results), "action_results": results}
+            self.calls[-1]["unit_result"] = "SUCCEEDED"
+            self.calls[-1]["materialization_status"] = "COMMITTED"
+            outputs = {
+                "unit_result": unit_result.as_dict(), "summary": last_summary,
+                "modified_files": list(changed),
+                "observed_interfaces": {path: item.as_dict() for path, item in new_manifests.items()},
+                "context_chars": sum(int(call.get("context_chars") or 0) for call in self.calls if call.get("unit_id") == unit.unit_id),
+                "included_files": list(sources), "included_interfaces": list(manifests),
+                "included_dependencies": list(request.task_context.dependency_results),
+                "action_results": results, "unit_materialization": materialization.as_dict(),
+            }
             return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.SUCCEEDED, outputs=outputs, started_at=started, ended_at=utc_now(), duration_ms=unit_result.duration, usage=usage)
         except Exception as exc:
             if isinstance(exc, GatewayCompletionError) and unit is not None and not provider_recorded:
                 effective_config = self.repair_config if mode == "REPAIR" else self.config
                 self.calls.append(self._call_record(request, unit, mode, clock, config=effective_config, error=exc))
+            if materialization is not None and materialization.status != "COMMITTED":
+                materialization.record("DISCARDED", reason=str(getattr(exc, "failure_type", type(exc).__name__)))
             policy = isinstance(exc, PermissionError)
             code = ExecutionErrorCode.POLICY_BLOCKED if policy else ExecutionErrorCode.INVALID_OUTPUT if isinstance(exc, ValueError) else ExecutionErrorCode.EXECUTION_ERROR
             failure_stage = FailureStage.UNIT_OUTPUT_VALIDATION.value
@@ -478,12 +717,34 @@ class BlueprintUnitExecutor:
                 "materialized_baseline": bool(unit is not None and self.has_materialized_baseline(unit.unit_id)),
             }
             if provider_recorded and self.calls:
-                self.calls[-1].update({"unit_result": "FAILED", "failure_stage": failure_stage, "failure_type": failure_type})
-            return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.FAILED, error=ExecutionError(code, str(exc), details), started_at=started, ended_at=utc_now(), duration_ms=max(0, int((time.perf_counter() - clock) * 1000)), usage=usage, retryable=not policy)
+                self.calls[-1]["unit_result"] = "FAILED"
+                self.calls[-1]["failure_stage"] = failure_stage
+                if not self.calls[-1].get("failure_type"):
+                    self.calls[-1]["failure_type"] = failure_type
+            outputs = {"unit_materialization": materialization.as_dict()} if materialization is not None else {}
+            return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.FAILED, outputs=outputs, error=ExecutionError(code, str(exc), details), started_at=started, ended_at=utc_now(), duration_ms=max(0, int((time.perf_counter() - clock) * 1000)), usage=usage, retryable=not policy)
+
+    @staticmethod
+    def _merge_usage(current: Mapping[str, Any], addition: Mapping[str, Any]) -> dict[str, Any]:
+        keys = set(current) | set(addition)
+        merged: dict[str, Any] = {}
+        for key in keys:
+            left, right = current.get(key), addition.get(key)
+            if isinstance(left, int) and isinstance(right, int):
+                merged[key] = left + right
+            elif left is None:
+                merged[key] = right
+            elif right is None:
+                merged[key] = left
+            else:
+                merged[key] = right
+        return merged
 
     def _call_record(
         self, request: BlockExecutionRequest, unit: BlueprintUnit, mode: str, clock: float, *,
         config: ModelRoleConfig, completion: Any | None = None, error: GatewayCompletionError | None = None,
+        call_class: str | None = None, prompt: Mapping[str, Any] | None = None,
+        requested_paths: tuple[str, ...] = (), staged_paths: tuple[str, ...] = (),
     ) -> dict[str, Any]:
         receipt = dict(completion.selection_receipt) if completion is not None else dict(error.evidence if error else {})
         metadata = dict(completion.transport_metadata) if completion is not None else {}
@@ -498,12 +759,14 @@ class BlueprintUnitExecutor:
         attempts_detail = metadata.get("transport_attempts") or receipt.get("transport_attempts_detail") or []
         attempt_count = completion.attempts if completion is not None else receipt.get("transport_attempts")
         prior_generation_attempts = sum(call.get("unit_id") == unit.unit_id and call.get("operation") == "EXECUTE" for call in self.calls)
-        call_class = "GENERATION_RETRY" if mode == "EXECUTE" and prior_generation_attempts else "GENERATION" if mode == "EXECUTE" else "REPAIR"
+        effective_call_class = call_class or ("GENERATION_RETRY" if mode == "EXECUTE" and prior_generation_attempts else "GENERATION" if mode == "EXECUTE" else "REPAIR")
+        context_chars = len(json.dumps(dict(prompt), ensure_ascii=False, sort_keys=True)) if prompt is not None else 0
         return {
             "logical_call_id": f"{request.run_id}:{unit.unit_id}:{mode.lower()}:{len(self.calls) + 1}",
             "project_id": request.project_id, "run_id": request.run_id,
             "role": "worker", "operation": mode, "unit_id": unit.unit_id,
-            "call_class": call_class,
+            "call_class": effective_call_class,
+            "materialization_policy": self.materialization_policy,
             "provider": config.model,
             "model": completion.model if completion is not None else str(receipt.get("model") or config.model),
             "request_id": completion.request_id if completion is not None else str(receipt.get("request_id") or ""),
@@ -521,6 +784,11 @@ class BlueprintUnitExecutor:
             "configured_timeout": config.timeout_seconds,
             "effective_timeout": receipt.get("effective_request_timeout_seconds"),
             "elapsed_ms": int((time.perf_counter() - clock) * 1000),
+            "context_chars": context_chars,
+            "requested_paths": list(requested_paths),
+            "staged_paths_before_call": list(staged_paths),
+            "included_dependencies": list(request.task_context.dependency_results),
+            "included_interfaces": sorted(dict(prompt or {}).get("observed_interfaces", {})),
             "schema_hash": receipt.get("schema_hash"), "prompt_hash": receipt.get("prompt_hash"),
             "selection_receipt_hash": canonical_hash(receipt) if receipt else None,
             "selection_receipt": receipt, "transport_metadata": metadata,
@@ -539,6 +807,7 @@ class ProjectLoopOutcome:
     provider_calls: int
     agent_decisions: int
     generation_attempts: int
+    generation_continuations: int
     generation_retries: int
     repair_calls: int
     repair_rounds: int
@@ -551,7 +820,7 @@ class ProjectLoopOutcome:
     def status(self) -> str: return self.summary.status
 
     def as_dict(self) -> dict[str, Any]:
-        return {"project_id": self.project_id, "run_id": self.run_id, "status": self.status, "blueprint": self.blueprint.as_dict(), "capability_tree": self.tree.as_dict(), "summary": self.summary.as_dict(), "provider_calls": self.provider_calls, "agent_decisions": self.agent_decisions, "generation_attempts": self.generation_attempts, "generation_retries": self.generation_retries, "generation_retry_calls": self.generation_retries, "repair_calls": self.repair_calls, "repair_rounds": self.repair_rounds, "attribution_calls": self.attribution_calls, "failure_reports": [item.as_dict() for item in self.failure_reports], "workspace": str(self.workspace), "run_root": str(self.run_root)}
+        return {"project_id": self.project_id, "run_id": self.run_id, "status": self.status, "blueprint": self.blueprint.as_dict(), "capability_tree": self.tree.as_dict(), "summary": self.summary.as_dict(), "provider_calls": self.provider_calls, "agent_decisions": self.agent_decisions, "generation_attempts": self.generation_attempts, "generation_continuations": self.generation_continuations, "generation_retries": self.generation_retries, "generation_retry_calls": self.generation_retries, "repair_calls": self.repair_calls, "repair_rounds": self.repair_rounds, "attribution_calls": self.attribution_calls, "failure_reports": [item.as_dict() for item in self.failure_reports], "workspace": str(self.workspace), "run_root": str(self.run_root)}
 
 
 class MinimalProjectLoop:
@@ -643,8 +912,9 @@ class MinimalProjectLoop:
         final_blueprint = replace(blueprint, status=final_status, blueprint_hash="")
         _write_json(state_root / "project_blueprint_final.json", final_blueprint.as_dict())
         generation_attempts = sum(call.get("operation") == "EXECUTE" for call in worker.calls)
+        generation_continuations = sum(call.get("call_class") == "GENERATION_CONTINUATION" for call in worker.calls)
         repair_calls = sum(call.get("operation") == "REPAIR" for call in worker.calls)
-        outcome = ProjectLoopOutcome(blueprint.project_id, run_id, final_blueprint, tree, summary, len(worker.calls) + len(self.attribution_calls), len(self.attribution_calls), generation_attempts, generation_retries, repair_calls, repairs, len(self.attribution_calls), tuple(reports), workspace, state_root)
+        outcome = ProjectLoopOutcome(blueprint.project_id, run_id, final_blueprint, tree, summary, len(worker.calls) + len(self.attribution_calls), len(self.attribution_calls), generation_attempts, generation_continuations, generation_retries, repair_calls, repairs, len(self.attribution_calls), tuple(reports), workspace, state_root)
         _write_json(state_root / "project_outcome.json", outcome.as_dict())
         _write_json(state_root / "provider_calls.json", {"calls": worker.calls})
         _write_json(state_root / "attribution_calls.json", {"calls": self.attribution_calls})
