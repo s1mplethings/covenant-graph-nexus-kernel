@@ -418,14 +418,13 @@ class ProjectBlueprint:
 
 
 def normalized_blueprint_signature(blueprint: ProjectBlueprint) -> str:
-    """Hash the responsibility graph while ignoring Provider prose variance."""
+    """Hash the responsibility graph while ignoring prose and path-name variance."""
 
     return _hash({
         "units": [
             {
                 "unit_id": unit.unit_id,
                 "kind": unit.kind,
-                "owns": list(unit.owns),
                 "depends_on": list(unit.depends_on),
                 "acceptance": list(unit.acceptance),
             }
@@ -468,6 +467,26 @@ def assemble_project_blueprint(
         design.units,
         key=lambda item: (kind_order[item.kind], tuple(sorted(item.owns)), item.purpose.strip()),
     ))
+    coalesced_design: list[MinimalBlueprintUnitDesign] = []
+    for kind in kind_order:
+        same_kind = [item for item in normalized_design if item.kind == kind]
+        owned = tuple(path for item in same_kind for path in item.owns)
+        if (
+            len(same_kind) > 1
+            and len(owned) == len(set(owned))
+            and len(owned) <= 5
+        ):
+            purposes = tuple(dict.fromkeys(item.purpose.strip() for item in same_kind))
+            requirement_ids = tuple(sorted({requirement_id for item in same_kind for requirement_id in item.requirement_ids}))
+            coalesced_design.append(MinimalBlueprintUnitDesign(
+                kind=kind,
+                purpose="; ".join(purposes),
+                owns=tuple(sorted(owned)),
+                requirement_ids=requirement_ids,
+            ))
+        else:
+            coalesced_design.extend(same_kind)
+    normalized_design = tuple(coalesced_design)
     ordinal_by_kind: dict[str, int] = {}
     identified: list[tuple[str, MinimalBlueprintUnitDesign]] = []
     for item in normalized_design:
@@ -492,11 +511,12 @@ def assemble_project_blueprint(
             if requirement_id in item.requirement_ids
         ]
         preferred = preferred_kind(summary)
+        preferred_units = [row for row in identified if row[1].kind == preferred]
         candidates = [row for row in claimants if row[1].kind == preferred]
         if not candidates:
-            candidates = claimants
+            candidates = preferred_units
         if not candidates:
-            candidates = [row for row in identified if row[1].kind == preferred]
+            candidates = claimants
         if not candidates:
             candidates = list(identified)
         requirement_owners[requirement_id] = candidates[0][0]

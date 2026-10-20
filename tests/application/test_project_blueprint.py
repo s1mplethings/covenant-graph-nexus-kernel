@@ -208,11 +208,42 @@ def test_assembler_rejects_unknown_and_normalizes_missing_or_duplicate_requireme
     assert first.by_id["tests-1"].acceptance == ("public tests pass",)
 
 
+def test_assembler_semantic_owner_overrides_wrong_provider_claim() -> None:
+    base = _minimal_payload()["units"]
+    wrong_claim = [base[0], dict(base[1], requirement_ids=["REQ-002"]), dict(base[2], requirement_ids=[])]
+    blueprint = assemble_project_blueprint("demo", _minimal_payload(units=wrong_claim), _public_contract())
+    assert blueprint.by_id["documentation-1"].acceptance == ("README and tests",)
+    assert blueprint.by_id["tests-1"].acceptance == ("public tests pass",)
+
+
+def test_assembler_coalesces_small_same_kind_slices() -> None:
+    base = _minimal_payload()["units"]
+    split = [
+        dict(base[0], purpose="CLI entry", owns=["pkg/__init__.py", "pkg/__main__.py"]),
+        dict(base[0], purpose="core behavior", owns=["pkg/core.py"], requirement_ids=[]),
+        base[1],
+        base[2],
+    ]
+    blueprint = assemble_project_blueprint("demo", _minimal_payload(units=split), _public_contract())
+    assert [unit.kind for unit in blueprint.units] == ["implementation", "tests", "documentation"]
+    assert blueprint.by_id["implementation-1"].owns == ("pkg/__init__.py", "pkg/__main__.py", "pkg/core.py")
+    assert blueprint.by_id["tests-1"].depends_on == ("implementation-1",)
+
+
 def test_provider_unit_order_normalizes_to_the_same_frozen_blueprint() -> None:
     first = assemble_project_blueprint("demo", _minimal_payload(), _public_contract())
     reversed_units = list(reversed(_minimal_payload()["units"]))
     second = assemble_project_blueprint("demo", _minimal_payload(units=reversed_units), _public_contract())
     assert first == second
+    assert normalized_blueprint_signature(first) == normalized_blueprint_signature(second)
+
+
+def test_normalized_responsibility_signature_ignores_path_naming() -> None:
+    first = assemble_project_blueprint("demo", _minimal_payload(), _public_contract())
+    renamed = _minimal_payload()
+    renamed["units"][1]["owns"] = ["tests/test_project_cli.py"]
+    second = assemble_project_blueprint("demo", renamed, _public_contract())
+    assert first.blueprint_hash != second.blueprint_hash
     assert normalized_blueprint_signature(first) == normalized_blueprint_signature(second)
 
 
