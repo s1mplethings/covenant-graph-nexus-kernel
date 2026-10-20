@@ -192,17 +192,20 @@ def test_minimal_payload_rejects_unit_and_file_count_limits() -> None:
         MinimalBlueprintDesignPayload.from_dict(_minimal_payload(units=[too_many, base[1], base[2]]))
 
 
-def test_assembler_rejects_unknown_missing_and_duplicate_requirement_owners() -> None:
+def test_assembler_rejects_unknown_and_normalizes_missing_or_duplicate_requirement_owners() -> None:
     base = _minimal_payload()["units"]
     unknown = [dict(base[0], requirement_ids=["REQ-999"]), base[1], base[2]]
     with pytest.raises(ValueError, match="unknown public requirement ID"):
         assemble_project_blueprint("demo", _minimal_payload(units=unknown), _public_contract())
     missing = [dict(base[0], requirement_ids=[]), base[1], base[2]]
-    with pytest.raises(ValueError, match="has no owner"):
-        assemble_project_blueprint("demo", _minimal_payload(units=missing), _public_contract())
+    missing_blueprint = assemble_project_blueprint("demo", _minimal_payload(units=missing), _public_contract())
+    assert missing_blueprint.by_id["implementation-1"].acceptance == ("CLI behavior",)
     duplicate = [base[0], dict(base[1], requirement_ids=["REQ-001"]), base[2]]
-    with pytest.raises(ValueError, match="duplicate public requirement owner"):
-        assemble_project_blueprint("demo", _minimal_payload(units=duplicate), _public_contract())
+    first = assemble_project_blueprint("demo", _minimal_payload(units=duplicate), _public_contract())
+    second = assemble_project_blueprint("demo", _minimal_payload(units=list(reversed(duplicate))), _public_contract())
+    assert first == second
+    assert first.by_id["implementation-1"].acceptance == ("CLI behavior",)
+    assert first.by_id["tests-1"].acceptance == ("public tests pass",)
 
 
 def test_provider_unit_order_normalizes_to_the_same_frozen_blueprint() -> None:

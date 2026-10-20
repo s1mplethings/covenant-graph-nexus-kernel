@@ -458,11 +458,6 @@ def assemble_project_blueprint(
     unknown_requirement_ids = set(claimed_requirement_ids) - known_requirement_ids
     if unknown_requirement_ids:
         raise ValueError(f"unknown public requirement ID: {sorted(unknown_requirement_ids)[0]}")
-    if len(claimed_requirement_ids) != len(set(claimed_requirement_ids)):
-        raise ValueError("duplicate public requirement owner")
-    missing_requirement_ids = known_requirement_ids - set(claimed_requirement_ids)
-    if missing_requirement_ids:
-        raise ValueError(f"public requirement has no owner: {sorted(missing_requirement_ids)[0]}")
 
     kind_order = {
         UnitKind.IMPLEMENTATION.value: 0,
@@ -482,6 +477,30 @@ def assemble_project_blueprint(
     if not implementation_ids:
         raise ValueError("minimal blueprint requires an implementation unit")
 
+    def preferred_kind(summary: str) -> str:
+        lowered = summary.lower()
+        if any(marker in lowered for marker in ("readme", "document", "usage guide")):
+            return UnitKind.DOCUMENTATION.value
+        if any(marker in lowered for marker in ("pytest", "test", "coverage")):
+            return UnitKind.TESTS.value
+        return UnitKind.IMPLEMENTATION.value
+
+    requirement_owners: dict[str, str] = {}
+    for requirement_id, summary in requirement_catalog:
+        claimants = [
+            (unit_id, item) for unit_id, item in identified
+            if requirement_id in item.requirement_ids
+        ]
+        preferred = preferred_kind(summary)
+        candidates = [row for row in claimants if row[1].kind == preferred]
+        if not candidates:
+            candidates = claimants
+        if not candidates:
+            candidates = [row for row in identified if row[1].kind == preferred]
+        if not candidates:
+            candidates = list(identified)
+        requirement_owners[requirement_id] = candidates[0][0]
+
     implementation_paths = tuple(
         path for _, item in identified if item.kind == UnitKind.IMPLEMENTATION.value for path in item.owns
     )
@@ -493,7 +512,10 @@ def assemble_project_blueprint(
     for unit_id, item in identified:
         dependencies = implementation_ids if item.kind == UnitKind.TESTS.value else ()
         reads = implementation_paths if item.kind == UnitKind.TESTS.value else ()
-        acceptance = tuple(requirement_summaries[requirement_id] for requirement_id in item.requirement_ids)
+        acceptance = tuple(
+            summary for requirement_id, summary in requirement_catalog
+            if requirement_owners[requirement_id] == unit_id
+        )
         if not acceptance:
             acceptance = {
                 UnitKind.IMPLEMENTATION.value: ("implementation satisfies its public contract",),

@@ -291,6 +291,11 @@ def _coordinator_contract_probe(
             config=_coordinator_model_config(provider),
         )
         receipt = dict(completion.selection_receipt)
+        row.update({
+            "request_id": completion.request_id, "usage": dict(completion.usage),
+            "transport_attempts": completion.attempts,
+            "selection_receipt": receipt, "selection_receipt_hash": _hash(receipt),
+        })
         value = json.loads(completion.text)
         semantic_valid = True
         blueprint = None
@@ -300,14 +305,13 @@ def _coordinator_contract_probe(
                 blueprint = assemble_project_blueprint("cli_csv_cleaner", payload, contract)
         row.update({
             "status": "PASS", "schema_valid": True, "semantic_valid": semantic_valid,
-            "request_id": completion.request_id, "usage": dict(completion.usage),
-            "transport_attempts": completion.attempts,
-            "selection_receipt": receipt, "selection_receipt_hash": _hash(receipt),
             "blueprint_hash": blueprint.blueprint_hash if blueprint else None,
             "normalized_blueprint_signature": normalized_blueprint_signature(blueprint) if blueprint else None,
         })
     except Exception as exc:
         evidence = dict(getattr(exc, "evidence", {}) or {})
+        if not evidence:
+            evidence = dict(row.get("selection_receipt") or {})
         row.update({
             "status": "FAIL", "schema_valid": evidence.get("schema_valid_candidate_count") == 1,
             "semantic_valid": False, "error_type": str(getattr(exc, "category", type(exc).__name__)),
