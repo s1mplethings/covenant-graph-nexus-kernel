@@ -1,8 +1,8 @@
 {
   "kind": "CGKNSemanticArtifactValidationReceipt",
   "schema_version": "1.0",
-  "source_commit": "136dd97004be10c06a975d8564bacd4998bde4c6",
-  "source_tree": "f0ecd1c5a181662ab6bde725be4a49e86c227d8c",
+  "source_commit": "5f909d3026ad134c98f7a98354df25cc2b8d4206",
+  "source_tree": "e849294f5f3f76c6b6f97b9455e350a5aec35b47",
   "evidence_status": "NEEDS_REWORK",
   "semantic_artifact_interface": "PARTIAL",
   "winner": "NONE",
@@ -14,6 +14,14 @@
     "interface_extractor": "PASS",
     "interface_guard": "PASS",
     "failure_attribution": "PASS"
+  },
+  "source_boundary_validation": {
+    "command": "python -m pytest -q tests/experiments/semantic_artifact_design",
+    "passed": 27,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "historical_live_evidence_retained": true
   },
   "real_provider_validation": {
     "live_single": {"A": "FAIL", "B": "FAIL", "C": "FAIL"},

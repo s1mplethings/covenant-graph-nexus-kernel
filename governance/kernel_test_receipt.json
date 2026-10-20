@@ -1,9 +1,9 @@
 {
   "kind": "CGKNKernelTestReceipt",
   "schema_version": "1.0",
-  "source_commit": "d561da30dfe148175b53ea708ff52d8f826cd696",
-  "source_tree_sha": "4dc1cb2b44060ce4136b0b6a7d4f62254012caed",
-  "core_source_hash": "sha256:a61fb66ba2a673fb9f7f08561578d93e112a45b380356ce398626aff50d7bd49",
+  "source_commit": "5f909d3026ad134c98f7a98354df25cc2b8d4206",
+  "source_tree_sha": "e849294f5f3f76c6b6f97b9455e350a5aec35b47",
+  "core_source_hash": "sha256:73bcc06202bff23ee061182dd31785029609a147247fee1c0ea8c4f0a6c930c5",
   "commands": [
     {
       "argv": [
@@ -77,7 +77,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-unit-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-unit-0.xml"
       ],
       "returncode": 0
     },
@@ -108,7 +108,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-boundary-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-boundary-0.xml"
       ],
       "returncode": 0
     },
@@ -139,7 +139,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-fault-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-fault-0.xml"
       ],
       "returncode": 0
     },
@@ -170,7 +170,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-security-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-security-0.xml"
       ],
       "returncode": 0
     },
@@ -201,7 +201,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-local-functional-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-local-functional-0.xml"
       ],
       "returncode": 0
     },
@@ -230,7 +230,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-full-core-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-full-core-0.xml"
       ],
       "returncode": 0
     },
@@ -240,7 +240,7 @@
         "-m",
         "pytest",
         "-q",
-        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-active-repository-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-active-repository-0.xml"
       ],
       "returncode": 0
     },
@@ -252,17 +252,17 @@
         "-q",
         "-m",
         "live_provider",
-        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-live-provider-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-live-provider-0.xml"
       ],
       "returncode": 0
     }
   ],
   "totals": {
-    "passed": 3982,
+    "passed": 4065,
     "failed": 0,
     "errors": 0,
     "skipped": 356,
-    "duration_seconds": 1791.18
+    "duration_seconds": 1725.204
   },
   "test_node_ids": [
     "tests/agent/test_agent_mvp.py::test_failed_test_triggers_affected_only_retry",
@@ -539,21 +539,32 @@
     "tests/application/software_project/greenfield/test_greenfield_v2.py::test_revalidation_uses_existing_revision_without_provider_call",
     "tests/application/software_project/test_acceptance.py::test_failed_acceptance_withholds_harness_diagnostics",
     "tests/application/software_project/test_acceptance.py::test_missing_harness_fails_closed",
+    "tests/application/software_project/test_acceptance.py::test_missing_or_invalid_requirement_manifest_fails_harness_closed[None]",
+    "tests/application/software_project/test_acceptance.py::test_missing_or_invalid_requirement_manifest_fails_harness_closed[manifest1]",
+    "tests/application/software_project/test_acceptance.py::test_missing_or_invalid_requirement_manifest_fails_harness_closed[manifest2]",
+    "tests/application/software_project/test_acceptance.py::test_multiple_failed_nodes_map_to_stable_public_requirement_order",
     "tests/application/software_project/test_acceptance.py::test_seeded_acceptance_is_external_and_returns_only_sanitized_receipt",
+    "tests/application/software_project/test_acceptance.py::test_unknown_hidden_node_fails_mapping_without_leaking_identity_or_assertion",
     "tests/application/software_project/test_bundle.py::test_bundle_exposes_required_components_without_pipeline_order",
     "tests/application/software_project/test_catalog.py::test_public_catalog_contains_three_greenfield_types_and_repair",
     "tests/application/software_project/test_catalog.py::test_unknown_case_is_rejected",
     "tests/application/software_project/test_contracts.py::test_contract_hash_is_deterministic",
     "tests/application/software_project/test_contracts.py::test_worker_scope_rejects_delete_and_overbroad_targets",
+    "tests/application/software_project/test_contracts.py::test_worker_scope_uses_one_bounded_write_ceiling_without_counting_reads",
     "tests/application/software_project/test_gateway_e2e.py::test_qwen_agent_deepseek_worker_crosses_real_runtime_pytest_and_external_acceptance",
     "tests/application/software_project/test_real_project_generation_contract.py::test_real_generation_contract_has_required_entrypoints_and_public_acceptance",
     "tests/application/software_project/test_scope.py::test_forbidden_scan_detects_candidate_evidence_secret_path_and_dependency",
     "tests/application/software_project/test_scope.py::test_scoped_transaction_applies_fully_validated_writes",
+    "tests/application/software_project/test_scope.py::test_scoped_transaction_reads_visible_paths_but_writes_only_owned_paths",
     "tests/application/software_project/test_scope.py::test_scoped_transaction_rejects_escape_protected_and_undeclared_paths_before_writes",
     "tests/application/software_project/test_scope.py::test_scoped_transaction_rolls_back_partial_replace",
     "tests/application/software_project/test_service_fake_provider.py::test_fake_provider_repair_uses_tree_dag_scoped_worker_real_pytest_and_hidden_acceptance",
     "tests/application/software_project/test_service_fake_provider.py::test_missing_provider_usage_is_not_reported_as_zero",
     "tests/application/software_project/test_snapshot.py::test_snapshot_hashes_files_and_excludes_runtime_artifacts",
+    "tests/application/test_cgnk_evaluation.py::test_abstention_case_requires_explicit_abstention",
+    "tests/application/test_cgnk_evaluation.py::test_deterministic_evaluator_rejects_unsupported_evidence",
+    "tests/application/test_cgnk_evaluation.py::test_model_capability_taskset_has_required_distribution",
+    "tests/application/test_cgnk_evaluation.py::test_structured_context_is_local_and_flat_context_is_complete",
     "tests/application/test_materialization.py::test_nested_immutable_dataclass_materializes_to_json_primitives",
     "tests/application/test_project_blueprint.py::test_assembler_expands_defaults_checks_and_stable_hash",
     "tests/application/test_project_blueprint.py::test_assembler_rejects_invalid_paths_ownership_and_dependencies[units0-unsafe]",
@@ -568,11 +579,55 @@
     "tests/application/test_project_blueprint.py::test_failure_report_is_hashable_and_versioned_by_content",
     "tests/application/test_project_blueprint.py::test_file_and_patch_bundles_are_strict_and_mutually_exclusive",
     "tests/application/test_project_blueprint.py::test_freeze_requires_acceptance_and_edit_is_atomic",
+    "tests/application/test_project_blueprint.py::test_frozen_blueprint_worker_scope_contract_is_monotonic",
     "tests/application/test_project_blueprint.py::test_interface_extractor_is_stable_and_guard_detects_breaks",
+    "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[depends_on]",
+    "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[owns]",
+    "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[reads]",
+    "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[required_interfaces]",
     "tests/application/test_project_blueprint.py::test_minimal_payload_rejects_unit_and_file_count_limits",
     "tests/application/test_project_blueprint.py::test_minimal_payload_round_trip_and_strict_schema",
+    "tests/application/test_project_loop.py::test_acceptance_ambiguous_candidates_call_coordinator_once",
+    "tests/application/test_project_loop.py::test_acceptance_attribution_failure_never_guesses_owner[error0]",
+    "tests/application/test_project_loop.py::test_acceptance_attribution_failure_never_guesses_owner[error1]",
+    "tests/application/test_project_loop.py::test_acceptance_invalid_unmaterialized_or_stop_decisions_fail_closed[decisions0-skip0]",
+    "tests/application/test_project_loop.py::test_acceptance_invalid_unmaterialized_or_stop_decisions_fail_closed[decisions1-skip1]",
+    "tests/application/test_project_loop.py::test_acceptance_invalid_unmaterialized_or_stop_decisions_fail_closed[decisions2-skip2]",
+    "tests/application/test_project_loop.py::test_acceptance_unique_exact_interface_owner_is_deterministic",
+    "tests/application/test_project_loop.py::test_complete_first_materialization_call_preserves_original_success_path",
+    "tests/application/test_project_loop.py::test_continuation_ledger_records_bounded_context_and_slice_identity",
+    "tests/application/test_project_loop.py::test_continuation_repeating_staged_path_is_scope_violation_and_discards",
+    "tests/application/test_project_loop.py::test_continuation_request_contains_no_hidden_acceptance_payload",
+    "tests/application/test_project_loop.py::test_controlled_commit_failure_rolls_back_and_is_classified",
+    "tests/application/test_project_loop.py::test_coordinator_attribution_prompt_and_failure_report_never_include_hidden_markers",
+    "tests/application/test_project_loop.py::test_cross_unit_attribution_uses_evidence_and_never_implementation_fallback",
+    "tests/application/test_project_loop.py::test_duplicate_file_in_slice_is_invalid_and_never_committed",
+    "tests/application/test_project_loop.py::test_failed_patch_hunk_leaves_whole_transaction_unchanged[edits0-False]",
+    "tests/application/test_project_loop.py::test_failed_patch_hunk_leaves_whole_transaction_unchanged[edits1-True]",
+    "tests/application/test_project_loop.py::test_failed_worker_provider_call_is_recorded_with_reported_usage",
+    "tests/application/test_project_loop.py::test_failed_worker_provider_call_keeps_unknown_usage_null",
     "tests/application/test_project_loop.py::test_fake_greenfield_runs_real_filesystem_pytest_and_hidden_acceptance",
     "tests/application/test_project_loop.py::test_fake_repair_preserves_blueprint_and_reruns_only_owner_and_checks",
+    "tests/application/test_project_loop.py::test_full_retry_benchmark_policy_discards_partial_and_requests_whole_unit_again",
+    "tests/application/test_project_loop.py::test_generation_and_repair_thinking_policies_are_independent",
+    "tests/application/test_project_loop.py::test_harness_mapping_unavailable_stops_without_attribution_call",
+    "tests/application/test_project_loop.py::test_incremental_materialization_rejects_extra_path_without_workspace_effect",
+    "tests/application/test_project_loop.py::test_incremental_materialization_three_single_file_slices_passes",
+    "tests/application/test_project_loop.py::test_incremental_materialization_two_slices_commits_atomically",
+    "tests/application/test_project_loop.py::test_initial_generation_failure_retries_generation_before_any_repair",
+    "tests/application/test_project_loop.py::test_initial_repair_without_materialized_baseline_is_forbidden",
+    "tests/application/test_project_loop.py::test_invalid_continuation_syntax_preserves_staging_for_generation_retry",
+    "tests/application/test_project_loop.py::test_materialization_call_budget_exhaustion_discards_partial_state",
+    "tests/application/test_project_loop.py::test_materialized_baseline_requires_current_workspace_identity",
+    "tests/application/test_project_loop.py::test_partial_tests_generation_continues_only_missing_path_without_failure_report",
+    "tests/application/test_project_loop.py::test_provider_failure_after_partial_preserves_staging_for_retry",
+    "tests/application/test_project_loop.py::test_repair_accepts_one_of_four_files_with_two_ordered_hunks",
+    "tests/application/test_project_loop.py::test_repair_accepts_two_of_four_owned_files",
+    "tests/application/test_project_loop.py::test_repair_rejects_undeclared_or_duplicate_file_objects_atomically[payload0]",
+    "tests/application/test_project_loop.py::test_repair_rejects_undeclared_or_duplicate_file_objects_atomically[payload1]",
+    "tests/application/test_project_loop.py::test_two_no_progress_responses_for_same_missing_set_are_stalled",
+    "tests/application/test_project_loop.py::test_whole_unit_cross_file_import_failure_keeps_workspace_unchanged",
+    "tests/application/test_project_loop.py::test_whole_unit_required_interface_failure_keeps_workspace_unchanged",
     "tests/application/verification/test_contract_test_compiler.py::test_compiler_is_deterministic_and_covers_every_obligation_and_oracle",
     "tests/application/verification/test_contract_test_compiler.py::test_compiler_rejects_missing_or_unknown_semantic_sources",
     "tests/application/verification/test_contract_test_contracts.py::test_contract_plan_round_trip_immutability_and_stable_hash",
@@ -917,6 +972,7 @@
     "tests/providers/test_client.py::test_parse_json_object_rejects_non_object_and_malformed[[]-ValueError]",
     "tests/providers/test_client.py::test_parse_json_object_rejects_non_object_and_malformed[not-json-ValueError]",
     "tests/providers/test_client.py::test_success_builds_strict_schema_payload_and_normalizes_usage",
+    "tests/providers/test_client.py::test_thinking_mode_is_strict_and_defaults_without_changing_workers",
     "tests/providers/test_client.py::test_transport_failure_is_redacted",
     "tests/providers/test_connector_architecture.py::test_common_connection_contract_and_structured_helpers_cover_fail_closed_branches",
     "tests/providers/test_connector_architecture.py::test_common_transport_and_registry_have_no_vendor_branching",
@@ -934,6 +990,7 @@
     "tests/providers/test_gateway_client.py::test_budget_reservation_blocks_before_second_send",
     "tests/providers/test_gateway_client.py::test_chat_completions_compatibility_path_preserves_schema",
     "tests/providers/test_gateway_client.py::test_chat_extraction_rejects_invalid_and_truncated_choices",
+    "tests/providers/test_gateway_client.py::test_failure_path_preserves_gateway_request_id",
     "tests/providers/test_gateway_client.py::test_fallback_configuration_is_rejected",
     "tests/providers/test_gateway_client.py::test_gateway_binds_versioned_raw_defer_metadata_and_receipt",
     "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/admin-token-responses-path]",
@@ -944,6 +1001,7 @@
     "tests/providers/test_gateway_client.py::test_invalid_model_remote_address_and_stopped_gateway_fail_closed",
     "tests/providers/test_gateway_client.py::test_invalid_schema_output_auth_error_and_no_secret_leak",
     "tests/providers/test_gateway_client.py::test_paid_gateway_mode_requires_complete_budget_before_send",
+    "tests/providers/test_gateway_client.py::test_project_route_separates_coordinator_and_worker_thinking_policies",
     "tests/providers/test_gateway_client.py::test_rate_limit_and_truncation_propagate_without_fallback",
     "tests/providers/test_gateway_client.py::test_reasoning_request_size_and_response_shapes_are_bounded",
     "tests/providers/test_gateway_client.py::test_responses_preserve_roles_schema_usage_and_provider_alias",
@@ -955,7 +1013,11 @@
     "tests/providers/test_gateway_client.py::test_routing_rejects_malformed_documents[<lambda>-unsupported]",
     "tests/providers/test_gateway_client.py::test_routing_switch_grok_and_snapshot_are_immutable",
     "tests/providers/test_gateway_client.py::test_safe_error_and_environment_factory_fail_closed",
+    "tests/providers/test_gateway_client.py::test_selector_never_selects_reasoning_text",
+    "tests/providers/test_gateway_client.py::test_thinking_policy_is_propagated_without_conflicting_reasoning",
     "tests/providers/test_gateway_client.py::test_timeout_after_send_is_outcome_unknown_and_not_retried",
+    "tests/providers/test_gateway_client.py::test_truncation_evidence_preserves_forwarded_thinking_and_attempts",
+    "tests/providers/test_gateway_client.py::test_worker_default_thinking_policy_is_unchanged",
     "tests/providers/test_structured_output_selector.py::test_receipt_does_not_persist_secret_text",
     "tests/providers/test_structured_output_selector.py::test_schema_echo_is_never_selected",
     "tests/providers/test_structured_output_selector.py::test_selector_uses_the_production_minimal_blueprint_schema",
@@ -2788,7 +2850,7 @@
     {
       "profile": "static",
       "status": "PASS",
-      "duration_ms": 25587,
+      "duration_ms": 12104,
       "commands": [
         {
           "argv": [
@@ -2846,7 +2908,7 @@
             "scripts/kernel_source_identity.py"
           ],
           "returncode": 0,
-          "stdout_tail": "{\n  \"kind\": \"CGKNKernelSourceIdentity\",\n  \"schema_version\": \"1.0\",\n  \"source_commit\": \"d561da30dfe148175b53ea708ff52d8f826cd696\",\n  \"source_tree_sha\": \"4dc1cb2b44060ce4136b0b6a7d4f62254012caed\",\n  \"core_source_hash\": \"sha256:a61fb66ba2a673fb9f7f08561578d93e112a45b380356ce398626aff50d7bd49\",\n  \"test_source_hash\": \"sha256:321021c0fcda6d1d6f32114d44a22f1c16bc55d23c8ef2d092ea40b5e3829a05\",\n  \"authority_manifest_hash\": \"sha256:d18753442656bd4bcb79d9a2a545f12000a845fc9f8c45fbbf2cb4d1026ffc1e\",\n  \"coverage_manifest_hash\": \"sha256:43933f9e59ccc87623b2a111202cfc23fbe9f43569d37ef356ecb38eb8d0d720\",\n  \"core_path_count\": 115,\n  \"test_path_count\": 278\n}\n",
+          "stdout_tail": "{\n  \"kind\": \"CGKNKernelSourceIdentity\",\n  \"schema_version\": \"1.0\",\n  \"source_commit\": \"5f909d3026ad134c98f7a98354df25cc2b8d4206\",\n  \"source_tree_sha\": \"e849294f5f3f76c6b6f97b9455e350a5aec35b47\",\n  \"core_source_hash\": \"sha256:73bcc06202bff23ee061182dd31785029609a147247fee1c0ea8c4f0a6c930c5\",\n  \"test_source_hash\": \"sha256:85d7a4a53e0df27ae551fba95268a912fc78c487a43c86b413762f005ca31e79\",\n  \"authority_manifest_hash\": \"sha256:d18753442656bd4bcb79d9a2a545f12000a845fc9f8c45fbbf2cb4d1026ffc1e\",\n  \"coverage_manifest_hash\": \"sha256:43933f9e59ccc87623b2a111202cfc23fbe9f43569d37ef356ecb38eb8d0d720\",\n  \"core_path_count\": 115,\n  \"test_path_count\": 279\n}\n",
           "stderr_tail": ""
         }
       ],
@@ -2863,7 +2925,7 @@
     {
       "profile": "unit",
       "status": "PASS",
-      "duration_ms": 154547,
+      "duration_ms": 157802,
       "commands": [
         {
           "argv": [
@@ -2890,10 +2952,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-unit-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-unit-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "........................................s............................... [ 15%]\n........................................................................ [ 30%]\n........................................................................ [ 45%]\n........................................................................ [ 61%]\n........................................................................ [ 76%]\n........................................................................ [ 91%]\n........................................                                 [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-unit-0.xml -\n471 passed, 1 skipped in 153.66s (0:02:33)\n",
+          "stdout_tail": "........................................s............................... [ 15%]\n........................................................................ [ 30%]\n........................................................................ [ 45%]\n........................................................................ [ 60%]\n........................................................................ [ 75%]\n........................................................................ [ 90%]\n...............................................                          [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-unit-0.xml -\n478 passed, 1 skipped in 156.87s (0:02:36)\n",
           "stderr_tail": ""
         }
       ],
@@ -3187,6 +3249,7 @@
         "tests/providers/test_client.py::test_parse_json_object_rejects_non_object_and_malformed[[]-ValueError]",
         "tests/providers/test_client.py::test_parse_json_object_rejects_non_object_and_malformed[not-json-ValueError]",
         "tests/providers/test_client.py::test_success_builds_strict_schema_payload_and_normalizes_usage",
+        "tests/providers/test_client.py::test_thinking_mode_is_strict_and_defaults_without_changing_workers",
         "tests/providers/test_client.py::test_transport_failure_is_redacted",
         "tests/providers/test_connector_architecture.py::test_common_connection_contract_and_structured_helpers_cover_fail_closed_branches",
         "tests/providers/test_connector_architecture.py::test_common_transport_and_registry_have_no_vendor_branching",
@@ -3204,6 +3267,7 @@
         "tests/providers/test_gateway_client.py::test_budget_reservation_blocks_before_second_send",
         "tests/providers/test_gateway_client.py::test_chat_completions_compatibility_path_preserves_schema",
         "tests/providers/test_gateway_client.py::test_chat_extraction_rejects_invalid_and_truncated_choices",
+        "tests/providers/test_gateway_client.py::test_failure_path_preserves_gateway_request_id",
         "tests/providers/test_gateway_client.py::test_fallback_configuration_is_rejected",
         "tests/providers/test_gateway_client.py::test_gateway_binds_versioned_raw_defer_metadata_and_receipt",
         "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/admin-token-responses-path]",
@@ -3214,6 +3278,7 @@
         "tests/providers/test_gateway_client.py::test_invalid_model_remote_address_and_stopped_gateway_fail_closed",
         "tests/providers/test_gateway_client.py::test_invalid_schema_output_auth_error_and_no_secret_leak",
         "tests/providers/test_gateway_client.py::test_paid_gateway_mode_requires_complete_budget_before_send",
+        "tests/providers/test_gateway_client.py::test_project_route_separates_coordinator_and_worker_thinking_policies",
         "tests/providers/test_gateway_client.py::test_rate_limit_and_truncation_propagate_without_fallback",
         "tests/providers/test_gateway_client.py::test_reasoning_request_size_and_response_shapes_are_bounded",
         "tests/providers/test_gateway_client.py::test_responses_preserve_roles_schema_usage_and_provider_alias",
@@ -3225,7 +3290,11 @@
         "tests/providers/test_gateway_client.py::test_routing_rejects_malformed_documents[<lambda>-unsupported]",
         "tests/providers/test_gateway_client.py::test_routing_switch_grok_and_snapshot_are_immutable",
         "tests/providers/test_gateway_client.py::test_safe_error_and_environment_factory_fail_closed",
+        "tests/providers/test_gateway_client.py::test_selector_never_selects_reasoning_text",
+        "tests/providers/test_gateway_client.py::test_thinking_policy_is_propagated_without_conflicting_reasoning",
         "tests/providers/test_gateway_client.py::test_timeout_after_send_is_outcome_unknown_and_not_retried",
+        "tests/providers/test_gateway_client.py::test_truncation_evidence_preserves_forwarded_thinking_and_attempts",
+        "tests/providers/test_gateway_client.py::test_worker_default_thinking_policy_is_unchanged",
         "tests/providers/test_structured_output_selector.py::test_receipt_does_not_persist_secret_text",
         "tests/providers/test_structured_output_selector.py::test_schema_echo_is_never_selected",
         "tests/providers/test_structured_output_selector.py::test_selector_uses_the_production_minimal_blueprint_schema",
@@ -3375,7 +3444,7 @@
       ],
       "failed_test_node_ids": [],
       "totals": {
-        "passed": 471,
+        "passed": 478,
         "failed": 0,
         "errors": 0,
         "skipped": 1
@@ -3384,7 +3453,7 @@
     {
       "profile": "boundary",
       "status": "PASS",
-      "duration_ms": 132288,
+      "duration_ms": 122564,
       "commands": [
         {
           "argv": [
@@ -3413,10 +3482,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-boundary-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-boundary-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "...........................s............................................ [ 22%]\n........................................................................ [ 45%]\n........................................................................ [ 67%]\n........................................................................ [ 90%]\n..............................                                           [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-boundary-0.xml -\n317 passed, 1 skipped, 154 deselected in 131.31s (0:02:11)\n",
+          "stdout_tail": "...........................s............................................ [ 22%]\n........................................................................ [ 44%]\n........................................................................ [ 66%]\n........................................................................ [ 88%]\n.....................................                                    [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-boundary-0.xml -\n324 passed, 1 skipped, 154 deselected in 121.65s (0:02:01)\n",
           "stderr_tail": ""
         }
       ],
@@ -3644,6 +3713,7 @@
         "tests/providers/test_client.py::test_parse_json_object_rejects_non_object_and_malformed[[]-ValueError]",
         "tests/providers/test_client.py::test_parse_json_object_rejects_non_object_and_malformed[not-json-ValueError]",
         "tests/providers/test_client.py::test_success_builds_strict_schema_payload_and_normalizes_usage",
+        "tests/providers/test_client.py::test_thinking_mode_is_strict_and_defaults_without_changing_workers",
         "tests/providers/test_client.py::test_transport_failure_is_redacted",
         "tests/providers/test_connector_architecture.py::test_common_connection_contract_and_structured_helpers_cover_fail_closed_branches",
         "tests/providers/test_connector_architecture.py::test_common_transport_and_registry_have_no_vendor_branching",
@@ -3661,6 +3731,7 @@
         "tests/providers/test_gateway_client.py::test_budget_reservation_blocks_before_second_send",
         "tests/providers/test_gateway_client.py::test_chat_completions_compatibility_path_preserves_schema",
         "tests/providers/test_gateway_client.py::test_chat_extraction_rejects_invalid_and_truncated_choices",
+        "tests/providers/test_gateway_client.py::test_failure_path_preserves_gateway_request_id",
         "tests/providers/test_gateway_client.py::test_fallback_configuration_is_rejected",
         "tests/providers/test_gateway_client.py::test_gateway_binds_versioned_raw_defer_metadata_and_receipt",
         "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/admin-token-responses-path]",
@@ -3671,6 +3742,7 @@
         "tests/providers/test_gateway_client.py::test_invalid_model_remote_address_and_stopped_gateway_fail_closed",
         "tests/providers/test_gateway_client.py::test_invalid_schema_output_auth_error_and_no_secret_leak",
         "tests/providers/test_gateway_client.py::test_paid_gateway_mode_requires_complete_budget_before_send",
+        "tests/providers/test_gateway_client.py::test_project_route_separates_coordinator_and_worker_thinking_policies",
         "tests/providers/test_gateway_client.py::test_rate_limit_and_truncation_propagate_without_fallback",
         "tests/providers/test_gateway_client.py::test_reasoning_request_size_and_response_shapes_are_bounded",
         "tests/providers/test_gateway_client.py::test_responses_preserve_roles_schema_usage_and_provider_alias",
@@ -3682,7 +3754,11 @@
         "tests/providers/test_gateway_client.py::test_routing_rejects_malformed_documents[<lambda>-unsupported]",
         "tests/providers/test_gateway_client.py::test_routing_switch_grok_and_snapshot_are_immutable",
         "tests/providers/test_gateway_client.py::test_safe_error_and_environment_factory_fail_closed",
+        "tests/providers/test_gateway_client.py::test_selector_never_selects_reasoning_text",
+        "tests/providers/test_gateway_client.py::test_thinking_policy_is_propagated_without_conflicting_reasoning",
         "tests/providers/test_gateway_client.py::test_timeout_after_send_is_outcome_unknown_and_not_retried",
+        "tests/providers/test_gateway_client.py::test_truncation_evidence_preserves_forwarded_thinking_and_attempts",
+        "tests/providers/test_gateway_client.py::test_worker_default_thinking_policy_is_unchanged",
         "tests/recovery/test_recovery_contract.py::test_recovery_rejects_unknown_changed_node",
         "tests/recovery/test_recovery_contract.py::test_recovery_uses_deterministic_graph_downstream_closure",
         "tests/runtime/test_artifact_runtime_contract.py::test_artifact_invalidator_uses_direct_consumers_when_producer_is_external",
@@ -3744,7 +3820,7 @@
       ],
       "failed_test_node_ids": [],
       "totals": {
-        "passed": 317,
+        "passed": 324,
         "failed": 0,
         "errors": 0,
         "skipped": 1
@@ -3753,7 +3829,7 @@
     {
       "profile": "fault",
       "status": "PASS",
-      "duration_ms": 8519,
+      "duration_ms": 6340,
       "commands": [
         {
           "argv": [
@@ -3782,10 +3858,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-fault-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-fault-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "........................................................................ [ 90%]\n........                                                                 [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-fault-0.xml -\n80 passed, 392 deselected in 6.00s\n",
+          "stdout_tail": "........................................................................ [ 90%]\n........                                                                 [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-fault-0.xml -\n80 passed, 399 deselected in 5.57s\n",
           "stderr_tail": ""
         }
       ],
@@ -3883,7 +3959,7 @@
     {
       "profile": "security",
       "status": "PASS",
-      "duration_ms": 93949,
+      "duration_ms": 90526,
       "commands": [
         {
           "argv": [
@@ -3912,10 +3988,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-security-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-security-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "....................s................................................... [ 60%]\n................................................                         [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-security-0.xml -\n119 passed, 1 skipped, 352 deselected in 91.41s (0:01:31)\n",
+          "stdout_tail": "....................s................................................... [ 60%]\n................................................                         [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-security-0.xml -\n119 passed, 1 skipped, 359 deselected in 88.22s (0:01:28)\n",
           "stderr_tail": ""
         }
       ],
@@ -4054,7 +4130,7 @@
     {
       "profile": "local-functional",
       "status": "PASS",
-      "duration_ms": 17572,
+      "duration_ms": 17047,
       "commands": [
         {
           "argv": [
@@ -4083,10 +4159,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-local-functional-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-local-functional-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "......                                                                   [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-local-functional-0.xml -\n6 passed, 466 deselected in 16.51s\n",
+          "stdout_tail": "......                                                                   [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-local-functional-0.xml -\n6 passed, 473 deselected in 14.76s\n",
           "stderr_tail": ""
         }
       ],
@@ -4110,7 +4186,7 @@
     {
       "profile": "full-core",
       "status": "PASS",
-      "duration_ms": 167265,
+      "duration_ms": 155829,
       "commands": [
         {
           "argv": [
@@ -4137,10 +4213,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-full-core-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-full-core-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "........................................s............................... [ 15%]\n........................................................................ [ 30%]\n........................................................................ [ 45%]\n........................................................................ [ 61%]\n........................................................................ [ 76%]\n........................................................................ [ 91%]\n........................................                                 [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-full-core-0.xml -\n471 passed, 1 skipped in 166.32s (0:02:46)\n",
+          "stdout_tail": "........................................s............................... [ 15%]\n........................................................................ [ 30%]\n........................................................................ [ 45%]\n........................................................................ [ 60%]\n........................................................................ [ 75%]\n........................................................................ [ 90%]\n...............................................                          [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-full-core-0.xml -\n478 passed, 1 skipped in 147.67s (0:02:27)\n",
           "stderr_tail": ""
         }
       ],
@@ -4434,6 +4510,7 @@
         "tests/providers/test_client.py::test_parse_json_object_rejects_non_object_and_malformed[[]-ValueError]",
         "tests/providers/test_client.py::test_parse_json_object_rejects_non_object_and_malformed[not-json-ValueError]",
         "tests/providers/test_client.py::test_success_builds_strict_schema_payload_and_normalizes_usage",
+        "tests/providers/test_client.py::test_thinking_mode_is_strict_and_defaults_without_changing_workers",
         "tests/providers/test_client.py::test_transport_failure_is_redacted",
         "tests/providers/test_connector_architecture.py::test_common_connection_contract_and_structured_helpers_cover_fail_closed_branches",
         "tests/providers/test_connector_architecture.py::test_common_transport_and_registry_have_no_vendor_branching",
@@ -4451,6 +4528,7 @@
         "tests/providers/test_gateway_client.py::test_budget_reservation_blocks_before_second_send",
         "tests/providers/test_gateway_client.py::test_chat_completions_compatibility_path_preserves_schema",
         "tests/providers/test_gateway_client.py::test_chat_extraction_rejects_invalid_and_truncated_choices",
+        "tests/providers/test_gateway_client.py::test_failure_path_preserves_gateway_request_id",
         "tests/providers/test_gateway_client.py::test_fallback_configuration_is_rejected",
         "tests/providers/test_gateway_client.py::test_gateway_binds_versioned_raw_defer_metadata_and_receipt",
         "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/admin-token-responses-path]",
@@ -4461,6 +4539,7 @@
         "tests/providers/test_gateway_client.py::test_invalid_model_remote_address_and_stopped_gateway_fail_closed",
         "tests/providers/test_gateway_client.py::test_invalid_schema_output_auth_error_and_no_secret_leak",
         "tests/providers/test_gateway_client.py::test_paid_gateway_mode_requires_complete_budget_before_send",
+        "tests/providers/test_gateway_client.py::test_project_route_separates_coordinator_and_worker_thinking_policies",
         "tests/providers/test_gateway_client.py::test_rate_limit_and_truncation_propagate_without_fallback",
         "tests/providers/test_gateway_client.py::test_reasoning_request_size_and_response_shapes_are_bounded",
         "tests/providers/test_gateway_client.py::test_responses_preserve_roles_schema_usage_and_provider_alias",
@@ -4472,7 +4551,11 @@
         "tests/providers/test_gateway_client.py::test_routing_rejects_malformed_documents[<lambda>-unsupported]",
         "tests/providers/test_gateway_client.py::test_routing_switch_grok_and_snapshot_are_immutable",
         "tests/providers/test_gateway_client.py::test_safe_error_and_environment_factory_fail_closed",
+        "tests/providers/test_gateway_client.py::test_selector_never_selects_reasoning_text",
+        "tests/providers/test_gateway_client.py::test_thinking_policy_is_propagated_without_conflicting_reasoning",
         "tests/providers/test_gateway_client.py::test_timeout_after_send_is_outcome_unknown_and_not_retried",
+        "tests/providers/test_gateway_client.py::test_truncation_evidence_preserves_forwarded_thinking_and_attempts",
+        "tests/providers/test_gateway_client.py::test_worker_default_thinking_policy_is_unchanged",
         "tests/providers/test_structured_output_selector.py::test_receipt_does_not_persist_secret_text",
         "tests/providers/test_structured_output_selector.py::test_schema_echo_is_never_selected",
         "tests/providers/test_structured_output_selector.py::test_selector_uses_the_production_minimal_blueprint_schema",
@@ -4622,7 +4705,7 @@
       ],
       "failed_test_node_ids": [],
       "totals": {
-        "passed": 471,
+        "passed": 478,
         "failed": 0,
         "errors": 0,
         "skipped": 1
@@ -4631,7 +4714,7 @@
     {
       "profile": "active-repository",
       "status": "PASS",
-      "duration_ms": 1186950,
+      "duration_ms": 1157651,
       "commands": [
         {
           "argv": [
@@ -4639,10 +4722,10 @@
             "-m",
             "pytest",
             "-q",
-            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-active-repository-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-active-repository-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "sssssssssssssssssssss [ 40%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 42%]\nssssss.................................................................. [ 45%]\n.........................sssss.......................................... [ 47%]\n................sss..................................................... [ 50%]\n.................s...................................................... [ 52%]\n........................................................................ [ 55%]\n........................................................................ [ 57%]\n........................................................................ [ 60%]\n........................................................................ [ 62%]\n........................................................................ [ 65%]\n........................................................................ [ 67%]\n...........................................ss........................... [ 70%]\n...........................sssssss...................................... [ 72%]\n........................................................s............... [ 75%]\n..........................ssss.s..s.s................................... [ 77%]\n....................................................................s... [ 80%]\n................................................................ssssssss [ 82%]\nssssssss................................................................ [ 85%]\n...ssssss............................................................... [ 87%]\nssss.................................................................... [ 90%]\n...sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 92%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 95%]\nsssssssss...........................ssssssssssssssssssss..s............. [ 97%]\n.........................................................ssss            [100%]\n============================== warnings summary ===============================\ntests/test_canonical_delivery_manifest.py::CanonicalDeliveryManifestTests::test_malicious_duplicate_and_corrupt_zip_are_rejected\n  D:\\anaconda\\Lib\\zipfile\\__init__.py:1607: UserWarning: Duplicate name: 'same.txt'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\n  D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\tests\\test_knowledge_schemas.py:20: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    from jsonschema import Draft202012Validator, RefResolver  # type: ignore\n\ntests/test_provider_causal_trace.py::test_causal_trace_schema_hash_and_independent_inspector\n  D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\tests\\test_provider_causal_trace.py:302: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    resolver = jsonschema.RefResolver.from_schema(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-active-repository-0.xml -\n2518 passed, 351 skipped, 4 warnings in 1185.03s (0:19:45)\n",
+          "stdout_tail": "sssssssssssssssssssssssssss [ 41%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.... [ 44%]\n........................................................................ [ 46%]\n...............sssss.................................................... [ 49%]\n......sss............................................................... [ 51%]\n.......s................................................................ [ 54%]\n........................................................................ [ 56%]\n........................................................................ [ 58%]\n........................................................................ [ 61%]\n........................................................................ [ 63%]\n........................................................................ [ 66%]\n........................................................................ [ 68%]\n.................................ss..................................... [ 71%]\n.................sssssss................................................ [ 73%]\n..............................................s......................... [ 76%]\n................ssss.s..s.s............................................. [ 78%]\n..........................................................s............. [ 81%]\n......................................................ssssssssssssssss.. [ 83%]\n.................................................................ssssss. [ 85%]\n..............................................................ssss...... [ 88%]\n.................................................................sssssss [ 90%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 93%]\nsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss. [ 95%]\n..........................ssssssssssssssssssss..s....................... [ 98%]\n...............................................ssss                      [100%]\n============================== warnings summary ===============================\ntests/test_canonical_delivery_manifest.py::CanonicalDeliveryManifestTests::test_malicious_duplicate_and_corrupt_zip_are_rejected\n  D:\\anaconda\\Lib\\zipfile\\__init__.py:1607: UserWarning: Duplicate name: 'same.txt'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\n  D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\tests\\test_knowledge_schemas.py:20: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    from jsonschema import Draft202012Validator, RefResolver  # type: ignore\n\ntests/test_provider_causal_trace.py::test_causal_trace_schema_hash_and_independent_inspector\n  D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\tests\\test_provider_causal_trace.py:302: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    resolver = jsonschema.RefResolver.from_schema(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n- generated xml file: D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-active-repository-0.xml -\n2580 passed, 351 skipped, 4 warnings in 1156.36s (0:19:16)\n",
           "stderr_tail": ""
         }
       ],
@@ -4921,21 +5004,32 @@
         "tests/application/software_project/greenfield/test_greenfield_v2.py::test_revalidation_uses_existing_revision_without_provider_call",
         "tests/application/software_project/test_acceptance.py::test_failed_acceptance_withholds_harness_diagnostics",
         "tests/application/software_project/test_acceptance.py::test_missing_harness_fails_closed",
+        "tests/application/software_project/test_acceptance.py::test_missing_or_invalid_requirement_manifest_fails_harness_closed[None]",
+        "tests/application/software_project/test_acceptance.py::test_missing_or_invalid_requirement_manifest_fails_harness_closed[manifest1]",
+        "tests/application/software_project/test_acceptance.py::test_missing_or_invalid_requirement_manifest_fails_harness_closed[manifest2]",
+        "tests/application/software_project/test_acceptance.py::test_multiple_failed_nodes_map_to_stable_public_requirement_order",
         "tests/application/software_project/test_acceptance.py::test_seeded_acceptance_is_external_and_returns_only_sanitized_receipt",
+        "tests/application/software_project/test_acceptance.py::test_unknown_hidden_node_fails_mapping_without_leaking_identity_or_assertion",
         "tests/application/software_project/test_bundle.py::test_bundle_exposes_required_components_without_pipeline_order",
         "tests/application/software_project/test_catalog.py::test_public_catalog_contains_three_greenfield_types_and_repair",
         "tests/application/software_project/test_catalog.py::test_unknown_case_is_rejected",
         "tests/application/software_project/test_contracts.py::test_contract_hash_is_deterministic",
         "tests/application/software_project/test_contracts.py::test_worker_scope_rejects_delete_and_overbroad_targets",
+        "tests/application/software_project/test_contracts.py::test_worker_scope_uses_one_bounded_write_ceiling_without_counting_reads",
         "tests/application/software_project/test_gateway_e2e.py::test_qwen_agent_deepseek_worker_crosses_real_runtime_pytest_and_external_acceptance",
         "tests/application/software_project/test_real_project_generation_contract.py::test_real_generation_contract_has_required_entrypoints_and_public_acceptance",
         "tests/application/software_project/test_scope.py::test_forbidden_scan_detects_candidate_evidence_secret_path_and_dependency",
         "tests/application/software_project/test_scope.py::test_scoped_transaction_applies_fully_validated_writes",
+        "tests/application/software_project/test_scope.py::test_scoped_transaction_reads_visible_paths_but_writes_only_owned_paths",
         "tests/application/software_project/test_scope.py::test_scoped_transaction_rejects_escape_protected_and_undeclared_paths_before_writes",
         "tests/application/software_project/test_scope.py::test_scoped_transaction_rolls_back_partial_replace",
         "tests/application/software_project/test_service_fake_provider.py::test_fake_provider_repair_uses_tree_dag_scoped_worker_real_pytest_and_hidden_acceptance",
         "tests/application/software_project/test_service_fake_provider.py::test_missing_provider_usage_is_not_reported_as_zero",
         "tests/application/software_project/test_snapshot.py::test_snapshot_hashes_files_and_excludes_runtime_artifacts",
+        "tests/application/test_cgnk_evaluation.py::test_abstention_case_requires_explicit_abstention",
+        "tests/application/test_cgnk_evaluation.py::test_deterministic_evaluator_rejects_unsupported_evidence",
+        "tests/application/test_cgnk_evaluation.py::test_model_capability_taskset_has_required_distribution",
+        "tests/application/test_cgnk_evaluation.py::test_structured_context_is_local_and_flat_context_is_complete",
         "tests/application/test_materialization.py::test_nested_immutable_dataclass_materializes_to_json_primitives",
         "tests/application/test_project_blueprint.py::test_assembler_expands_defaults_checks_and_stable_hash",
         "tests/application/test_project_blueprint.py::test_assembler_rejects_invalid_paths_ownership_and_dependencies[units0-unsafe]",
@@ -4950,11 +5044,55 @@
         "tests/application/test_project_blueprint.py::test_failure_report_is_hashable_and_versioned_by_content",
         "tests/application/test_project_blueprint.py::test_file_and_patch_bundles_are_strict_and_mutually_exclusive",
         "tests/application/test_project_blueprint.py::test_freeze_requires_acceptance_and_edit_is_atomic",
+        "tests/application/test_project_blueprint.py::test_frozen_blueprint_worker_scope_contract_is_monotonic",
         "tests/application/test_project_blueprint.py::test_interface_extractor_is_stable_and_guard_detects_breaks",
+        "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[depends_on]",
+        "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[owns]",
+        "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[reads]",
+        "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[required_interfaces]",
         "tests/application/test_project_blueprint.py::test_minimal_payload_rejects_unit_and_file_count_limits",
         "tests/application/test_project_blueprint.py::test_minimal_payload_round_trip_and_strict_schema",
+        "tests/application/test_project_loop.py::test_acceptance_ambiguous_candidates_call_coordinator_once",
+        "tests/application/test_project_loop.py::test_acceptance_attribution_failure_never_guesses_owner[error0]",
+        "tests/application/test_project_loop.py::test_acceptance_attribution_failure_never_guesses_owner[error1]",
+        "tests/application/test_project_loop.py::test_acceptance_invalid_unmaterialized_or_stop_decisions_fail_closed[decisions0-skip0]",
+        "tests/application/test_project_loop.py::test_acceptance_invalid_unmaterialized_or_stop_decisions_fail_closed[decisions1-skip1]",
+        "tests/application/test_project_loop.py::test_acceptance_invalid_unmaterialized_or_stop_decisions_fail_closed[decisions2-skip2]",
+        "tests/application/test_project_loop.py::test_acceptance_unique_exact_interface_owner_is_deterministic",
+        "tests/application/test_project_loop.py::test_complete_first_materialization_call_preserves_original_success_path",
+        "tests/application/test_project_loop.py::test_continuation_ledger_records_bounded_context_and_slice_identity",
+        "tests/application/test_project_loop.py::test_continuation_repeating_staged_path_is_scope_violation_and_discards",
+        "tests/application/test_project_loop.py::test_continuation_request_contains_no_hidden_acceptance_payload",
+        "tests/application/test_project_loop.py::test_controlled_commit_failure_rolls_back_and_is_classified",
+        "tests/application/test_project_loop.py::test_coordinator_attribution_prompt_and_failure_report_never_include_hidden_markers",
+        "tests/application/test_project_loop.py::test_cross_unit_attribution_uses_evidence_and_never_implementation_fallback",
+        "tests/application/test_project_loop.py::test_duplicate_file_in_slice_is_invalid_and_never_committed",
+        "tests/application/test_project_loop.py::test_failed_patch_hunk_leaves_whole_transaction_unchanged[edits0-False]",
+        "tests/application/test_project_loop.py::test_failed_patch_hunk_leaves_whole_transaction_unchanged[edits1-True]",
+        "tests/application/test_project_loop.py::test_failed_worker_provider_call_is_recorded_with_reported_usage",
+        "tests/application/test_project_loop.py::test_failed_worker_provider_call_keeps_unknown_usage_null",
         "tests/application/test_project_loop.py::test_fake_greenfield_runs_real_filesystem_pytest_and_hidden_acceptance",
         "tests/application/test_project_loop.py::test_fake_repair_preserves_blueprint_and_reruns_only_owner_and_checks",
+        "tests/application/test_project_loop.py::test_full_retry_benchmark_policy_discards_partial_and_requests_whole_unit_again",
+        "tests/application/test_project_loop.py::test_generation_and_repair_thinking_policies_are_independent",
+        "tests/application/test_project_loop.py::test_harness_mapping_unavailable_stops_without_attribution_call",
+        "tests/application/test_project_loop.py::test_incremental_materialization_rejects_extra_path_without_workspace_effect",
+        "tests/application/test_project_loop.py::test_incremental_materialization_three_single_file_slices_passes",
+        "tests/application/test_project_loop.py::test_incremental_materialization_two_slices_commits_atomically",
+        "tests/application/test_project_loop.py::test_initial_generation_failure_retries_generation_before_any_repair",
+        "tests/application/test_project_loop.py::test_initial_repair_without_materialized_baseline_is_forbidden",
+        "tests/application/test_project_loop.py::test_invalid_continuation_syntax_preserves_staging_for_generation_retry",
+        "tests/application/test_project_loop.py::test_materialization_call_budget_exhaustion_discards_partial_state",
+        "tests/application/test_project_loop.py::test_materialized_baseline_requires_current_workspace_identity",
+        "tests/application/test_project_loop.py::test_partial_tests_generation_continues_only_missing_path_without_failure_report",
+        "tests/application/test_project_loop.py::test_provider_failure_after_partial_preserves_staging_for_retry",
+        "tests/application/test_project_loop.py::test_repair_accepts_one_of_four_files_with_two_ordered_hunks",
+        "tests/application/test_project_loop.py::test_repair_accepts_two_of_four_owned_files",
+        "tests/application/test_project_loop.py::test_repair_rejects_undeclared_or_duplicate_file_objects_atomically[payload0]",
+        "tests/application/test_project_loop.py::test_repair_rejects_undeclared_or_duplicate_file_objects_atomically[payload1]",
+        "tests/application/test_project_loop.py::test_two_no_progress_responses_for_same_missing_set_are_stalled",
+        "tests/application/test_project_loop.py::test_whole_unit_cross_file_import_failure_keeps_workspace_unchanged",
+        "tests/application/test_project_loop.py::test_whole_unit_required_interface_failure_keeps_workspace_unchanged",
         "tests/application/verification/test_contract_test_compiler.py::test_compiler_is_deterministic_and_covers_every_obligation_and_oracle",
         "tests/application/verification/test_contract_test_compiler.py::test_compiler_rejects_missing_or_unknown_semantic_sources",
         "tests/application/verification/test_contract_test_contracts.py::test_contract_plan_round_trip_immutability_and_stable_hash",
@@ -5299,6 +5437,7 @@
         "tests/providers/test_client.py::test_parse_json_object_rejects_non_object_and_malformed[[]-ValueError]",
         "tests/providers/test_client.py::test_parse_json_object_rejects_non_object_and_malformed[not-json-ValueError]",
         "tests/providers/test_client.py::test_success_builds_strict_schema_payload_and_normalizes_usage",
+        "tests/providers/test_client.py::test_thinking_mode_is_strict_and_defaults_without_changing_workers",
         "tests/providers/test_client.py::test_transport_failure_is_redacted",
         "tests/providers/test_connector_architecture.py::test_common_connection_contract_and_structured_helpers_cover_fail_closed_branches",
         "tests/providers/test_connector_architecture.py::test_common_transport_and_registry_have_no_vendor_branching",
@@ -5316,6 +5455,7 @@
         "tests/providers/test_gateway_client.py::test_budget_reservation_blocks_before_second_send",
         "tests/providers/test_gateway_client.py::test_chat_completions_compatibility_path_preserves_schema",
         "tests/providers/test_gateway_client.py::test_chat_extraction_rejects_invalid_and_truncated_choices",
+        "tests/providers/test_gateway_client.py::test_failure_path_preserves_gateway_request_id",
         "tests/providers/test_gateway_client.py::test_fallback_configuration_is_rejected",
         "tests/providers/test_gateway_client.py::test_gateway_binds_versioned_raw_defer_metadata_and_receipt",
         "tests/providers/test_gateway_client.py::test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/admin-token-responses-path]",
@@ -5326,6 +5466,7 @@
         "tests/providers/test_gateway_client.py::test_invalid_model_remote_address_and_stopped_gateway_fail_closed",
         "tests/providers/test_gateway_client.py::test_invalid_schema_output_auth_error_and_no_secret_leak",
         "tests/providers/test_gateway_client.py::test_paid_gateway_mode_requires_complete_budget_before_send",
+        "tests/providers/test_gateway_client.py::test_project_route_separates_coordinator_and_worker_thinking_policies",
         "tests/providers/test_gateway_client.py::test_rate_limit_and_truncation_propagate_without_fallback",
         "tests/providers/test_gateway_client.py::test_reasoning_request_size_and_response_shapes_are_bounded",
         "tests/providers/test_gateway_client.py::test_responses_preserve_roles_schema_usage_and_provider_alias",
@@ -5337,7 +5478,11 @@
         "tests/providers/test_gateway_client.py::test_routing_rejects_malformed_documents[<lambda>-unsupported]",
         "tests/providers/test_gateway_client.py::test_routing_switch_grok_and_snapshot_are_immutable",
         "tests/providers/test_gateway_client.py::test_safe_error_and_environment_factory_fail_closed",
+        "tests/providers/test_gateway_client.py::test_selector_never_selects_reasoning_text",
+        "tests/providers/test_gateway_client.py::test_thinking_policy_is_propagated_without_conflicting_reasoning",
         "tests/providers/test_gateway_client.py::test_timeout_after_send_is_outcome_unknown_and_not_retried",
+        "tests/providers/test_gateway_client.py::test_truncation_evidence_preserves_forwarded_thinking_and_attempts",
+        "tests/providers/test_gateway_client.py::test_worker_default_thinking_policy_is_unchanged",
         "tests/providers/test_structured_output_selector.py::test_receipt_does_not_persist_secret_text",
         "tests/providers/test_structured_output_selector.py::test_schema_echo_is_never_selected",
         "tests/providers/test_structured_output_selector.py::test_selector_uses_the_production_minimal_blueprint_schema",
@@ -7521,7 +7666,7 @@
       ],
       "failed_test_node_ids": [],
       "totals": {
-        "passed": 2518,
+        "passed": 2580,
         "failed": 0,
         "errors": 0,
         "skipped": 351
@@ -7530,7 +7675,7 @@
     {
       "profile": "live-provider",
       "status": "BLOCKED_ENVIRONMENT",
-      "duration_ms": 4503,
+      "duration_ms": 5341,
       "commands": [
         {
           "argv": [
@@ -7540,10 +7685,10 @@
             "-q",
             "-m",
             "live_provider",
-            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-live-provider-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-live-provider-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "s                                                                        [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-qualification-closure\\artifacts\\kernel-profile-live-provider-0.xml -\n1 skipped, 2868 deselected in 3.08s\n",
+          "stdout_tail": "s                                                                        [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-live-provider-0.xml -\n1 skipped, 2930 deselected in 4.02s\n",
           "stderr_tail": ""
         }
       ],
@@ -7561,8 +7706,8 @@
       "reason": "live-provider tests were not executed; all selected cases were skipped"
     }
   ],
-  "coverage_file_hash": "sha256:9610fde9b61b667386d013a1a87e4488fb090b0c19f5cd2bf3b58fb4739f6f27",
-  "generated_at": "2026-10-19T13:26:36.424682+00:00",
+  "coverage_file_hash": "sha256:84b61f54cb76bf0f47fe5c85aa321c977944fc06fa01792006d81ddb9ee1b70f",
+  "generated_at": "2026-10-20T11:43:32.470239+00:00",
   "environment": {
     "python": "3.12.3",
     "platform": "Windows-11-10.0.26200-SP0"
@@ -7572,5 +7717,5 @@
     "secret_persisted": false
   },
   "final_verdict": "PASS",
-  "receipt_hash": "sha256:05033eca985d601a913ffe5a9953e1c8b711af01fd8ab09d75f910d341040fbd"
+  "receipt_hash": "sha256:31f651063be7456a508aa32a2197613a89941eac9a33ab7e6524643571ec74de"
 }
