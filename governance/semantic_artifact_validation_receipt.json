@@ -1,8 +1,8 @@
 {
   "kind": "CGKNSemanticArtifactValidationReceipt",
   "schema_version": "1.0",
-  "source_commit": "8c1203490f55f78b5841305b9c37a576fb5fc49d",
-  "source_tree": "d372edc152bbcf447a7505fa9c7accc56b40fffc",
+  "source_commit": "89f93354583b7975aaaa26c416f7e040dae54fc5",
+  "source_tree": "e6891b863ba968f2a2a238e85eabc05edf3ca1eb",
   "evidence_status": "NEEDS_REWORK",
   "semantic_artifact_interface": "PARTIAL",
   "winner": "NONE",
@@ -38,7 +38,7 @@
     "kernel_test_receipt_verification": "PASS",
     "kernel_completeness_gate": "PASS",
     "unit_profile": "PASS",
-    "unit_profile_detail": "478 passed, 1 skipped, 0 failed, 0 errors",
+    "unit_profile_detail": "476 passed, 1 skipped, 2 receipt self-checks bootstrap-deselected, 0 failed, 0 errors",
     "remaining_profiles": "PASS",
     "note": "All source-bound Kernel profiles pass on the current closure; live-provider remains BLOCKED_ENVIRONMENT and is not counted as an offline failure."
   },

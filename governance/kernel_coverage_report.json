@@ -1,20 +1,20 @@
 {
   "kind": "CGKNKernelCoverageReport",
   "schema_version": "2.0",
-  "source_commit": "8c1203490f55f78b5841305b9c37a576fb5fc49d",
-  "source_tree_sha": "d372edc152bbcf447a7505fa9c7accc56b40fffc",
+  "source_commit": "89f93354583b7975aaaa26c416f7e040dae54fc5",
+  "source_tree_sha": "e6891b863ba968f2a2a238e85eabc05edf3ca1eb",
   "core_source_hash": "sha256:73bcc06202bff23ee061182dd31785029609a147247fee1c0ea8c4f0a6c930c5",
-  "command": "coverage run --branch --source=cgkn -m pytest -q (bootstrap excluding two receipt-cycle tests)",
+  "command": "coverage run --branch --source=cgkn -m pytest -q (bootstrap excluding receipt freshness cycle)",
   "pytest_result": {
     "exit_code": 0
   },
   "overall": {
-    "statements": 14558,
-    "covered_statements": 13168,
-    "branches": 3790,
-    "covered_branches": 2885,
-    "statement_percent": 90.45,
-    "branch_percent": 76.12
+    "statements": 14577,
+    "covered_statements": 13188,
+    "branches": 3800,
+    "covered_branches": 2896,
+    "statement_percent": 90.47,
+    "branch_percent": 76.21
   },
   "files": {
     "cgkn/__init__.py": {
@@ -1142,52 +1142,51 @@
       ]
     },
     "cgkn/application/project_blueprint.py": {
-      "statements": 441,
-      "covered_statements": 402,
-      "statement_percent": 91.16,
+      "statements": 445,
+      "covered_statements": 407,
+      "statement_percent": 91.46,
       "branches": 200,
-      "covered_branches": 141,
-      "branch_percent": 70.5,
+      "covered_branches": 142,
+      "branch_percent": 71.0,
       "missing_lines": [
         131,
         133,
-        139,
-        141,
-        181,
-        186,
-        226,
-        228,
-        238,
-        240,
+        143,
+        185,
+        190,
+        230,
+        232,
         242,
         244,
         246,
         248,
-        251,
-        291,
-        315,
-        317,
+        250,
+        252,
+        255,
+        295,
+        319,
         321,
-        360,
-        365,
+        325,
+        364,
         369,
-        391,
-        405,
-        410,
-        443,
-        449,
-        482,
-        490,
-        496,
-        498,
-        499,
+        373,
+        395,
+        409,
+        414,
+        447,
+        453,
+        486,
+        494,
         500,
-        501,
+        502,
         503,
-        510,
-        567,
-        568,
-        686
+        504,
+        505,
+        507,
+        514,
+        571,
+        572,
+        690
       ],
       "missing_branches": [
         [
@@ -1199,36 +1198,24 @@
           133
         ],
         [
-          138,
-          139
+          142,
+          143
         ],
         [
-          140,
-          141
+          184,
+          185
         ],
         [
-          180,
-          181
+          189,
+          190
         ],
         [
-          185,
-          186
+          229,
+          230
         ],
         [
-          225,
-          226
-        ],
-        [
-          227,
-          228
-        ],
-        [
-          237,
-          238
-        ],
-        [
-          239,
-          240
+          231,
+          232
         ],
         [
           241,
@@ -1247,184 +1234,192 @@
           248
         ],
         [
-          250,
-          251
+          249,
+          250
         ],
         [
-          290,
-          291
+          251,
+          252
         ],
         [
-          314,
-          315
+          254,
+          255
         ],
         [
-          316,
-          317
+          294,
+          295
+        ],
+        [
+          318,
+          319
         ],
         [
           320,
           321
         ],
         [
-          359,
-          360
+          324,
+          325
         ],
         [
-          364,
-          365
+          363,
+          364
         ],
         [
           368,
           369
         ],
         [
-          390,
-          391
+          372,
+          373
         ],
         [
-          404,
-          405
+          394,
+          395
         ],
         [
-          409,
-          410
+          408,
+          409
         ],
         [
-          442,
-          443
+          413,
+          414
         ],
         [
-          448,
-          449
+          446,
+          447
         ],
         [
-          481,
-          482
+          452,
+          453
         ],
         [
-          489,
-          490
+          485,
+          486
         ],
         [
-          492,
-          487
+          493,
+          494
         ],
         [
-          495,
-          496
-        ],
-        [
-          497,
-          498
-        ],
-        [
-          499,
-          -479
+          496,
+          491
         ],
         [
           499,
           500
         ],
         [
-          502,
-          503
+          501,
+          502
+        ],
+        [
+          503,
+          -483
+        ],
+        [
+          503,
+          504
         ],
         [
           506,
-          -479
+          507
         ],
         [
-          508,
-          487
+          510,
+          -483
         ],
         [
-          509,
-          510
+          512,
+          491
         ],
         [
-          529,
-          -529
+          513,
+          514
         ],
         [
-          545,
-          -543
+          533,
+          -533
         ],
         [
-          566,
-          567
+          549,
+          -547
         ],
         [
-          601,
-          -600
+          570,
+          571
         ],
         [
-          603,
-          -600
+          605,
+          -604
         ],
         [
-          617,
-          -615
-        ],
-        [
-          618,
-          -615
-        ],
-        [
-          619,
-          -615
-        ],
-        [
-          620,
-          -615
+          607,
+          -604
         ],
         [
           621,
-          -615
+          -619
         ],
         [
           622,
-          -615
+          -619
         ],
         [
           623,
-          -615
+          -619
         ],
         [
           624,
-          -615
+          -619
         ],
         [
           625,
-          -615
+          -619
+        ],
+        [
+          626,
+          -619
         ],
         [
           627,
-          -615
+          -619
         ],
         [
-          648,
-          -644
+          628,
+          -619
         ],
         [
-          668,
-          -663
+          629,
+          -619
         ],
         [
-          677,
-          -663
+          631,
+          -619
         ],
         [
-          679,
-          686
+          652,
+          -648
+        ],
+        [
+          672,
+          -667
         ],
         [
           681,
-          -663
+          -667
         ],
         [
           683,
-          -663
+          690
+        ],
+        [
+          685,
+          -667
+        ],
+        [
+          687,
+          -667
         ]
       ]
     },
@@ -2356,12 +2351,12 @@
       ]
     },
     "cgkn/application/project_loop.py": {
-      "statements": 601,
-      "covered_statements": 529,
-      "statement_percent": 88.02,
-      "branches": 188,
-      "covered_branches": 137,
-      "branch_percent": 72.87,
+      "statements": 616,
+      "covered_statements": 544,
+      "statement_percent": 88.31,
+      "branches": 198,
+      "covered_branches": 147,
+      "branch_percent": 74.24,
       "missing_lines": [
         68,
         194,
@@ -2432,9 +2427,9 @@
         910,
         996,
         1005,
-        1073,
-        1074,
-        1076
+        1093,
+        1094,
+        1096
       ],
       "missing_branches": [
         [
@@ -2634,12 +2629,12 @@
           1005
         ],
         [
-          1069,
-          1073
+          1089,
+          1093
         ],
         [
-          1075,
-          1076
+          1095,
+          1096
         ]
       ]
     },
@@ -7012,12 +7007,12 @@
       "branch_percent": 100.0
     },
     "application": {
-      "statements": 9468,
-      "covered_statements": 8316,
-      "branches": 2382,
-      "covered_branches": 1635,
-      "statement_percent": 87.83,
-      "branch_percent": 68.64
+      "statements": 9487,
+      "covered_statements": 8336,
+      "branches": 2392,
+      "covered_branches": 1646,
+      "statement_percent": 87.87,
+      "branch_percent": 68.81
     },
     "artifacts": {
       "statements": 420,
@@ -7182,13 +7177,13 @@
       "branch_percent": 84.33
     },
     "L6": {
-      "statements": 9468,
-      "covered_statements": 8316,
-      "branches": 2382,
-      "covered_branches": 1635,
-      "statement_percent": 87.83,
-      "branch_percent": 68.64
+      "statements": 9487,
+      "covered_statements": 8336,
+      "branches": 2392,
+      "covered_branches": 1646,
+      "statement_percent": 87.87,
+      "branch_percent": 68.81
     }
   },
-  "raw_coverage_hash": "sha256:375c8b550594192337897e733245ff8e79dfacead61335c8455a377261343e9c"
+  "raw_coverage_hash": "sha256:ff2b98bdc385244f68e74f49147a2417bb47a232047170bbcaa26aea4943975e"
 }

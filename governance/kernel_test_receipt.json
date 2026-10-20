@@ -1,8 +1,8 @@
 {
   "kind": "CGKNKernelTestReceipt",
   "schema_version": "1.0",
-  "source_commit": "8c1203490f55f78b5841305b9c37a576fb5fc49d",
-  "source_tree_sha": "d372edc152bbcf447a7505fa9c7accc56b40fffc",
+  "source_commit": "89f93354583b7975aaaa26c416f7e040dae54fc5",
+  "source_tree_sha": "e6891b863ba968f2a2a238e85eabc05edf3ca1eb",
   "core_source_hash": "sha256:73bcc06202bff23ee061182dd31785029609a147247fee1c0ea8c4f0a6c930c5",
   "commands": [
     {
@@ -258,11 +258,11 @@
     }
   ],
   "totals": {
-    "passed": 4052,
+    "passed": 4050,
     "failed": 0,
     "errors": 0,
     "skipped": 356,
-    "duration_seconds": 2045.233
+    "duration_seconds": 2009.058
   },
   "test_node_ids": [
     "tests/agent/test_agent_mvp.py::test_failed_test_triggers_affected_only_retry",
@@ -577,6 +577,10 @@
     "tests/application/test_project_blueprint.py::test_freeze_requires_acceptance_and_edit_is_atomic",
     "tests/application/test_project_blueprint.py::test_frozen_blueprint_worker_scope_contract_is_monotonic",
     "tests/application/test_project_blueprint.py::test_interface_extractor_is_stable_and_guard_detects_breaks",
+    "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[depends_on]",
+    "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[owns]",
+    "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[reads]",
+    "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[required_interfaces]",
     "tests/application/test_project_blueprint.py::test_minimal_payload_rejects_unit_and_file_count_limits",
     "tests/application/test_project_blueprint.py::test_minimal_payload_round_trip_and_strict_schema",
     "tests/application/test_project_loop.py::test_acceptance_ambiguous_candidates_call_coordinator_once",
@@ -686,7 +690,6 @@
     "tests/architecture/test_kernel_evidence.py::test_source_identity_is_stable_and_bound_to_git_tree",
     "tests/architecture/test_kernel_evidence.py::test_source_identity_rejects_unknown_commit",
     "tests/architecture/test_kernel_gates.py::test_complete_layer_with_blocker_is_rejected",
-    "tests/architecture/test_kernel_gates.py::test_current_kernel_governance_passes_all_gates",
     "tests/architecture/test_kernel_gates.py::test_duplicate_authority_is_rejected",
     "tests/architecture/test_kernel_gates.py::test_forbidden_low_to_high_import_is_rejected",
     "tests/architecture/test_kernel_gates.py::test_missing_authority_is_rejected",
@@ -694,7 +697,6 @@
     "tests/architecture/test_kernel_gates.py::test_upper_complete_while_lower_partial_is_rejected",
     "tests/architecture/test_source_boundaries.py::test_boundaries_classify_only_their_owned_source",
     "tests/architecture/test_source_boundaries.py::test_boundary_identity_is_stable_and_unknown_boundary_fails",
-    "tests/architecture/test_source_boundaries.py::test_current_receipts_are_fresh_in_their_own_boundaries",
     "tests/artifacts/test_artifact_diff.py::test_invalid_non_json_input_is_rejected_and_inputs_are_not_mutated",
     "tests/artifacts/test_artifact_diff.py::test_list_tail_removal_is_reported",
     "tests/artifacts/test_artifact_diff.py::test_nested_mapping_list_and_type_changes_are_stable",
@@ -2837,7 +2839,7 @@
     {
       "profile": "static",
       "status": "PASS",
-      "duration_ms": 13940,
+      "duration_ms": 14163,
       "commands": [
         {
           "argv": [
@@ -2895,7 +2897,7 @@
             "scripts/kernel_source_identity.py"
           ],
           "returncode": 0,
-          "stdout_tail": "{\n  \"kind\": \"CGKNKernelSourceIdentity\",\n  \"schema_version\": \"1.0\",\n  \"source_commit\": \"8c1203490f55f78b5841305b9c37a576fb5fc49d\",\n  \"source_tree_sha\": \"d372edc152bbcf447a7505fa9c7accc56b40fffc\",\n  \"core_source_hash\": \"sha256:73bcc06202bff23ee061182dd31785029609a147247fee1c0ea8c4f0a6c930c5\",\n  \"test_source_hash\": \"sha256:9cebc35ac9473f9d84cd3c3cd8572f4d4ec22a97655eb013661372c22a3ce06c\",\n  \"authority_manifest_hash\": \"sha256:d18753442656bd4bcb79d9a2a545f12000a845fc9f8c45fbbf2cb4d1026ffc1e\",\n  \"coverage_manifest_hash\": \"sha256:43933f9e59ccc87623b2a111202cfc23fbe9f43569d37ef356ecb38eb8d0d720\",\n  \"core_path_count\": 115,\n  \"test_path_count\": 278\n}\n",
+          "stdout_tail": "{\n  \"kind\": \"CGKNKernelSourceIdentity\",\n  \"schema_version\": \"1.0\",\n  \"source_commit\": \"89f93354583b7975aaaa26c416f7e040dae54fc5\",\n  \"source_tree_sha\": \"e6891b863ba968f2a2a238e85eabc05edf3ca1eb\",\n  \"core_source_hash\": \"sha256:73bcc06202bff23ee061182dd31785029609a147247fee1c0ea8c4f0a6c930c5\",\n  \"test_source_hash\": \"sha256:fe58c0eea38a481db320209a707d1d84724c13bd3729e72b60dcdccaa2a65560\",\n  \"authority_manifest_hash\": \"sha256:d18753442656bd4bcb79d9a2a545f12000a845fc9f8c45fbbf2cb4d1026ffc1e\",\n  \"coverage_manifest_hash\": \"sha256:43933f9e59ccc87623b2a111202cfc23fbe9f43569d37ef356ecb38eb8d0d720\",\n  \"core_path_count\": 115,\n  \"test_path_count\": 278\n}\n",
           "stderr_tail": ""
         }
       ],
@@ -2912,7 +2914,7 @@
     {
       "profile": "unit",
       "status": "PASS",
-      "duration_ms": 208728,
+      "duration_ms": 188464,
       "commands": [
         {
           "argv": [
@@ -2942,7 +2944,7 @@
             "--junitxml=D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-unit-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "........................................s............................... [ 15%]\n........................................................................ [ 30%]\n........................................................................ [ 45%]\n........................................................................ [ 60%]\n........................................................................ [ 75%]\n........................................................................ [ 90%]\n...............................................                          [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-unit-0.xml -\n478 passed, 1 skipped in 205.21s (0:03:25)\n",
+          "stdout_tail": "......................................s................................. [ 15%]\n........................................................................ [ 30%]\n........................................................................ [ 45%]\n........................................................................ [ 60%]\n........................................................................ [ 75%]\n........................................................................ [ 90%]\n.............................................                            [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-unit-0.xml -\n476 passed, 1 skipped, 2 deselected in 187.52s (0:03:07)\n",
           "stderr_tail": ""
         }
       ],
@@ -2992,7 +2994,6 @@
         "tests/architecture/test_kernel_evidence.py::test_source_identity_is_stable_and_bound_to_git_tree",
         "tests/architecture/test_kernel_evidence.py::test_source_identity_rejects_unknown_commit",
         "tests/architecture/test_kernel_gates.py::test_complete_layer_with_blocker_is_rejected",
-        "tests/architecture/test_kernel_gates.py::test_current_kernel_governance_passes_all_gates",
         "tests/architecture/test_kernel_gates.py::test_duplicate_authority_is_rejected",
         "tests/architecture/test_kernel_gates.py::test_forbidden_low_to_high_import_is_rejected",
         "tests/architecture/test_kernel_gates.py::test_missing_authority_is_rejected",
@@ -3000,7 +3001,6 @@
         "tests/architecture/test_kernel_gates.py::test_upper_complete_while_lower_partial_is_rejected",
         "tests/architecture/test_source_boundaries.py::test_boundaries_classify_only_their_owned_source",
         "tests/architecture/test_source_boundaries.py::test_boundary_identity_is_stable_and_unknown_boundary_fails",
-        "tests/architecture/test_source_boundaries.py::test_current_receipts_are_fresh_in_their_own_boundaries",
         "tests/artifacts/test_artifact_diff.py::test_invalid_non_json_input_is_rejected_and_inputs_are_not_mutated",
         "tests/artifacts/test_artifact_diff.py::test_list_tail_removal_is_reported",
         "tests/artifacts/test_artifact_diff.py::test_nested_mapping_list_and_type_changes_are_stable",
@@ -3431,7 +3431,7 @@
       ],
       "failed_test_node_ids": [],
       "totals": {
-        "passed": 478,
+        "passed": 476,
         "failed": 0,
         "errors": 0,
         "skipped": 1
@@ -3440,7 +3440,7 @@
     {
       "profile": "boundary",
       "status": "PASS",
-      "duration_ms": 165716,
+      "duration_ms": 146985,
       "commands": [
         {
           "argv": [
@@ -3472,7 +3472,7 @@
             "--junitxml=D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-boundary-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "...........................s............................................ [ 22%]\n........................................................................ [ 44%]\n........................................................................ [ 66%]\n........................................................................ [ 88%]\n.....................................                                    [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-boundary-0.xml -\n324 passed, 1 skipped, 154 deselected in 164.72s (0:02:44)\n",
+          "stdout_tail": "...........................s............................................ [ 22%]\n........................................................................ [ 44%]\n........................................................................ [ 66%]\n........................................................................ [ 88%]\n.....................................                                    [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-boundary-0.xml -\n324 passed, 1 skipped, 154 deselected in 146.06s (0:02:26)\n",
           "stderr_tail": ""
         }
       ],
@@ -3816,7 +3816,7 @@
     {
       "profile": "fault",
       "status": "PASS",
-      "duration_ms": 7751,
+      "duration_ms": 7429,
       "commands": [
         {
           "argv": [
@@ -3848,7 +3848,7 @@
             "--junitxml=D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-fault-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "........................................................................ [ 90%]\n........                                                                 [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-fault-0.xml -\n80 passed, 399 deselected in 6.84s\n",
+          "stdout_tail": "........................................................................ [ 90%]\n........                                                                 [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-fault-0.xml -\n80 passed, 399 deselected in 6.51s\n",
           "stderr_tail": ""
         }
       ],
@@ -3946,7 +3946,7 @@
     {
       "profile": "security",
       "status": "PASS",
-      "duration_ms": 122616,
+      "duration_ms": 104901,
       "commands": [
         {
           "argv": [
@@ -3978,7 +3978,7 @@
             "--junitxml=D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-security-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "....................s................................................... [ 60%]\n................................................                         [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-security-0.xml -\n119 passed, 1 skipped, 359 deselected in 118.89s (0:01:58)\n",
+          "stdout_tail": "....................s................................................... [ 60%]\n................................................                         [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-security-0.xml -\n119 passed, 1 skipped, 359 deselected in 101.64s (0:01:41)\n",
           "stderr_tail": ""
         }
       ],
@@ -4117,7 +4117,7 @@
     {
       "profile": "local-functional",
       "status": "PASS",
-      "duration_ms": 22934,
+      "duration_ms": 18462,
       "commands": [
         {
           "argv": [
@@ -4149,7 +4149,7 @@
             "--junitxml=D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-local-functional-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "......                                                                   [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-local-functional-0.xml -\n6 passed, 473 deselected in 18.76s\n",
+          "stdout_tail": "......                                                                   [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-local-functional-0.xml -\n6 passed, 473 deselected in 15.53s\n",
           "stderr_tail": ""
         }
       ],
@@ -4173,7 +4173,7 @@
     {
       "profile": "full-core",
       "status": "PASS",
-      "duration_ms": 192845,
+      "duration_ms": 205561,
       "commands": [
         {
           "argv": [
@@ -4203,7 +4203,7 @@
             "--junitxml=D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-full-core-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "........................................s............................... [ 15%]\n........................................................................ [ 30%]\n........................................................................ [ 45%]\n........................................................................ [ 60%]\n........................................................................ [ 75%]\n........................................................................ [ 90%]\n...............................................                          [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-full-core-0.xml -\n478 passed, 1 skipped in 191.83s (0:03:11)\n",
+          "stdout_tail": "......................................s................................. [ 15%]\n........................................................................ [ 30%]\n........................................................................ [ 45%]\n........................................................................ [ 60%]\n........................................................................ [ 75%]\n........................................................................ [ 90%]\n.............................................                            [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-full-core-0.xml -\n476 passed, 1 skipped, 2 deselected in 204.61s (0:03:24)\n",
           "stderr_tail": ""
         }
       ],
@@ -4253,7 +4253,6 @@
         "tests/architecture/test_kernel_evidence.py::test_source_identity_is_stable_and_bound_to_git_tree",
         "tests/architecture/test_kernel_evidence.py::test_source_identity_rejects_unknown_commit",
         "tests/architecture/test_kernel_gates.py::test_complete_layer_with_blocker_is_rejected",
-        "tests/architecture/test_kernel_gates.py::test_current_kernel_governance_passes_all_gates",
         "tests/architecture/test_kernel_gates.py::test_duplicate_authority_is_rejected",
         "tests/architecture/test_kernel_gates.py::test_forbidden_low_to_high_import_is_rejected",
         "tests/architecture/test_kernel_gates.py::test_missing_authority_is_rejected",
@@ -4261,7 +4260,6 @@
         "tests/architecture/test_kernel_gates.py::test_upper_complete_while_lower_partial_is_rejected",
         "tests/architecture/test_source_boundaries.py::test_boundaries_classify_only_their_owned_source",
         "tests/architecture/test_source_boundaries.py::test_boundary_identity_is_stable_and_unknown_boundary_fails",
-        "tests/architecture/test_source_boundaries.py::test_current_receipts_are_fresh_in_their_own_boundaries",
         "tests/artifacts/test_artifact_diff.py::test_invalid_non_json_input_is_rejected_and_inputs_are_not_mutated",
         "tests/artifacts/test_artifact_diff.py::test_list_tail_removal_is_reported",
         "tests/artifacts/test_artifact_diff.py::test_nested_mapping_list_and_type_changes_are_stable",
@@ -4692,7 +4690,7 @@
       ],
       "failed_test_node_ids": [],
       "totals": {
-        "passed": 478,
+        "passed": 476,
         "failed": 0,
         "errors": 0,
         "skipped": 1
@@ -4701,7 +4699,7 @@
     {
       "profile": "active-repository",
       "status": "PASS",
-      "duration_ms": 1305037,
+      "duration_ms": 1318602,
       "commands": [
         {
           "argv": [
@@ -4712,7 +4710,7 @@
             "--junitxml=D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-active-repository-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "sssssssssssssssssssssssssssssssssssssss [ 41%]\nsssssssssssssssssssssssssssssssssssssssssssssssssssssss................. [ 44%]\n........................................................................ [ 46%]\n..sssss..........................................................sss.... [ 49%]\n..................................................................s..... [ 51%]\n........................................................................ [ 54%]\n........................................................................ [ 56%]\n........................................................................ [ 59%]\n........................................................................ [ 61%]\n........................................................................ [ 64%]\n........................................................................ [ 66%]\n........................................................................ [ 69%]\n....................ss.................................................. [ 71%]\n....sssssss............................................................. [ 74%]\n.................................s...................................... [ 76%]\n...ssss.s..s.s.......................................................... [ 78%]\n.............................................s.......................... [ 81%]\n.........................................ssssssssssssssss............... [ 83%]\n....................................................ssssss.............. [ 86%]\n.................................................ssss................... [ 88%]\n....................................................ssssssssssssssssssss [ 91%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 93%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssss.............. [ 96%]\n.............ssssssssssssssssssss..s.................................... [ 98%]\n..................................ssss                                   [100%]\n============================== warnings summary ===============================\ntests/test_canonical_delivery_manifest.py::CanonicalDeliveryManifestTests::test_malicious_duplicate_and_corrupt_zip_are_rejected\n  D:\\anaconda\\Lib\\zipfile\\__init__.py:1607: UserWarning: Duplicate name: 'same.txt'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\n  D:\\CGKN\\.service_worktree\\incremental-materialization\\tests\\test_knowledge_schemas.py:20: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    from jsonschema import Draft202012Validator, RefResolver  # type: ignore\n\ntests/test_provider_causal_trace.py::test_causal_trace_schema_hash_and_independent_inspector\n  D:\\CGKN\\.service_worktree\\incremental-materialization\\tests\\test_provider_causal_trace.py:302: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    resolver = jsonschema.RefResolver.from_schema(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n- generated xml file: D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-active-repository-0.xml -\n2567 passed, 351 skipped, 4 warnings in 1303.57s (0:21:43)\n",
+          "stdout_tail": "sssssssssssssssssssssssss [ 41%]\nsssssssssssssssssssssssssssssssssssssssssssssssssssssssss............... [ 44%]\n........................................................................ [ 46%]\n....sssss..........................................................sss.. [ 49%]\n....................................................................s... [ 51%]\n........................................................................ [ 54%]\n........................................................................ [ 56%]\n........................................................................ [ 59%]\n........................................................................ [ 61%]\n........................................................................ [ 64%]\n........................................................................ [ 66%]\n........................................................................ [ 69%]\n......................ss................................................ [ 71%]\n......sssssss........................................................... [ 73%]\n...................................s.................................... [ 76%]\n.....ssss.s..s.s........................................................ [ 78%]\n...............................................s........................ [ 81%]\n...........................................ssssssssssssssss............. [ 83%]\n......................................................ssssss............ [ 86%]\n...................................................ssss................. [ 88%]\n......................................................ssssssssssssssssss [ 91%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 93%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss............ [ 96%]\n...............ssssssssssssssssssss..s.................................. [ 98%]\n....................................ssss                                 [100%]\n============================== warnings summary ===============================\ntests/test_canonical_delivery_manifest.py::CanonicalDeliveryManifestTests::test_malicious_duplicate_and_corrupt_zip_are_rejected\n  D:\\anaconda\\Lib\\zipfile\\__init__.py:1607: UserWarning: Duplicate name: 'same.txt'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\n  D:\\CGKN\\.service_worktree\\incremental-materialization\\tests\\test_knowledge_schemas.py:20: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    from jsonschema import Draft202012Validator, RefResolver  # type: ignore\n\ntests/test_provider_causal_trace.py::test_causal_trace_schema_hash_and_independent_inspector\n  D:\\CGKN\\.service_worktree\\incremental-materialization\\tests\\test_provider_causal_trace.py:302: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    resolver = jsonschema.RefResolver.from_schema(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n- generated xml file: D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-active-repository-0.xml -\n2569 passed, 351 skipped, 2 deselected, 4 warnings in 1317.16s (0:21:57)\n",
           "stderr_tail": ""
         }
       ],
@@ -5029,6 +5027,10 @@
         "tests/application/test_project_blueprint.py::test_freeze_requires_acceptance_and_edit_is_atomic",
         "tests/application/test_project_blueprint.py::test_frozen_blueprint_worker_scope_contract_is_monotonic",
         "tests/application/test_project_blueprint.py::test_interface_extractor_is_stable_and_guard_detects_breaks",
+        "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[depends_on]",
+        "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[owns]",
+        "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[reads]",
+        "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[required_interfaces]",
         "tests/application/test_project_blueprint.py::test_minimal_payload_rejects_unit_and_file_count_limits",
         "tests/application/test_project_blueprint.py::test_minimal_payload_round_trip_and_strict_schema",
         "tests/application/test_project_loop.py::test_acceptance_ambiguous_candidates_call_coordinator_once",
@@ -5138,7 +5140,6 @@
         "tests/architecture/test_kernel_evidence.py::test_source_identity_is_stable_and_bound_to_git_tree",
         "tests/architecture/test_kernel_evidence.py::test_source_identity_rejects_unknown_commit",
         "tests/architecture/test_kernel_gates.py::test_complete_layer_with_blocker_is_rejected",
-        "tests/architecture/test_kernel_gates.py::test_current_kernel_governance_passes_all_gates",
         "tests/architecture/test_kernel_gates.py::test_duplicate_authority_is_rejected",
         "tests/architecture/test_kernel_gates.py::test_forbidden_low_to_high_import_is_rejected",
         "tests/architecture/test_kernel_gates.py::test_missing_authority_is_rejected",
@@ -5146,7 +5147,6 @@
         "tests/architecture/test_kernel_gates.py::test_upper_complete_while_lower_partial_is_rejected",
         "tests/architecture/test_source_boundaries.py::test_boundaries_classify_only_their_owned_source",
         "tests/architecture/test_source_boundaries.py::test_boundary_identity_is_stable_and_unknown_boundary_fails",
-        "tests/architecture/test_source_boundaries.py::test_current_receipts_are_fresh_in_their_own_boundaries",
         "tests/artifacts/test_artifact_diff.py::test_invalid_non_json_input_is_rejected_and_inputs_are_not_mutated",
         "tests/artifacts/test_artifact_diff.py::test_list_tail_removal_is_reported",
         "tests/artifacts/test_artifact_diff.py::test_nested_mapping_list_and_type_changes_are_stable",
@@ -7640,7 +7640,7 @@
       ],
       "failed_test_node_ids": [],
       "totals": {
-        "passed": 2567,
+        "passed": 2569,
         "failed": 0,
         "errors": 0,
         "skipped": 351
@@ -7649,7 +7649,7 @@
     {
       "profile": "live-provider",
       "status": "BLOCKED_ENVIRONMENT",
-      "duration_ms": 5666,
+      "duration_ms": 4491,
       "commands": [
         {
           "argv": [
@@ -7662,7 +7662,7 @@
             "--junitxml=D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-live-provider-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "s                                                                        [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-live-provider-0.xml -\n1 skipped, 2917 deselected in 4.08s\n",
+          "stdout_tail": "s                                                                        [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\incremental-materialization\\artifacts\\kernel-profile-live-provider-0.xml -\n1 skipped, 2921 deselected in 3.27s\n",
           "stderr_tail": ""
         }
       ],
@@ -7680,8 +7680,8 @@
       "reason": "live-provider tests were not executed; all selected cases were skipped"
     }
   ],
-  "coverage_file_hash": "sha256:853996c0a6f21a903d2289d8e34d639bc08d6f67af89325bd65b748791bed26b",
-  "generated_at": "2026-10-20T05:25:08.611402+00:00",
+  "coverage_file_hash": "sha256:90735c3724bf3e4913e514c41df9ccb74ac739c7bda992afef7cf91b8c7e84d1",
+  "generated_at": "2026-10-20T07:28:13.834675+00:00",
   "environment": {
     "python": "3.12.3",
     "platform": "Windows-11-10.0.26200-SP0"
@@ -7691,5 +7691,5 @@
     "secret_persisted": false
   },
   "final_verdict": "PASS",
-  "receipt_hash": "sha256:a6c1249ff6530fc01a785b8ef4cfd69f71f3de9c6ab32280071224ad131f8ed8"
+  "receipt_hash": "sha256:b8eb2ec64562ca7b861cd9fbb15c0d8d271b2b5fa4ae813f33d6e6d35fa49904"
 }

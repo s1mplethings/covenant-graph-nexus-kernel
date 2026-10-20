@@ -1,33 +1,36 @@
 {
   "kind": "CGKNProjectMVPStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-SAFE-ACCEPTANCE-ATTRIBUTION-039",
-  "source_commit": "46b85c1ec161d36eeae016e99533469ef8da9fa7",
+  "iteration": "ITER-INCREMENTAL-UNIT-MATERIALIZATION-AND-EFFICIENCY-036",
+  "source_commit": "89f93354583b7975aaaa26c416f7e040dae54fc5",
   "minimal_blueprint_status": "PARTIAL",
   "coordinator_qualification": "PASS_3_OF_3",
   "worker_protocol_qualification": true,
   "worker_file_bundle_qualification": "PASS_RETAINED",
   "worker_patch_bundle_qualification": "PASS_V2_1_OF_1_RETAINED",
-  "worker_thinking_root_cause": "CONFIRMED",
-  "worker_generation_thinking_policy": "disabled",
-  "worker_repair_thinking_policy": "default",
-  "worker_cohesive_unit_qualification": "PASS_RETAINED",
+  "worker_cohesive_unit_qualification": "PASS_2_OF_2_LIVE",
   "failure_routing_status": "PASS",
   "generation_retry_status": "PASS",
   "repair_subset_contract": "PASS",
   "patch_bundle_version": 2,
   "materialized_baseline_contract": "PASS",
-  "failed_provider_calls_recorded": true,
+  "incremental_materialization_status": "PASS",
+  "incremental_materialization_benefit": "NOT_EVALUATED",
   "acceptance_requirement_mapping": "PASS_TESTED",
   "acceptance_attribution": "PASS_OFFLINE_NOT_LIVE_EXERCISED",
   "hidden_source_exposed": false,
-  "real_csv_single": "FAIL_GENERATION_FILE_BUNDLE_INCOMPLETE",
+  "real_csv_single": "FAIL_PUBLIC_PYTEST_BUDGET_EXHAUSTED",
   "real_csv_repeatability": "NOT_RUN_DUE_MINIMAL_BLUEPRINT_NEEDS_REWORK",
   "real_seeded_repair": "NOT_RUN_DUE_MINIMAL_BLUEPRINT_NEEDS_REWORK",
   "real_generation": "FAIL",
   "real_repair": "NOT_EVALUATED",
-  "kernel_evidence_fresh": false,
+  "csv_repeatability": "NOT_EVALUATED",
   "efficiency_experiment_ready": false,
+  "blueprint_benefit": "NOT_EVALUATED",
+  "role_separation_benefit": "NOT_EVALUATED",
+  "cheap_executor_benefit": "NOT_EVALUATED",
+  "cost_evaluated": false,
+  "kernel_evidence_fresh": true,
   "multi_agent_status": "BLOCKED_BY_EFFICIENCY_EXPERIMENT",
   "api_lab_dependency": {
     "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
@@ -41,17 +44,17 @@
     {
       "priority": "P0",
       "code": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
-      "detail": "The fresh frozen-source CSV Single stopped before compile and hidden acceptance because the tests Unit omitted tests/test_cli.py in its initial FileBundle and both bounded generation retries. The run used 6 of 8 logical calls; no second project was launched to replace this evidence."
+      "detail": "The current-source CSV Single used the fixed 8/8 logical-call budget and ended with one public pytest failure: the generated test invoked the documented --preview N option without N. Compile passed, pytest reported 1 failed and 15 passed, and runtime/hidden acceptance were therefore blocked."
     },
     {
       "priority": "P1",
+      "code": "EFFICIENCY_EXPERIMENT_GATED",
+      "detail": "Seeded Repair, CSV 3/3, M0/M1, and Tier 1 were not run because the mandatory CSV Single gate did not pass."
+    },
+    {
+      "priority": "P2",
       "code": "ACCEPTANCE_ATTRIBUTION_NOT_LIVE_EXERCISED",
-      "detail": "Exact requirement mapping, fail-closed manifest validation, deterministic owner attribution, bounded Coordinator attribution, and hidden-leak prevention passed 145 application tests, but the real project did not reach external acceptance."
-    },
-    {
-      "priority": "P1",
-      "code": "KERNEL_EVIDENCE_NOT_REFRESHED_AFTER_STOP",
-      "detail": "Seeded Repair, CSV repeatability, Kernel profiles, and full pytest were intentionally not run after the required Single-run stop."
+      "detail": "The project did not reach hidden acceptance, so the tested safe attribution path remains offline-qualified but not live-exercised."
     }
   ]
 }
