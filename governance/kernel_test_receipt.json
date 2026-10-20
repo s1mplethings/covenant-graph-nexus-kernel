@@ -1,9 +1,9 @@
 {
   "kind": "CGKNKernelTestReceipt",
   "schema_version": "1.0",
-  "source_commit": "d7d9ca4b774044d5915e8f917d578220f3d48e42",
-  "source_tree_sha": "7832a018b941bac9237d05cbad2e07996a5b42c6",
-  "core_source_hash": "sha256:73bcc06202bff23ee061182dd31785029609a147247fee1c0ea8c4f0a6c930c5",
+  "source_commit": "2e7d1f1b3afe0ca45adda14e2488e55beeec76d6",
+  "source_tree_sha": "ac0bd8395e0a4b3ec9edbc173c08fcf4595371b2",
+  "core_source_hash": "sha256:f4916679d185cece3a58a063192f706ba8ede20410cf20a37ba251caeb95b8ef",
   "commands": [
     {
       "argv": [
@@ -77,7 +77,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-unit-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-unit-0.xml"
       ],
       "returncode": 0
     },
@@ -108,7 +108,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-boundary-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-boundary-0.xml"
       ],
       "returncode": 0
     },
@@ -139,7 +139,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-fault-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-fault-0.xml"
       ],
       "returncode": 0
     },
@@ -170,7 +170,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-security-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-security-0.xml"
       ],
       "returncode": 0
     },
@@ -201,7 +201,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-local-functional-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-local-functional-0.xml"
       ],
       "returncode": 0
     },
@@ -230,7 +230,7 @@
         "tests/test_capability_tree_mvp.py",
         "tests/test_component_runtime_integration.py",
         "tests/test_provider_transport.py",
-        "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-full-core-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-full-core-0.xml"
       ],
       "returncode": 0
     },
@@ -240,7 +240,7 @@
         "-m",
         "pytest",
         "-q",
-        "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-active-repository-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-active-repository-0.xml"
       ],
       "returncode": 0
     },
@@ -252,17 +252,17 @@
         "-q",
         "-m",
         "live_provider",
-        "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-live-provider-0.xml"
+        "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-live-provider-0.xml"
       ],
       "returncode": 0
     }
   ],
   "totals": {
-    "passed": 4072,
+    "passed": 4071,
     "failed": 0,
     "errors": 0,
     "skipped": 356,
-    "duration_seconds": 1575.775
+    "duration_seconds": 3435.893
   },
   "test_node_ids": [
     "tests/agent/test_agent_mvp.py::test_failed_test_triggers_affected_only_retry",
@@ -569,8 +569,7 @@
     "tests/application/test_project_blueprint.py::test_assembler_expands_defaults_checks_and_stable_hash",
     "tests/application/test_project_blueprint.py::test_assembler_rejects_invalid_paths_ownership_and_dependencies[units0-unsafe]",
     "tests/application/test_project_blueprint.py::test_assembler_rejects_invalid_paths_ownership_and_dependencies[units1-ownership collision]",
-    "tests/application/test_project_blueprint.py::test_assembler_rejects_invalid_paths_ownership_and_dependencies[units2-invalid dependency]",
-    "tests/application/test_project_blueprint.py::test_assembler_rejects_invalid_paths_ownership_and_dependencies[units3-cycle]",
+    "tests/application/test_project_blueprint.py::test_assembler_rejects_unknown_and_normalizes_missing_or_duplicate_requirement_owners",
     "tests/application/test_project_blueprint.py::test_assembler_requires_tests_and_readme_coverage",
     "tests/application/test_project_blueprint.py::test_blueprint_rejects_invalid_structure[units0-duplicate unit]",
     "tests/application/test_project_blueprint.py::test_blueprint_rejects_invalid_structure[units1-ownership collision]",
@@ -581,12 +580,11 @@
     "tests/application/test_project_blueprint.py::test_freeze_requires_acceptance_and_edit_is_atomic",
     "tests/application/test_project_blueprint.py::test_frozen_blueprint_worker_scope_contract_is_monotonic",
     "tests/application/test_project_blueprint.py::test_interface_extractor_is_stable_and_guard_detects_breaks",
-    "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[depends_on]",
     "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[owns]",
-    "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[reads]",
-    "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[required_interfaces]",
+    "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[requirement_ids]",
     "tests/application/test_project_blueprint.py::test_minimal_payload_rejects_unit_and_file_count_limits",
     "tests/application/test_project_blueprint.py::test_minimal_payload_round_trip_and_strict_schema",
+    "tests/application/test_project_blueprint.py::test_provider_unit_order_normalizes_to_the_same_frozen_blueprint",
     "tests/application/test_project_loop.py::test_acceptance_ambiguous_candidates_call_coordinator_once",
     "tests/application/test_project_loop.py::test_acceptance_attribution_failure_never_guesses_owner[error0]",
     "tests/application/test_project_loop.py::test_acceptance_attribution_failure_never_guesses_owner[error1]",
@@ -600,6 +598,7 @@
     "tests/application/test_project_loop.py::test_continuation_request_contains_no_hidden_acceptance_payload",
     "tests/application/test_project_loop.py::test_controlled_commit_failure_rolls_back_and_is_classified",
     "tests/application/test_project_loop.py::test_coordinator_attribution_prompt_and_failure_report_never_include_hidden_markers",
+    "tests/application/test_project_loop.py::test_coordinator_request_is_minimal_public_only_and_has_stable_requirement_ids",
     "tests/application/test_project_loop.py::test_cross_unit_attribution_uses_evidence_and_never_implementation_fallback",
     "tests/application/test_project_loop.py::test_duplicate_file_in_slice_is_invalid_and_never_committed",
     "tests/application/test_project_loop.py::test_failed_patch_hunk_leaves_whole_transaction_unchanged[edits0-False]",
@@ -2854,7 +2853,7 @@
     {
       "profile": "static",
       "status": "PASS",
-      "duration_ms": 12493,
+      "duration_ms": 26797,
       "commands": [
         {
           "argv": [
@@ -2912,7 +2911,7 @@
             "scripts/kernel_source_identity.py"
           ],
           "returncode": 0,
-          "stdout_tail": "{\n  \"kind\": \"CGKNKernelSourceIdentity\",\n  \"schema_version\": \"1.0\",\n  \"source_commit\": \"d7d9ca4b774044d5915e8f917d578220f3d48e42\",\n  \"source_tree_sha\": \"7832a018b941bac9237d05cbad2e07996a5b42c6\",\n  \"core_source_hash\": \"sha256:73bcc06202bff23ee061182dd31785029609a147247fee1c0ea8c4f0a6c930c5\",\n  \"test_source_hash\": \"sha256:fab5ac65874d7366d1a15ca13f36cf3a73a18d85561cdc7b3b2481fadef4406a\",\n  \"authority_manifest_hash\": \"sha256:d18753442656bd4bcb79d9a2a545f12000a845fc9f8c45fbbf2cb4d1026ffc1e\",\n  \"coverage_manifest_hash\": \"sha256:43933f9e59ccc87623b2a111202cfc23fbe9f43569d37ef356ecb38eb8d0d720\",\n  \"core_path_count\": 115,\n  \"test_path_count\": 279\n}\n",
+          "stdout_tail": "{\n  \"kind\": \"CGKNKernelSourceIdentity\",\n  \"schema_version\": \"1.0\",\n  \"source_commit\": \"2e7d1f1b3afe0ca45adda14e2488e55beeec76d6\",\n  \"source_tree_sha\": \"ac0bd8395e0a4b3ec9edbc173c08fcf4595371b2\",\n  \"core_source_hash\": \"sha256:f4916679d185cece3a58a063192f706ba8ede20410cf20a37ba251caeb95b8ef\",\n  \"test_source_hash\": \"sha256:34824b75f2189f23f0960e1998adccbe978b911bd151839a65854ae9c9b97645\",\n  \"authority_manifest_hash\": \"sha256:d18753442656bd4bcb79d9a2a545f12000a845fc9f8c45fbbf2cb4d1026ffc1e\",\n  \"coverage_manifest_hash\": \"sha256:43933f9e59ccc87623b2a111202cfc23fbe9f43569d37ef356ecb38eb8d0d720\",\n  \"core_path_count\": 115,\n  \"test_path_count\": 279\n}\n",
           "stderr_tail": ""
         }
       ],
@@ -2929,7 +2928,7 @@
     {
       "profile": "unit",
       "status": "PASS",
-      "duration_ms": 172751,
+      "duration_ms": 265648,
       "commands": [
         {
           "argv": [
@@ -2956,10 +2955,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-unit-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-unit-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "........................................s............................... [ 15%]\n........................................................................ [ 30%]\n........................................................................ [ 45%]\n........................................................................ [ 60%]\n........................................................................ [ 75%]\n........................................................................ [ 90%]\n................................................                         [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-unit-0.xml -\n479 passed, 1 skipped in 163.63s (0:02:43)\n",
+          "stdout_tail": "........................................s............................... [ 15%]\n........................................................................ [ 30%]\n........................................................................ [ 45%]\n........................................................................ [ 60%]\n........................................................................ [ 75%]\n........................................................................ [ 90%]\n................................................                         [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-unit-0.xml -\n479 passed, 1 skipped in 260.07s (0:04:20)\n",
           "stderr_tail": ""
         }
       ],
@@ -3458,7 +3457,7 @@
     {
       "profile": "boundary",
       "status": "PASS",
-      "duration_ms": 131087,
+      "duration_ms": 233963,
       "commands": [
         {
           "argv": [
@@ -3487,10 +3486,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-boundary-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-boundary-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "...........................s............................................ [ 22%]\n........................................................................ [ 44%]\n........................................................................ [ 66%]\n........................................................................ [ 88%]\n......................................                                   [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-boundary-0.xml -\n325 passed, 1 skipped, 154 deselected in 130.30s (0:02:10)\n",
+          "stdout_tail": "...........................s............................................ [ 22%]\n........................................................................ [ 44%]\n........................................................................ [ 66%]\n........................................................................ [ 88%]\n......................................                                   [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-boundary-0.xml -\n325 passed, 1 skipped, 154 deselected in 232.57s (0:03:52)\n",
           "stderr_tail": ""
         }
       ],
@@ -3835,7 +3834,7 @@
     {
       "profile": "fault",
       "status": "PASS",
-      "duration_ms": 6410,
+      "duration_ms": 11423,
       "commands": [
         {
           "argv": [
@@ -3864,10 +3863,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-fault-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-fault-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "........................................................................ [ 90%]\n........                                                                 [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-fault-0.xml -\n80 passed, 400 deselected in 5.65s\n",
+          "stdout_tail": "........................................................................ [ 90%]\n........                                                                 [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-fault-0.xml -\n80 passed, 400 deselected in 9.93s\n",
           "stderr_tail": ""
         }
       ],
@@ -3965,7 +3964,7 @@
     {
       "profile": "security",
       "status": "PASS",
-      "duration_ms": 95584,
+      "duration_ms": 169819,
       "commands": [
         {
           "argv": [
@@ -3994,10 +3993,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-security-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-security-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "....................s................................................... [ 60%]\n................................................                         [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-security-0.xml -\n119 passed, 1 skipped, 360 deselected in 93.31s (0:01:33)\n",
+          "stdout_tail": "....................s................................................... [ 60%]\n................................................                         [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-security-0.xml -\n119 passed, 1 skipped, 360 deselected in 164.06s (0:02:44)\n",
           "stderr_tail": ""
         }
       ],
@@ -4136,7 +4135,7 @@
     {
       "profile": "local-functional",
       "status": "PASS",
-      "duration_ms": 17106,
+      "duration_ms": 29624,
       "commands": [
         {
           "argv": [
@@ -4165,10 +4164,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-local-functional-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-local-functional-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "......                                                                   [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-local-functional-0.xml -\n6 passed, 474 deselected in 14.86s\n",
+          "stdout_tail": "......                                                                   [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-local-functional-0.xml -\n6 passed, 474 deselected in 24.40s\n",
           "stderr_tail": ""
         }
       ],
@@ -4192,7 +4191,7 @@
     {
       "profile": "full-core",
       "status": "PASS",
-      "duration_ms": 154267,
+      "duration_ms": 288678,
       "commands": [
         {
           "argv": [
@@ -4219,10 +4218,10 @@
             "tests/test_capability_tree_mvp.py",
             "tests/test_component_runtime_integration.py",
             "tests/test_provider_transport.py",
-            "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-full-core-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-full-core-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "........................................s............................... [ 15%]\n........................................................................ [ 30%]\n........................................................................ [ 45%]\n........................................................................ [ 60%]\n........................................................................ [ 75%]\n........................................................................ [ 90%]\n................................................                         [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-full-core-0.xml -\n479 passed, 1 skipped in 153.30s (0:02:33)\n",
+          "stdout_tail": "........................................s............................... [ 15%]\n........................................................................ [ 30%]\n........................................................................ [ 45%]\n........................................................................ [ 60%]\n........................................................................ [ 75%]\n........................................................................ [ 90%]\n................................................                         [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-full-core-0.xml -\n479 passed, 1 skipped in 287.43s (0:04:47)\n",
           "stderr_tail": ""
         }
       ],
@@ -4721,7 +4720,7 @@
     {
       "profile": "active-repository",
       "status": "PASS",
-      "duration_ms": 982942,
+      "duration_ms": 2403472,
       "commands": [
         {
           "argv": [
@@ -4729,10 +4728,10 @@
             "-m",
             "pytest",
             "-q",
-            "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-active-repository-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-active-repository-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "ssssssssssssssssssssssssssss [ 41%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 44%]\n........................................................................ [ 46%]\n...................sssss................................................ [ 49%]\n..........sss........................................................... [ 51%]\n...........s............................................................ [ 53%]\n........................................................................ [ 56%]\n........................................................................ [ 58%]\n........................................................................ [ 61%]\n........................................................................ [ 63%]\n........................................................................ [ 66%]\n........................................................................ [ 68%]\n.....................................ss................................. [ 71%]\n.....................sssssss............................................ [ 73%]\n..................................................s..................... [ 76%]\n....................ssss.s..s.s......................................... [ 78%]\n..............................................................s......... [ 80%]\n..........................................................ssssssssssssss [ 83%]\nss...................................................................sss [ 85%]\nsss...............................................................ssss.. [ 88%]\n.....................................................................sss [ 90%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 93%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 95%]\nsss...........................ssssssssssssssssssss..s................... [ 98%]\n...................................................ssss                  [100%]\n============================== warnings summary ===============================\ntests/test_canonical_delivery_manifest.py::CanonicalDeliveryManifestTests::test_malicious_duplicate_and_corrupt_zip_are_rejected\n  D:\\anaconda\\Lib\\zipfile\\__init__.py:1607: UserWarning: Duplicate name: 'same.txt'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\n  D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\tests\\test_knowledge_schemas.py:20: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    from jsonschema import Draft202012Validator, RefResolver  # type: ignore\n\ntests/test_provider_causal_trace.py::test_causal_trace_schema_hash_and_independent_inspector\n  D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\tests\\test_provider_causal_trace.py:302: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    resolver = jsonschema.RefResolver.from_schema(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n- generated xml file: D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-active-repository-0.xml -\n2584 passed, 351 skipped, 4 warnings in 981.79s (0:16:21)\n",
+          "stdout_tail": "ssssssssssssssssss [ 41%]\nsssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss. [ 44%]\n........................................................................ [ 46%]\n..................sssss................................................. [ 49%]\n.........sss............................................................ [ 51%]\n..........s............................................................. [ 53%]\n........................................................................ [ 56%]\n........................................................................ [ 58%]\n........................................................................ [ 61%]\n........................................................................ [ 63%]\n........................................................................ [ 66%]\n........................................................................ [ 68%]\n....................................ss.................................. [ 71%]\n....................sssssss............................................. [ 73%]\n.................................................s...................... [ 76%]\n...................ssss.s..s.s.......................................... [ 78%]\n.............................................................s.......... [ 80%]\n.........................................................sssssssssssssss [ 83%]\ns...................................................................ssss [ 85%]\nss...............................................................ssss... [ 88%]\n....................................................................ssss [ 90%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 93%]\nssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 95%]\nss...........................ssssssssssssssssssss..s.................... [ 98%]\n..................................................ssss                   [100%]\n============================== warnings summary ===============================\ntests/test_canonical_delivery_manifest.py::CanonicalDeliveryManifestTests::test_malicious_duplicate_and_corrupt_zip_are_rejected\n  D:\\anaconda\\Lib\\zipfile\\__init__.py:1607: UserWarning: Duplicate name: 'same.txt'\n    return self._open_to_write(zinfo, force_zip64=force_zip64)\n\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\ntests/test_knowledge_schemas.py::KnowledgeSchemaTests::test_all_new_examples_validate_against_schemas\n  D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\tests\\test_knowledge_schemas.py:20: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    from jsonschema import Draft202012Validator, RefResolver  # type: ignore\n\ntests/test_provider_causal_trace.py::test_causal_trace_schema_hash_and_independent_inspector\n  D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\tests\\test_provider_causal_trace.py:302: DeprecationWarning: jsonschema.RefResolver is deprecated as of v4.18.0, in favor of the https://github.com/python-jsonschema/referencing library, which provides more compliant referencing behavior as well as more flexible APIs for customization. A future release will remove RefResolver. Please file a feature request (on referencing) if you are missing an API for the kind of customization you need.\n    resolver = jsonschema.RefResolver.from_schema(\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-active-repository-0.xml -\n2583 passed, 351 skipped, 4 warnings in 2401.33s (0:40:01)\n",
           "stderr_tail": ""
         }
       ],
@@ -5041,8 +5040,7 @@
         "tests/application/test_project_blueprint.py::test_assembler_expands_defaults_checks_and_stable_hash",
         "tests/application/test_project_blueprint.py::test_assembler_rejects_invalid_paths_ownership_and_dependencies[units0-unsafe]",
         "tests/application/test_project_blueprint.py::test_assembler_rejects_invalid_paths_ownership_and_dependencies[units1-ownership collision]",
-        "tests/application/test_project_blueprint.py::test_assembler_rejects_invalid_paths_ownership_and_dependencies[units2-invalid dependency]",
-        "tests/application/test_project_blueprint.py::test_assembler_rejects_invalid_paths_ownership_and_dependencies[units3-cycle]",
+        "tests/application/test_project_blueprint.py::test_assembler_rejects_unknown_and_normalizes_missing_or_duplicate_requirement_owners",
         "tests/application/test_project_blueprint.py::test_assembler_requires_tests_and_readme_coverage",
         "tests/application/test_project_blueprint.py::test_blueprint_rejects_invalid_structure[units0-duplicate unit]",
         "tests/application/test_project_blueprint.py::test_blueprint_rejects_invalid_structure[units1-ownership collision]",
@@ -5053,12 +5051,11 @@
         "tests/application/test_project_blueprint.py::test_freeze_requires_acceptance_and_edit_is_atomic",
         "tests/application/test_project_blueprint.py::test_frozen_blueprint_worker_scope_contract_is_monotonic",
         "tests/application/test_project_blueprint.py::test_interface_extractor_is_stable_and_guard_detects_breaks",
-        "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[depends_on]",
         "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[owns]",
-        "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[reads]",
-        "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[required_interfaces]",
+        "tests/application/test_project_blueprint.py::test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[requirement_ids]",
         "tests/application/test_project_blueprint.py::test_minimal_payload_rejects_unit_and_file_count_limits",
         "tests/application/test_project_blueprint.py::test_minimal_payload_round_trip_and_strict_schema",
+        "tests/application/test_project_blueprint.py::test_provider_unit_order_normalizes_to_the_same_frozen_blueprint",
         "tests/application/test_project_loop.py::test_acceptance_ambiguous_candidates_call_coordinator_once",
         "tests/application/test_project_loop.py::test_acceptance_attribution_failure_never_guesses_owner[error0]",
         "tests/application/test_project_loop.py::test_acceptance_attribution_failure_never_guesses_owner[error1]",
@@ -5072,6 +5069,7 @@
         "tests/application/test_project_loop.py::test_continuation_request_contains_no_hidden_acceptance_payload",
         "tests/application/test_project_loop.py::test_controlled_commit_failure_rolls_back_and_is_classified",
         "tests/application/test_project_loop.py::test_coordinator_attribution_prompt_and_failure_report_never_include_hidden_markers",
+        "tests/application/test_project_loop.py::test_coordinator_request_is_minimal_public_only_and_has_stable_requirement_ids",
         "tests/application/test_project_loop.py::test_cross_unit_attribution_uses_evidence_and_never_implementation_fallback",
         "tests/application/test_project_loop.py::test_duplicate_file_in_slice_is_invalid_and_never_committed",
         "tests/application/test_project_loop.py::test_failed_patch_hunk_leaves_whole_transaction_unchanged[edits0-False]",
@@ -7677,7 +7675,7 @@
       ],
       "failed_test_node_ids": [],
       "totals": {
-        "passed": 2584,
+        "passed": 2583,
         "failed": 0,
         "errors": 0,
         "skipped": 351
@@ -7686,7 +7684,7 @@
     {
       "profile": "live-provider",
       "status": "BLOCKED_ENVIRONMENT",
-      "duration_ms": 3135,
+      "duration_ms": 6469,
       "commands": [
         {
           "argv": [
@@ -7696,10 +7694,10 @@
             "-q",
             "-m",
             "live_provider",
-            "--junitxml=D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-live-provider-0.xml"
+            "--junitxml=D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-live-provider-0.xml"
           ],
           "returncode": 0,
-          "stdout_tail": "s                                                                        [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\full-materialization-model-eval\\artifacts\\kernel-profile-live-provider-0.xml -\n1 skipped, 2934 deselected in 2.19s\n",
+          "stdout_tail": "s                                                                        [100%]\n- generated xml file: D:\\CGKN\\.service_worktree\\coordinator-reliability-capability\\artifacts\\kernel-profile-live-provider-0.xml -\n1 skipped, 2933 deselected in 4.89s\n",
           "stderr_tail": ""
         }
       ],
@@ -7717,8 +7715,8 @@
       "reason": "live-provider tests were not executed; all selected cases were skipped"
     }
   ],
-  "coverage_file_hash": "sha256:89197a4ac406f8b93ef2270bcb81032fe7f9d95e654b4865d20ea30644f6d934",
-  "generated_at": "2026-10-20T13:36:14.203292+00:00",
+  "coverage_file_hash": "sha256:1b1af615a0a361b23438e20aa3d8913fc9f48f400b16de6f712a7468cab2bf87",
+  "generated_at": "2026-10-20T19:52:50.155076+00:00",
   "environment": {
     "python": "3.12.3",
     "platform": "Windows-11-10.0.26200-SP0"
@@ -7728,5 +7726,5 @@
     "secret_persisted": false
   },
   "final_verdict": "PASS",
-  "receipt_hash": "sha256:9417888f1f82c49a883d632e873f1acd02d070702b1f738ad9109dc43f132727"
+  "receipt_hash": "sha256:e7227478fbdf9bb87e011e26a7f66c384fb34aa432eebc5593ec84cdefeab8bb"
 }
