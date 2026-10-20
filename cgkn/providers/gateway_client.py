@@ -18,8 +18,8 @@ from .structured_output import StructuredAnswerSelector, StructuredSelectionErro
 MAX_RESPONSE_BYTES = 2_097_152
 MAX_REQUEST_BYTES = 1_048_576
 API_LAB_REPOSITORY = "https://github.com/s1mplethings/cgkn-provider-api-lab.git"
-API_LAB_BRANCH = "codex/deepseek-thinking-control-20261019"
-API_LAB_COMMIT = "999dff096afe45f058fe67016aee28a73912d5d4"
+API_LAB_BRANCH = "codex/qwen-thinking-control-20261021"
+API_LAB_COMMIT = "7c15f2546ec007cc7e601fa62ae4d88b9ba12f80"
 API_LAB_RAW_DEFER_CONTRACT_VERSION = "1.1"
 
 
