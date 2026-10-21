@@ -236,6 +236,18 @@ def test_cli_whole_row_dedupe_preserves_header_and_order(target):
     assert set(receipt.classifications) == {AssertionAuthority.TEST_CONTRACT_VALID.value}
 
 
+def test_header_binding_inside_expected_csv_document_is_resolved() -> None:
+    projection = PublicContractProjection.for_case("cli_csv_cleaner")
+    source = """def test_whole_row_dedupe(target):
+    header = ['id', 'name', 'city']
+    assert _read_csv(target) == [header, ['1', 'Ada', ''], ['2', 'Lin', 'Paris']]
+"""
+    receipt = TestAuthorityFirewall().validate({"tests/test_cli.py": source}, projection)
+    assert receipt.status == "PASS"
+    assert receipt.findings[0].observable == "output.csv"
+    assert receipt.findings[0].authority is AssertionAuthority.TEST_CONTRACT_VALID
+
+
 def test_preview_assertion_cannot_filter_observed_csv_rows() -> None:
     projection = PublicContractProjection.for_case("cli_csv_cleaner")
     source = """def test_preview_prints_data_rows(result):

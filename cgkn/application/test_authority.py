@@ -333,6 +333,25 @@ def _resolved_literal(node: ast.AST, bindings: Mapping[str, Any]) -> Any:
     if isinstance(node, ast.Name):
         value = bindings.get(node.id)
         return None if isinstance(value, _ExpressionBinding) else value
+    if isinstance(node, (ast.List, ast.Tuple)):
+        values = []
+        for item in node.elts:
+            resolved = _resolved_literal(item, bindings)
+            if resolved is None and not (isinstance(item, ast.Constant) and item.value is None):
+                return None
+            values.append(resolved)
+        return values if isinstance(node, ast.List) else tuple(values)
+    if isinstance(node, ast.Dict):
+        result: dict[Any, Any] = {}
+        for key_node, value_node in zip(node.keys, node.values):
+            if key_node is None:
+                return None
+            key = _resolved_literal(key_node, bindings)
+            item = _resolved_literal(value_node, bindings)
+            if key is None or (item is None and not (isinstance(value_node, ast.Constant) and value_node.value is None)):
+                return None
+            result[key] = item
+        return result
     return None
 
 
