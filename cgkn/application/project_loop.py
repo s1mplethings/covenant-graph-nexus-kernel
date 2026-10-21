@@ -693,6 +693,17 @@ class BlueprintUnitExecutor:
                         baseline_hash=baseline[1],
                     )
                     if target is not None:
+                        baseline_validation = CanonicalRepairTargetValidator().validate(target, self.root)
+                        if baseline_validation.status == "FAIL" and baseline_validation.fingerprint is not None:
+                            target = RepairTargetSpec(
+                                baseline_validation.fingerprint,
+                                target.operation,
+                                target.setup,
+                                target.expected,
+                            )
+                        else:
+                            target = None
+                    if target is not None:
                         owner_sources = _read_sources(self.root, baseline[0])
                         _, _, locator = localize_repair_sources(owner_sources, target.fingerprint)
                         fingerprint = replace(target.fingerprint, relevant_source_locator=locator, fingerprint_hash="")
@@ -775,6 +786,14 @@ class BlueprintUnitExecutor:
                     for call in self.calls
                 )
                 target = self.repair_targets.get(unit.unit_id)
+                if failure.failure_type == "PUBLIC_CONTRACT_FAILURE" and target is None:
+                    raise UnitOutputValidationError(
+                        "REPAIR_TARGET_UNAVAILABLE",
+                        "public-contract repair requires an exact deterministic validation target",
+                        retryable=False,
+                        failure_stage=FailureStage.TEST.value,
+                        owner_unit_id=unit.unit_id,
+                    )
                 previous_attempts = self.repair_attempt_history.get(unit.unit_id, [])
                 relevant_sources = dict(sources)
                 relevant_functions: tuple[str, ...] = ()

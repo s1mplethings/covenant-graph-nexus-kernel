@@ -241,16 +241,19 @@ class RepairEvidencePacket:
         return value
 
 
-def _comparison_values(output: str) -> tuple[Any, Any]:
+def _comparison_values(output: str, *, expected_hint: Any = None) -> tuple[Any, Any]:
+    parsed: list[tuple[Any, Any]] = []
     for line in output.splitlines():
         match = re.search(r"assert\s+(.+?)\s+==\s+(.+)$", line.strip())
         if not match:
             continue
         try:
-            return ast.literal_eval(match.group(1)), ast.literal_eval(match.group(2))
+            parsed.append((ast.literal_eval(match.group(1)), ast.literal_eval(match.group(2))))
         except (SyntaxError, ValueError):
             continue
-    return None, None
+    if expected_hint is not None:
+        return next((item for item in parsed if item[1] == expected_hint), (None, None))
+    return parsed[0] if parsed else (None, None)
 
 
 def _failure_kind(expected: Any, actual: Any) -> str:
@@ -272,30 +275,41 @@ def build_public_test_repair_target(
     owner_unit_id: str,
     baseline_hash: str,
 ) -> RepairTargetSpec | None:
-    relevant = next(
-        (
-            item
-            for item in findings
-            if item.test_id in failed_test_ids
-            and getattr(item.authority, "value", str(item.authority)) == "TEST_CONTRACT_VALID"
-            and item.requirement_ids
-        ),
-        None,
-    )
-    if relevant is None:
+    # A single generated test commonly asserts several public observables (for
+    # example return code, output creation, and parsed stdout).  The findings
+    # preserve source order, but the first assertion is not necessarily one
+    # for which the exact-target validator has a deterministic harness.  Walk
+    # every failed-test finding and select a supported semantic pair instead
+    # of failing closed on the first unmatched assertion.
+    relevant = None
+    semantic = None
+    for candidate in findings:
+        if (
+            candidate.test_id not in failed_test_ids
+            or getattr(candidate.authority, "value", str(candidate.authority)) != "TEST_CONTRACT_VALID"
+            or not candidate.requirement_ids
+            or candidate.observable != "stdout.csv_rows"
+        ):
+            continue
+        matched = next(
+            (
+                item
+                for item in projection.semantics
+                if item.observable == candidate.observable
+                and set(item.requirement_ids).intersection(candidate.requirement_ids)
+            ),
+            None,
+        )
+        if matched is not None:
+            relevant = candidate
+            semantic = matched
+            break
+    if relevant is None or semantic is None:
         return None
-    semantic = next(
-        (
-            item
-            for item in projection.semantics
-            if item.observable == relevant.observable
-            and set(item.requirement_ids).intersection(relevant.requirement_ids)
-        ),
-        None,
+    actual, pytest_expected = _comparison_values(
+        public_failure_output,
+        expected_hint=relevant.expected,
     )
-    if semantic is None:
-        return None
-    actual, pytest_expected = _comparison_values(public_failure_output)
     expected = relevant.expected if relevant.expected is not None else pytest_expected
     setup = materialize_json(getattr(semantic, "operation"))["setup"]
     operation = materialize_json(getattr(semantic, "operation"))["invoke"]

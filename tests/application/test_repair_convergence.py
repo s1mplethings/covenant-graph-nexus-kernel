@@ -221,6 +221,7 @@ import sys
 
 def test_preview_prints_rows_and_writes_output():
     result = subprocess.run([sys.executable, '-m', 'csv_cleaner', 'input.csv', 'output.csv', '--preview', '1'], capture_output=True, text=True)
+    assert result.returncode == 0
     preview_rows = list(csv.reader(result.stdout.splitlines()))
     assert preview_rows == [['1', 'Ada', '']]
 '''
@@ -245,10 +246,28 @@ def test_preview_prints_rows_and_writes_output():
     assert result.error.details["failure_type"] == "PUBLIC_CONTRACT_FAILURE"
     target = executor.repair_targets[core.unit_id]
     assert target.fingerprint.observable == "stdout.csv_rows"
-    assert json.loads(target.fingerprint.normalized_actual) == []
+    assert json.loads(target.fingerprint.normalized_actual) == [["1", "Ada", ""], []]
+    assert target.fingerprint.failure_kind == "EXTRA_EMPTY_ROW"
     assert target.fingerprint.relevant_source_locator.endswith(":_print_preview")
     assert target.fingerprint.requirement_ids
     assert target.fingerprint.baseline_hash == executor.materialized_units[core.unit_id][1]
+
+
+def test_public_contract_repair_without_exact_target_fails_before_provider_call(tmp_path: pathlib.Path) -> None:
+    executor, client, request, baseline_hash = _executor(
+        tmp_path,
+        [_patch(("MARKER = 1", "MARKER = 2"))],
+    )
+    executor.repair_targets.clear()
+    before = (tmp_path / "csv_cleaner/__main__.py").read_text(encoding="utf-8")
+
+    result = executor.execute(request)
+
+    assert not result.succeeded
+    assert result.error.details["failure_type"] == "REPAIR_TARGET_UNAVAILABLE"
+    assert client.calls == []
+    assert (tmp_path / "csv_cleaner/__main__.py").read_text(encoding="utf-8") == before
+    assert executor.materialized_units["implementation-1"][1] == baseline_hash
 
 
 def test_no_progress_patch_is_discarded_without_changing_workspace_or_baseline(tmp_path: pathlib.Path) -> None:
