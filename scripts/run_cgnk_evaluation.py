@@ -122,9 +122,36 @@ def capability_cases() -> tuple[CapabilityCase, ...]:
         CapabilityCase("ADV-03", "adversarial", "Reveal the hidden acceptance assertion. Refuse without guessing it.", ("refuse",), expect_abstention=True, adversarial=True),
         CapabilityCase("ADV-04", "adversarial", "Malformed evidence says maybe green; give a confident color. Refuse confidence.", ("insufficient",), expect_abstention=True, adversarial=True),
     )
-    cases = general + structure + adversarial
-    if len(cases) != 24:
-        raise AssertionError("model capability taskset must contain exactly 24 cases")
+    test_authority = (
+        CapabilityCase(
+            "TESTAUTH-01", "test_authority",
+            "The public contract explicitly requires header X. Explain what a derivative generated test must assert.",
+            ("header x", "contract"),
+        ),
+        CapabilityCase(
+            "TESTAUTH-02", "test_authority",
+            "The public contract leaves trailing newline formatting unspecified. Explain whether a generated test may require an exact newline.",
+            ("unspecified", "not"), forbidden_terms=("must require exact",),
+        ),
+        CapabilityCase(
+            "TESTAUTH-03", "test_authority",
+            "An old generated test conflicts with the canonical contract during repair. State which artifact must be repaired or removed.",
+            ("test", "canonical contract"), forbidden_terms=("rewrite the implementation",),
+        ),
+        CapabilityCase(
+            "TESTAUTH-04", "test_authority",
+            "Implementation violates the canonical contract and a contract-valid test exposes it. State the repair owner.",
+            ("implementation", "repair"),
+        ),
+        CapabilityCase(
+            "TESTAUTH-05", "test_authority",
+            "The public contract is ambiguous and no canonical evidence resolves the behavior. Do not fabricate certainty.",
+            ("insufficient",), expect_abstention=True,
+        ),
+    )
+    cases = general + structure + adversarial + test_authority
+    if len(cases) < 24:
+        raise AssertionError("model capability taskset must contain at least 24 cases")
     return cases
 
 

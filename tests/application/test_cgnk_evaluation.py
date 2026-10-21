@@ -5,10 +5,20 @@ from scripts.run_cgnk_evaluation import _context, capability_cases, evaluate_ans
 
 def test_model_capability_taskset_has_required_distribution() -> None:
     cases = capability_cases()
-    assert len(cases) == 24
+    assert len(cases) == 29
     assert len([case for case in cases if case.case_id.startswith("CGNK-")]) == 8
     assert len([case for case in cases if case.case_id.startswith("ADV-")]) == 4
+    assert len([case for case in cases if case.case_id.startswith("TESTAUTH-")]) == 5
     assert len({case.case_id for case in cases}) == len(cases)
+
+
+def test_test_authority_cases_cover_explicit_unspecified_repair_and_ambiguity() -> None:
+    cases = {case.case_id: case for case in capability_cases()}
+    assert "header X" in cases["TESTAUTH-01"].question
+    assert "unspecified" in cases["TESTAUTH-02"].question
+    assert "old generated test" in cases["TESTAUTH-03"].question
+    assert "Implementation violates" in cases["TESTAUTH-04"].question
+    assert cases["TESTAUTH-05"].expect_abstention is True
 
 
 def test_structured_context_is_local_and_flat_context_is_complete() -> None:

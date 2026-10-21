@@ -9,6 +9,7 @@ import pytest
 
 from cgkn.application.project_blueprint import BlueprintCheck, BlueprintUnit, FailureAction, FailureReport, FailureStage, ProjectBlueprint
 from cgkn.application.project_loop import AcceptanceAttributionDecision, BlueprintUnitExecutor, MinimalProjectLoop, compile_blueprint, coordinator_design_request
+from cgkn.application.test_authority import PublicContractProjection
 from cgkn.application.software_project.catalog import get_case
 from cgkn.application.software_project.scope import CommitFailure
 from cgkn.execution import BlockExecutionRequest, BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode, TaskContext
@@ -173,6 +174,96 @@ def test_coordinator_request_is_minimal_public_only_and_has_stable_requirement_i
     assert set(unit_properties) == {"kind", "purpose", "owns", "requirement_ids"}
     assert request["schema"]["additionalProperties"] is False
     assert "do not split tests into separate files by requirement" in request["system"]
+
+
+def _authority_node_config(unit: BlueprintUnit) -> dict[str, object]:
+    return {
+        "unit": unit.as_dict(),
+        "project_goal": get_case("cli_csv_cleaner").public_goal,
+        "public_contract_projection": PublicContractProjection.for_case("cli_csv_cleaner").as_dict(),
+        "owned_public_requirement_ids": [f"REQ-{index:03d}" for index in range(1, 6)],
+    }
+
+
+def test_test_authority_conflict_retries_before_atomic_commit(tmp_path: pathlib.Path) -> None:
+    unit = BlueprintUnit(
+        "tests", "public tests", "tests", ("tests/test_cli.py",),
+        executor_ref="llm.cheap@1", instruction="test preview", acceptance=("preview",),
+        allowed_effects=("filesystem.write",),
+    )
+    conflicting = "def test_preview(result):\n assert result.stdout == 'id,name,city\\n1,Ada,\\n'\n"
+    canonical = "import csv, io\ndef test_preview(result):\n assert list(csv.reader(io.StringIO(result.stdout))) == [['1','Ada','']]\n"
+    client = QueueClient([_bundle("tests", {"tests/test_cli.py": conflicting}), _bundle("tests", {"tests/test_cli.py": canonical})])
+    executor = BlueprintUnitExecutor(tmp_path, client, ModelRoleConfig("worker", "deepseek"))
+    request = BlockExecutionRequest(
+        "project", "run", "attempt", unit.unit_id, "project.unit.tests@1", "llm.cheap@1",
+        TaskContext(unit.instruction, node_config=_authority_node_config(unit)),
+        declared_effects=unit.allowed_effects,
+    )
+
+    result = executor.execute(request)
+
+    assert result.succeeded and len(client.calls) == 2
+    assert (tmp_path / "tests/test_cli.py").read_text(encoding="utf-8") == canonical
+    assert executor.calls[0]["failure_type"] == "TEST_CONTRACT_CONFLICT"
+    assert executor.calls[0]["test_authority_receipt"]["status"] == "FAIL"
+    assert executor.calls[1]["test_authority_receipt"]["status"] == "PASS"
+
+
+def test_implementation_repair_forces_tests_authority_revalidation_before_pytest(tmp_path: pathlib.Path) -> None:
+    unit = BlueprintUnit(
+        "tests", "public tests", "tests", ("tests/test_cli.py",),
+        executor_ref="llm.cheap@1", instruction="test preview", acceptance=("preview",),
+        allowed_effects=("filesystem.write",),
+    )
+    target = tmp_path / "tests/test_cli.py"; target.parent.mkdir(parents=True)
+    target.write_text("def test_preview(result):\n assert result.stdout == 'id,name,city\\n1,Ada,\\n'\n", encoding="utf-8")
+    executor = BlueprintUnitExecutor(tmp_path, QueueClient([]), ModelRoleConfig("worker", "deepseek"))
+    executor.register_materialized_baseline(unit)
+    request = BlockExecutionRequest(
+        "project", "run", "attempt", unit.unit_id, "project.unit.tests@1", "llm.cheap@1",
+        TaskContext(unit.instruction, node_config=_authority_node_config(unit)),
+        declared_effects=unit.allowed_effects,
+    )
+
+    result = executor.execute(request)
+
+    assert not result.succeeded
+    assert result.error.details["failure_type"] == "TEST_CONTRACT_CONFLICT"
+    assert result.outputs["test_authority_receipt"]["status"] == "FAIL"
+    assert executor.calls == []
+
+
+def test_tests_repair_receives_projection_and_can_replace_wrong_assertion(tmp_path: pathlib.Path) -> None:
+    unit = BlueprintUnit(
+        "tests", "public tests", "tests", ("tests/test_cli.py",),
+        executor_ref="llm.cheap@1", instruction="test preview", acceptance=("preview",),
+        allowed_effects=("filesystem.write",),
+    )
+    old = "def test_preview(result):\n assert result.stdout == 'id,name,city\\n1,Ada,\\n'\n"
+    new = "import csv, io\ndef test_preview(result):\n assert list(csv.reader(io.StringIO(result.stdout))) == [['1','Ada','']]\n"
+    target = tmp_path / "tests/test_cli.py"; target.parent.mkdir(parents=True); target.write_text(old, encoding="utf-8")
+    client = QueueClient([_patch("tests", "tests/test_cli.py", old, new)])
+    executor = BlueprintUnitExecutor(tmp_path, client, ModelRoleConfig("worker", "deepseek"))
+    executor.register_materialized_baseline(unit)
+    executor.failure_reports[unit.unit_id] = FailureReport(
+        "pytest", "TEST_CONTRACT_CONFLICT", failure_stage=FailureStage.TEST.value,
+        owner_unit_id=unit.unit_id, recovery_action=FailureAction.REPAIR_EXISTING.value,
+        materialized_baseline=True, failed_check="pytest", observed="generated assertion conflicts",
+    )
+    request = BlockExecutionRequest(
+        "project", "run", "attempt", unit.unit_id, "project.unit.tests@1", "llm.cheap@1",
+        TaskContext(unit.instruction, node_config=_authority_node_config(unit)),
+        declared_effects=unit.allowed_effects,
+    )
+
+    result = executor.execute(request)
+
+    assert result.succeeded
+    assert '"public_contract_projection"' in client.calls[0]["user"]
+    assert "modify, weaken, replace, or remove conflicting assertions" in client.calls[0]["system"]
+    assert result.outputs["test_authority_receipt"]["status"] == "PASS"
+    assert target.read_text(encoding="utf-8") == new
 
 
 def test_fake_greenfield_runs_real_filesystem_pytest_and_hidden_acceptance(tmp_path: pathlib.Path) -> None:

@@ -24,6 +24,7 @@ from cgkn.application.project_blueprint import (
 )
 from cgkn.application.materialization import materialize_json
 from cgkn.application.project_loop import BlueprintUnitExecutor, MinimalProjectLoop, coordinator_design_request
+from cgkn.application.test_authority import PublicContractProjection
 from cgkn.application.software_project.catalog import get_case
 from cgkn.execution import BlockExecutionRequest, TaskContext
 from cgkn.providers import (
@@ -837,32 +838,57 @@ def _worker_cohesive_live(artifact_root: pathlib.Path, *, count: int) -> dict[st
         run_id = f"worker-cohesive-live-{index}-{uuid.uuid4().hex[:10]}"
         workspace = artifact_root / "worker_cohesive_live" / run_id / "workspace"
         (workspace / "csv_cleaner").mkdir(parents=True, exist_ok=False)
-        (workspace / "csv_cleaner" / "cleaner.py").write_text(
-            "def dedupe_rows(header, rows, column=None):\n"
-            "    index = header.index(column) if column else None\n"
-            "    seen = set(); result = []\n"
-            "    for row in rows:\n"
-            "        key = row[index] if index is not None else tuple(row)\n"
-            "        if key not in seen:\n"
-            "            seen.add(key); result.append(row)\n"
-            "    return result\n\n"
-            "def fill_empty(header, rows, value):\n"
-            "    return [[value if item == '' else item for item in row] for row in rows]\n",
+        (workspace / "csv_cleaner" / "__init__.py").write_text(
+            "from .core import clean_file, clean_rows\n__all__ = ['clean_file', 'clean_rows']\n",
             encoding="utf-8",
         )
-        (workspace / "csv_cleaner" / "cli.py").write_text(
-            "def main(argv=None):\n    return 0\n", encoding="utf-8",
+        (workspace / "csv_cleaner" / "core.py").write_text(
+            "import csv\n\n"
+            "def clean_rows(fieldnames, rows, dedupe_column=None, fill=None):\n"
+            "    if dedupe_column and dedupe_column not in fieldnames:\n"
+            "        raise ValueError(f'unknown column: {dedupe_column}')\n"
+            "    seen = set(); cleaned = []\n"
+            "    for row in rows:\n"
+            "        current = {name: ((row.get(name) or fill) if fill is not None else (row.get(name) or '')) for name in fieldnames}\n"
+            "        key = current[dedupe_column] if dedupe_column else tuple(current[name] for name in fieldnames)\n"
+            "        if key not in seen:\n"
+            "            seen.add(key); cleaned.append(current)\n"
+            "    return cleaned\n\n"
+            "def clean_file(source, target, dedupe_column=None, fill=None):\n"
+            "    with open(source, newline='', encoding='utf-8') as handle:\n"
+            "        reader = csv.DictReader(handle); fieldnames = list(reader.fieldnames or [])\n"
+            "        rows = clean_rows(fieldnames, list(reader), dedupe_column, fill)\n"
+            "    with open(target, 'w', newline='', encoding='utf-8') as handle:\n"
+            "        writer = csv.DictWriter(handle, fieldnames=fieldnames); writer.writeheader(); writer.writerows(rows)\n"
+            "    return fieldnames, rows\n",
+            encoding="utf-8",
+        )
+        (workspace / "csv_cleaner" / "__main__.py").write_text(
+            "import argparse, csv, sys\nfrom .core import clean_file\n\n"
+            "def main(argv=None):\n"
+            "    parser = argparse.ArgumentParser(description='Clean CSV files')\n"
+            "    parser.add_argument('input'); parser.add_argument('output')\n"
+            "    parser.add_argument('--dedupe-column'); parser.add_argument('--fill'); parser.add_argument('--preview', type=int, default=0)\n"
+            "    args = parser.parse_args(argv)\n"
+            "    try: fieldnames, rows = clean_file(args.input, args.output, args.dedupe_column, args.fill)\n"
+            "    except (OSError, ValueError) as exc: parser.error(str(exc))\n"
+            "    if args.preview:\n"
+            "        writer = csv.DictWriter(sys.stdout, fieldnames=fieldnames, lineterminator='\\n'); writer.writerows(rows[:args.preview])\n"
+            "    return 0\n\n"
+            "if __name__ == '__main__': raise SystemExit(main())\n",
+            encoding="utf-8",
         )
         unit = BlueprintUnit(
             "tests", "public CSV cleaner tests", "tests",
             ("tests/test_cleaner.py", "tests/test_cli.py"),
-            reads=("csv_cleaner/cleaner.py", "csv_cleaner/cli.py"),
+            reads=("csv_cleaner/core.py", "csv_cleaner/__main__.py"),
             executor_ref="llm.cheap@1",
             instruction=(
                 "Create cohesive pytest coverage in both owned files. test_cleaner.py covers whole-row and selected-column "
-                "dedupe plus fill_empty. test_cli.py covers the public main(argv) entrypoint. Use only stdlib and pytest."
+                "dedupe plus fill behavior. test_cli.py covers the module CLI, including preview as parsed CSV data rows "
+                "with the header excluded. Use only stdlib and pytest."
             ),
-            required_interfaces=("csv_cleaner.cleaner.dedupe_rows", "csv_cleaner.cleaner.fill_empty", "csv_cleaner.cli.main"),
+            required_interfaces=("csv_cleaner.core.clean_rows", "csv_cleaner.__main__.main"),
             acceptance=("both owned test files are complete and syntactically valid", "tests cover the declared public interfaces"),
             allowed_effects=("filesystem.read", "filesystem.write"), max_actions=2, max_files=2,
         )
@@ -872,7 +898,12 @@ def _worker_cohesive_live(artifact_root: pathlib.Path, *, count: int) -> dict[st
             project_id="worker_cohesive_tests_probe", run_id=run_id, attempt_id="attempt-1",
             node_id=unit.unit_id, component_ref="project.unit.tests@1", executor_ref="llm.cheap@1",
             task_context=TaskContext(
-                unit.instruction, node_config={"unit": unit.as_dict()},
+                unit.instruction, node_config={
+                    "unit": unit.as_dict(),
+                    "project_goal": get_case("cli_csv_cleaner").public_goal,
+                    "public_contract_projection": PublicContractProjection.for_case("cli_csv_cleaner").as_dict(),
+                    "owned_public_requirement_ids": [f"REQ-{number:03d}" for number in range(1, 6)],
+                },
                 dependency_results={"core": {"public_interfaces": list(unit.required_interfaces)}},
                 project_constraints=("stdlib implementation", "offline", "no hidden acceptance access"),
                 acceptance=unit.acceptance,
@@ -895,9 +926,15 @@ def _worker_cohesive_live(artifact_root: pathlib.Path, *, count: int) -> dict[st
             and _worker_receipt_complete(executor.calls[-1])
         )
         materialization = dict(block.outputs.get("unit_materialization") or {})
+        authority = dict(block.outputs.get("test_authority_receipt") or {})
+        pytest_run = subprocess.run(
+            [sys.executable, "-m", "pytest", "-q"], cwd=workspace,
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+        )
         passed = (
             block.succeeded and len(executor.calls) <= 2 and len(owned_present) == len(unit.owns)
             and syntax and receipts_complete and materialization.get("status") == "COMMITTED"
+            and authority.get("status") == "PASS" and pytest_run.returncode == 0
         )
         row = materialize_json({
             "run_id": run_id, "status": "PASS" if passed else "FAIL",
@@ -921,6 +958,20 @@ def _worker_cohesive_live(artifact_root: pathlib.Path, *, count: int) -> dict[st
             ],
             "file_count": len(owned_present), "files": owned_present,
             "syntax": "PASS" if syntax else "FAIL", "atomic_commit": materialization.get("status"),
+            "test_authority": authority,
+            "external_assertions": sum(
+                item.get("observable") != "internal" for item in authority.get("findings", [])
+            ),
+            "normative_mappings": sum(
+                item.get("authority") == "TEST_CONTRACT_VALID" for item in authority.get("findings", [])
+            ),
+            "non_normative_assertions": sum(
+                item.get("authority") == "TEST_NON_NORMATIVE_ASSERTION" for item in authority.get("findings", [])
+            ),
+            "unmapped_assertions": sum(
+                item.get("authority") == "TEST_CONTRACT_UNMAPPED_ASSERTION" for item in authority.get("findings", [])
+            ),
+            "pytest": {"status": "PASS" if pytest_run.returncode == 0 else "FAIL", "stdout": pytest_run.stdout[-4000:], "stderr": pytest_run.stderr[-4000:]},
             "materialization": materialization, "manual_edits": 0,
             "duration_ms": int((time.perf_counter() - started) * 1000),
             "block_result": block.as_dict(),

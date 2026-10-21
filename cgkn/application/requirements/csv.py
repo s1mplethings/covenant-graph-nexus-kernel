@@ -41,6 +41,25 @@ class CSVRequirementCompilation:
         }
 
 
+@dataclass(frozen=True)
+class CSVPublicContractCompilation:
+    """Public-only canonical inputs for deterministic downstream projections.
+
+    Unlike ``CSVRequirementCompilation`` this object never loads the hidden
+    acceptance manifest.  It is therefore safe to project into Provider
+    context after further minimization.
+    """
+
+    requirements: NormalizedRequirements
+    obligations: ObligationSet
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "requirements": self.requirements.as_dict(),
+            "obligations": self.obligations.as_dict(),
+        }
+
+
 def _sources() -> tuple[RequirementSource, ...]:
     case = get_case("cli_csv_cleaner")
     sources = [RequirementSource("REQ-CSV-GOAL", case.public_goal, RequirementSourceType.USER_EXPLICIT, 10)]
@@ -86,7 +105,7 @@ def _specs(require_malformed_rejection: bool) -> tuple[dict[str, Any], ...]:
         _spec("OBL-CSV-DEDUP-COLUMN", "BEHAVIOR", "deduplicate data rows by a selected column", goal + (a1,), {"duplicates": "first selected-column occurrence retained"}),
         _spec("OBL-CSV-STABLE-ORDER", "BEHAVIOR", "preserve relative order while deduplicating", goal + (a1,), {"row_order": "stable"}),
         _spec("OBL-CSV-FILL-EMPTY", "BEHAVIOR", "fill every empty field when --fill is supplied", goal + (a2,), {"all_empty_fields": "fill_value"}),
-        _spec("OBL-CSV-PREVIEW", "INTERFACE", "print the first N cleaned data rows as CSV", goal + (a2,), {"stdout": "CSV header plus at most N cleaned data rows"}),
+        _spec("OBL-CSV-PREVIEW", "INTERFACE", "print the first N cleaned data rows as CSV", goal + (a2,), {"stdout": "at most N cleaned data rows; header excluded"}),
         _spec("OBL-CSV-PREVIEW-WRITES-OUTPUT", "STATE_TRANSITION", "preview does not suppress output-file creation", goal + (a2,), {"output_created": True, "preview_emitted": True}),
         _spec("OBL-CSV-CLI-HELP", "INTERFACE", "provide the documented module CLI help", goal + (a3,), {"command": "python -m csv_cleaner --help", "exit_code": 0}),
         _spec("OBL-CSV-ERR-UNKNOWN-COLUMN", "ERROR_SEMANTICS", "reject an unknown dedupe column", goal + (a3,), {"exit_code": "nonzero", "error_text": "nonempty"}, preconditions={"dedupe_column_missing_from_header": True}, forbidden={"successful_output_commit": True}),
@@ -111,16 +130,25 @@ def _load_hidden_bindings(path: Path) -> tuple[TestBinding, ...]:
     return tuple(TestBinding(str(item["test_id"]), tuple(item["obligation_ids"]), hidden=True) for item in document["tests"])
 
 
-def compile_csv_cleaner(
-    *,
-    require_malformed_rejection: bool = False,
-    hidden_manifest: str | Path | None = None,
-) -> CSVRequirementCompilation:
+def compile_csv_public_contract(*, require_malformed_rejection: bool = False) -> CSVPublicContractCompilation:
+    """Compile only public requirement sources and their canonical obligations."""
+
     compiler = RequirementCompiler()
     sources = _sources()
     public_refs = tuple(item.source_id for item in sources if item.source_id.startswith("REQ-CSV-ACCEPT-"))
     requirements = compiler.normalize(sources, public_refs)
     obligations = compiler.compile(requirements, _specs(require_malformed_rejection))
+    return CSVPublicContractCompilation(requirements, obligations)
+
+
+def compile_csv_cleaner(
+    *,
+    require_malformed_rejection: bool = False,
+    hidden_manifest: str | Path | None = None,
+) -> CSVRequirementCompilation:
+    public = compile_csv_public_contract(require_malformed_rejection=require_malformed_rejection)
+    requirements = public.requirements
+    obligations = public.obligations
     public_bindings = tuple(
         TestBinding(f"TEST-PUBLIC-{item.obligation_id.removeprefix('OBL-')}", (item.obligation_id,))
         for item in obligations.obligations

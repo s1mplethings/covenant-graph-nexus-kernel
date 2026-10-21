@@ -12,6 +12,7 @@ from typing import Any, Mapping, Protocol
 from cgkn.application.learning import GenerationRequest, ProductionGenerationClient, canonical_hash, default_production_client
 from cgkn.application.materialization import materialize_json
 from cgkn.application.software_project.acceptance import ExternalAcceptanceExecutor
+from cgkn.application.software_project.catalog import get_case
 from cgkn.application.software_project.contracts import WorkerScope
 from cgkn.application.software_project.scope import CommitFailure, ScopeViolation, ScopedFileTransaction
 from cgkn.execution import BlockExecutionRequest, BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode
@@ -23,6 +24,8 @@ from cgkn.orchestration.invalidation import downstream_closure
 from cgkn.providers import CompletionClient, GatewayCompletionError, ModelRoleConfig, parse_json_object
 from cgkn.runtime import DAGRunner, RunSummary
 from cgkn.state import FileRunStore
+
+from .test_authority import PublicContractProjection, TestAuthorityFirewall, TestAuthorityReceipt
 
 from .project_blueprint import (
     BlueprintCheck,
@@ -287,6 +290,9 @@ def compile_blueprint(blueprint: ProjectBlueprint, *, case_id: str = "") -> Capa
     if blueprint.status not in {BlueprintStatus.FROZEN.value, BlueprintStatus.EXECUTING.value, BlueprintStatus.REPAIRING.value, BlueprintStatus.DONE.value, BlueprintStatus.FAILED.value}:
         raise ValueError("compile_blueprint requires a frozen blueprint")
     nodes: list[CapabilityNode] = []
+    projection = PublicContractProjection.for_case(case_id).as_dict() if case_id else None
+    case = get_case(case_id) if case_id else None
+    public_ids = tuple(f"REQ-{index:03d}" for index, _ in enumerate(case.public_acceptance, 1)) if case else ()
     for unit in blueprint.units:
         capability = {
             UnitKind.IMPLEMENTATION.value: "project.unit.implementation@1",
@@ -301,6 +307,9 @@ def compile_blueprint(blueprint: ProjectBlueprint, *, case_id: str = "") -> Capa
             "unit": unit.as_dict(), "acceptance": list(unit.acceptance), "effects": list(unit.allowed_effects),
             "timeout_seconds": unit.timeout_seconds,
         }
+        if projection is not None and unit.kind in {UnitKind.IMPLEMENTATION.value, UnitKind.TESTS.value}:
+            config["public_contract_projection"] = projection
+            config["owned_public_requirement_ids"] = list(public_ids if unit.kind == UnitKind.TESTS.value else ())
         if unit.kind == UnitKind.VERIFICATION.value:
             config["command"] = list(unit.acceptance)
         elif unit.kind == UnitKind.ACCEPTANCE.value:
@@ -547,7 +556,45 @@ class BlueprintUnitExecutor:
         self.generation_failure_reports: dict[str, FailureReport] = {}
         self.materialized_units: dict[str, tuple[tuple[str, ...], str]] = {}
         self.materialization_call_counts: dict[str, int] = {}
+        self.test_authority_receipts: dict[str, TestAuthorityReceipt] = {}
         self.calls: list[dict[str, Any]] = []
+
+    def _test_authority_receipt(
+        self, unit: BlueprintUnit, sources: Mapping[str, str], node_config: Mapping[str, Any],
+    ) -> TestAuthorityReceipt | None:
+        if unit.kind != UnitKind.TESTS.value:
+            return None
+        raw_projection = node_config.get("public_contract_projection")
+        if not isinstance(raw_projection, Mapping):
+            # Direct executor protocol tests and compatibility callers may not
+            # carry project-level case identity.  The canonical project loop
+            # always injects a projection through ``compile_blueprint``.
+            return None
+        projection = PublicContractProjection.from_dict(raw_projection)
+        receipt = TestAuthorityFirewall().validate(
+            {path: sources[path] for path in unit.owns if path in sources},
+            projection,
+            required_requirement_ids=tuple(str(item) for item in node_config.get("owned_public_requirement_ids", ())),
+        )
+        self.test_authority_receipts[unit.unit_id] = receipt
+        return receipt
+
+    @staticmethod
+    def _raise_for_test_authority(receipt: TestAuthorityReceipt, *, retryable: bool) -> None:
+        if receipt.status == "PASS":
+            return
+        priority = (
+            "TEST_CONTRACT_CONFLICT", "TEST_CONTRACT_UNMAPPED_ASSERTION",
+            "TEST_CONTRACT_UNPROVEN", "TEST_NON_NORMATIVE_ASSERTION",
+            "PUBLIC_REQUIREMENT_UNCOVERED",
+        )
+        failure_type = next((item for item in priority if item in receipt.classifications), "TEST_CONTRACT_UNPROVEN")
+        findings = "; ".join(
+            f"{item.file}:{item.line} {item.authority.value}: {item.reason}"
+            for item in receipt.findings[:8]
+            if item.authority.value != "TEST_INTERNAL_ASSERTION"
+        )
+        raise UnitOutputValidationError(failure_type, findings or "Test Authority Firewall rejected generated tests", retryable=retryable)
 
     def register_materialized_baseline(self, unit: BlueprintUnit) -> None:
         sources = _read_sources(self.root, unit.owns)
@@ -580,6 +627,9 @@ class BlueprintUnitExecutor:
             effective_config = self.repair_config if failure else self.config
             project_goal = str(request.task_context.node_config.get("project_goal") or request.task_context.node_goal)
             if has_patchable_baseline and stored_failure is None and generation_failure is None:
+                authority_receipt = self._test_authority_receipt(unit, sources, request.task_context.node_config)
+                if authority_receipt is not None:
+                    self._raise_for_test_authority(authority_receipt, retryable=False)
                 reused_manifests = _manifests({path: sources[path] for path in unit.owns})
                 duration = max(0, int((time.perf_counter() - clock) * 1000))
                 unit_result = UnitResult(
@@ -596,6 +646,7 @@ class BlueprintUnitExecutor:
                         "modified_files": [],
                         "observed_interfaces": {path: item.as_dict() for path, item in reused_manifests.items()},
                         "reused_materialized_baseline": True,
+                        "test_authority_receipt": authority_receipt.as_dict() if authority_receipt else None,
                     },
                     started_at=started, ended_at=utc_now(), duration_ms=duration,
                 )
@@ -613,6 +664,9 @@ class BlueprintUnitExecutor:
                     "observed_interfaces": {path: item.as_dict() for path, item in manifests.items()},
                     "direct_dependency_results": materialize_json(request.task_context.dependency_results),
                     "acceptance": list(unit.acceptance), "failure_report": failure.as_dict(),
+                    "public_contract_projection": materialize_json(request.task_context.node_config.get("public_contract_projection")),
+                    "owned_public_requirement_ids": list(request.task_context.node_config.get("owned_public_requirement_ids", ())),
+                    "test_authority_findings": self.test_authority_receipts.get(unit.unit_id).as_dict() if unit.unit_id in self.test_authority_receipts else None,
                     "output_contract": "PatchBundle v2 only in REPAIR",
                 }
                 system = (
@@ -621,6 +675,9 @@ class BlueprintUnitExecutor:
                     "Use PatchBundle v2 with one unique files[] object per modified file and one or more ordered edits. "
                     "Modify only the smallest non-empty subset needed. Preserve every required and observed public interface. "
                     "Treat normative_public_contract as authoritative and generated tests as non-authoritative examples. "
+                    "For a Tests Unit, canonical public contract projection outranks old generated tests; modify, weaken, "
+                    "replace, or remove conflicting assertions while preserving valid requirement coverage. Every external "
+                    "assertion must map to supplied public semantics, and unspecified formatting must not become normative. "
                     "Compare current files literally against every failed public requirement; on a repeated repair attempt, "
                     "look for a different remaining contract mismatch instead of repeating an already-applied change."
                 )
@@ -658,6 +715,10 @@ class BlueprintUnitExecutor:
                 _, planned = transaction.validate(actions)
                 new_sources = dict(sources)
                 for item in planned: new_sources[item.relative] = item.content.decode("utf-8")
+                authority_receipt = self._test_authority_receipt(unit, new_sources, request.task_context.node_config)
+                if authority_receipt is not None:
+                    self.calls[-1]["test_authority_receipt"] = authority_receipt.as_dict()
+                    self._raise_for_test_authority(authority_receipt, retryable=False)
                 new_manifests = _manifests({path: new_sources[path] for path in unit.owns if path in new_sources})
                 for path, before in manifests.items():
                     if path in unit.owns and path in new_manifests:
@@ -668,7 +729,7 @@ class BlueprintUnitExecutor:
                 self.generation_failure_reports.pop(unit.unit_id, None)
                 unit_result = UnitResult(unit.unit_id, "SUCCEEDED", changed, observed_interfaces=tuple(item.manifest_hash for item in new_manifests.values()), provider_usage=tuple((str(key), str(value)) for key, value in sorted(usage.items())), duration=int((time.perf_counter() - clock) * 1000), materialized_baseline=True)
                 self.calls[-1]["unit_result"] = "SUCCEEDED"
-                outputs = {"unit_result": unit_result.as_dict(), "summary": summary, "modified_files": list(changed), "observed_interfaces": {path: item.as_dict() for path, item in new_manifests.items()}, "context_chars": len(json.dumps(prompt, ensure_ascii=False, sort_keys=True)), "included_files": list(sources), "included_interfaces": list(manifests), "included_dependencies": list(request.task_context.dependency_results), "action_results": results}
+                outputs = {"unit_result": unit_result.as_dict(), "summary": summary, "modified_files": list(changed), "observed_interfaces": {path: item.as_dict() for path, item in new_manifests.items()}, "context_chars": len(json.dumps(prompt, ensure_ascii=False, sort_keys=True)), "included_files": list(sources), "included_interfaces": list(manifests), "included_dependencies": list(request.task_context.dependency_results), "action_results": results, "test_authority_receipt": authority_receipt.as_dict() if authority_receipt else None}
                 return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.SUCCEEDED, outputs=outputs, started_at=started, ended_at=utc_now(), duration_ms=unit_result.duration, usage=usage)
 
             materialization = UnitMaterializationState(unit.unit_id, unit.owns)
@@ -704,6 +765,9 @@ class BlueprintUnitExecutor:
                     },
                     "direct_dependency_results": materialize_json(request.task_context.dependency_results),
                     "acceptance": list(unit.acceptance),
+                    "public_contract_projection": materialize_json(request.task_context.node_config.get("public_contract_projection")),
+                    "owned_public_requirement_ids": list(request.task_context.node_config.get("owned_public_requirement_ids", ())),
+                    "test_authority_findings": self.test_authority_receipts.get(unit.unit_id).as_dict() if unit.unit_id in self.test_authority_receipts else None,
                     "failure_report": generation_failure.as_dict() if generation_failure else None,
                     "missing_path_reason": "complete the cohesive Unit without regenerating staged siblings",
                     "materialization_policy": self.materialization_policy,
@@ -715,6 +779,12 @@ class BlueprintUnitExecutor:
                     "Never return already_staged_paths, any path outside requested_paths, Blueprint edits, shell actions, hidden acceptance, "
                     "schema echoes, Markdown fences, summaries, or natural-language explanation. Staged sibling context is read-only."
                 )
+                if unit.kind == UnitKind.TESTS.value:
+                    system += (
+                        " Generated tests are derivative validators, never a behavioral authority. Every externally observable "
+                        "assertion must map to public_contract_projection and owned_public_requirement_ids. Do not invent exact "
+                        "spacing, newline, ordering, wording, or formatting when the public contract leaves it unspecified."
+                    )
                 materialization.begin_call(call_class, requested_paths)
                 self.materialization_call_counts[unit.unit_id] = self.materialization_call_counts.get(unit.unit_id, 0) + 1
                 try:
@@ -810,6 +880,14 @@ class BlueprintUnitExecutor:
                         if "syntax validation" in str(exc):
                             raise UnitOutputValidationError("SYNTAX_ERROR", str(exc), retryable=True) from exc
                         raise UnitOutputValidationError("UNIT_OUTPUT_SCOPE_VIOLATION", str(exc)) from exc
+                    if set(candidate_files) == set(unit.owns):
+                        authority_receipt = self._test_authority_receipt(unit, candidate_files, request.task_context.node_config)
+                        if authority_receipt is not None:
+                            self.calls[-1]["test_authority_receipt"] = authority_receipt.as_dict()
+                            if authority_receipt.status != "PASS":
+                                materialization.staged_files.clear()
+                                materialization.total_output_bytes = 0
+                                self._raise_for_test_authority(authority_receipt, retryable=True)
                 except UnitOutputValidationError as exc:
                     response_error = exc
                 except (ValueError, TypeError) as exc:
@@ -920,6 +998,7 @@ class BlueprintUnitExecutor:
                 "included_files": list(sources), "included_interfaces": list(manifests),
                 "included_dependencies": list(request.task_context.dependency_results),
                 "action_results": results, "unit_materialization": materialization.as_dict(),
+                "test_authority_receipt": self.test_authority_receipts.get(unit.unit_id).as_dict() if unit.unit_id in self.test_authority_receipts else None,
             }
             return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.SUCCEEDED, outputs=outputs, started_at=started, ended_at=utc_now(), duration_ms=unit_result.duration, usage=usage)
         except Exception as exc:
@@ -957,12 +1036,16 @@ class BlueprintUnitExecutor:
                 "operation": mode,
                 "materialized_baseline": bool(unit is not None and self.has_materialized_baseline(unit.unit_id)),
             }
+            if unit is not None and unit.unit_id in self.test_authority_receipts:
+                details["test_authority_receipt_hash"] = self.test_authority_receipts[unit.unit_id].receipt_hash
             if provider_recorded and self.calls:
                 self.calls[-1]["unit_result"] = "FAILED"
                 self.calls[-1]["failure_stage"] = failure_stage
                 if not self.calls[-1].get("failure_type"):
                     self.calls[-1]["failure_type"] = failure_type
             outputs = {"unit_materialization": materialization.as_dict()} if materialization is not None else {}
+            if unit is not None and unit.unit_id in self.test_authority_receipts:
+                outputs["test_authority_receipt"] = self.test_authority_receipts[unit.unit_id].as_dict()
             return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.FAILED, outputs=outputs, error=ExecutionError(code, str(exc), details), started_at=started, ended_at=utc_now(), duration_ms=max(0, int((time.perf_counter() - clock) * 1000)), usage=usage, retryable=not policy)
 
     @staticmethod
