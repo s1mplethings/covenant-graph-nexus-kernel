@@ -1157,8 +1157,12 @@ def _worker_cohesive_live(
             [sys.executable, "-m", "pytest", "-q"], cwd=workspace,
             capture_output=True, text=True, encoding="utf-8", errors="replace",
         )
+        call_limit_ok = (
+            len(executor.calls) == 1 if profile == "worker-test-generation-probe"
+            else len(executor.calls) <= 2
+        )
         passed = (
-            block.succeeded and len(executor.calls) <= 2 and len(owned_present) == len(unit.owns)
+            block.succeeded and call_limit_ok and len(owned_present) == len(unit.owns)
             and syntax and receipts_complete and materialization.get("status") == "COMMITTED"
             and authority.get("status") == "PASS" and pytest_run.returncode == 0
         )
