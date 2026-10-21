@@ -194,3 +194,30 @@ def test_exact_file_text_is_non_normative_but_parsed_canonical_csv_is_valid() ->
     assert parsed.status == "PASS"
     assert parsed.findings[0].authority is AssertionAuthority.TEST_CONTRACT_VALID
 
+
+def test_live_worker_patterns_resolve_fixture_bindings_and_parsed_observables() -> None:
+    projection = PublicContractProjection.for_case("cli_csv_cleaner")
+    source = """def test_clean_file_roundtrip_preserves_header_and_order(target):
+    header = ['id', 'name', 'city']
+    fieldnames = header
+    assert fieldnames == header
+    assert _read_csv(target) == [['id', 'name', 'city'], ['1', 'Ada', ''], ['2', 'Lin', 'Paris']]
+
+def test_help_lists_public_options(result):
+    for token in ('--preview', '--dedupe-column', '--fill'):
+        assert token in result.stdout
+
+def test_preview_prints_data_rows_and_writes_output(result, target):
+    preview_rows = [['1', 'Ada', '']]
+    assert result.returncode == 0
+    assert target.exists()
+    assert preview_rows == [['1', 'Ada', '']]
+
+def test_whole_row_dedupe_preserves_header_and_order(result, target):
+    assert result.returncode == 0
+    assert _read_csv(target) == [['id', 'name', 'city'], ['1', 'Ada', ''], ['2', 'Lin', 'Paris']]
+"""
+    receipt = TestAuthorityFirewall().validate({"tests/test_cli.py": source}, projection)
+    assert receipt.status == "PASS"
+    assert set(receipt.classifications) == {AssertionAuthority.TEST_CONTRACT_VALID.value}
+

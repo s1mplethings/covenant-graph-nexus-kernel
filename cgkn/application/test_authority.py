@@ -260,6 +260,7 @@ class _RawAssertion:
     test_id: str
     expression: str
     node: ast.AST
+    bindings: tuple[tuple[str, Any], ...] = ()
 
 
 class _AssertionExtractor(ast.NodeVisitor):
@@ -267,17 +268,42 @@ class _AssertionExtractor(ast.NodeVisitor):
         self.path = path
         self.function = "<module>"
         self.items: list[_RawAssertion] = []
+        self.bindings: dict[str, Any] = {}
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         previous, self.function = self.function, node.name
+        previous_bindings, self.bindings = self.bindings, {}
         self.generic_visit(node)
+        self.bindings = previous_bindings
         self.function = previous
 
     visit_AsyncFunctionDef = visit_FunctionDef
 
     def visit_Assert(self, node: ast.Assert) -> None:
-        self.items.append(_RawAssertion(self.path, node.lineno, self.function, ast.unparse(node.test), node.test))
+        self.items.append(_RawAssertion(
+            self.path, node.lineno, self.function, ast.unparse(node.test), node.test,
+            tuple(sorted(self.bindings.items())),
+        ))
         self.generic_visit(node)
+
+    def visit_Assign(self, node: ast.Assign) -> None:
+        value = _literal(node.value)
+        if value is not None:
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    self.bindings[target.id] = value
+        self.generic_visit(node)
+
+    def visit_For(self, node: ast.For) -> None:
+        previous = dict(self.bindings)
+        values = _literal(node.iter)
+        if isinstance(node.target, ast.Name) and isinstance(values, (list, tuple)):
+            self.bindings[node.target.id] = tuple(values)
+        for item in node.body:
+            self.visit(item)
+        self.bindings = dict(previous)
+        for item in node.orelse:
+            self.visit(item)
 
     def visit_With(self, node: ast.With) -> None:
         for item in node.items:
@@ -294,11 +320,23 @@ def _literal(node: ast.AST) -> Any:
         return None
 
 
-def _comparison(node: ast.AST) -> tuple[str, Any, str]:
+def _resolved_literal(node: ast.AST, bindings: Mapping[str, Any]) -> Any:
+    value = _literal(node)
+    if value is not None:
+        return value
+    if isinstance(node, ast.Name):
+        return bindings.get(node.id)
+    return None
+
+
+def _comparison(node: ast.AST, bindings: Mapping[str, Any] | None = None) -> tuple[str, Any, str]:
+    bindings = bindings or {}
     if isinstance(node, ast.Compare) and len(node.ops) == 1 and len(node.comparators) == 1:
         left, right = node.left, node.comparators[0]
-        left_literal, right_literal = _literal(left), _literal(right)
+        left_literal, right_literal = _resolved_literal(left, bindings), _resolved_literal(right, bindings)
         operator = type(node.ops[0]).__name__
+        if operator in {"In", "NotIn"} and left_literal is not None:
+            return ast.unparse(right), left_literal, operator
         if right_literal is not None:
             return ast.unparse(left), right_literal, operator
         if left_literal is not None:
@@ -377,7 +415,8 @@ class TestAuthorityFirewall:
         return TestAuthorityReceipt(status, projection.projection_hash, tuple(findings), tuple(sorted(covered)), uncovered)
 
     def _classify(self, raw: _RawAssertion, projection: PublicContractProjection) -> TestAssertionFinding:
-        actual, expected, operator = _comparison(raw.node)
+        actual, expected, operator = _comparison(raw.node, dict(raw.bindings))
+        expression_lower = raw.expression.lower()
         lowered = (raw.expression + " " + raw.test_id).lower()
         external_markers = ("stdout", "stderr", "returncode", "subprocess", "read_text", "preview", "output", "csv.reader", "header", "fieldnames")
         if "pytest.raises" in lowered and not any(marker in lowered for marker in external_markers):
@@ -385,7 +424,7 @@ class TestAuthorityFirewall:
         if not any(marker in lowered for marker in external_markers):
             return self._finding(raw, "internal", expected, AssertionAuthority.TEST_INTERNAL_ASSERTION, (), "does not constrain an external observable")
 
-        if "stdout" in lowered:
+        if "stdout" in expression_lower:
             stdout_semantics = [item for item in projection.semantics if item.observable.startswith("stdout")]
             exact = [item for item in stdout_semantics if "stdout_exact" in thaw(item.expected_semantics)]
             if exact:
@@ -403,7 +442,7 @@ class TestAuthorityFirewall:
                 return self._finding(raw, "stdout", expected, AssertionAuthority.TEST_CONTRACT_UNPROVEN, requirement_ids, "canonical contract leaves this stdout detail unspecified")
 
         preview = next((item for item in projection.semantics if "OBL-CSV-PREVIEW" in item.requirement_ids), None)
-        if "preview" in lowered and "stdout" in lowered and operator not in {"In", "NotIn"} and preview is not None:
+        if "preview" in lowered and ("stdout" in expression_lower or "preview_rows" in expression_lower) and operator not in {"In", "NotIn"} and preview is not None:
             requirement_ids = tuple(item for item in preview.requirement_ids if item.startswith("OBL-"))
             preview_expected = thaw(preview.expected_semantics)
             expected_rows = preview_expected.get("stdout_csv", {}).get("rows", [])
@@ -433,7 +472,7 @@ class TestAuthorityFirewall:
                 return self._finding(raw, "stdout.newline", expected, AssertionAuthority.TEST_NON_NORMATIVE_ASSERTION, requirement_ids, "newline style is unspecified")
             return self._finding(raw, "stdout", expected, AssertionAuthority.TEST_CONTRACT_UNPROVEN, requirement_ids, "external preview assertion could not be proven from canonical semantics")
 
-        if "output" in lowered and ".exists" in lowered:
+        if ".exists" in expression_lower:
             candidates = [
                 item for item in projection.semantics
                 if thaw(item.expected_semantics).get("output_created") is True
@@ -442,19 +481,20 @@ class TestAuthorityFirewall:
             if candidates:
                 return self._finding(raw, "output.exists", True, AssertionAuthority.TEST_CONTRACT_VALID, requirement_ids, "output creation is required by the canonical oracle")
 
-        if "stdout" in lowered and operator in {"In", "NotIn"} and isinstance(expected, str):
+        if "stdout" in expression_lower and operator in {"In", "NotIn"} and isinstance(expected, (str, list, tuple)):
             candidates = [item for item in projection.semantics if "stdout_contains" in thaw(item.expected_semantics)]
             requirement_ids = tuple(sorted({identifier for item in candidates for identifier in item.requirement_ids if identifier.startswith("OBL-")}))
             allowed = {text for item in candidates for text in thaw(item.expected_semantics).get("stdout_contains", [])}
-            authority = AssertionAuthority.TEST_CONTRACT_VALID if operator == "In" and expected in allowed else AssertionAuthority.TEST_CONTRACT_CONFLICT
+            checked = set(expected) if isinstance(expected, (list, tuple)) else {expected}
+            authority = AssertionAuthority.TEST_CONTRACT_VALID if operator == "In" and checked <= allowed else AssertionAuthority.TEST_CONTRACT_CONFLICT
             return self._finding(raw, "stdout.contains", expected, authority, requirement_ids, "stdout token checked against canonical contains semantics")
 
-        if "read_text" in lowered and isinstance(expected, str):
+        if "read_text" in expression_lower and isinstance(expected, str):
             candidates = [item for item in projection.semantics if item.observable == "output.csv"]
             requirement_ids = tuple(sorted({identifier for item in candidates for identifier in item.requirement_ids if identifier.startswith("OBL-")}))
             return self._finding(raw, "file.raw_text", expected, AssertionAuthority.TEST_NON_NORMATIVE_ASSERTION, requirement_ids, "CSV file bytes and newline style are not exact-text public semantics")
 
-        if "output" in lowered and "csv.reader" in lowered and isinstance(expected, list):
+        if ("csv.reader" in expression_lower or "read_csv" in expression_lower) and isinstance(expected, list):
             candidates = [item for item in projection.semantics if item.observable == "output.csv"]
             requirement_ids = tuple(sorted({identifier for item in candidates for identifier in item.requirement_ids if identifier.startswith("OBL-")}))
             expected_documents = []
@@ -464,7 +504,16 @@ class TestAuthorityFirewall:
             authority = AssertionAuthority.TEST_CONTRACT_VALID if expected in expected_documents else AssertionAuthority.TEST_CONTRACT_UNPROVEN
             return self._finding(raw, "output.csv", expected, authority, requirement_ids, "parsed CSV document checked against a canonical public example")
 
-        if "header" in lowered or "fieldnames" in lowered:
+        if "returncode" in expression_lower:
+            candidates = [item for item in projection.semantics if "exit_code" in thaw(item.expected_semantics)]
+            if not candidates:
+                return self._finding(raw, "returncode", expected, AssertionAuthority.TEST_CONTRACT_UNMAPPED_ASSERTION, (), "no public return-code requirement")
+            expected_values = {thaw(item.expected_semantics).get("exit_code") for item in candidates}
+            requirement_ids = tuple(sorted({identifier for item in candidates for identifier in item.requirement_ids if identifier.startswith("OBL-")}))
+            valid = expected in expected_values or (expected != 0 and "nonzero" in expected_values)
+            return self._finding(raw, "returncode", expected, AssertionAuthority.TEST_CONTRACT_VALID if valid else AssertionAuthority.TEST_CONTRACT_CONFLICT, requirement_ids, "return code checked against canonical oracle")
+
+        if "header" in expression_lower or "fieldnames" in expression_lower:
             candidates = [item for item in projection.semantics if "OBL-CSV-HEADER-PRESERVATION" in item.requirement_ids]
             requirement_ids = tuple(sorted({identifier for item in candidates for identifier in item.requirement_ids if identifier.startswith("OBL-")}))
             headers = [thaw(item.operation).get("setup", {}).get("header") for item in candidates]
@@ -474,16 +523,7 @@ class TestAuthorityFirewall:
             authority = AssertionAuthority.TEST_CONTRACT_VALID if expected in headers else AssertionAuthority.TEST_CONTRACT_CONFLICT
             return self._finding(raw, "csv.header", expected, authority, requirement_ids, "header checked against canonical oracle setup")
 
-        if "returncode" in lowered:
-            candidates = [item for item in projection.semantics if "exit_code" in thaw(item.expected_semantics)]
-            if not candidates:
-                return self._finding(raw, "returncode", expected, AssertionAuthority.TEST_CONTRACT_UNMAPPED_ASSERTION, (), "no public return-code requirement")
-            expected_values = {thaw(item.expected_semantics).get("exit_code") for item in candidates}
-            requirement_ids = tuple(sorted({identifier for item in candidates for identifier in item.requirement_ids if identifier.startswith("OBL-")}))
-            valid = expected in expected_values or (expected != 0 and "nonzero" in expected_values)
-            return self._finding(raw, "returncode", expected, AssertionAuthority.TEST_CONTRACT_VALID if valid else AssertionAuthority.TEST_CONTRACT_CONFLICT, requirement_ids, "return code checked against canonical oracle")
-
-        if "stderr" in lowered:
+        if "stderr" in expression_lower:
             candidates = [item for item in projection.semantics if "stderr" in thaw(item.expected_semantics)]
             requirement_ids = tuple(sorted({identifier for item in candidates for identifier in item.requirement_ids if identifier.startswith("OBL-")}))
             if not candidates:
