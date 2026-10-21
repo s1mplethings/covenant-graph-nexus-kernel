@@ -1,8 +1,8 @@
 {
   "kind": "CGKNProjectMVPStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-CANONICAL-CONTRACT-TEST-AUTHORITY-AND-FULL-EVAL-039",
-  "source_commit": "2491bbe03b8db74db59364261e52be026b544a20",
+  "iteration": "ITER-CGNK-REPAIR-CONVERGENCE-AND-WORKER-CAPABILITY-040",
+  "source_commit": "c34ea2b11c1cd080bd9436eb652bf4369f8daffb",
   "minimal_blueprint_status": "PARTIAL",
   "coordinator_qualification": "PASS_5_OF_5",
   "coordinator_provider_reliability": "QUALIFIED",
@@ -29,16 +29,30 @@
   "test_contract_conflict_rate": 0.0,
   "unmapped_external_assertion_rate": 0.0,
   "repair_oscillation_detected": false,
+  "repair_candidate_gate_status": "PASS_OFFLINE_AND_LIVE_CONTAINMENT",
+  "repair_failure_fingerprint_status": "PASS",
+  "repair_evidence_projection_status": "NOT_QUALIFIED_AFTER_6_FRAMEWORK_ROUNDS",
+  "cheap_worker_repair_capability": "FAIL_0_OF_3_CURRENT_SOURCE",
+  "strong_worker_repair_capability": "PASS_2_OF_3_CURRENT_SOURCE",
+  "repair_no_progress_rate": {
+    "cheap": 1.0,
+    "strong": 0.333333
+  },
+  "first_call_repair_success_rate": {
+    "cheap": 0.0,
+    "strong": 0.666667
+  },
+  "repair_stalled_rate": "NOT_EVALUATED_SINGLE_CALL_PROBES",
   "hidden_source_exposed": false,
-  "real_csv_single": "FAIL_IMPLEMENTATION_REPAIR_DID_NOT_CONVERGE_WITHIN_FIXED_BUDGET",
-  "real_csv_repeatability": "NOT_RUN_DUE_CSV_SINGLE_GATE",
-  "real_seeded_repair": "NOT_RUN_DUE_CSV_SINGLE_GATE",
-  "real_generation": "FAIL",
-  "real_repair": "NOT_EVALUATED",
-  "project_budget_convergence": "FAIL",
+  "real_csv_single": "NOT_EVALUATED_ON_CURRENT_SOURCE",
+  "real_csv_repeatability": "NOT_EVALUATED_ON_CURRENT_SOURCE",
+  "real_seeded_repair": "NOT_EVALUATED_ON_CURRENT_SOURCE",
+  "real_generation": "NOT_EVALUATED_ON_CURRENT_SOURCE",
+  "real_repair": "NOT_EVALUATED_ON_CURRENT_SOURCE",
+  "project_budget_convergence": "NOT_EVALUATED_ON_CURRENT_SOURCE",
   "kernel_evidence_fresh": false,
-  "formal_server_evaluation": "NOT_EVALUATED_DUE_CSV_SINGLE_GATE",
-  "model_capability_evaluation": "NOT_EVALUATED_DUE_CSV_SINGLE_GATE",
+  "formal_server_evaluation": "NOT_EVALUATED_DUE_REPAIR_QUALIFICATION_GATE",
+  "model_capability_evaluation": "PARTIAL_REPAIR_ONLY",
   "efficiency_experiment_ready": false,
   "multi_agent_status": "BLOCKED_BY_EFFICIENCY_EXPERIMENT",
   "api_lab_dependency": {
@@ -47,18 +61,18 @@
     "commit": "7c15f2546ec007cc7e601fa62ae4d88b9ba12f80",
     "contract_version": "1.1",
     "route_mode": "raw_defer",
-    "modified_this_iteration": true
+    "modified_this_iteration": false
   },
   "blockers": [
     {
       "priority": "P0",
-      "code": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
-      "detail": "Test Authority passed deterministic regression and two independent live Tests-only probes on Source Closure 2491bbe, but the final fresh CSV run consumed the fixed 8/8 logical-call budget. A contract-valid generated test exposed the same blank preview-row defect twice; deterministic routing selected implementation both times, while two bounded implementation PatchBundle repairs did not correct the observable behavior. Continuing would require a larger Provider-call budget, so the run stopped under condition C."
+      "code": "FRAMEWORK_REPAIR_ROUNDS_EXHAUSTED",
+      "detail": "Six bounded framework/evidence repair rounds were completed without stable repair qualification. On Source Closure c34ea2b, Cheap repair fixed 0/3 identical blank-row probes and Strong repair fixed 2/3. Continuing prompt or projection tuning would exceed the user-authorized six framework rounds."
     },
     {
       "priority": "P1",
-      "code": "IMPLEMENTATION_REPAIR_NON_CONVERGENCE",
-      "detail": "The authority hierarchy no longer oscillated: both canonical test failures remained owned by implementation. The cheap Worker returned successful patches, but neither removed the extra blank preview row, and the Tests Unit exhausted its bounded materialization attempts after downstream invalidation."
+      "code": "REPAIR_CAPABILITY_UNSTABLE",
+      "detail": "Repair Candidate Gate, canonical target rerun, failure fingerprints, baseline isolation, and no-progress containment work correctly. Model candidates remain unstable under the current public-safe evidence packet; Cheap is unqualified and Strong is not 3/3, so this cannot yet be attributed solely to cheap-model capability or to the 8-call project budget."
     }
   ]
 }
