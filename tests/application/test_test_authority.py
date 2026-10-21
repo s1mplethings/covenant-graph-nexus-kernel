@@ -248,6 +248,43 @@ def test_header_binding_inside_expected_csv_document_is_resolved() -> None:
     assert receipt.findings[0].authority is AssertionAuthority.TEST_CONTRACT_VALID
 
 
+def test_direct_csv_reader_helper_retains_canonical_output_semantics() -> None:
+    projection = PublicContractProjection.for_case("cli_csv_cleaner")
+    source = """def read_output(path):
+    with open(path, newline='', encoding='utf-8') as handle:
+        return list(csv.reader(handle))
+
+def test_dedupe_column_and_fill(output_path):
+    assert read_output(output_path) == [
+        ['id', 'name', 'city'],
+        ['1', 'Ada', 'UNKNOWN'],
+        ['2', 'Lin', 'UNKNOWN'],
+    ]
+"""
+    receipt = TestAuthorityFirewall().validate({"tests/test_cli.py": source}, projection)
+    assert receipt.status == "PASS"
+    assert receipt.findings[0].observable == "output.csv"
+    assert receipt.findings[0].authority is AssertionAuthority.TEST_CONTRACT_VALID
+
+
+def test_transforming_csv_reader_helper_is_not_treated_as_canonical_document() -> None:
+    projection = PublicContractProjection.for_case("cli_csv_cleaner")
+    source = """def read_output(path):
+    with open(path, newline='', encoding='utf-8') as handle:
+        return list(csv.reader(handle))[1:]
+
+def test_output(output_path):
+    assert read_output(output_path) == [
+        ['id', 'name', 'city'],
+        ['1', 'Ada', ''],
+        ['2', 'Lin', 'Paris'],
+    ]
+"""
+    receipt = TestAuthorityFirewall().validate({"tests/test_cli.py": source}, projection)
+    assert receipt.status == "FAIL"
+    assert receipt.findings[0].authority is AssertionAuthority.TEST_CONTRACT_UNMAPPED_ASSERTION
+
+
 def test_preview_assertion_cannot_filter_observed_csv_rows() -> None:
     projection = PublicContractProjection.for_case("cli_csv_cleaner")
     source = """def test_preview_prints_data_rows(result):

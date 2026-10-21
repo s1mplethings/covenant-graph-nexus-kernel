@@ -379,6 +379,36 @@ def _csv_rows(text: str) -> list[list[str]] | None:
         return None
 
 
+def _direct_csv_reader_helpers(tree: ast.AST) -> set[str]:
+    """Identify helpers that return an unmodified parsed CSV document."""
+
+    helpers: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        returns = [item for item in ast.walk(node) if isinstance(item, ast.Return)]
+        if len(returns) != 1 or returns[0].value is None:
+            continue
+        value = returns[0].value
+        if not (
+            isinstance(value, ast.Call)
+            and isinstance(value.func, ast.Name)
+            and value.func.id in {"list", "tuple"}
+            and len(value.args) == 1
+        ):
+            continue
+        reader = value.args[0]
+        if (
+            isinstance(reader, ast.Call)
+            and isinstance(reader.func, ast.Attribute)
+            and reader.func.attr == "reader"
+            and isinstance(reader.func.value, ast.Name)
+            and reader.func.value.id == "csv"
+        ):
+            helpers.add(node.name)
+    return helpers
+
+
 class TestAuthorityFirewall:
     """Conservative, deterministic gate for externally observable test assertions."""
 
@@ -427,7 +457,11 @@ class TestAuthorityFirewall:
                     for candidate in ast.walk(node)
                 )
             }
-            findings.extend(self._classify(item, projection, filtered_helpers) for item in extractor.items)
+            direct_csv_helpers = _direct_csv_reader_helpers(tree)
+            findings.extend(
+                self._classify(item, projection, filtered_helpers, direct_csv_helpers)
+                for item in extractor.items
+            )
 
         covered = {
             requirement_id
@@ -456,6 +490,7 @@ class TestAuthorityFirewall:
         raw: _RawAssertion,
         projection: PublicContractProjection,
         filtered_observation_helpers: set[str] | None = None,
+        direct_csv_reader_helpers: set[str] | None = None,
     ) -> TestAssertionFinding:
         bindings = dict(raw.bindings)
         actual, expected, operator = _comparison(raw.node, bindings)
@@ -567,14 +602,20 @@ class TestAuthorityFirewall:
             requirement_ids = tuple(sorted({identifier for item in candidates for identifier in item.requirement_ids if identifier.startswith("OBL-")}))
             return self._finding(raw, "file.raw_text", expected, AssertionAuthority.TEST_NON_NORMATIVE_ASSERTION, requirement_ids, "CSV file bytes and newline style are not exact-text public semantics")
 
-        if ("csv.reader" in expression_lower or "read_csv" in expression_lower) and actual.endswith("[0]") and isinstance(expected, list):
+        direct_csv_reader_helpers = direct_csv_reader_helpers or set()
+        parsed_csv_observation = (
+            "csv.reader" in expression_lower
+            or "read_csv" in expression_lower
+            or any(re.search(rf"\b{re.escape(name)}\s*\(", expression_lower) for name in direct_csv_reader_helpers)
+        )
+        if parsed_csv_observation and actual.endswith("[0]") and isinstance(expected, list):
             candidates = [item for item in projection.semantics if item.observable == "output.csv"]
             requirement_ids = tuple(sorted({identifier for item in candidates for identifier in item.requirement_ids if identifier.startswith("OBL-")}))
             headers = {tuple(thaw(item.expected_semantics).get("header", [])) for item in candidates}
             authority = AssertionAuthority.TEST_CONTRACT_VALID if tuple(expected) in headers else AssertionAuthority.TEST_CONTRACT_UNPROVEN
             return self._finding(raw, "csv.header", expected, authority, requirement_ids, "parsed CSV header checked against a canonical public example")
 
-        if ("csv.reader" in expression_lower or "read_csv" in expression_lower) and isinstance(expected, list):
+        if parsed_csv_observation and isinstance(expected, list):
             candidates = [item for item in projection.semantics if item.observable == "output.csv"]
             requirement_ids = tuple(sorted({identifier for item in candidates for identifier in item.requirement_ids if identifier.startswith("OBL-")}))
             expected_documents = []
