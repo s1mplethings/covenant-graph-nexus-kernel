@@ -366,7 +366,14 @@ def localize_repair_sources(
     if selected:
         paths = {item[1] for item in selected}
         locator = f"{selected[0][1]}:{selected[0][2]}"
-        return {path: sources[path] for path in sorted(paths)}, tuple(item[2] for item in selected), locator
+        # Repair workers need the exact failing function, not the surrounding
+        # module.  Keeping the path while projecting only the AST-bounded
+        # source slice preserves exact PatchBundle matching and removes
+        # unrelated implementation context from the repair decision.
+        return {
+            path: "\n\n".join(item[3] for item in selected if item[1] == path) + "\n"
+            for path in sorted(paths)
+        }, tuple(item[2] for item in selected), locator
     fallback = next(iter(sorted(sources)), "")
     return ({fallback: sources[fallback]} if fallback else {}), (), fallback
 

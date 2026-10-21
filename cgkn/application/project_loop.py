@@ -835,8 +835,6 @@ class BlueprintUnitExecutor:
                     evidence_packet = packet.as_dict()
                 prompt = {
                     "mode": mode,
-                    "project_goal": project_goal,
-                    "normative_public_contract": project_goal,
                     "repair_attempt_number": repair_attempt_number,
                     "unit": {
                         "unit_id": unit.unit_id,
@@ -846,18 +844,24 @@ class BlueprintUnitExecutor:
                     },
                     "public_constraints": list(request.task_context.project_constraints),
                     "repair_evidence_packet": evidence_packet,
-                    "failure_report": failure.as_dict(),
-                    "fallback_failure_report": None if evidence_packet else failure.as_dict(),
-                    "public_contract_projection": (
-                        None if evidence_packet else materialize_json(
-                            request.task_context.node_config.get("public_contract_projection")
-                        )
-                    ),
-                    "current_relevant_files": relevant_sources,
-                    "current_files": relevant_sources,
                     "direct_dependency_results": materialize_json(request.task_context.dependency_results),
                     "output_contract": "PatchBundle v2 only in REPAIR",
                 }
+                if evidence_packet is None:
+                    # Repairs without a deterministic public target retain the
+                    # broader compatibility projection.  Exact-target repairs
+                    # already carry these facts once in RepairEvidencePacket.
+                    prompt.update({
+                        "project_goal": project_goal,
+                        "normative_public_contract": project_goal,
+                        "failure_report": failure.as_dict(),
+                        "fallback_failure_report": failure.as_dict(),
+                        "public_contract_projection": materialize_json(
+                            request.task_context.node_config.get("public_contract_projection")
+                        ),
+                        "current_relevant_files": relevant_sources,
+                        "current_files": relevant_sources,
+                    })
                 system = (
                     "You are a bounded unit repair worker. Return exactly one PatchBundle. Touch only unit.owns; "
                     "never change the blueprint, run commands, access hidden acceptance, create evidence, or invent paths. "

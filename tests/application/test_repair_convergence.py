@@ -187,6 +187,8 @@ def test_source_localization_selects_preview_function_not_csv_reader() -> None:
     assert tuple(relevant) == ("csv_cleaner/__main__.py",)
     assert functions == ("_print_preview",)
     assert locator.endswith(":_print_preview")
+    assert "def _print_preview" in relevant["csv_cleaner/__main__.py"]
+    assert "def _read_csv" not in relevant["csv_cleaner/__main__.py"]
 
 
 def test_canonical_validator_detects_extra_record_and_accepts_exact_fix(tmp_path: pathlib.Path) -> None:
@@ -333,6 +335,11 @@ def test_evidence_packet_is_minimal_public_safe_and_carries_previous_diff(tmp_pa
     assert packet["previous_failed_attempt"]["progress"] == "NO_PROGRESS"
     assert "MARKER = 2" in packet["previous_failed_attempt"]["diff"]
     assert "hidden" not in json.dumps(packet).casefold()
+    assert "normative_public_contract" not in second_prompt
+    assert "failure_report" not in second_prompt
+    assert "current_files" not in second_prompt
+    assert "def _print_preview" in packet["relevant_implementation_files"]["csv_cleaner/__main__.py"]
+    assert "def _read_csv" not in packet["relevant_implementation_files"]["csv_cleaner/__main__.py"]
     assert len(json.dumps(second_prompt)) < len(json.dumps(first_prompt)) + 6000
 
 
