@@ -1086,6 +1086,9 @@ class BlueprintUnitExecutor:
                         " Generated tests are derivative validators, never a behavioral authority. Every externally observable "
                         "assertion must map to public_contract_projection and owned_public_requirement_ids. Do not invent exact "
                         "spacing, newline, ordering, wording, or formatting when the public contract leaves it unspecified. "
+                        "Observe external CSV output losslessly: never filter, drop, strip, or normalize parsed rows before "
+                        "comparison. Use an identity parser such as list(csv.reader(io.StringIO(result.stdout))); an extra "
+                        "blank row must remain observable so the test can expose newline defects. "
                         "For subprocess CLI tests, keep the project workspace importable: run from the project root or preserve "
                         "the project root on PYTHONPATH; never switch only to a temporary-data directory for python -m package."
                     )

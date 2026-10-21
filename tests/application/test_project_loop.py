@@ -208,6 +208,8 @@ def test_test_authority_conflict_retries_before_atomic_commit(tmp_path: pathlib.
     assert executor.calls[0]["failure_type"] == "TEST_CONTRACT_CONFLICT"
     assert executor.calls[0]["test_authority_receipt"]["status"] == "FAIL"
     assert executor.calls[1]["test_authority_receipt"]["status"] == "PASS"
+    assert "never filter, drop, strip, or normalize parsed rows" in client.calls[0]["system"]
+    assert "TEST_CONTRACT_CONFLICT" in client.calls[1]["user"]
 
 
 def test_implementation_repair_forces_tests_authority_revalidation_before_pytest(tmp_path: pathlib.Path) -> None:
