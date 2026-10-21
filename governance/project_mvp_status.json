@@ -1,8 +1,8 @@
 {
   "kind": "CGKNProjectMVPStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-COORDINATOR-RELIABILITY-AND-CAPABILITY-038",
-  "source_commit": "f841f2666392240e52eeaa24a19c2acaa651a380",
+  "iteration": "ITER-CGNK-CANONICAL-CONTRACT-TEST-AUTHORITY-AND-FULL-EVAL-039",
+  "source_commit": "2491bbe03b8db74db59364261e52be026b544a20",
   "minimal_blueprint_status": "PARTIAL",
   "coordinator_qualification": "PASS_5_OF_5",
   "coordinator_provider_reliability": "QUALIFIED",
@@ -23,16 +23,22 @@
   "failed_provider_calls_recorded": true,
   "acceptance_requirement_mapping": "PASS_TESTED",
   "acceptance_attribution": "PASS_LIVE_EXERCISED",
+  "canonical_contract_projection_status": "PASS",
+  "test_authority_status": "PASS",
+  "test_contract_guard_status": "PASS",
+  "test_contract_conflict_rate": 0.0,
+  "unmapped_external_assertion_rate": 0.0,
+  "repair_oscillation_detected": false,
   "hidden_source_exposed": false,
-  "real_csv_single": "FAIL_GENERATED_TEST_CONTRACT_CONFLICT_WITHIN_FIXED_BUDGET",
+  "real_csv_single": "FAIL_IMPLEMENTATION_REPAIR_DID_NOT_CONVERGE_WITHIN_FIXED_BUDGET",
   "real_csv_repeatability": "NOT_RUN_DUE_CSV_SINGLE_GATE",
   "real_seeded_repair": "NOT_RUN_DUE_CSV_SINGLE_GATE",
   "real_generation": "FAIL",
   "real_repair": "NOT_EVALUATED",
   "project_budget_convergence": "FAIL",
-  "kernel_evidence_fresh": true,
-  "formal_server_evaluation": "NOT_EVALUATED_DUE_PHASE_E_GATE",
-  "model_capability_evaluation": "NOT_EVALUATED_DUE_PHASE_E_GATE",
+  "kernel_evidence_fresh": false,
+  "formal_server_evaluation": "NOT_EVALUATED_DUE_CSV_SINGLE_GATE",
+  "model_capability_evaluation": "NOT_EVALUATED_DUE_CSV_SINGLE_GATE",
   "efficiency_experiment_ready": false,
   "multi_agent_status": "BLOCKED_BY_EFFICIENCY_EXPERIMENT",
   "api_lab_dependency": {
@@ -47,12 +53,12 @@
     {
       "priority": "P0",
       "code": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
-      "detail": "Coordinator reliability is qualified 5/5 on Source Closure f841f266, but the final fresh CSV run failed after 7/8 logical calls: hidden acceptance exposed a public preview-semantics mismatch, implementation repair corrected it, and the generated public tests continued asserting the prior behavior. Bounded owner-local repairs ended with pytest failure, so Seeded Repair and later experiments remained gated."
+      "detail": "Test Authority passed deterministic regression and two independent live Tests-only probes on Source Closure 2491bbe, but the final fresh CSV run consumed the fixed 8/8 logical-call budget. A contract-valid generated test exposed the same blank preview-row defect twice; deterministic routing selected implementation both times, while two bounded implementation PatchBundle repairs did not correct the observable behavior. Continuing would require a larger Provider-call budget, so the run stopped under condition C."
     },
     {
       "priority": "P1",
-      "code": "GENERATED_TEST_CONTRACT_CONFLICT",
-      "detail": "The generated test Unit encoded a preview-header convention that conflicts with the literal public contract. Deterministic acceptance attribution correctly selected the implementation owner without hidden-source exposure, but subsequent test-owner repair did not reconcile the tests with the normative public contract."
+      "code": "IMPLEMENTATION_REPAIR_NON_CONVERGENCE",
+      "detail": "The authority hierarchy no longer oscillated: both canonical test failures remained owned by implementation. The cheap Worker returned successful patches, but neither removed the extra blank preview row, and the Tests Unit exhausted its bounded materialization attempts after downstream invalidation."
     }
   ]
 }

@@ -1,10 +1,10 @@
 {
   "kind": "CGKNRoleModelEfficiencyReceipt",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-COORDINATOR-RELIABILITY-AND-CAPABILITY-038",
-  "source_closure_commit": "f841f2666392240e52eeaa24a19c2acaa651a380",
-  "source_tree_sha": "b1786c68dfe9b0b957873c7fdda1cbb1915ec572",
-  "execution_head": "ea577628615ff55932ee22ed742535a356dca70c",
+  "iteration": "ITER-CGNK-CANONICAL-CONTRACT-TEST-AUTHORITY-AND-FULL-EVAL-039",
+  "source_closure_commit": "2491bbe03b8db74db59364261e52be026b544a20",
+  "source_tree_sha": "3f85ab5af62c3fe8e862808927e33bf11a4d5b4d",
+  "execution_head": "2491bbe03b8db74db59364261e52be026b544a20",
   "api_lab_dependency": {
     "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
     "branch": "codex/qwen-thinking-control-20261021",
@@ -25,35 +25,46 @@
   },
   "worker_cohesive_live": {
     "status": "PASS_2_OF_2",
-    "evidence_root": "D:/CGKN/.service_evidence/ITER-CGNK-MATERIALIZATION-FULL-VALIDATION-AND-MODEL-CAPABILITY-037/worker-cohesive-live-source-d7d9ca4",
+    "evidence_root": "D:/CGKN/.service_evidence/canonical-test-authority-full-eval-live/worker-cohesive-v9/worker_cohesive_live",
     "runs": [
       {
-        "run_id": "worker-cohesive-live-1-675a7431e5",
+        "run_id": "worker-cohesive-live-1-5fe7ff2d4b",
         "status": "PASS",
         "call_classes": ["GENERATION"],
         "logical_calls": 1,
-        "input_tokens": 1028,
-        "output_tokens": 1046,
+        "input_tokens": 4159,
+        "output_tokens": 2235,
         "returned_paths": ["tests/test_cleaner.py", "tests/test_cli.py"],
-        "selection_receipt_hash": "sha256:0c0a56778398b3c8729deeb2f11c7d435052be380e14a814337be408fe5dc8ae",
+        "test_authority_receipt_hash": "sha256:a9826a09d47c992bcbfa6e8625b8963aa5f9285c972a544d76d66755d2d0c5c3",
+        "external_assertions": 12,
+        "normative_mappings": 12,
+        "non_normative_assertions": 0,
+        "unmapped_assertions": 0,
         "syntax": "PASS",
+        "pytest": "PASS",
         "atomic_commit": "COMMITTED",
-        "duration_ms": 4821
+        "duration_ms": 11270
       },
       {
-        "run_id": "worker-cohesive-live-2-c2b32db626",
+        "run_id": "worker-cohesive-live-2-8228c99888",
         "status": "PASS",
         "call_classes": ["GENERATION"],
         "logical_calls": 1,
-        "input_tokens": 1028,
-        "output_tokens": 1215,
+        "input_tokens": 4159,
+        "output_tokens": 2229,
         "returned_paths": ["tests/test_cleaner.py", "tests/test_cli.py"],
-        "selection_receipt_hash": "sha256:d39658b4fa3e71658c9c8eb0e810ca038060b5a27355753739da9c594aa48cc3",
+        "test_authority_receipt_hash": "sha256:637e38f99dd629411af26ccbc9e5b68e9d9c3f8d30a749e3096a1caa4ea216c4",
+        "external_assertions": 11,
+        "normative_mappings": 11,
+        "non_normative_assertions": 0,
+        "unmapped_assertions": 0,
         "syntax": "PASS",
+        "pytest": "PASS",
         "atomic_commit": "COMMITTED",
-        "duration_ms": 3650
+        "duration_ms": 12685
       }
-    ]
+    ],
+    "projection_hash": "sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1"
   },
   "coordinator_qualification": {
     "status": "PASS_5_OF_5",
@@ -69,28 +80,51 @@
     "duration_ms": [4590, 5714, 3006, 3321, 3110],
     "evidence_root": "D:/CGKN/.service_evidence/ITER-CGNK-COORDINATOR-RELIABILITY-AND-CAPABILITY-038/source_f841f266/coordinator-5of5/coordinator_qualification"
   },
+  "test_authority": {
+    "status": "PASS",
+    "canonical_contract_projection_status": "PASS",
+    "test_contract_guard_status": "PASS",
+    "projection_hash": "sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1",
+    "deterministic_regression": "PASS_18_TESTS_COVERING_A_THROUGH_R",
+    "live_probe": "PASS_2_OF_2",
+    "external_assertions": 23,
+    "normative_mappings": 23,
+    "non_normative_assertions": 0,
+    "unmapped_external_assertions": 0,
+    "repair_oscillation_detected": false,
+    "public_safe_projection": true,
+    "hidden_source_exposed": false
+  },
   "real_csv_single": {
-    "status": "FAIL_GENERATED_TEST_CONTRACT_CONFLICT_WITHIN_FIXED_BUDGET",
-    "run_id": "blueprint-cli_csv_cleaner-2497ea9108",
-    "blueprint_hash": "sha256:c05541e95682d5606682658e6249377d2e4505fc4ec769c369adcbc0028c4215",
-    "logical_calls": 7,
+    "status": "FAIL_IMPLEMENTATION_REPAIR_DID_NOT_CONVERGE_WITHIN_FIXED_BUDGET",
+    "run_id": "blueprint-cli_csv_cleaner-9ae2056f37",
+    "blueprint_hash": "sha256:31fe084862ebb082a581c6c6a5fee43fa3a4ad2a8d359f0c72204126eddda8f8",
+    "logical_calls": 8,
     "budget_limit": 8,
     "budget_compliance": true,
     "calls": {
       "coordinator_design": 1,
       "generation": 3,
       "continuation": 0,
-      "repair": 3
+      "generation_retry": 2,
+      "repair": 2
     },
-    "final_failure": "TEST_FAILURE",
+    "worker_token_usage": {
+      "input_tokens": 38975,
+      "output_tokens": 6944,
+      "cached_tokens": 6272,
+      "usage_status": "KNOWN"
+    },
+    "final_failure": "UNIT_MATERIALIZATION_INCOMPLETE",
     "final_owner": "tests-1",
-    "failed_nodes": ["pytest"],
-    "blocked_nodes": ["runtime_smoke", "external_acceptance"],
-    "root_cause": "Generated tests retained a preview-header convention after implementation repair aligned preview with the literal public contract; bounded test-owner repairs did not reconcile the contract conflict.",
-    "evidence": "D:/CGKN/.service_evidence/ITER-CGNK-COORDINATOR-RELIABILITY-AND-CAPABILITY-038/source_f841f266/csv-single-final/blueprint-cli_csv_cleaner-2497ea9108/live-single_receipt.json",
+    "failed_nodes": ["tests-1"],
+    "blocked_nodes": ["compile", "pytest", "runtime_smoke", "external_acceptance"],
+    "root_cause": "The Test Authority Firewall admitted a canonical public assertion and routed its failure to implementation twice. Both implementation PatchBundle calls reported success but preserved the extra blank preview row; downstream Tests generation then exhausted its bounded attempts at the fixed project budget.",
+    "evidence": "D:/CGKN/.service_evidence/canonical-test-authority-full-eval-live/csv-single-v5/blueprint-cli_csv_cleaner-9ae2056f37/live-single_receipt.json",
     "manual_edits": 0,
-    "hidden_acceptance": "REACHED_AND_FAILED_BEFORE_FINAL_PYTEST_FAILURE",
-    "acceptance_attribution": "PASS_LIVE_EXERCISED",
+    "hidden_acceptance": "BLOCKED_AFTER_TEST_STAGE_FAILURE",
+    "test_authority": "PASS_LIVE_EXERCISED",
+    "repair_oscillation_detected": false,
     "hidden_source_exposed": false
   },
   "real_seeded_repair": "NOT_EVALUATED_DUE_CSV_SINGLE_GATE",
@@ -108,18 +142,17 @@
     "manual_candidate_edits": 0
   },
   "regression": {
-    "targeted_tests": "PASS_67",
-    "application_tests": "PASS_394_SKIP_1",
-    "kernel_profiles": "PASS",
-    "active_repository": "PASS_2584_SKIP_351",
-    "live_provider_profile": "BLOCKED_ENVIRONMENT_1_SKIP",
-    "kernel_receipt_hash": "sha256:9417888f1f82c49a883d632e873f1acd02d070702b1f738ad9109dc43f132727",
-    "kernel_evidence_fresh": true
+    "targeted_tests": "PASS_92",
+    "application_tests": "PASS_420_SKIP_1",
+    "product_direction_gate": "PASS",
+    "kernel_profiles": "STALE_AFTER_SOURCE_CHANGE_NOT_RERUN_DUE_STOP_CONDITION",
+    "active_repository": "STALE_AFTER_SOURCE_CHANGE_NOT_RERUN_DUE_STOP_CONDITION",
+    "kernel_evidence_fresh": false
   },
   "minimal_blueprint_status": "PARTIAL",
   "efficiency_experiment_ready": false,
   "multi_agent_status": "BLOCKED_BY_EFFICIENCY_EXPERIMENT",
-  "stop_status": "MINIMAL_BLUEPRINT_NEEDS_REWORK",
+  "stop_status": "MINIMAL_BLUEPRINT_NEEDS_REWORK_FIXED_BUDGET_EXHAUSTED",
   "contains_credentials": false,
-  "receipt_hash": "sha256:75bcdde222e2779a578be33a5df1e89c84bf65fa216823b44e3aa7595d6e43df"
+  "receipt_hash": "sha256:b2ab6a90accb1644f627b0c78296e6e112b67590e5d8be867ce089c7be4299aa"
 }
