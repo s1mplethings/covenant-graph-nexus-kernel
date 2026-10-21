@@ -30,6 +30,20 @@ from cgkn.runtime import DAGRunner, RunSummary
 from cgkn.state import FileRunStore
 
 from .test_authority import AssertionAuthority, PublicContractProjection, TestAuthorityFirewall, TestAuthorityReceipt
+from .repair_convergence import (
+    CanonicalRepairTargetValidator,
+    RepairAttemptEvidence,
+    RepairCandidateState,
+    RepairCandidateStatus,
+    RepairEvidencePacket,
+    RepairProgress,
+    RepairTargetSpec,
+    build_public_test_repair_target,
+    classify_repair_progress,
+    localize_repair_sources,
+    run_targeted_regression,
+    summarize_patch_diff,
+)
 
 from .project_blueprint import (
     BlueprintCheck,
@@ -228,12 +242,14 @@ class UnitOutputValidationError(ValueError):
         retryable: bool = False,
         failure_stage: str = "",
         owner_unit_id: str = "",
+        details: Mapping[str, Any] | None = None,
     ):
         super().__init__(message)
         self.failure_type = failure_type
         self.retryable = retryable
         self.failure_stage = failure_stage
         self.owner_unit_id = owner_unit_id
+        self.details = dict(details or {})
 
 
 def _write_json(path: pathlib.Path, value: Mapping[str, Any]) -> None:
@@ -571,6 +587,8 @@ class BlueprintUnitExecutor:
         self.materialized_units: dict[str, tuple[tuple[str, ...], str]] = {}
         self.materialization_call_counts: dict[str, int] = {}
         self.test_authority_receipts: dict[str, TestAuthorityReceipt] = {}
+        self.repair_targets: dict[str, RepairTargetSpec] = {}
+        self.repair_attempt_history: dict[str, list[RepairAttemptEvidence]] = {}
         self.calls: list[dict[str, Any]] = []
 
     def _test_authority_receipt(
@@ -615,6 +633,7 @@ class BlueprintUnitExecutor:
         unit: BlueprintUnit,
         candidate_files: Mapping[str, str],
         authority_receipt: TestAuthorityReceipt | None = None,
+        node_config: Mapping[str, Any] | None = None,
     ) -> dict[str, Any] | None:
         if unit.kind != UnitKind.TESTS.value:
             return None
@@ -660,6 +679,25 @@ class BlueprintUnitExecutor:
                 and assertion_failure
                 and len(implementation_owners) == 1
             ):
+                owner_unit_id = implementation_owners[0]
+                target: RepairTargetSpec | None = None
+                raw_projection = (node_config or {}).get("public_contract_projection")
+                baseline = self.materialized_units.get(owner_unit_id)
+                if isinstance(raw_projection, Mapping) and baseline is not None:
+                    target = build_public_test_repair_target(
+                        findings=authority_receipt.findings,
+                        failed_test_ids=failed_tests,
+                        projection=PublicContractProjection.from_dict(raw_projection),
+                        public_failure_output=completed.stdout,
+                        owner_unit_id=owner_unit_id,
+                        baseline_hash=baseline[1],
+                    )
+                    if target is not None:
+                        owner_sources = _read_sources(self.root, baseline[0])
+                        _, _, locator = localize_repair_sources(owner_sources, target.fingerprint)
+                        fingerprint = replace(target.fingerprint, relevant_source_locator=locator, fingerprint_hash="")
+                        target = RepairTargetSpec(fingerprint, target.operation, target.setup, target.expected)
+                        self.repair_targets[owner_unit_id] = target
                 public_lines = []
                 for raw in completed.stdout.splitlines():
                     line = raw.strip()
@@ -671,7 +709,8 @@ class BlueprintUnitExecutor:
                     "PUBLIC_CONTRACT_FAILURE",
                     "Canonical generated public test rejected the implementation:\n" + "\n".join(public_lines),
                     failure_stage=FailureStage.TEST.value,
-                    owner_unit_id=implementation_owners[0],
+                    owner_unit_id=owner_unit_id,
+                    details={"repair_target": target.as_dict() if target else None},
                 )
             raise UnitOutputValidationError("TEST_FAILURE", detail, retryable=True)
         return receipt
@@ -735,18 +774,65 @@ class BlueprintUnitExecutor:
                     call.get("unit_id") == unit.unit_id and call.get("call_class") == "REPAIR"
                     for call in self.calls
                 )
+                target = self.repair_targets.get(unit.unit_id)
+                previous_attempts = self.repair_attempt_history.get(unit.unit_id, [])
+                relevant_sources = dict(sources)
+                relevant_functions: tuple[str, ...] = ()
+                evidence_packet: dict[str, Any] | None = None
+                if target is not None:
+                    relevant_sources, relevant_functions, locator = localize_repair_sources(sources, target.fingerprint)
+                    if locator != target.fingerprint.relevant_source_locator:
+                        target = RepairTargetSpec(
+                            replace(target.fingerprint, relevant_source_locator=locator, fingerprint_hash=""),
+                            target.operation, target.setup, target.expected,
+                        )
+                        self.repair_targets[unit.unit_id] = target
+                    packet = RepairEvidencePacket(
+                        project_goal=project_goal,
+                        unit_purpose=unit.purpose,
+                        canonical_public_requirement="; ".join(unit.acceptance),
+                        fingerprint=target.fingerprint,
+                        exact_reproduction={
+                            "setup": json.loads(target.setup),
+                            "operation": json.loads(target.operation),
+                            "expected": json.loads(target.expected),
+                        },
+                        relevant_files=relevant_sources,
+                        relevant_functions=relevant_functions,
+                        public_interfaces=tuple(
+                            f"{path}:{name}"
+                            for path, manifest in manifests.items()
+                            for name in (
+                                *(item.name for item in manifest.functions),
+                                *(item.name for item in manifest.classes),
+                            )
+                        ),
+                        previous_attempt=previous_attempts[-1] if previous_attempts else None,
+                    )
+                    evidence_packet = packet.as_dict()
                 prompt = {
-                    "mode": mode, "project_goal": project_goal,
+                    "mode": mode,
+                    "project_goal": project_goal,
                     "normative_public_contract": project_goal,
                     "repair_attempt_number": repair_attempt_number,
+                    "unit": {
+                        "unit_id": unit.unit_id,
+                        "purpose": unit.purpose,
+                        "owns": list(unit.owns),
+                        "required_interfaces": list(unit.required_interfaces),
+                    },
                     "public_constraints": list(request.task_context.project_constraints),
-                    "unit": unit.as_dict(), "current_files": sources,
-                    "observed_interfaces": {path: item.as_dict() for path, item in manifests.items()},
+                    "repair_evidence_packet": evidence_packet,
+                    "failure_report": failure.as_dict(),
+                    "fallback_failure_report": None if evidence_packet else failure.as_dict(),
+                    "public_contract_projection": (
+                        None if evidence_packet else materialize_json(
+                            request.task_context.node_config.get("public_contract_projection")
+                        )
+                    ),
+                    "current_relevant_files": relevant_sources,
+                    "current_files": relevant_sources,
                     "direct_dependency_results": materialize_json(request.task_context.dependency_results),
-                    "acceptance": list(unit.acceptance), "failure_report": failure.as_dict(),
-                    "public_contract_projection": materialize_json(request.task_context.node_config.get("public_contract_projection")),
-                    "owned_public_requirement_ids": list(request.task_context.node_config.get("owned_public_requirement_ids", ())),
-                    "test_authority_findings": self.test_authority_receipts.get(unit.unit_id).as_dict() if unit.unit_id in self.test_authority_receipts else None,
                     "output_contract": "PatchBundle v2 only in REPAIR",
                 }
                 system = (
@@ -754,19 +840,28 @@ class BlueprintUnitExecutor:
                     "never change the blueprint, run commands, access hidden acceptance, create evidence, or invent paths. "
                     "Use PatchBundle v2 with one unique files[] object per modified file and one or more ordered edits. "
                     "Modify only the smallest non-empty subset needed. Preserve every required and observed public interface. "
-                    "Treat normative_public_contract as authoritative and generated tests as non-authoritative examples. "
-                    "For a Tests Unit, canonical public contract projection outranks old generated tests; modify, weaken, "
-                    "replace, or remove conflicting assertions while preserving valid requirement coverage. Every external "
-                    "assertion must map to supplied public semantics, and unspecified formatting must not become normative. "
-                    "Compare current files literally against every failed public requirement; on a repeated repair attempt, "
-                    "look for a different remaining contract mismatch instead of repeating an already-applied change."
+                    "The repair_evidence_packet is the canonical public target: reproduce its exact input, explain internally "
+                    "why the actual result differs from the expected result, and patch the localized implementation rather "
+                    "than masking the symptom. Treat generated tests as non-authoritative examples and the canonical public "
+                    "target as authoritative. On a repeated attempt, inspect previous_failed_attempt and choose a materially "
+                    "different fix. Never weaken tests or alter the expected public result."
                 )
+                if target is None and unit.kind == UnitKind.TESTS.value:
+                    system += (
+                        " For a Tests Unit with a demonstrated contract conflict, modify, weaken, replace, or remove "
+                        "conflicting assertions only as required to restore canonical public-contract alignment."
+                    )
                 generated = self.generation.generate(GenerationRequest(
                     task_class="project.codegen", operation=mode, project_id=request.project_id,
                     capability_ref=request.component_ref, provider_id=self.config.model,
                     system=system, goal=prompt,
                     contract={"unit": unit.as_dict(), "required_interfaces": list(unit.required_interfaces)},
-                    state={"files": sources, "interfaces": {key: value.as_dict() for key, value in manifests.items()}},
+                    state={
+                        "files": relevant_sources,
+                        "interfaces": {
+                            key: value.as_dict() for key, value in manifests.items() if key in relevant_sources
+                        },
+                    },
                     failure_evidence=failure.as_dict(), schema_name="cgnk_unit_bundle", schema=PATCH_BUNDLE_SCHEMA,
                     model_config=effective_config, allowed_actions=("patch_bundle",),
                     forbidden_actions=("shell", "network", "blueprint_change", "hidden_acceptance"), run_id=request.run_id,
@@ -799,7 +894,9 @@ class BlueprintUnitExecutor:
                 if authority_receipt is not None:
                     self.calls[-1]["test_authority_receipt"] = authority_receipt.as_dict()
                     self._raise_for_test_authority(authority_receipt, retryable=False)
-                staged_test_validation = self._validate_staged_tests(unit, new_sources, authority_receipt)
+                staged_test_validation = self._validate_staged_tests(
+                    unit, new_sources, authority_receipt, request.task_context.node_config,
+                )
                 if staged_test_validation is not None:
                     self.calls[-1]["staged_test_validation"] = staged_test_validation
                 new_manifests = _manifests({path: new_sources[path] for path in unit.owns if path in new_sources})
@@ -807,11 +904,130 @@ class BlueprintUnitExecutor:
                     if path in unit.owns and path in new_manifests:
                         breaks = interface_breaks(before, new_manifests[path], unit.required_interfaces)
                         if breaks: raise PermissionError("interface guard: " + "; ".join(breaks))
+
+                baseline_hash = self.materialized_units[unit.unit_id][1]
+                candidate_state = RepairCandidateState(unit.unit_id, baseline_hash)
+                candidate_state.transition(RepairCandidateStatus.PATCH_VALID)
+                validation_receipt = None
+                progress = RepairProgress.INCOMPARABLE
+                regression: dict[str, Any] = {"status": "NOT_RUN"}
+                with tempfile.TemporaryDirectory(prefix="cgkn-repair-candidate-") as temporary:
+                    staged_root = pathlib.Path(temporary) / "workspace"
+                    shutil.copytree(
+                        self.root,
+                        staged_root,
+                        ignore=shutil.ignore_patterns(".git", ".cgkn", ".pytest_cache", "__pycache__", "*.pyc"),
+                    )
+                    for item in planned:
+                        staged = staged_root / pathlib.PurePosixPath(item.relative)
+                        staged.parent.mkdir(parents=True, exist_ok=True)
+                        staged.write_bytes(item.content)
+                    candidate_state.transition(RepairCandidateStatus.STAGED)
+                    candidate_state.transition(RepairCandidateStatus.TARGET_VALIDATING)
+                    if target is not None:
+                        validation_receipt = CanonicalRepairTargetValidator().validate(target, staged_root)
+                        progress = classify_repair_progress(target.fingerprint, validation_receipt.fingerprint)
+                        if validation_receipt.status != "PASS":
+                            candidate_state.transition(RepairCandidateStatus.TARGET_FAIL)
+                            candidate_state.transition(RepairCandidateStatus.DISCARDED)
+                            evidence = RepairAttemptEvidence(
+                                repair_attempt_number,
+                                progress,
+                                changed,
+                                summarize_patch_diff(sources, new_sources, changed),
+                                validation_receipt,
+                            )
+                            history = self.repair_attempt_history.setdefault(unit.unit_id, [])
+                            history.append(evidence)
+                            self.calls[-1].update({
+                                "repair_candidate_state": candidate_state.as_dict(),
+                                "repair_target": target.as_dict(),
+                                "repair_progress": progress.value,
+                                "repair_validation": validation_receipt.as_dict(),
+                                "candidate_committed": False,
+                                "candidate_diff": evidence.diff,
+                                "relevant_files": list(relevant_sources),
+                                "relevant_functions": list(relevant_functions),
+                                "baseline_hash": baseline_hash,
+                                "repair_target_rerun_count": 1,
+                                "repair_no_progress": progress is RepairProgress.NO_PROGRESS,
+                                "repair_exact_target_fixed": False,
+                                "repair_candidate_rejected": True,
+                                "repair_evidence_packet_hash": canonical_hash(evidence_packet) if evidence_packet else None,
+                            })
+                            same_no_progress = (
+                                len(history) >= 2
+                                and history[-1].progress is RepairProgress.NO_PROGRESS
+                                and history[-2].progress is RepairProgress.NO_PROGRESS
+                                and history[-1].validation.fingerprint is not None
+                                and history[-2].validation.fingerprint is not None
+                                and history[-1].validation.fingerprint.fingerprint_hash
+                                == history[-2].validation.fingerprint.fingerprint_hash
+                            )
+                            failure_type = "REPAIR_STALLED" if same_no_progress else (
+                                "REPAIR_NO_PROGRESS" if progress is RepairProgress.NO_PROGRESS else "REPAIR_TARGET_FAILURE"
+                            )
+                            raise UnitOutputValidationError(
+                                failure_type,
+                                f"repair candidate discarded: canonical target remains {validation_receipt.fingerprint.normalized_actual if validation_receipt.fingerprint else 'unresolved'}",
+                                retryable=not same_no_progress,
+                                failure_stage=FailureStage.UNIT_OUTPUT_VALIDATION.value,
+                                owner_unit_id=unit.unit_id,
+                                details={
+                                    "repair_progress": progress.value,
+                                    "repair_candidate_state": candidate_state.as_dict(),
+                                    "repair_validation": validation_receipt.as_dict(),
+                                },
+                            )
+                    candidate_state.transition(RepairCandidateStatus.TARGET_PASS)
+                    regression = run_targeted_regression(staged_root)
+                    if regression["status"] != "PASS":
+                        candidate_state.transition(RepairCandidateStatus.DISCARDED)
+                        self.calls[-1].update({
+                            "repair_candidate_state": candidate_state.as_dict(),
+                            "repair_progress": RepairProgress.REGRESSED.value,
+                            "targeted_regression": regression,
+                            "candidate_committed": False,
+                            "baseline_hash": baseline_hash,
+                            "repair_target_rerun_count": 1 if target is not None else 0,
+                            "repair_no_progress": False,
+                            "repair_exact_target_fixed": bool(target is not None),
+                            "repair_candidate_rejected": True,
+                            "repair_evidence_packet_hash": canonical_hash(evidence_packet) if evidence_packet else None,
+                        })
+                        raise UnitOutputValidationError(
+                            "REPAIR_REGRESSION",
+                            f"repair candidate discarded after {regression.get('stage')} regression failure",
+                            retryable=True,
+                            failure_stage=FailureStage.UNIT_OUTPUT_VALIDATION.value,
+                            owner_unit_id=unit.unit_id,
+                            details={"repair_candidate_state": candidate_state.as_dict(), "targeted_regression": regression},
+                        )
+                    candidate_state.transition(RepairCandidateStatus.REGRESSION_PASS)
                 results = transaction.apply(actions)
+                candidate_state.transition(RepairCandidateStatus.COMMITTED)
                 self.register_materialized_baseline(unit)
                 self.generation_failure_reports.pop(unit.unit_id, None)
+                self.repair_targets.pop(unit.unit_id, None)
+                self.repair_attempt_history.pop(unit.unit_id, None)
                 unit_result = UnitResult(unit.unit_id, "SUCCEEDED", changed, observed_interfaces=tuple(item.manifest_hash for item in new_manifests.values()), provider_usage=tuple((str(key), str(value)) for key, value in sorted(usage.items())), duration=int((time.perf_counter() - clock) * 1000), materialized_baseline=True)
-                self.calls[-1]["unit_result"] = "SUCCEEDED"
+                self.calls[-1].update({
+                    "unit_result": "SUCCEEDED",
+                    "repair_candidate_state": candidate_state.as_dict(),
+                    "repair_target": target.as_dict() if target else None,
+                    "repair_progress": RepairProgress.FIXED.value if target else RepairProgress.INCOMPARABLE.value,
+                    "repair_validation": validation_receipt.as_dict() if validation_receipt else None,
+                    "targeted_regression": regression,
+                    "candidate_committed": True,
+                    "relevant_files": list(relevant_sources),
+                    "relevant_functions": list(relevant_functions),
+                    "baseline_hash": baseline_hash,
+                    "repair_target_rerun_count": 1 if target is not None else 0,
+                    "repair_no_progress": False,
+                    "repair_exact_target_fixed": bool(target is not None),
+                    "repair_candidate_rejected": False,
+                    "repair_evidence_packet_hash": canonical_hash(evidence_packet) if evidence_packet else None,
+                })
                 outputs = {"unit_result": unit_result.as_dict(), "summary": summary, "modified_files": list(changed), "observed_interfaces": {path: item.as_dict() for path, item in new_manifests.items()}, "context_chars": len(json.dumps(prompt, ensure_ascii=False, sort_keys=True)), "included_files": list(sources), "included_interfaces": list(manifests), "included_dependencies": list(request.task_context.dependency_results), "action_results": results, "test_authority_receipt": authority_receipt.as_dict() if authority_receipt else None}
                 return BlockExecutionResult(request.project_id, request.run_id, request.attempt_id, request.node_id, request.executor_ref, BlockStatus.SUCCEEDED, outputs=outputs, started_at=started, ended_at=utc_now(), duration_ms=unit_result.duration, usage=usage)
 
@@ -986,7 +1202,9 @@ class BlueprintUnitExecutor:
                                 materialization.staged_files.clear()
                                 materialization.total_output_bytes = 0
                                 self._raise_for_test_authority(authority_receipt, retryable=True)
-                        staged_test_validation = self._validate_staged_tests(unit, candidate_files, authority_receipt)
+                        staged_test_validation = self._validate_staged_tests(
+                            unit, candidate_files, authority_receipt, request.task_context.node_config,
+                        )
                         if staged_test_validation is not None:
                             self.calls[-1]["staged_test_validation"] = staged_test_validation
                 except UnitOutputValidationError as exc:
@@ -1138,6 +1356,8 @@ class BlueprintUnitExecutor:
                 "operation": mode,
                 "materialized_baseline": bool(unit is not None and self.has_materialized_baseline(unit.unit_id)),
             }
+            if isinstance(exc, UnitOutputValidationError):
+                details.update(exc.details)
             explicit_owner = str(getattr(exc, "owner_unit_id", "") or "")
             if explicit_owner:
                 details["owner_unit_id"] = explicit_owner
@@ -1574,10 +1794,35 @@ class MinimalProjectLoop:
             action = FailureAction.STOP.value
         if failure_type == "RUNTIME_FAILURE":
             failure_type = "SYNTAX_ERROR" if "SyntaxError" in message else "IMPORT_ERROR" if "ImportError" in message or "ModuleNotFoundError" in message else "NAME_ERROR" if "NameError" in message else failure_type
+        if failure_type == "REPAIR_STALLED":
+            action = FailureAction.STOP.value
         owned_frames = cls._owned_traceback_frames(blueprint, result)
         selected_frame = next((item for item in reversed(owned_frames) if item[1] == owner), None)
         frame = selected_frame[3] if selected_frame else ""
         owner_file = selected_frame[2] if selected_frame else ""
         affected = downstream_closure(dag, {owner}) if owner else ()
         suggestion = "retry generation for the same unit with failure context" if action == FailureAction.RETRY_GENERATION.value else "patch the owner unit while preserving observed interfaces" if action == FailureAction.REPAIR_EXISTING.value else "stop fail-closed; attribution is unresolved"
-        return FailureReport(origin, failure_type, failure_stage=stage, owner_unit_id=owner, recovery_action=action, materialized_baseline=baseline, owner_file=owner_file, first_project_frame=frame, failed_check=failed_check, expected="check exit code 0", observed=message[:2000], affected_units=affected, suggested_action=suggestion, evidence_refs=(f"node_results/{failed_check}.json",))
+        repair_target = details.get("repair_target") if isinstance(details.get("repair_target"), Mapping) else {}
+        repair_validation = details.get("repair_validation") if isinstance(details.get("repair_validation"), Mapping) else {}
+        repair_fingerprint = (
+            repair_target.get("fingerprint") if isinstance(repair_target.get("fingerprint"), Mapping)
+            else repair_validation.get("fingerprint") if isinstance(repair_validation.get("fingerprint"), Mapping)
+            else {}
+        )
+        return FailureReport(
+            origin, failure_type, failure_stage=stage, owner_unit_id=owner, recovery_action=action,
+            materialized_baseline=baseline,
+            owner_file=str(repair_fingerprint.get("relevant_source_locator") or owner_file),
+            owner_interface=str(repair_fingerprint.get("relevant_interface_id") or ""),
+            first_project_frame=frame,
+            failed_check=failed_check,
+            expected=str(repair_fingerprint.get("normalized_expected") or "check exit code 0"),
+            observed=str(repair_fingerprint.get("normalized_actual") or message[:2000]),
+            affected_units=affected, suggested_action=suggestion,
+            evidence_refs=(f"node_results/{failed_check}.json",),
+            failed_requirement_ids=tuple(str(item) for item in repair_fingerprint.get("requirement_ids", ())),
+            mapping_complete=bool(repair_fingerprint.get("requirement_ids")),
+            repair_target_hash=str(repair_target.get("target_hash") or repair_validation.get("target_hash") or ""),
+            repair_failure_fingerprint_hash=str(repair_fingerprint.get("fingerprint_hash") or ""),
+            repair_progress=str(details.get("repair_progress") or ""),
+        )

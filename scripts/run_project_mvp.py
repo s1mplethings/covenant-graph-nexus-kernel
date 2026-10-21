@@ -24,6 +24,11 @@ from cgkn.application.project_blueprint import (
 )
 from cgkn.application.materialization import materialize_json
 from cgkn.application.project_loop import BlueprintUnitExecutor, MinimalProjectLoop, coordinator_design_request
+from cgkn.application.repair_convergence import (
+    CanonicalRepairTargetValidator,
+    RepairFailureFingerprint,
+    RepairTargetSpec,
+)
 from cgkn.application.test_authority import PublicContractProjection
 from cgkn.application.software_project.catalog import get_case
 from cgkn.execution import BlockExecutionRequest, TaskContext
@@ -61,20 +66,49 @@ def _summarize_calls(calls: list[dict[str, Any]]) -> dict[str, Any]:
         "cached_tokens": total("cached_tokens"), "reasoning_tokens": total("reasoning_tokens"),
         "finish_reasons": [call.get("finish_reason") or dict(call.get("selection_receipt") or {}).get("finish_reason") for call in calls],
         "transport_attempts": [call.get("transport_attempts") for call in calls],
+        "repair_target_rerun_count": sum(int(call.get("repair_target_rerun_count") or 0) for call in calls),
+        "repair_no_progress_count": sum(call.get("repair_no_progress") is True for call in calls),
+        "repair_exact_target_fixed_count": sum(call.get("repair_exact_target_fixed") is True for call in calls),
+        "repair_candidate_rejected_count": sum(call.get("repair_candidate_rejected") is True for call in calls),
     }
 
 
 def _source_identity() -> dict[str, Any]:
-    sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+    repository_head = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     dirty = subprocess.check_output(
         ["git", "status", "--short", "--untracked-files=no"], cwd=ROOT, text=True,
     ).strip()
-    return {"cgnk_source_commit": sha, "tracked_worktree_clean": not bool(dirty)}
+    source_commit = repository_head
+    boundary_hash = ""
+    receipt_path = ROOT / "governance" / "software_project_generation_receipt.json"
+    try:
+        from scripts.source_boundaries import boundary_identity
+
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        receipt_commit = str(receipt.get("source_commit") or "")
+        current_boundary = boundary_identity("application", "HEAD")
+        receipt_boundary = boundary_identity("application", receipt_commit)
+        boundary_hash = str(current_boundary["boundary_hash"])
+        if receipt_boundary["boundary_hash"] == current_boundary["boundary_hash"]:
+            source_commit = receipt_commit
+    except (OSError, ValueError, KeyError, RuntimeError, json.JSONDecodeError):
+        pass
+    return {
+        "cgnk_source_commit": source_commit,
+        "repository_head": repository_head,
+        "application_boundary_hash": boundary_hash,
+        "tracked_worktree_clean": not bool(dirty),
+    }
 
 
 def _run_pytest(expression: str) -> dict[str, Any]:
     started = time.perf_counter(); env = os.environ.copy(); env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
-    command = [sys.executable, "-m", "pytest", "-q", "tests/application/test_project_blueprint.py", "tests/application/test_project_loop.py"]
+    command = [
+        sys.executable, "-m", "pytest", "-q",
+        "tests/application/test_project_blueprint.py",
+        "tests/application/test_project_loop.py",
+        "tests/application/test_repair_convergence.py",
+    ]
     if expression: command.extend(["-k", expression])
     completed = subprocess.run(command, cwd=ROOT, text=True, encoding="utf-8", errors="replace", capture_output=True, env=env)
     return {"command": command, "exit": completed.returncode, "stdout": completed.stdout, "stderr": completed.stderr, "duration_ms": int((time.perf_counter() - started) * 1000), "status": "PASS" if completed.returncode == 0 else "FAIL"}
@@ -549,6 +583,193 @@ def _worker_probe(artifact_root: pathlib.Path, *, patch_mode: bool) -> dict[str,
     return outcome
 
 
+_REPAIR_PROBE_MAIN = '''"""CLI entry point for the repair convergence probe."""
+from __future__ import annotations
+
+import argparse
+import csv
+import sys
+
+from .core import clean_rows
+
+
+def _read_csv(path: str):
+    with open(path, "r", newline="", encoding="utf-8") as handle:
+        rows = list(csv.reader(handle))
+    if not rows:
+        raise ValueError("input CSV is empty")
+    return rows[0], rows[1:]
+
+
+def _write_csv(path: str, header, rows) -> None:
+    with open(path, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(header)
+        writer.writerows(rows)
+
+
+def _print_preview(rows, count: int) -> None:
+    if count <= 0:
+        return
+    writer = csv.writer(sys.stdout)
+    writer.writerows(rows[:count])
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description="Clean CSV files")
+    parser.add_argument("input")
+    parser.add_argument("output")
+    parser.add_argument("--preview", type=int, default=0)
+    args = parser.parse_args(argv)
+    header, rows = _read_csv(args.input)
+    cleaned = clean_rows(rows)
+    _write_csv(args.output, header, cleaned)
+    _print_preview(cleaned, args.preview)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+'''
+
+
+def _repair_probe_target(baseline_hash: str) -> RepairTargetSpec:
+    normalized_input = {
+        "delimiter": ",", "header": ["id", "name", "city"],
+        "input_path": "input.csv", "output_path": "output.csv",
+        "rows": [["1", "Ada", ""], ["2", "Lin", "Paris"]],
+    }
+    fingerprint = RepairFailureFingerprint(
+        ("OBL-CSV-PREVIEW", "REQ-002", "REQ-CSV-ACCEPT-02"),
+        "implementation-1", "test_preview_prints_rows_and_writes_output", "stdout.csv_rows",
+        json.dumps(normalized_input, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+        json.dumps([["1", "Ada", ""]], ensure_ascii=False, separators=(",", ":")),
+        json.dumps([["1", "Ada", ""], []], ensure_ascii=False, separators=(",", ":")),
+        "EXTRA_EMPTY_ROW", "python -m csv_cleaner",
+        "csv_cleaner/__main__.py:_print_preview", baseline_hash,
+    )
+    operation = {"commands": [{"argv": ["python", "-m", "csv_cleaner", "input.csv", "output.csv", "--preview", "1"]}]}
+    expected = {"rows": [["1", "Ada", ""]], "output_created": True}
+    return RepairTargetSpec(
+        fingerprint,
+        json.dumps(operation, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+        json.dumps(normalized_input, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+        json.dumps(expected, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
+    )
+
+
+def _worker_repair_probe(artifact_root: pathlib.Path, *, count: int, provider: str) -> dict[str, Any]:
+    if count != 3:
+        raise ValueError("worker repair qualification requires exactly three independent runs")
+    identity = _source_identity()
+    if not identity["tracked_worktree_clean"]:
+        raise RuntimeError("worker repair qualification requires a frozen clean Source Closure")
+    base_client = completion_client_from_environment()
+    if not isinstance(base_client, GatewayCompletionClient):
+        raise RuntimeError("worker repair qualification requires the reviewed API Lab Gateway route")
+    runs: list[dict[str, Any]] = []
+    for index in range(1, count + 1):
+        run_id = f"worker-repair-{provider}-{index}-{uuid.uuid4().hex[:10]}"
+        workspace = artifact_root / "worker_repair_probe" / run_id / "workspace"
+        (workspace / "csv_cleaner").mkdir(parents=True, exist_ok=False)
+        (workspace / "csv_cleaner" / "__init__.py").write_text("", encoding="utf-8")
+        (workspace / "csv_cleaner" / "core.py").write_text(
+            "def clean_rows(rows):\n    return [list(row) for row in rows]\n", encoding="utf-8",
+        )
+        (workspace / "csv_cleaner" / "__main__.py").write_text(_REPAIR_PROBE_MAIN, encoding="utf-8")
+        tests = workspace / "tests"; tests.mkdir()
+        (tests / "test_preview.py").write_text(
+            "import csv, subprocess, sys\n\n"
+            "def test_preview_exact_rows(tmp_path):\n"
+            "    source=tmp_path/'input.csv'; target=tmp_path/'output.csv'\n"
+            "    source.write_text('id,name,city\\n1,Ada,\\n2,Lin,Paris\\n', encoding='utf-8')\n"
+            "    result=subprocess.run([sys.executable,'-m','csv_cleaner',str(source),str(target),'--preview','1'],capture_output=True,text=True)\n"
+            "    assert result.returncode == 0\n"
+            "    assert list(csv.reader(result.stdout.splitlines())) == [['1','Ada','']]\n",
+            encoding="utf-8",
+        )
+        unit = BlueprintUnit(
+            "implementation-1", "CSV CLI preview implementation", "implementation",
+            ("csv_cleaner/__main__.py",), reads=("csv_cleaner/core.py",),
+            executor_ref="llm.cheap@1",
+            instruction="Repair the exact CSV preview output mismatch while preserving the CLI and all public interfaces.",
+            required_interfaces=("main",), acceptance=("preview stdout has exactly the requested data rows and no empty record",),
+            allowed_effects=("filesystem.read", "filesystem.write"),
+        )
+        client = base_client.bind_run(run_id, "worker_repair_probe", budget_purpose="REPAIR")
+        executor = BlueprintUnitExecutor(
+            workspace, client, _worker_generation_model_config(provider), _worker_repair_model_config(provider),
+        )
+        executor.register_materialized_baseline(unit)
+        baseline_hash = executor.materialized_units[unit.unit_id][1]
+        target = _repair_probe_target(baseline_hash)
+        executor.repair_targets[unit.unit_id] = target
+        executor.failure_reports[unit.unit_id] = FailureReport(
+            "tests-1", "PUBLIC_CONTRACT_FAILURE", failure_stage=FailureStage.TEST.value,
+            owner_unit_id=unit.unit_id, recovery_action=FailureAction.REPAIR_EXISTING.value,
+            materialized_baseline=True, owner_file="csv_cleaner/__main__.py",
+            owner_interface="python -m csv_cleaner", failed_check="pytest",
+            expected="preview stdout parses to exactly [['1','Ada','']]",
+            observed="preview stdout parses to [['1','Ada',''], []]",
+            affected_units=(unit.unit_id,), suggested_action="repair the preview writer without changing CSV input semantics",
+            evidence_refs=("public-test:test_preview_prints_rows_and_writes_output",),
+        )
+        request = BlockExecutionRequest(
+            "worker_repair_probe", run_id, "attempt-1", unit.unit_id,
+            "project.unit.implementation@1", "llm.cheap@1",
+            TaskContext(
+                unit.instruction,
+                node_config={"unit": unit.as_dict(), "project_goal": get_case("cli_csv_cleaner").public_goal},
+                project_constraints=("stdlib only", "offline", "do not modify tests"), acceptance=unit.acceptance,
+            ), timeout_seconds=150, declared_effects=unit.allowed_effects,
+        )
+        started = time.perf_counter()
+        block = executor.execute(request)
+        call = executor.calls[-1] if executor.calls else {}
+        local_target = CanonicalRepairTargetValidator().validate(target, workspace)
+        pytest_run = subprocess.run(
+            [sys.executable, "-m", "pytest", "-q"], cwd=workspace, capture_output=True,
+            text=True, encoding="utf-8", errors="replace", env={**os.environ, "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1"},
+        )
+        passed = (
+            block.succeeded and len(executor.calls) == 1 and _worker_receipt_complete(call)
+            and call.get("repair_exact_target_fixed") is True and call.get("candidate_committed") is True
+            and local_target.status == "PASS" and pytest_run.returncode == 0
+        )
+        row = materialize_json({
+            "run_id": run_id, "status": "PASS" if passed else "FAIL", "provider": provider,
+            "model": call.get("model"), "logical_calls": len(executor.calls),
+            "baseline_hash_before": baseline_hash,
+            "baseline_hash_after": executor.materialized_units.get(unit.unit_id, ((), ""))[1],
+            "failure_fingerprint_before": target.fingerprint.as_dict(),
+            "failure_fingerprint_after": local_target.fingerprint.as_dict() if local_target.fingerprint else None,
+            "repair_progress": call.get("repair_progress"),
+            "repair_target_rerun_count": call.get("repair_target_rerun_count"),
+            "candidate_committed": call.get("candidate_committed"),
+            "target_validation": local_target.as_dict(),
+            "pytest": {"status": "PASS" if pytest_run.returncode == 0 else "FAIL", "stdout": pytest_run.stdout[-3000:]},
+            "context_chars": call.get("context_chars"), "input_tokens": call.get("prompt_tokens"),
+            "output_tokens": call.get("completion_tokens"), "cached_tokens": call.get("cached_tokens"),
+            "reasoning_tokens": call.get("reasoning_tokens"), "selection_receipt_hash": call.get("selection_receipt_hash"),
+            "provider_call": call, "block_result": block.as_dict(),
+            "duration_ms": int((time.perf_counter() - started) * 1000), "manual_edits": 0,
+        })
+        target_path = artifact_root / "worker_repair_probe" / f"{run_id}.json"
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path.write_text(json.dumps(row, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        runs.append(row)
+    passed = all(row["status"] == "PASS" for row in runs)
+    result = {
+        "profile": "worker-repair-probe", "provider": provider,
+        "status": "PASS" if passed else "WORKER_REPAIR_NOT_QUALIFIED",
+        "qualification": "3/3" if passed else f"{sum(row['status'] == 'PASS' for row in runs)}/3",
+        "source_identity": identity, "runs": runs,
+    }
+    index = artifact_root / "worker_repair_probe" / f"{provider}_index.json"
+    index.write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return result
+
+
 def _required_interfaces_present(workspace: pathlib.Path, unit: BlueprintUnit) -> bool:
     definitions: set[str] = set()
     for relative in unit.owns:
@@ -824,9 +1045,13 @@ def _worker_real_unit(
     return result
 
 
-def _worker_cohesive_live(artifact_root: pathlib.Path, *, count: int) -> dict[str, Any]:
-    if count != 2:
-        raise ValueError("worker cohesive live probe requires exactly two independent runs")
+def _worker_cohesive_live(
+    artifact_root: pathlib.Path, *, count: int, provider: str = "deepseek",
+    profile: str = "worker-cohesive-live",
+) -> dict[str, Any]:
+    required_count = 3 if profile == "worker-test-generation-probe" else 2
+    if count != required_count:
+        raise ValueError(f"{profile} requires exactly {required_count} independent runs")
     identity = _source_identity()
     if not identity["tracked_worktree_clean"]:
         raise RuntimeError("worker cohesive live probe requires a frozen clean Source Closure")
@@ -835,8 +1060,9 @@ def _worker_cohesive_live(artifact_root: pathlib.Path, *, count: int) -> dict[st
         raise RuntimeError("worker cohesive live probe requires the reviewed API Lab Gateway route")
     runs: list[dict[str, Any]] = []
     for index in range(1, count + 1):
-        run_id = f"worker-cohesive-live-{index}-{uuid.uuid4().hex[:10]}"
-        workspace = artifact_root / "worker_cohesive_live" / run_id / "workspace"
+        run_id = f"{profile}-{provider}-{index}-{uuid.uuid4().hex[:10]}"
+        evidence_dir = "worker_test_generation_probe" if profile == "worker-test-generation-probe" else "worker_cohesive_live"
+        workspace = artifact_root / evidence_dir / run_id / "workspace"
         (workspace / "csv_cleaner").mkdir(parents=True, exist_ok=False)
         (workspace / "csv_cleaner" / "__init__.py").write_text(
             "from .core import clean_file, clean_rows\n__all__ = ['clean_file', 'clean_rows']\n",
@@ -893,7 +1119,7 @@ def _worker_cohesive_live(artifact_root: pathlib.Path, *, count: int) -> dict[st
             allowed_effects=("filesystem.read", "filesystem.write"), max_actions=2, max_files=2,
         )
         client = base_client.bind_run(run_id, "worker_cohesive_tests_probe", budget_purpose="GENERATION")
-        executor = BlueprintUnitExecutor(workspace, client, _worker_generation_model_config("deepseek"))
+        executor = BlueprintUnitExecutor(workspace, client, _worker_generation_model_config(provider))
         request = BlockExecutionRequest(
             project_id="worker_cohesive_tests_probe", run_id=run_id, attempt_id="attempt-1",
             node_id=unit.unit_id, component_ref="project.unit.tests@1", executor_ref="llm.cheap@1",
@@ -976,24 +1202,27 @@ def _worker_cohesive_live(artifact_root: pathlib.Path, *, count: int) -> dict[st
             "duration_ms": int((time.perf_counter() - started) * 1000),
             "block_result": block.as_dict(),
         })
-        target = artifact_root / "worker_cohesive_live" / f"{run_id}.json"
+        target = artifact_root / evidence_dir / f"{run_id}.json"
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(row, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         runs.append(row)
     passed = all(row["status"] == "PASS" for row in runs)
     result = {
-        "profile": "worker-cohesive-live", "status": "PASS" if passed else "BLOCKED_WORKER_MATERIALIZATION",
-        "qualification": "2/2" if passed else f"{sum(row['status'] == 'PASS' for row in runs)}/2",
+        "profile": profile, "provider": provider,
+        "status": "PASS" if passed else (
+            "WORKER_TEST_GENERATION_NOT_QUALIFIED" if profile == "worker-test-generation-probe" else "BLOCKED_WORKER_MATERIALIZATION"
+        ),
+        "qualification": f"{required_count}/{required_count}" if passed else f"{sum(row['status'] == 'PASS' for row in runs)}/{required_count}",
         "source_identity": identity, "runs": runs,
     }
-    index = artifact_root / "worker_cohesive_live" / "index.json"
+    index = artifact_root / evidence_dir / f"{provider}_index.json"
     index.write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return result
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the CGNK minimal ProjectBlueprint MVP profiles")
-    parser.add_argument("--profile", required=True, choices=("unit", "unit-materialization", "fake-single", "fake-repair", "coordinator-contract-probe", "coordinator-diagnostic", "coordinator-qualify", "worker-file-probe", "worker-patch-probe", "worker-real-unit-diagnostic", "worker-cohesive-qualify", "worker-cohesive-replay", "worker-cohesive-live", "live-single", "live-repair", "fake-parallel", "fake-conflict", "fake-standup", "live-parallel", "live-repeat", "final"))
+    parser.add_argument("--profile", required=True, choices=("unit", "unit-materialization", "fake-single", "fake-repair", "coordinator-contract-probe", "coordinator-diagnostic", "coordinator-qualify", "worker-file-probe", "worker-patch-probe", "worker-repair-probe", "worker-test-generation-probe", "worker-real-unit-diagnostic", "worker-cohesive-qualify", "worker-cohesive-replay", "worker-cohesive-live", "live-single", "live-repair", "fake-parallel", "fake-conflict", "fake-standup", "live-parallel", "live-repeat", "final"))
     parser.add_argument("--artifact-root", type=pathlib.Path, default=ROOT / ".service_evidence" / "project_mvp")
     parser.add_argument("--count", type=int, default=5)
     parser.add_argument("--provider", default="qwen")
@@ -1013,6 +1242,13 @@ def main(argv: list[str] | None = None) -> int:
     elif args.profile == "coordinator-qualify": result = _coordinator_qualify(args.artifact_root.resolve(), count=args.count, provider=args.provider)
     elif args.profile == "worker-file-probe": result = _worker_probe(args.artifact_root.resolve(), patch_mode=False)
     elif args.profile == "worker-patch-probe": result = _worker_probe(args.artifact_root.resolve(), patch_mode=True)
+    elif args.profile == "worker-repair-probe":
+        result = _worker_repair_probe(args.artifact_root.resolve(), count=args.count, provider=args.provider)
+    elif args.profile == "worker-test-generation-probe":
+        result = _worker_cohesive_live(
+            args.artifact_root.resolve(), count=args.count, provider=args.provider,
+            profile="worker-test-generation-probe",
+        )
     elif args.profile in {"worker-real-unit-diagnostic", "worker-cohesive-qualify"}:
         if args.blueprint_path is None:
             raise ValueError("worker real-unit profiles require --blueprint-path")
@@ -1025,7 +1261,7 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError("worker cohesive replay requires --replay-index")
         result = _worker_cohesive_replay(args.artifact_root.resolve(), replay_index=args.replay_index.resolve())
     elif args.profile == "worker-cohesive-live":
-        result = _worker_cohesive_live(args.artifact_root.resolve(), count=args.count)
+        result = _worker_cohesive_live(args.artifact_root.resolve(), count=args.count, provider=args.provider)
     elif args.profile in {"live-single", "live-repair"}: result = _live(args.profile, args.artifact_root.resolve())
     elif args.profile == "live-repeat": result = _live_repeat(args.artifact_root.resolve(), count=args.count)
     else:
