@@ -1119,7 +1119,14 @@ def _worker_cohesive_live(
             allowed_effects=("filesystem.read", "filesystem.write"), max_actions=2, max_files=2,
         )
         client = base_client.bind_run(run_id, "worker_cohesive_tests_probe", budget_purpose="GENERATION")
-        executor = BlueprintUnitExecutor(workspace, client, _worker_generation_model_config(provider))
+        executor = BlueprintUnitExecutor(
+            workspace,
+            client,
+            _worker_generation_model_config(provider),
+            materialization_policy=(
+                "FULL_RETRY" if profile == "worker-test-generation-probe" else "INCREMENTAL"
+            ),
+        )
         request = BlockExecutionRequest(
             project_id="worker_cohesive_tests_probe", run_id=run_id, attempt_id="attempt-1",
             node_id=unit.unit_id, component_ref="project.unit.tests@1", executor_ref="llm.cheap@1",
