@@ -416,7 +416,18 @@ class TestAuthorityFirewall:
                 continue
             extractor = _AssertionExtractor(path)
             extractor.visit(tree)
-            findings.extend(self._classify(item, projection) for item in extractor.items)
+            filtered_helpers = {
+                node.name
+                for node in ast.walk(tree)
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and any(
+                    isinstance(candidate, (ast.ListComp, ast.SetComp, ast.GeneratorExp))
+                    and any(generator.ifs for generator in candidate.generators)
+                    and "csv.reader" in ast.unparse(candidate)
+                    for candidate in ast.walk(node)
+                )
+            }
+            findings.extend(self._classify(item, projection, filtered_helpers) for item in extractor.items)
 
         covered = {
             requirement_id
@@ -440,7 +451,12 @@ class TestAuthorityFirewall:
         status = "FAIL" if any(item.authority in self._FAILURES for item in findings) else "PASS"
         return TestAuthorityReceipt(status, projection.projection_hash, tuple(findings), tuple(sorted(covered)), uncovered)
 
-    def _classify(self, raw: _RawAssertion, projection: PublicContractProjection) -> TestAssertionFinding:
+    def _classify(
+        self,
+        raw: _RawAssertion,
+        projection: PublicContractProjection,
+        filtered_observation_helpers: set[str] | None = None,
+    ) -> TestAssertionFinding:
         bindings = dict(raw.bindings)
         actual, expected, operator = _comparison(raw.node, bindings)
         origin = ""
@@ -478,6 +494,16 @@ class TestAuthorityFirewall:
             preview_expected = thaw(preview.expected_semantics)
             expected_rows = preview_expected.get("stdout_csv", {}).get("rows", [])
             header = thaw(preview.operation).get("setup", {}).get("header")
+            filtered_observation_helpers = filtered_observation_helpers or set()
+            if any(re.search(rf"\b{re.escape(name)}\s*\(", origin) for name in filtered_observation_helpers):
+                return self._finding(
+                    raw,
+                    "stdout.csv_rows",
+                    expected,
+                    AssertionAuthority.TEST_CONTRACT_UNPROVEN,
+                    requirement_ids,
+                    "parsed preview helper filters observed CSV rows before comparison",
+                )
             if origin:
                 try:
                     origin_node = ast.parse(origin, mode="eval").body

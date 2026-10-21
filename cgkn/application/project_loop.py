@@ -29,7 +29,7 @@ from cgkn.providers import CompletionClient, GatewayCompletionError, ModelRoleCo
 from cgkn.runtime import DAGRunner, RunSummary
 from cgkn.state import FileRunStore
 
-from .test_authority import PublicContractProjection, TestAuthorityFirewall, TestAuthorityReceipt
+from .test_authority import AssertionAuthority, PublicContractProjection, TestAuthorityFirewall, TestAuthorityReceipt
 
 from .project_blueprint import (
     BlueprintCheck,
@@ -220,10 +220,20 @@ ACCEPTANCE_ATTRIBUTION_SCHEMA: dict[str, Any] = {
 
 
 class UnitOutputValidationError(ValueError):
-    def __init__(self, failure_type: str, message: str, *, retryable: bool = False):
+    def __init__(
+        self,
+        failure_type: str,
+        message: str,
+        *,
+        retryable: bool = False,
+        failure_stage: str = "",
+        owner_unit_id: str = "",
+    ):
         super().__init__(message)
         self.failure_type = failure_type
         self.retryable = retryable
+        self.failure_stage = failure_stage
+        self.owner_unit_id = owner_unit_id
 
 
 def _write_json(path: pathlib.Path, value: Mapping[str, Any]) -> None:
@@ -600,7 +610,12 @@ class BlueprintUnitExecutor:
         )
         raise UnitOutputValidationError(failure_type, findings or "Test Authority Firewall rejected generated tests", retryable=retryable)
 
-    def _validate_staged_tests(self, unit: BlueprintUnit, candidate_files: Mapping[str, str]) -> dict[str, Any] | None:
+    def _validate_staged_tests(
+        self,
+        unit: BlueprintUnit,
+        candidate_files: Mapping[str, str],
+        authority_receipt: TestAuthorityReceipt | None = None,
+    ) -> dict[str, Any] | None:
         if unit.kind != UnitKind.TESTS.value:
             return None
         with tempfile.TemporaryDirectory(prefix="cgkn-tests-stage-") as temporary:
@@ -630,6 +645,34 @@ class BlueprintUnitExecutor:
         }
         if completed.returncode != 0:
             detail = (completed.stdout or completed.stderr or "staged pytest failed")[-3500:]
+            failed_tests = tuple(re.findall(r"(?m)^FAILED\s+[^\s:]+::([A-Za-z_]\w*)", completed.stdout))
+            valid_external_tests = {
+                item.test_id for item in (authority_receipt.findings if authority_receipt else ())
+                if item.authority is AssertionAuthority.TEST_CONTRACT_VALID
+            }
+            assertion_failure = "AssertionError" in completed.stdout or bool(re.search(r"(?m)^E\s+assert\b", completed.stdout))
+            implementation_owners = tuple(unit.depends_on)
+            if (
+                authority_receipt is not None
+                and authority_receipt.status == "PASS"
+                and failed_tests
+                and set(failed_tests) <= valid_external_tests
+                and assertion_failure
+                and len(implementation_owners) == 1
+            ):
+                public_lines = []
+                for raw in completed.stdout.splitlines():
+                    line = raw.strip()
+                    if line.startswith("FAILED ") or line.startswith("E "):
+                        public_lines.append(line[:500])
+                    if len(public_lines) >= 8:
+                        break
+                raise UnitOutputValidationError(
+                    "PUBLIC_CONTRACT_FAILURE",
+                    "Canonical generated public test rejected the implementation:\n" + "\n".join(public_lines),
+                    failure_stage=FailureStage.TEST.value,
+                    owner_unit_id=implementation_owners[0],
+                )
             raise UnitOutputValidationError("TEST_FAILURE", detail, retryable=True)
         return receipt
 
@@ -756,7 +799,7 @@ class BlueprintUnitExecutor:
                 if authority_receipt is not None:
                     self.calls[-1]["test_authority_receipt"] = authority_receipt.as_dict()
                     self._raise_for_test_authority(authority_receipt, retryable=False)
-                staged_test_validation = self._validate_staged_tests(unit, new_sources)
+                staged_test_validation = self._validate_staged_tests(unit, new_sources, authority_receipt)
                 if staged_test_validation is not None:
                     self.calls[-1]["staged_test_validation"] = staged_test_validation
                 new_manifests = _manifests({path: new_sources[path] for path in unit.owns if path in new_sources})
@@ -943,7 +986,7 @@ class BlueprintUnitExecutor:
                                 materialization.staged_files.clear()
                                 materialization.total_output_bytes = 0
                                 self._raise_for_test_authority(authority_receipt, retryable=True)
-                        staged_test_validation = self._validate_staged_tests(unit, candidate_files)
+                        staged_test_validation = self._validate_staged_tests(unit, candidate_files, authority_receipt)
                         if staged_test_validation is not None:
                             self.calls[-1]["staged_test_validation"] = staged_test_validation
                 except UnitOutputValidationError as exc:
@@ -1071,7 +1114,7 @@ class BlueprintUnitExecutor:
                 materialization.record("DISCARDED", reason=str(getattr(exc, "failure_type", type(exc).__name__)))
             policy = isinstance(exc, PermissionError)
             code = ExecutionErrorCode.POLICY_BLOCKED if policy else ExecutionErrorCode.INVALID_OUTPUT if isinstance(exc, ValueError) else ExecutionErrorCode.EXECUTION_ERROR
-            failure_stage = FailureStage.UNIT_OUTPUT_VALIDATION.value
+            failure_stage = str(getattr(exc, "failure_stage", "") or FailureStage.UNIT_OUTPUT_VALIDATION.value)
             failure_type = getattr(exc, "failure_type", "UNIT_OUTPUT_INVALID")
             if isinstance(exc, GatewayCompletionError):
                 category = str(getattr(exc, "category", ""))
@@ -1095,6 +1138,9 @@ class BlueprintUnitExecutor:
                 "operation": mode,
                 "materialized_baseline": bool(unit is not None and self.has_materialized_baseline(unit.unit_id)),
             }
+            explicit_owner = str(getattr(exc, "owner_unit_id", "") or "")
+            if explicit_owner:
+                details["owner_unit_id"] = explicit_owner
             if unit is not None and unit.unit_id in self.test_authority_receipts:
                 details["test_authority_receipt_hash"] = self.test_authority_receipts[unit.unit_id].receipt_hash
             if provider_recorded and self.calls:
@@ -1502,7 +1548,10 @@ class MinimalProjectLoop:
             FailureStage.UNIT_OUTPUT_VALIDATION.value, FailureStage.MATERIALIZATION.value,
             FailureStage.SYNTAX_VALIDATION.value, FailureStage.INTERFACE_VALIDATION.value,
         }
-        if failed_check in blueprint.by_id and stage in local_stages:
+        explicit_owner = str(details.get("owner_unit_id") or "")
+        if explicit_owner in blueprint.by_id:
+            owner = explicit_owner
+        elif failed_check in blueprint.by_id and stage in local_stages:
             owner = failed_check
         else:
             owner = owner_hint or (

@@ -262,6 +262,45 @@ def test_tests_staged_pytest_retries_before_atomic_commit(tmp_path: pathlib.Path
     assert (tmp_path / "tests/test_cli.py").read_text(encoding="utf-8") == passing
 
 
+def test_canonical_staged_assertion_failure_routes_to_implementation(tmp_path: pathlib.Path) -> None:
+    package = tmp_path / "csv_cleaner"
+    package.mkdir()
+    (package / "__init__.py").write_text('\"\"\"CSV cleaner.\"\"\"\n', encoding="utf-8")
+    (package / "__main__.py").write_text("print('wrong')\n", encoding="utf-8")
+    unit = BlueprintUnit(
+        "tests", "public tests", "tests", ("tests/test_cli.py",),
+        depends_on=("core",), executor_ref="llm.cheap@1", instruction="validate preview",
+        acceptance=("preview",), allowed_effects=("filesystem.write",),
+    )
+    canonical_but_failing = """import csv
+import subprocess
+import sys
+
+def test_preview_prints_data_rows():
+    result = subprocess.run([sys.executable, '-m', 'csv_cleaner', 'input.csv', 'output.csv', '--preview', '1'], capture_output=True, text=True)
+    preview_rows = list(csv.reader(result.stdout.splitlines()))
+    assert preview_rows == [['1', 'Ada', '']]
+"""
+    executor = BlueprintUnitExecutor(
+        tmp_path,
+        QueueClient([_bundle("tests", {"tests/test_cli.py": canonical_but_failing})]),
+        ModelRoleConfig("worker", "deepseek"),
+    )
+    request = BlockExecutionRequest(
+        "project", "run", "attempt", unit.unit_id, "project.unit.tests@1", "llm.cheap@1",
+        TaskContext(unit.instruction, node_config=_authority_node_config(unit)),
+        declared_effects=unit.allowed_effects,
+    )
+
+    result = executor.execute(request)
+
+    assert not result.succeeded
+    assert result.error.details["failure_type"] == "PUBLIC_CONTRACT_FAILURE"
+    assert result.error.details["failure_stage"] == FailureStage.TEST.value
+    assert result.error.details["owner_unit_id"] == "core"
+    assert not (tmp_path / "tests/test_cli.py").exists()
+
+
 def test_tests_repair_receives_projection_and_can_replace_wrong_assertion(tmp_path: pathlib.Path) -> None:
     unit = BlueprintUnit(
         "tests", "public tests", "tests", ("tests/test_cli.py",),

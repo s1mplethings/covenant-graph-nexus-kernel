@@ -259,3 +259,18 @@ def test_preview_assertion_cannot_filter_observed_csv_rows() -> None:
     assert receipt.findings[0].authority is AssertionAuthority.TEST_CONTRACT_UNPROVEN
     assert "filters observed CSV rows" in receipt.findings[0].reason
 
+
+def test_preview_assertion_cannot_hide_row_filtering_in_helper() -> None:
+    projection = PublicContractProjection.for_case("cli_csv_cleaner")
+    source = """def _parse_stdout_rows(text):
+    return [row for row in csv.reader(text.splitlines()) if row]
+
+def test_preview_prints_data_rows(result):
+    preview_rows = _parse_stdout_rows(result.stdout)
+    assert preview_rows == [['1', 'Ada', '']]
+"""
+    receipt = TestAuthorityFirewall().validate({"tests/test_cli.py": source}, projection)
+    assert receipt.status == "FAIL"
+    assert receipt.findings[0].authority is AssertionAuthority.TEST_CONTRACT_UNPROVEN
+    assert "helper filters observed CSV rows" in receipt.findings[0].reason
+
