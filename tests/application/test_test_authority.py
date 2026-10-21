@@ -221,3 +221,17 @@ def test_whole_row_dedupe_preserves_header_and_order(result, target):
     assert receipt.status == "PASS"
     assert set(receipt.classifications) == {AssertionAuthority.TEST_CONTRACT_VALID.value}
 
+
+def test_module_header_and_parsed_csv_alias_slices_retain_public_semantics() -> None:
+    projection = PublicContractProjection.for_case("cli_csv_cleaner")
+    source = """HEADER = ['id', 'name', 'city']
+def test_cli_whole_row_dedupe_preserves_header_and_order(target):
+    written = _read_csv(target)
+    assert written[0] == HEADER
+    assert written[1:] == [['1', 'Ada', ''], ['2', 'Lin', 'Paris']]
+"""
+    receipt = TestAuthorityFirewall().validate({"tests/test_cli.py": source}, projection)
+    assert receipt.status == "PASS"
+    assert [item.observable for item in receipt.findings] == ["csv.header", "output.csv"]
+    assert set(receipt.classifications) == {AssertionAuthority.TEST_CONTRACT_VALID.value}
+

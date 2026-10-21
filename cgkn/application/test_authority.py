@@ -3,6 +3,7 @@ from __future__ import annotations
 import ast
 import csv
 import io
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Mapping
@@ -263,6 +264,11 @@ class _RawAssertion:
     bindings: tuple[tuple[str, Any], ...] = ()
 
 
+@dataclass(frozen=True)
+class _ExpressionBinding:
+    expression: str
+
+
 class _AssertionExtractor(ast.NodeVisitor):
     def __init__(self, path: str):
         self.path = path
@@ -272,7 +278,7 @@ class _AssertionExtractor(ast.NodeVisitor):
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         previous, self.function = self.function, node.name
-        previous_bindings, self.bindings = self.bindings, {}
+        previous_bindings, self.bindings = self.bindings, dict(self.bindings)
         self.generic_visit(node)
         self.bindings = previous_bindings
         self.function = previous
@@ -288,10 +294,10 @@ class _AssertionExtractor(ast.NodeVisitor):
 
     def visit_Assign(self, node: ast.Assign) -> None:
         value = _literal(node.value)
-        if value is not None:
-            for target in node.targets:
-                if isinstance(target, ast.Name):
-                    self.bindings[target.id] = value
+        bound: Any = value if value is not None else _ExpressionBinding(ast.unparse(node.value))
+        for target in node.targets:
+            if isinstance(target, ast.Name):
+                self.bindings[target.id] = bound
         self.generic_visit(node)
 
     def visit_For(self, node: ast.For) -> None:
@@ -325,7 +331,8 @@ def _resolved_literal(node: ast.AST, bindings: Mapping[str, Any]) -> Any:
     if value is not None:
         return value
     if isinstance(node, ast.Name):
-        return bindings.get(node.id)
+        value = bindings.get(node.id)
+        return None if isinstance(value, _ExpressionBinding) else value
     return None
 
 
@@ -415,8 +422,13 @@ class TestAuthorityFirewall:
         return TestAuthorityReceipt(status, projection.projection_hash, tuple(findings), tuple(sorted(covered)), uncovered)
 
     def _classify(self, raw: _RawAssertion, projection: PublicContractProjection) -> TestAssertionFinding:
-        actual, expected, operator = _comparison(raw.node, dict(raw.bindings))
-        expression_lower = raw.expression.lower()
+        bindings = dict(raw.bindings)
+        actual, expected, operator = _comparison(raw.node, bindings)
+        origin = ""
+        match = re.match(r"([A-Za-z_]\w*)", actual)
+        if match and isinstance(bindings.get(match.group(1)), _ExpressionBinding):
+            origin = bindings[match.group(1)].expression
+        expression_lower = (raw.expression + " " + origin).lower()
         lowered = (raw.expression + " " + raw.test_id).lower()
         external_markers = ("stdout", "stderr", "returncode", "subprocess", "read_text", "preview", "output", "csv.reader", "header", "fieldnames")
         if "pytest.raises" in lowered and not any(marker in lowered for marker in external_markers):
@@ -494,14 +506,25 @@ class TestAuthorityFirewall:
             requirement_ids = tuple(sorted({identifier for item in candidates for identifier in item.requirement_ids if identifier.startswith("OBL-")}))
             return self._finding(raw, "file.raw_text", expected, AssertionAuthority.TEST_NON_NORMATIVE_ASSERTION, requirement_ids, "CSV file bytes and newline style are not exact-text public semantics")
 
+        if ("csv.reader" in expression_lower or "read_csv" in expression_lower) and actual.endswith("[0]") and isinstance(expected, list):
+            candidates = [item for item in projection.semantics if item.observable == "output.csv"]
+            requirement_ids = tuple(sorted({identifier for item in candidates for identifier in item.requirement_ids if identifier.startswith("OBL-")}))
+            headers = {tuple(thaw(item.expected_semantics).get("header", [])) for item in candidates}
+            authority = AssertionAuthority.TEST_CONTRACT_VALID if tuple(expected) in headers else AssertionAuthority.TEST_CONTRACT_UNPROVEN
+            return self._finding(raw, "csv.header", expected, authority, requirement_ids, "parsed CSV header checked against a canonical public example")
+
         if ("csv.reader" in expression_lower or "read_csv" in expression_lower) and isinstance(expected, list):
             candidates = [item for item in projection.semantics if item.observable == "output.csv"]
             requirement_ids = tuple(sorted({identifier for item in candidates for identifier in item.requirement_ids if identifier.startswith("OBL-")}))
             expected_documents = []
+            expected_rows = []
             for item in candidates:
                 semantic = thaw(item.expected_semantics)
                 expected_documents.append([semantic.get("header"), *semantic.get("rows", [])])
-            authority = AssertionAuthority.TEST_CONTRACT_VALID if expected in expected_documents else AssertionAuthority.TEST_CONTRACT_UNPROVEN
+                expected_rows.append(semantic.get("rows", []))
+            matches_document = expected in expected_documents
+            matches_data_slice = "[1:]" in actual and expected in expected_rows
+            authority = AssertionAuthority.TEST_CONTRACT_VALID if matches_document or matches_data_slice else AssertionAuthority.TEST_CONTRACT_UNPROVEN
             return self._finding(raw, "output.csv", expected, authority, requirement_ids, "parsed CSV document checked against a canonical public example")
 
         if "returncode" in expression_lower:
