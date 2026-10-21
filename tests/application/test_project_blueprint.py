@@ -39,6 +39,10 @@ def test_blueprint_round_trip_hash_freeze_and_compile() -> None:
     assert restored.blueprint_hash.startswith("sha256:")
     tree = compile_blueprint(restored, case_id="cli_csv_cleaner")
     assert [node.id for node in tree.nodes] == ["core", "verify", "accept"]
+    acceptance = next(node for node in tree.nodes if node.id == "accept")
+    policy = acceptance.config["dependency_policy"]
+    assert tuple(policy["runtime"]["allowed_packages"]) == ()
+    assert tuple(policy["test"]["allowed_packages"]) == ("pytest",)
 
 
 @pytest.mark.parametrize("units,error", [

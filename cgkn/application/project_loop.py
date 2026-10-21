@@ -344,10 +344,14 @@ def compile_blueprint(blueprint: ProjectBlueprint, *, case_id: str = "") -> Capa
             config["command"] = list(unit.acceptance)
         elif unit.kind == UnitKind.ACCEPTANCE.value:
             config["case_id"] = case_id
+            config["dependency_policy"] = {
+                "runtime": {"allowed_packages": []},
+                "test": {"allowed_packages": ["pytest"]},
+            }
         nodes.append(CapabilityNode(unit.unit_id, capability_ref=capability, depends_on=unit.depends_on, config=config))
     for check in blueprint.checks:
         if check.kind == UnitKind.ACCEPTANCE.value:
-            nodes.append(CapabilityNode(check.check_id, capability_ref="project.acceptance.external@1", depends_on=check.depends_on, config={"executor_ref": "project.acceptance@1", "case_id": case_id, "goal": "Run external acceptance", "acceptance": list(check.acceptance), "timeout_seconds": 120}))
+            nodes.append(CapabilityNode(check.check_id, capability_ref="project.acceptance.external@1", depends_on=check.depends_on, config={"executor_ref": "project.acceptance@1", "case_id": case_id, "goal": "Run external acceptance", "acceptance": list(check.acceptance), "dependency_policy": {"runtime": {"allowed_packages": []}, "test": {"allowed_packages": ["pytest"]}}, "timeout_seconds": 120}))
         else:
             is_pytest = any("pytest" in item for item in check.command)
             nodes.append(CapabilityNode(check.check_id, capability_ref="project.python.pytest@1" if is_pytest else "project.command.verify@1", depends_on=check.depends_on, config={"executor_ref": "local.python-test@1" if is_pytest else "local.command@1", "pytest_args": list(check.command[3:] if len(check.command) >= 3 else ("-q",)) if is_pytest else None, "command": list(check.command), "goal": f"Run {check.check_id}", "acceptance": list(check.acceptance), "timeout_seconds": 120}))
