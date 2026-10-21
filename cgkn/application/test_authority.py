@@ -459,6 +459,22 @@ class TestAuthorityFirewall:
             preview_expected = thaw(preview.expected_semantics)
             expected_rows = preview_expected.get("stdout_csv", {}).get("rows", [])
             header = thaw(preview.operation).get("setup", {}).get("header")
+            if origin:
+                try:
+                    origin_node = ast.parse(origin, mode="eval").body
+                except SyntaxError:
+                    origin_node = None
+                if isinstance(origin_node, (ast.ListComp, ast.SetComp, ast.GeneratorExp)) and any(
+                    generator.ifs for generator in origin_node.generators
+                ):
+                    return self._finding(
+                        raw,
+                        "stdout.csv_rows",
+                        expected,
+                        AssertionAuthority.TEST_CONTRACT_UNPROVEN,
+                        requirement_ids,
+                        "parsed preview assertion filters observed CSV rows before comparison",
+                    )
             if isinstance(expected, str):
                 rows = _csv_rows(expected)
                 if rows and header and rows[0] == header:

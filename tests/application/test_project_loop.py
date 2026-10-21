@@ -632,6 +632,17 @@ def test_duplicate_file_in_slice_is_invalid_and_never_committed(tmp_path: pathli
     assert not executor.has_materialized_baseline(unit.unit_id)
 
 
+def test_empty_python_source_is_retried_before_atomic_commit(tmp_path: pathlib.Path) -> None:
+    result, executor, _client, unit = _run_unit_materialization(tmp_path, [
+        _bundle("cohesive", {"pkg/a.py": "A = 1\n", "pkg/b.py": "", "pkg/c.py": "C = 3\n"}),
+        _bundle("cohesive", {"pkg/a.py": "A = 1\n", "pkg/b.py": '\"\"\"Package marker.\"\"\"\n', "pkg/c.py": "C = 3\n"}),
+    ])
+    assert result.succeeded and executor.has_materialized_baseline(unit.unit_id)
+    assert [call["call_class"] for call in executor.calls] == ["GENERATION", "GENERATION_RETRY"]
+    assert executor.calls[0]["failure_type"] == "UNIT_OUTPUT_INVALID"
+    assert (tmp_path / "pkg/b.py").read_text(encoding="utf-8").strip()
+
+
 def test_complete_first_materialization_call_preserves_original_success_path(tmp_path: pathlib.Path) -> None:
     result, executor, _client, unit = _run_unit_materialization(tmp_path, [
         _bundle("cohesive", {"pkg/a.py": "A = 1\n", "pkg/b.py": "B = 2\n", "pkg/c.py": "C = 3\n"}),

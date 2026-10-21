@@ -818,6 +818,7 @@ class BlueprintUnitExecutor:
                 system = (
                     "You are a bounded CGNK cohesive-Unit materialization worker. Return exactly one compact FileBundle v2. "
                     "Return only a non-empty subset of requested_paths and prefer completing every requested path in this call. "
+                    "Every returned Python file must contain non-whitespace source text; use a short module docstring for marker files. "
                     "Never return already_staged_paths, any path outside requested_paths, Blueprint edits, shell actions, hidden acceptance, "
                     "schema echoes, Markdown fences, summaries, or natural-language explanation. Staged sibling context is read-only."
                 )
@@ -904,6 +905,16 @@ class BlueprintUnitExecutor:
                     if bundle.needs_escalation:
                         raise UnitOutputValidationError("PROVIDER_FAILURE", bundle.escalation_reason or "worker escalation")
                     returned_paths = tuple(path for path, _ in bundle.files)
+                    empty_python_paths = tuple(
+                        path for path, content in bundle.files
+                        if path.endswith(".py") and not content.strip()
+                    )
+                    if empty_python_paths:
+                        raise UnitOutputValidationError(
+                            "UNIT_OUTPUT_INVALID",
+                            "Python source files must contain source text: " + ", ".join(empty_python_paths),
+                            retryable=True,
+                        )
                     staged_repeats = tuple(path for path in returned_paths if path in materialization.staged_files)
                     outside_unit = tuple(path for path in returned_paths if path not in unit.owns)
                     outside_request = tuple(path for path in returned_paths if path not in requested_paths)

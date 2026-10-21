@@ -235,3 +235,15 @@ def test_cli_whole_row_dedupe_preserves_header_and_order(target):
     assert [item.observable for item in receipt.findings] == ["csv.header", "output.csv"]
     assert set(receipt.classifications) == {AssertionAuthority.TEST_CONTRACT_VALID.value}
 
+
+def test_preview_assertion_cannot_filter_observed_csv_rows() -> None:
+    projection = PublicContractProjection.for_case("cli_csv_cleaner")
+    source = """def test_preview_prints_data_rows(result):
+    preview_rows = [row for row in csv.reader(result.stdout.splitlines()) if row]
+    assert preview_rows == [['1', 'Ada', '']]
+"""
+    receipt = TestAuthorityFirewall().validate({"tests/test_cli.py": source}, projection)
+    assert receipt.status == "FAIL"
+    assert receipt.findings[0].authority is AssertionAuthority.TEST_CONTRACT_UNPROVEN
+    assert "filters observed CSV rows" in receipt.findings[0].reason
+
