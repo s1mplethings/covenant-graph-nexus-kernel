@@ -90,6 +90,15 @@ def test_failure_report_is_hashable_and_versioned_by_content() -> None:
     assert report.failure_hash.startswith("sha256:")
 
 
+def test_public_contract_failure_can_route_to_existing_implementation() -> None:
+    report = FailureReport(
+        "tests", "PUBLIC_CONTRACT_FAILURE", failure_stage=FailureStage.TEST.value,
+        owner_unit_id="core", recovery_action=FailureAction.REPAIR_EXISTING.value,
+        materialized_baseline=True, failed_check="tests",
+    )
+    assert report.owner_unit_id == "core"
+
+
 def _minimal_payload(*, units: list[dict] | None = None) -> dict:
     return {
         "units": units or [
