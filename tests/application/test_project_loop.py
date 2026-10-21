@@ -191,8 +191,8 @@ def test_test_authority_conflict_retries_before_atomic_commit(tmp_path: pathlib.
         executor_ref="llm.cheap@1", instruction="test preview", acceptance=("preview",),
         allowed_effects=("filesystem.write",),
     )
-    conflicting = "def test_preview(result):\n assert result.stdout == 'id,name,city\\n1,Ada,\\n'\n"
-    canonical = "import csv, io\ndef test_preview(result):\n assert list(csv.reader(io.StringIO(result.stdout))) == [['1','Ada','']]\n"
+    conflicting = "from types import SimpleNamespace\ndef test_preview():\n result=SimpleNamespace(stdout='id,name,city\\n1,Ada,\\n')\n assert result.stdout == 'id,name,city\\n1,Ada,\\n'\n"
+    canonical = "import csv, io\nfrom types import SimpleNamespace\ndef test_preview():\n result=SimpleNamespace(stdout='1,Ada,\\n')\n assert list(csv.reader(io.StringIO(result.stdout))) == [['1','Ada','']]\n"
     client = QueueClient([_bundle("tests", {"tests/test_cli.py": conflicting}), _bundle("tests", {"tests/test_cli.py": canonical})])
     executor = BlueprintUnitExecutor(tmp_path, client, ModelRoleConfig("worker", "deepseek"))
     request = BlockExecutionRequest(
@@ -234,14 +234,42 @@ def test_implementation_repair_forces_tests_authority_revalidation_before_pytest
     assert executor.calls == []
 
 
+def test_tests_staged_pytest_retries_before_atomic_commit(tmp_path: pathlib.Path) -> None:
+    unit = BlueprintUnit(
+        "tests", "public tests", "tests", ("tests/test_cli.py",),
+        executor_ref="llm.cheap@1", instruction="validate public behavior", acceptance=("works",),
+        allowed_effects=("filesystem.write",),
+    )
+    failing = "def test_generated():\n assert False\n"
+    passing = "def test_generated():\n assert True\n"
+    client = QueueClient([
+        _bundle("tests", {"tests/test_cli.py": failing}),
+        _bundle("tests", {"tests/test_cli.py": passing}),
+    ])
+    executor = BlueprintUnitExecutor(tmp_path, client, ModelRoleConfig("worker", "deepseek"))
+    request = BlockExecutionRequest(
+        "project", "run", "attempt", unit.unit_id, "project.unit.tests@1", "llm.cheap@1",
+        TaskContext(unit.instruction, node_config=_authority_node_config(unit)),
+        declared_effects=unit.allowed_effects,
+    )
+
+    result = executor.execute(request)
+
+    assert result.succeeded and len(client.calls) == 2
+    assert executor.calls[0]["failure_type"] == "TEST_FAILURE"
+    assert "never switch only to a temporary-data directory" in client.calls[0]["system"]
+    assert "TEST_FAILURE" in client.calls[1]["user"]
+    assert (tmp_path / "tests/test_cli.py").read_text(encoding="utf-8") == passing
+
+
 def test_tests_repair_receives_projection_and_can_replace_wrong_assertion(tmp_path: pathlib.Path) -> None:
     unit = BlueprintUnit(
         "tests", "public tests", "tests", ("tests/test_cli.py",),
         executor_ref="llm.cheap@1", instruction="test preview", acceptance=("preview",),
         allowed_effects=("filesystem.write",),
     )
-    old = "def test_preview(result):\n assert result.stdout == 'id,name,city\\n1,Ada,\\n'\n"
-    new = "import csv, io\ndef test_preview(result):\n assert list(csv.reader(io.StringIO(result.stdout))) == [['1','Ada','']]\n"
+    old = "from types import SimpleNamespace\ndef test_preview():\n result=SimpleNamespace(stdout='id,name,city\\n1,Ada,\\n')\n assert result.stdout == 'id,name,city\\n1,Ada,\\n'\n"
+    new = "import csv, io\nfrom types import SimpleNamespace\ndef test_preview():\n result=SimpleNamespace(stdout='1,Ada,\\n')\n assert list(csv.reader(io.StringIO(result.stdout))) == [['1','Ada','']]\n"
     target = tmp_path / "tests/test_cli.py"; target.parent.mkdir(parents=True); target.write_text(old, encoding="utf-8")
     client = QueueClient([_patch("tests", "tests/test_cli.py", old, new)])
     executor = BlueprintUnitExecutor(tmp_path, client, ModelRoleConfig("worker", "deepseek"))

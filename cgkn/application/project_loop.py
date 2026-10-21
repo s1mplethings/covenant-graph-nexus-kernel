@@ -4,6 +4,10 @@ import ast
 import json
 import pathlib
 import re
+import shutil
+import subprocess
+import sys
+import tempfile
 import time
 import uuid
 from dataclasses import dataclass, field, replace
@@ -596,6 +600,39 @@ class BlueprintUnitExecutor:
         )
         raise UnitOutputValidationError(failure_type, findings or "Test Authority Firewall rejected generated tests", retryable=retryable)
 
+    def _validate_staged_tests(self, unit: BlueprintUnit, candidate_files: Mapping[str, str]) -> dict[str, Any] | None:
+        if unit.kind != UnitKind.TESTS.value:
+            return None
+        with tempfile.TemporaryDirectory(prefix="cgkn-tests-stage-") as temporary:
+            staged_root = pathlib.Path(temporary) / "workspace"
+            shutil.copytree(
+                self.root,
+                staged_root,
+                ignore=shutil.ignore_patterns(".git", ".cgkn", ".pytest_cache", "__pycache__", "*.pyc"),
+            )
+            for relative, content in candidate_files.items():
+                target = staged_root / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(content, encoding="utf-8")
+            completed = subprocess.run(
+                [sys.executable, "-m", "pytest", "-q"],
+                cwd=staged_root,
+                capture_output=True,
+                text=True,
+                timeout=max(1, unit.timeout_seconds),
+                check=False,
+            )
+        receipt = {
+            "status": "PASS" if completed.returncode == 0 else "FAIL",
+            "returncode": completed.returncode,
+            "stdout_tail": completed.stdout[-4000:],
+            "stderr_tail": completed.stderr[-2000:],
+        }
+        if completed.returncode != 0:
+            detail = (completed.stdout or completed.stderr or "staged pytest failed")[-3500:]
+            raise UnitOutputValidationError("TEST_FAILURE", detail, retryable=True)
+        return receipt
+
     def register_materialized_baseline(self, unit: BlueprintUnit) -> None:
         sources = _read_sources(self.root, unit.owns)
         if not unit.owns or set(sources) != set(unit.owns):
@@ -719,6 +756,9 @@ class BlueprintUnitExecutor:
                 if authority_receipt is not None:
                     self.calls[-1]["test_authority_receipt"] = authority_receipt.as_dict()
                     self._raise_for_test_authority(authority_receipt, retryable=False)
+                staged_test_validation = self._validate_staged_tests(unit, new_sources)
+                if staged_test_validation is not None:
+                    self.calls[-1]["staged_test_validation"] = staged_test_validation
                 new_manifests = _manifests({path: new_sources[path] for path in unit.owns if path in new_sources})
                 for path, before in manifests.items():
                     if path in unit.owns and path in new_manifests:
@@ -737,6 +777,7 @@ class BlueprintUnitExecutor:
             prior_calls = self.materialization_call_counts.get(unit.unit_id, 0)
             next_call_class = "GENERATION_RETRY" if prior_calls else "GENERATION"
             last_summary = ""
+            last_validation_feedback = ""
             while materialization.missing_paths:
                 if self.materialization_call_counts.get(unit.unit_id, 0) >= MAX_UNIT_MATERIALIZATION_CALLS:
                     raise UnitOutputValidationError(
@@ -769,6 +810,7 @@ class BlueprintUnitExecutor:
                     "owned_public_requirement_ids": list(request.task_context.node_config.get("owned_public_requirement_ids", ())),
                     "test_authority_findings": self.test_authority_receipts.get(unit.unit_id).as_dict() if unit.unit_id in self.test_authority_receipts else None,
                     "failure_report": generation_failure.as_dict() if generation_failure else None,
+                    "generation_validation_feedback": last_validation_feedback,
                     "missing_path_reason": "complete the cohesive Unit without regenerating staged siblings",
                     "materialization_policy": self.materialization_policy,
                     "output_contract": "compact FileBundle v2 containing a non-empty subset of requested_paths only",
@@ -783,7 +825,9 @@ class BlueprintUnitExecutor:
                     system += (
                         " Generated tests are derivative validators, never a behavioral authority. Every externally observable "
                         "assertion must map to public_contract_projection and owned_public_requirement_ids. Do not invent exact "
-                        "spacing, newline, ordering, wording, or formatting when the public contract leaves it unspecified."
+                        "spacing, newline, ordering, wording, or formatting when the public contract leaves it unspecified. "
+                        "For subprocess CLI tests, keep the project workspace importable: run from the project root or preserve "
+                        "the project root on PYTHONPATH; never switch only to a temporary-data directory for python -m package."
                     )
                 materialization.begin_call(call_class, requested_paths)
                 self.materialization_call_counts[unit.unit_id] = self.materialization_call_counts.get(unit.unit_id, 0) + 1
@@ -888,12 +932,16 @@ class BlueprintUnitExecutor:
                                 materialization.staged_files.clear()
                                 materialization.total_output_bytes = 0
                                 self._raise_for_test_authority(authority_receipt, retryable=True)
+                        staged_test_validation = self._validate_staged_tests(unit, candidate_files)
+                        if staged_test_validation is not None:
+                            self.calls[-1]["staged_test_validation"] = staged_test_validation
                 except UnitOutputValidationError as exc:
                     response_error = exc
                 except (ValueError, TypeError) as exc:
                     response_error = UnitOutputValidationError("UNIT_OUTPUT_INVALID", str(exc), retryable=True)
 
                 if response_error is not None:
+                    last_validation_feedback = f"{response_error.failure_type}: {response_error}"
                     self.calls[-1].update({
                         "unit_result": "RETRYABLE_RESPONSE_FAILURE" if response_error.retryable else "FAILED",
                         "failure_type": response_error.failure_type,
