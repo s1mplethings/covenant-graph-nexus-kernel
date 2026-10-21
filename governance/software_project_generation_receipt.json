@@ -1,8 +1,8 @@
 {
   "kind": "CGKNSoftwareProjectGenerationReceipt",
   "schema_version": "1.0",
-  "source_commit": "1b9a051557f45f59c3384c71dccfb3fd73bab2a4",
-  "source_tree_sha": "4a282a0de506f4e8f946ae3dd33f873b5d85b972",
+  "source_commit": "348be48a75fa790889dc7a42f30eec533a555988",
+  "source_tree_sha": "9894407a8b19adbbe803d7995c380bb2e1b41c32",
   "suite_result": "PASS_WITH_LIMITS",
   "formal_final_suite": "NOT_EVALUATED",
   "generation_readiness": "GENERATION_LEVEL_2",
@@ -19,14 +19,14 @@
   "coordinator_qualification": "PASS_5_OF_5",
   "worker_repair_qualification": "PASS_3_OF_3",
   "worker_repair_provider": "deepseek-flash",
-  "worker_repair_evidence": "D:/CGKN/.service_evidence/repair-convergence-worker-capability-v4/worker-repair-probe/worker_repair_probe/deepseek_index.json",
-  "strong_worker_repair_qualification": "PASS_3_OF_3",
+  "worker_repair_evidence": "D:/CGKN/.service_evidence/repair-convergence-worker-capability-v5/worker-repair-probe/worker_repair_probe/deepseek_index.json",
+  "strong_worker_repair_qualification": "PASS_2_OF_3",
   "strong_worker_repair_provider": "qwen3.8-max",
-  "strong_worker_repair_evidence": "D:/CGKN/.service_evidence/repair-convergence-worker-capability-v4/worker-repair-probe/worker_repair_probe/qwen_index.json",
-  "repair_route_comparison": "CHEAP_NOT_SIGNIFICANTLY_WEAKER",
+  "strong_worker_repair_evidence": "D:/CGKN/.service_evidence/repair-convergence-worker-capability-v5/worker-repair-probe/worker_repair_probe/qwen_index.json",
+  "repair_route_comparison": "CHEAP_OUTPERFORMED_STRONG",
   "worker_test_generation_qualification": "PASS_3_OF_3",
   "worker_test_generation_provider": "deepseek-flash",
-  "worker_test_generation_evidence": "D:/CGKN/.service_evidence/repair-convergence-worker-capability-v4/worker-test-generation-probe/worker_test_generation_probe/deepseek_index.json",
+  "worker_test_generation_evidence": "D:/CGKN/.service_evidence/repair-convergence-worker-capability-v5/worker-test-generation-probe/worker_test_generation_probe/deepseek_index.json",
   "real_generation_status": "NOT_EVALUATED_ON_CURRENT_SOURCE",
   "real_repair_status": "NOT_EVALUATED",
   "final_run_receipt_hashes": [],
@@ -35,5 +35,5 @@
   "stop_condition": "NONE_PRE_CSV_REGRESSION",
   "no_secret_assertion": true,
   "manual_candidate_edits": 0,
-  "receipt_hash": "sha256:994489c20ed3811558c1e18671aeef827ff69ecf8b1f2b22db3c2feaf2a227bf"
+  "receipt_hash": "sha256:321a899bf797ab9b55aa1c2bf692f388267150f310140e6512214dd50a7a1d31"
 }
