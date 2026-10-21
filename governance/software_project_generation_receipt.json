@@ -1,15 +1,15 @@
 {
   "kind": "CGKNSoftwareProjectGenerationReceipt",
   "schema_version": "1.0",
-  "source_commit": "f841f2666392240e52eeaa24a19c2acaa651a380",
-  "source_tree_sha": "b1786c68dfe9b0b957873c7fdda1cbb1915ec572",
+  "source_commit": "21d118b37c553f4244cedc86a441646283de7b89",
+  "source_tree_sha": "ea545253545e94afbeb124b4580efb7236b4b985",
   "suite_result": "PASS_WITH_LIMITS",
   "formal_final_suite": "NOT_EVALUATED",
   "generation_readiness": "GENERATION_LEVEL_2",
   "bundle_status": "PARTIAL",
   "application_validation": {
     "command": "python -m pytest -q tests/application",
-    "passed": 394,
+    "passed": 432,
     "failed": 0,
     "errors": 0,
     "skipped": 1,
@@ -17,6 +17,12 @@
     "provider_network_usage": false
   },
   "coordinator_qualification": "PASS_5_OF_5",
+  "worker_repair_qualification": "PASS_3_OF_3",
+  "worker_repair_provider": "deepseek-flash",
+  "worker_repair_evidence": "D:/CGKN/.service_evidence/repair-convergence-worker-capability-v3/worker-repair-probe/worker_repair_probe/deepseek_index.json",
+  "worker_test_generation_qualification": "PASS_3_OF_3",
+  "worker_test_generation_provider": "deepseek-flash",
+  "worker_test_generation_evidence": "D:/CGKN/.service_evidence/repair-convergence-worker-capability-v3/worker-test-generation-probe/worker_test_generation_probe/deepseek_index.json",
   "real_generation_status": "FAIL_GENERATED_TEST_CONTRACT_CONFLICT_WITHIN_FIXED_BUDGET",
   "real_repair_status": "NOT_EVALUATED",
   "final_run_receipt_hashes": [],
@@ -25,5 +31,5 @@
   "stop_condition": "MINIMAL_BLUEPRINT_NEEDS_REWORK_AFTER_SIX_FRAMEWORK_REPAIRS",
   "no_secret_assertion": true,
   "manual_candidate_edits": 0,
-  "receipt_hash": "sha256:3a6d008bd1654978b4a0d9732b85ef9e79c65c1610bc51dc7a17c3badc081fe0"
+  "receipt_hash": "sha256:f64c868bab080b433f8f00c7445210e17b1f1bfb92e0b3f65ecf6722a948b22e"
 }
