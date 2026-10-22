@@ -349,6 +349,11 @@ def _materialization_benchmark(
         if capture_client.completion is None or capture_block.succeeded:
             raise RuntimeError("controlled capture did not produce the required partial failure")
         captured = capture_client.completion
+        captured_value = parse_json_object(captured.text)
+        captured_files = {
+            str(item["path"]): str(item["content"])
+            for item in captured_value.get("files", ())
+        }
         capture_hash = "sha256:" + hashlib.sha256(captured.text.encode("utf-8")).hexdigest()
         pair = {
             "pair_id": pair_id,
@@ -383,6 +388,18 @@ def _materialization_benchmark(
                     "actual_current_provider_call": False,
                     "counterfactual_token_basis": "REAL_CURRENT_PAIR_CAPTURE_USAGE",
                     "controlled_capture_response_hash": capture_hash,
+                    # FULL_RETRY rejects the partial before production records
+                    # returned paths.  Preserve the controlled capture facts in
+                    # the benchmark ledger so duplicate-work metrics remain
+                    # symmetric with INCREMENTAL.
+                    "returned_paths": list(captured_files),
+                    "returned_bytes_by_path": {
+                        path: len(content.encode("utf-8"))
+                        for path, content in captured_files.items()
+                    },
+                    "missing_paths_after_call": [
+                        path for path in unit.owns if path not in captured_files
+                    ],
                 })
             for call in executor.calls[1:]:
                 call["benchmark_evidence_mode"] = "LIVE_POLICY_CALL"

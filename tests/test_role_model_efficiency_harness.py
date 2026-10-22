@@ -6,6 +6,7 @@ from scripts.run_role_model_efficiency import (
     _ControlledPartialCaptureClient,
     _ReplayFirstThenLiveClient,
     _controlled_partial_schema,
+    _materialization_metrics,
 )
 
 
@@ -91,3 +92,38 @@ def test_replay_first_then_live_uses_capture_once():
     assert replay.complete(**kwargs) is captured
     assert replay.complete(**kwargs) is live_completion
     assert len(live.schemas) == 1
+
+
+def test_materialization_metrics_count_discarded_partial_as_duplicate_work():
+    first = {
+        "call_class": "GENERATION",
+        "requested_paths": ["a.py", "b.py", "c.py"],
+        "returned_paths": ["a.py", "b.py"],
+        "returned_bytes_by_path": {"a.py": 10, "b.py": 10},
+        "prompt_tokens": 30,
+        "completion_tokens": 20,
+        "cached_tokens": 0,
+    }
+    full_retry = first | {
+        "call_class": "GENERATION_RETRY",
+        "returned_paths": ["a.py", "b.py", "c.py"],
+        "returned_bytes_by_path": {"a.py": 10, "b.py": 10, "c.py": 10},
+        "completion_tokens": 30,
+    }
+    continuation = first | {
+        "call_class": "GENERATION_CONTINUATION",
+        "requested_paths": ["c.py"],
+        "returned_paths": ["c.py"],
+        "returned_bytes_by_path": {"c.py": 10},
+        "completion_tokens": 10,
+    }
+    retry_metrics = _materialization_metrics(
+        [first, full_retry], final_file_count=3, success=True, pricing=None,
+    )
+    continuation_metrics = _materialization_metrics(
+        [first, continuation], final_file_count=3, success=True, pricing=None,
+    )
+    assert retry_metrics["repeated_file_output_tokens"] == 20
+    assert retry_metrics["repeated_context_tokens"] == 20
+    assert retry_metrics["duplicate_generation_token_waste"] == 40
+    assert continuation_metrics["duplicate_generation_token_waste"] == 0
