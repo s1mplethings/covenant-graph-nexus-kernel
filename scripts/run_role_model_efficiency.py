@@ -11,6 +11,7 @@ import subprocess
 import sys
 import time
 import uuid
+from dataclasses import replace
 from typing import Any, Mapping
 
 
@@ -670,22 +671,91 @@ def _direct_strong_run(case_id: str, artifact_root: pathlib.Path, provider: str)
     )
     started = time.perf_counter()
     block = executor.execute(request)
-    compile_result = subprocess.run([sys.executable, "-m", "compileall", "-q", "."], cwd=workspace, capture_output=True, text=True)
-    pytest_result = subprocess.run([sys.executable, "-m", "pytest", "-q"], cwd=workspace, capture_output=True, text=True)
-    runtime_result = subprocess.run(list(get_case(case_id).runtime_command), cwd=workspace, capture_output=True, text=True)
-    acceptance = ExternalAcceptanceExecutor(
-        workspace, ROOT / "benchmarks" / "real_project_generation" / "acceptance",
-    ).execute(BlockExecutionRequest(
-        case_id, run_id, "acceptance", "accept", "project.acceptance.external@1", "project.acceptance@1",
-        TaskContext(
-            "external acceptance", node_config={
-                "case_id": case_id,
-                "dependency_policy": {"runtime": {"allowed_packages": []}, "test": {"allowed_packages": ["pytest"]}},
-            },
-            acceptance=get_case(case_id).public_acceptance,
-        ), timeout_seconds=120,
-    ))
-    success = block.succeeded and compile_result.returncode == pytest_result.returncode == runtime_result.returncode == 0 and acceptance.succeeded
+    while not block.succeeded and len(executor.calls) < 3:
+        details = dict(block.error.details) if block.error else {}
+        failure_type = str(details.get("failure_type") or "UNIT_OUTPUT_INVALID")
+        if failure_type not in {
+            "INTERFACE_MISMATCH", "UNIT_OUTPUT_INCOMPLETE", "UNIT_MATERIALIZATION_INCOMPLETE",
+            "UNIT_MATERIALIZATION_STALLED", "UNIT_OUTPUT_BUDGET_EXCEEDED",
+            "UNIT_OUTPUT_SCOPE_VIOLATION", "UNIT_OUTPUT_INVALID", "SYNTAX_ERROR",
+            "TEST_CONTRACT_CONFLICT", "TEST_CONTRACT_UNMAPPED_ASSERTION",
+            "TEST_CONTRACT_UNPROVEN", "TEST_NON_NORMATIVE_ASSERTION",
+        }:
+            failure_type = "UNIT_OUTPUT_INVALID"
+        executor.generation_failure_reports[unit.unit_id] = FailureReport(
+            unit.unit_id, failure_type,
+            failure_stage=str(details.get("failure_stage") or FailureStage.UNIT_OUTPUT_VALIDATION.value),
+            owner_unit_id=unit.unit_id, recovery_action=FailureAction.RETRY_GENERATION.value,
+            materialized_baseline=False, failed_check="direct generation validation",
+            expected="all declared paths and interfaces satisfy the public contract",
+            observed=(block.error.message if block.error else "generation failed")[:2000],
+            affected_units=(unit.unit_id,),
+            suggested_action="retry the same direct task with the reported validation failure corrected",
+            evidence_refs=("direct_generation_validation",),
+        )
+        block = executor.execute(replace(request, attempt_id=f"attempt-{len(executor.calls) + 1}"))
+
+    def evaluate():
+        compile_value = subprocess.run([sys.executable, "-m", "compileall", "-q", "."], cwd=workspace, capture_output=True, text=True)
+        pytest_value = subprocess.run([sys.executable, "-m", "pytest", "-q"], cwd=workspace, capture_output=True, text=True)
+        runtime_value = subprocess.run(list(get_case(case_id).runtime_command), cwd=workspace, capture_output=True, text=True)
+        acceptance_value = ExternalAcceptanceExecutor(
+            workspace, ROOT / "benchmarks" / "real_project_generation" / "acceptance",
+        ).execute(BlockExecutionRequest(
+            case_id, run_id, "acceptance", "accept", "project.acceptance.external@1", "project.acceptance@1",
+            TaskContext(
+                "external acceptance", node_config={
+                    "case_id": case_id,
+                    "dependency_policy": {"runtime": {"allowed_packages": []}, "test": {"allowed_packages": ["pytest"]}},
+                },
+                acceptance=get_case(case_id).public_acceptance,
+            ), timeout_seconds=120,
+        ))
+        passed = (
+            block.succeeded and compile_value.returncode == pytest_value.returncode
+            == runtime_value.returncode == 0 and acceptance_value.succeeded
+        )
+        return compile_value, pytest_value, runtime_value, acceptance_value, passed
+
+    compile_result, pytest_result, runtime_result, acceptance, success = evaluate()
+    repair_round = 0
+    while block.succeeded and not success and len(executor.calls) < 8 and repair_round < 2:
+        repair_round += 1
+        if compile_result.returncode:
+            failure_type, stage, check = "SYNTAX_ERROR", FailureStage.COMPILE.value, "compile"
+            observed = (compile_result.stderr or compile_result.stdout)[-2000:]
+            requirement_ids: tuple[str, ...] = ()
+            attribution_status = ""
+        elif pytest_result.returncode:
+            failure_type, stage, check = "TEST_FAILURE", FailureStage.TEST.value, "pytest"
+            observed = (pytest_result.stdout + "\n" + pytest_result.stderr)[-2000:]
+            requirement_ids = ()
+            attribution_status = ""
+        elif runtime_result.returncode:
+            failure_type, stage, check = "RUNTIME_FAILURE", FailureStage.RUNTIME.value, "runtime"
+            observed = (runtime_result.stdout + "\n" + runtime_result.stderr)[-2000:]
+            requirement_ids = ()
+            attribution_status = ""
+        else:
+            requirement_ids = tuple(str(item) for item in acceptance.outputs.get("failed_requirement_ids", ()))
+            if not requirement_ids:
+                break
+            failure_type, stage, check = "ACCEPTANCE_FAILURE", FailureStage.ACCEPTANCE.value, "external acceptance"
+            observed = str(acceptance.outputs.get("sanitized_summary") or "public requirement acceptance failed")
+            attribution_status = "RESOLVED"
+        executor.failure_reports[unit.unit_id] = FailureReport(
+            unit.unit_id, failure_type, failure_stage=stage,
+            owner_unit_id=unit.unit_id, recovery_action=FailureAction.REPAIR_EXISTING.value,
+            materialized_baseline=True, owner_file=unit.owns[0],
+            owner_interface=unit.required_interfaces[0] if unit.required_interfaces else "",
+            failed_check=check, expected="all public validation checks pass", observed=observed,
+            affected_units=(unit.unit_id,), suggested_action="apply the smallest bounded fix without changing the public interface",
+            evidence_refs=("direct_public_validation",), failed_requirement_ids=requirement_ids,
+            mapping_complete=bool(requirement_ids), attribution_source="DETERMINISTIC_PUBLIC_REQUIREMENT_MAP" if requirement_ids else "",
+            attribution_status=attribution_status,
+        )
+        block = executor.execute(replace(request, attempt_id=f"repair-{repair_round}"))
+        compile_result, pytest_result, runtime_result, acceptance, success = evaluate()
     row = {
         "run_id": run_id, "variant": "V0", "case_id": case_id,
         "provider": provider, "status": "PASS" if success else "FAIL",
