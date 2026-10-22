@@ -5,6 +5,8 @@ from cgkn.providers import ModelRoleConfig, ProviderCompletion
 from scripts.run_role_model_efficiency import (
     _ControlledPartialCaptureClient,
     _ReplayFirstThenLiveClient,
+    _annotate_tier1_costs,
+    _call_cost_cny,
     _controlled_partial_schema,
     _materialization_metrics,
 )
@@ -138,3 +140,40 @@ def test_materialization_metrics_count_discarded_partial_as_duplicate_work():
     assert retry_metrics["repeated_context_tokens"] == 20
     assert retry_metrics["duplicate_generation_token_waste"] == 40
     assert continuation_metrics["duplicate_generation_token_waste"] == 0
+
+
+def test_tier1_costs_use_official_prices_and_do_not_double_count_reasoning():
+    catalog = {
+        "snapshot_hash": "sha256:snapshot",
+        "index": {"cross_currency": {"usd_cny": 7.0}},
+        "models": {
+            "qwen": {
+                "model": "qwen3.8-max", "currency": "CNY",
+                "input_price_per_million": 12, "cached_input_price_per_million": 1.5,
+                "output_price_per_million": 36,
+            },
+            "deepseek": {
+                "model": "deepseek-flash", "currency": "USD",
+                "input_price_per_million": 0.15, "cached_input_price_per_million": 0.003,
+                "output_price_per_million": 0.6,
+            },
+        },
+    }
+    qwen_call = {
+        "provider": "qwen", "prompt_tokens": 1000, "cached_tokens": 200,
+        "completion_tokens": 100, "reasoning_tokens": 25, "total_tokens": 1100,
+        "result": "SUCCEEDED", "call_class": "GENERATION",
+    }
+    deepseek_call = {
+        "provider": "deepseek", "prompt_tokens": 1000, "cached_tokens": 0,
+        "completion_tokens": 100, "reasoning_tokens": None, "total_tokens": 1100,
+        "result": "SUCCEEDED", "call_class": "GENERATION_CONTINUATION",
+    }
+    assert _call_cost_cny(qwen_call, catalog)["cost_cny"] == 0.0135
+    assert _call_cost_cny(deepseek_call, catalog)["cost_cny"] == 0.00147
+    row = {"calls": [qwen_call, deepseek_call]}
+    _annotate_tier1_costs(row, catalog, strong="qwen", cheap="deepseek")
+    assert row["efficiency_metrics"]["cost_evaluated"] is True
+    assert row["efficiency_metrics"]["strong_worker_tokens"] == 1100
+    assert row["efficiency_metrics"]["cheap_worker_tokens"] == 1100
+    assert row["efficiency_metrics"]["continuation_calls"] == 1

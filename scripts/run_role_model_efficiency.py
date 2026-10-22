@@ -11,7 +11,7 @@ import subprocess
 import sys
 import time
 import uuid
-from typing import Any
+from typing import Any, Mapping
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -123,6 +123,13 @@ def _load_pricing_snapshot(path: pathlib.Path | None, provider: str) -> dict[str
     if path is None:
         return None
     value = json.loads(path.read_text(encoding="utf-8"))
+    if isinstance(value, dict) and value.get("kind") == "CGNKOfficialModelPricingSnapshot":
+        references = (value.get("strong"), value.get("cheap"))
+        candidates = [
+            json.loads((path.parent / str(reference)).read_text(encoding="utf-8"))
+            for reference in references if reference
+        ]
+        value = next((item for item in candidates if item.get("provider") == provider), None)
     required = {
         "provider", "model", "input_price_per_million", "output_price_per_million",
         "currency", "unit", "captured_at", "source",
@@ -132,6 +139,107 @@ def _load_pricing_snapshot(path: pathlib.Path | None, provider: str) -> dict[str
     if not str(value.get("source") or "").startswith(("https://", "provider_billing_config:")):
         raise ValueError("pricing snapshot source must be official or a Provider billing configuration reference")
     return value
+
+
+def _load_pricing_catalog(path: pathlib.Path | None) -> dict[str, Any] | None:
+    if path is None:
+        return None
+    index = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(index, dict) or index.get("kind") != "CGNKOfficialModelPricingSnapshot":
+        raise ValueError("Tier 1 pricing requires the official multi-model pricing index")
+    models: dict[str, dict[str, Any]] = {}
+    for key in ("strong", "cheap"):
+        reference = index.get(key)
+        if not isinstance(reference, str) or not reference:
+            raise ValueError("pricing index is missing a model reference")
+        model = json.loads((path.parent / reference).read_text(encoding="utf-8"))
+        required = {
+            "provider", "model", "input_price_per_million", "cached_input_price_per_million",
+            "output_price_per_million", "reasoning_price_per_million", "currency", "unit",
+            "captured_at", "source",
+        }
+        if not isinstance(model, dict) or not required <= set(model):
+            raise ValueError("pricing model snapshot is incomplete")
+        if not str(model["source"]).startswith("https://"):
+            raise ValueError("pricing source must be official")
+        models[str(model["provider"])] = model
+    fx = index.get("cross_currency")
+    if not isinstance(fx, dict) or fx.get("comparison_currency") != "CNY" or float(fx.get("usd_cny") or 0) <= 0:
+        raise ValueError("official cross-currency snapshot is unavailable")
+    return {
+        "index": index,
+        "models": models,
+        "snapshot_hash": "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest(),
+    }
+
+
+def _call_cost_cny(call: Mapping[str, Any], catalog: Mapping[str, Any]) -> dict[str, Any]:
+    provider = str(call.get("provider") or "")
+    pricing = dict(catalog["models"].get(provider) or {})
+    prompt = call.get("prompt_tokens")
+    completion = call.get("completion_tokens")
+    cached = call.get("cached_tokens")
+    if not pricing or prompt is None or completion is None:
+        return {"provider": provider, "status": "NOT_EVALUATED", "cost_cny": None}
+    cached_tokens = max(0, int(cached or 0))
+    uncached_tokens = max(0, int(prompt) - cached_tokens)
+    native_cost = (
+        uncached_tokens * float(pricing["input_price_per_million"])
+        + cached_tokens * float(pricing["cached_input_price_per_million"])
+        + int(completion) * float(pricing["output_price_per_million"])
+    ) / 1_000_000
+    currency = str(pricing["currency"])
+    if currency == "CNY":
+        cost_cny = native_cost
+    elif currency == "USD":
+        cost_cny = native_cost * float(catalog["index"]["cross_currency"]["usd_cny"])
+    else:
+        return {"provider": provider, "status": "NOT_EVALUATED", "cost_cny": None}
+    return {
+        "provider": provider, "model": pricing["model"], "status": "EVALUATED",
+        "native_cost": native_cost, "native_currency": currency, "cost_cny": cost_cny,
+        "prompt_tokens": int(prompt), "cached_tokens": cached_tokens,
+        "completion_tokens": int(completion), "reasoning_tokens": call.get("reasoning_tokens"),
+        "reasoning_billing": "INCLUDED_IN_COMPLETION_TOKENS_NOT_DOUBLE_COUNTED",
+    }
+
+
+def _annotate_tier1_costs(
+    row: dict[str, Any], catalog: Mapping[str, Any] | None, *, strong: str, cheap: str,
+) -> None:
+    ledger = row.get("provider_ledger") if isinstance(row.get("provider_ledger"), Mapping) else {}
+    grouped = ledger.get("calls") if isinstance(ledger, Mapping) else {}
+    coordinator = list(grouped.get("coordinator_design") or ()) + list(grouped.get("coordinator_attribution") or ()) if isinstance(grouped, Mapping) else []
+    workers = list(grouped.get("worker") or ()) if isinstance(grouped, Mapping) else list(row.get("calls") or ())
+    calls = coordinator + workers
+    costs = [_call_cost_cny(call, catalog) for call in calls] if catalog else []
+    evaluated = bool(calls) and len(costs) == len(calls) and all(item["status"] == "EVALUATED" for item in costs)
+
+    def tokens(items: list[Mapping[str, Any]]) -> int:
+        return sum(int(item.get("total_tokens") or 0) for item in items)
+
+    metrics = {
+        "logical_provider_calls": len(calls),
+        "coordinator_tokens": tokens(coordinator),
+        "strong_worker_tokens": tokens([call for call in workers if call.get("provider") == strong]),
+        "cheap_worker_tokens": tokens([call for call in workers if call.get("provider") == cheap]),
+        "total_tokens": tokens(calls),
+        "cached_tokens": sum(int(call.get("cached_tokens") or 0) for call in calls),
+        "reasoning_tokens": sum(int(call.get("reasoning_tokens") or 0) for call in calls),
+        "generation_calls": sum(call.get("call_class") == "GENERATION" for call in workers),
+        "continuation_calls": sum(call.get("call_class") == "GENERATION_CONTINUATION" for call in workers),
+        "retry_calls": sum(call.get("call_class") == "GENERATION_RETRY" for call in workers),
+        "repair_calls": sum(call.get("call_class") == "REPAIR" for call in workers),
+        "cost_evaluated": evaluated,
+        "cost_cny": sum(float(item["cost_cny"]) for item in costs) if evaluated else None,
+        "failed_call_cost_cny": sum(
+            float(cost["cost_cny"]) for call, cost in zip(calls, costs)
+            if cost.get("cost_cny") is not None and call.get("result") not in {"SUCCEEDED", "PASS"}
+        ) if evaluated else None,
+        "pricing_snapshot_hash": catalog.get("snapshot_hash") if catalog else None,
+        "call_costs": costs,
+    }
+    row["efficiency_metrics"] = metrics
 
 
 def _controlled_partial_schema(schema: dict[str, Any], allowed_paths: tuple[str, ...]) -> dict[str, Any]:
@@ -565,7 +673,10 @@ def _direct_strong_run(case_id: str, artifact_root: pathlib.Path, provider: str)
     ).execute(BlockExecutionRequest(
         case_id, run_id, "acceptance", "accept", "project.acceptance.external@1", "project.acceptance@1",
         TaskContext(
-            "external acceptance", node_config={"case_id": case_id},
+            "external acceptance", node_config={
+                "case_id": case_id,
+                "dependency_policy": {"runtime": {"allowed_packages": []}, "test": {"allowed_packages": ["pytest"]}},
+            },
             acceptance=get_case(case_id).public_acceptance,
         ), timeout_seconds=120,
     ))
@@ -588,7 +699,8 @@ def _direct_strong_run(case_id: str, artifact_root: pathlib.Path, provider: str)
 
 def _tier1_efficiency(
     variant: str, case_id: str, repeat: int, artifact_root: pathlib.Path,
-    provider: str, blueprint_path: pathlib.Path | None,
+    provider: str, blueprint_path: pathlib.Path | None, pricing_path: pathlib.Path | None,
+    *, start_index: int = 1,
 ) -> dict[str, Any]:
     if variant not in {"V0", "V0B", "V1", "V2"}:
         raise ValueError("Tier 1 requires V0, V0B, V1, or V2")
@@ -599,6 +711,7 @@ def _tier1_efficiency(
     routing = CGKNModelRouting.load(ROOT / "config" / "provider_profiles" / "gateway_model_routing.json")
     strong = routing.agent.model
     cheap = routing.worker.model
+    pricing = _load_pricing_catalog(pricing_path)
     frozen = None
     if variant == "V0B":
         if blueprint_path is None:
@@ -607,7 +720,7 @@ def _tier1_efficiency(
         if frozen.project_id != case_id:
             raise ValueError("frozen Blueprint case does not match --case")
     runs: list[dict[str, Any]] = []
-    for index in range(1, repeat + 1):
+    for index in range(start_index, start_index + repeat):
         destination = artifact_root / _source_commit() / "tier1" / f"{variant.lower()}-{case_id}-{index}"
         if variant == "V0":
             row = _direct_strong_run(case_id, artifact_root, strong)
@@ -624,17 +737,20 @@ def _tier1_efficiency(
             row["variant"] = variant
             row["case_id"] = case_id
             row["status"] = "PASS" if row.get("status") == "SUCCEEDED" else "FAIL"
+        _annotate_tier1_costs(row, pricing, strong=strong, cheap=cheap)
         runs.append(row)
     passed = sum(row.get("status") == "PASS" for row in runs)
     result = {
         "profile": "tier1-efficiency", "variant": variant, "case_id": case_id,
         "repeat": repeat, "passed": passed, "status": "PASS" if passed == repeat else "FAIL",
         "strong_provider": strong, "cheap_provider": cheap, "runs": runs,
-        "cost_evaluated": False,
-        "cost_status": "NOT_EVALUATED_WITHOUT_MODEL_SPECIFIC_OFFICIAL_PRICING",
+        "start_index": start_index,
+        "cost_evaluated": bool(pricing) and all(row["efficiency_metrics"]["cost_evaluated"] for row in runs),
+        "cost_status": "EVALUATED_OFFICIAL_LIST_PRICE" if pricing else "NOT_EVALUATED_WITHOUT_MODEL_SPECIFIC_OFFICIAL_PRICING",
+        "pricing_snapshot_hash": pricing.get("snapshot_hash") if pricing else None,
         "statistical_claim": "DIRECTIONAL_ONLY",
     }
-    target = artifact_root / _source_commit() / "tier1" / f"{variant.lower()}-{case_id}-index.json"
+    target = artifact_root / _source_commit() / "tier1" / f"{variant.lower()}-{case_id}-{start_index}-{start_index + repeat - 1}-index.json"
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return result
@@ -651,6 +767,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--artifact-root", type=pathlib.Path, default=ROOT / "artifacts" / "role_model_efficiency")
     parser.add_argument("--pricing-snapshot", type=pathlib.Path)
     parser.add_argument("--blueprint-path", type=pathlib.Path)
+    parser.add_argument("--start-index", type=int, default=1)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     if args.repeat < 1 or args.repeat > 5:
@@ -670,6 +787,8 @@ def main(argv: list[str] | None = None) -> int:
         result = _tier1_efficiency(
             args.variant, args.case, args.repeat, args.artifact_root.resolve(), args.provider,
             args.blueprint_path.resolve() if args.blueprint_path else None,
+            args.pricing_snapshot.resolve() if args.pricing_snapshot else None,
+            start_index=args.start_index,
         )
     else:
         result = {"profile": args.profile, "status": "BLOCKED_BY_PRIOR_GATE", "reason": "complete Coordinator 3/3 before later profiles"}
