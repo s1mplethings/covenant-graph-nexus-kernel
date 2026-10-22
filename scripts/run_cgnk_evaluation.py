@@ -323,7 +323,9 @@ def _mcp_exchange(messages: list[dict[str, Any]], *, environment: Mapping[str, s
     return [json.loads(line) for line in completed.stdout.splitlines() if line.strip()]
 
 
-def _server_formal(artifact_root: pathlib.Path, *, probe_provider: bool) -> dict[str, Any]:
+def _server_formal(
+    artifact_root: pathlib.Path, *, probe_provider: bool, probe_model: str = "",
+) -> dict[str, Any]:
     run_id = f"server-formal-{uuid.uuid4().hex[:10]}"
     project = artifact_root / run_id / "project"
     project.mkdir(parents=True, exist_ok=False)
@@ -366,9 +368,14 @@ def _server_formal(artifact_root: pathlib.Path, *, probe_provider: bool) -> dict
     unavailable_payload = unavailable_response[0] if unavailable_response else {"status": "NO_RESPONSE"}
     probe: dict[str, Any] = {"status": "NOT_EVALUATED"}
     if probe_provider:
+        if not probe_model.strip():
+            raise ValueError("formal Provider recovery requires an explicit frozen route model")
         probe_response = _mcp_exchange([{
             "jsonrpc": "2.0", "id": 1, "method": "tools/call",
-            "params": {"name": "cgkn_probe_provider", "arguments": {"project_root": str(project), "confirmation": "RUN_PROVIDER_PROBE", "timeout": 20}},
+            "params": {"name": "cgkn_probe_provider", "arguments": {
+                "project_root": str(project), "confirmation": "RUN_PROVIDER_PROBE",
+                "timeout": 20, "model": probe_model,
+            }},
         }])
         probe = probe_response[0] if probe_response else {"status": "NO_RESPONSE"}
     by_id = {item.get("id"): item for item in responses}
@@ -404,6 +411,7 @@ def _server_formal(artifact_root: pathlib.Path, *, probe_provider: bool) -> dict
         "profile": "server-formal", "status": "PASS" if passed else "FAIL", "run_id": run_id,
         "checks": checks, "unsupported": {"conversation_answer_path": "not exposed by the installed formal server"},
         "provider_probe": probe, "provider_unavailable_probe": unavailable_payload,
+        "provider_probe_model": probe_model or None,
         "responses": responses, "restart_responses": restart,
         "duration_ms": int((time.perf_counter() - started) * 1000),
     }
@@ -418,11 +426,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--artifact-root", type=pathlib.Path, default=ROOT / "artifacts" / "cgnk_evaluation")
     parser.add_argument("--provider", choices=("qwen", "deepseek", "grok"), default="qwen")
     parser.add_argument("--probe-provider", action="store_true")
+    parser.add_argument("--probe-model", default="")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
     args.artifact_root.mkdir(parents=True, exist_ok=True)
     if args.profile == "server-formal":
-        result = _server_formal(args.artifact_root.resolve(), probe_provider=args.probe_provider)
+        result = _server_formal(
+            args.artifact_root.resolve(), probe_provider=args.probe_provider,
+            probe_model=args.probe_model,
+        )
     elif args.profile in {"model-capability", "cgnk-structure-eval"}:
         result = _model_capability(args.artifact_root.resolve(), args.provider)
         if args.profile == "cgnk-structure-eval":
