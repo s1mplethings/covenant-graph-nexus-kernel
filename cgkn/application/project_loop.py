@@ -39,8 +39,11 @@ from .repair_convergence import (
     RepairProgress,
     RepairTargetSpec,
     build_public_test_repair_target,
+    capture_public_failure_context,
     classify_repair_progress,
     localize_repair_sources,
+    patch_modified_symbols,
+    repair_evidence_metrics,
     run_targeted_regression,
     summarize_patch_diff,
 )
@@ -84,6 +87,8 @@ PATCH_BUNDLE_SCHEMA: dict[str, Any] = {"oneOf": [
 ]}
 UNIT_PAYLOAD_SCHEMA = {"oneOf": [FILE_BUNDLE_SCHEMA["oneOf"][0], PATCH_BUNDLE_SCHEMA["oneOf"][0]]}
 MAX_UNIT_MATERIALIZATION_CALLS = 3
+REPAIR_EVIDENCE_MODES = frozenset({"CURRENT", "FAILURE_SLICE_CONTRASTIVE"})
+REPAIR_SCOPE_MODES = frozenset({"NORMAL", "LOCALIZED"})
 
 
 def file_bundle_schema(requested_paths: tuple[str, ...]) -> dict[str, Any]:
@@ -111,6 +116,38 @@ def file_bundle_schema(requested_paths: tuple[str, ...]) -> dict[str, Any]:
                 "files": {
                     "type": "array", "minItems": 1,
                     "maxItems": len(requested_paths), "items": item,
+                },
+            },
+        },
+        _ESCALATION_SCHEMA,
+    ]}
+
+
+def patch_bundle_schema(allowed_paths: tuple[str, ...]) -> dict[str, Any]:
+    """Bind a repair response to the deterministic repair file scope."""
+    if not allowed_paths:
+        raise ValueError("allowed_paths must be non-empty")
+    item = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["path", "edits"],
+        "properties": {
+            "path": {"enum": list(allowed_paths)},
+            "edits": {"type": "array", "minItems": 1, "items": _PATCH_EDIT},
+        },
+    }
+    return {"oneOf": [
+        {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["schema_version", "kind", "unit_id", "files"],
+            "properties": {
+                "schema_version": {"const": "2.0"},
+                "kind": {"const": "patch_bundle"},
+                "unit_id": {"type": "string"},
+                "files": {
+                    "type": "array", "minItems": 1,
+                    "maxItems": len(allowed_paths), "items": item,
                 },
             },
         },
@@ -577,15 +614,29 @@ class ProviderAcceptanceAttributor:
 class BlueprintUnitExecutor:
     descriptor = ExecutorDescriptor("llm.cheap@1", "blueprint_unit_worker", ("project.unit.implementation@1", "project.unit.tests@1", "project.unit.documentation@1"), ("filesystem.read", "filesystem.write"), supports_cost_reporting=True)
 
-    def __init__(self, root: pathlib.Path | str, client: CompletionClient | ProductionGenerationClient, config: ModelRoleConfig, repair_config: ModelRoleConfig | None = None, *, materialization_policy: str = "INCREMENTAL"):
+    def __init__(
+        self,
+        root: pathlib.Path | str,
+        client: CompletionClient | ProductionGenerationClient,
+        config: ModelRoleConfig,
+        repair_config: ModelRoleConfig | None = None,
+        *,
+        materialization_policy: str = "INCREMENTAL",
+        repair_evidence_mode: str = "CURRENT",
+        repair_scope_mode: str = "NORMAL",
+    ):
         if config.role != "worker": raise ValueError("unit executor requires worker role")
         if repair_config is not None and repair_config.role != "worker": raise ValueError("repair executor requires worker role")
         if materialization_policy not in {"INCREMENTAL", "FULL_RETRY"}: raise ValueError("invalid materialization policy")
+        if repair_evidence_mode not in REPAIR_EVIDENCE_MODES: raise ValueError("invalid repair evidence mode")
+        if repair_scope_mode not in REPAIR_SCOPE_MODES: raise ValueError("invalid repair scope mode")
         self.root = pathlib.Path(root).resolve()
         self.generation = client if isinstance(client, ProductionGenerationClient) else default_production_client(client)
         self.config = config
         self.repair_config = repair_config or config
         self.materialization_policy = materialization_policy
+        self.repair_evidence_mode = repair_evidence_mode
+        self.repair_scope_mode = repair_scope_mode
         self.failure_reports: dict[str, FailureReport] = {}
         self.generation_failure_reports: dict[str, FailureReport] = {}
         self.materialized_units: dict[str, tuple[tuple[str, ...], str]] = {}
@@ -802,6 +853,8 @@ class BlueprintUnitExecutor:
                 relevant_sources = dict(sources)
                 relevant_functions: tuple[str, ...] = ()
                 evidence_packet: dict[str, Any] | None = None
+                failure_execution_slice: dict[str, Any] | None = None
+                contrastive_public_evidence: dict[str, Any] | None = None
                 if target is not None:
                     relevant_sources, relevant_functions, locator = localize_repair_sources(sources, target.fingerprint)
                     if locator != target.fingerprint.relevant_source_locator:
@@ -810,6 +863,11 @@ class BlueprintUnitExecutor:
                             target.operation, target.setup, target.expected,
                         )
                         self.repair_targets[unit.unit_id] = target
+                    if self.repair_evidence_mode == "FAILURE_SLICE_CONTRASTIVE":
+                        execution_slice, contrastive_public_evidence = capture_public_failure_context(
+                            target, self.root, sources,
+                        )
+                        failure_execution_slice = execution_slice.as_dict()
                     packet = RepairEvidencePacket(
                         project_goal=project_goal,
                         unit_purpose=unit.purpose,
@@ -831,8 +889,15 @@ class BlueprintUnitExecutor:
                             )
                         ),
                         previous_attempt=previous_attempts[-1] if previous_attempts else None,
+                        failure_execution_slice=failure_execution_slice,
+                        contrastive_public_evidence=contrastive_public_evidence,
                     )
                     evidence_packet = packet.as_dict()
+                allowed_repair_paths = (
+                    tuple(path for path in unit.owns if path in relevant_sources)
+                    if self.repair_scope_mode == "LOCALIZED" and relevant_sources
+                    else unit.owns
+                )
                 prompt = {
                     "mode": mode,
                     "repair_attempt_number": repair_attempt_number,
@@ -844,6 +909,12 @@ class BlueprintUnitExecutor:
                     },
                     "public_constraints": list(request.task_context.project_constraints),
                     "repair_evidence_packet": evidence_packet,
+                    "repair_evidence_mode": self.repair_evidence_mode,
+                    "repair_scope": {
+                        "mode": self.repair_scope_mode,
+                        "allowed_files": list(allowed_repair_paths),
+                        "target_symbol_hints": list(relevant_functions),
+                    },
                     "direct_dependency_results": materialize_json(request.task_context.dependency_results),
                     "output_contract": "PatchBundle v2 only in REPAIR",
                 }
@@ -889,7 +960,7 @@ class BlueprintUnitExecutor:
                             key: value.as_dict() for key, value in manifests.items() if key in relevant_sources
                         },
                     },
-                    failure_evidence=failure.as_dict(), schema_name="cgnk_unit_bundle", schema=PATCH_BUNDLE_SCHEMA,
+                    failure_evidence=failure.as_dict(), schema_name="cgnk_unit_bundle", schema=patch_bundle_schema(allowed_repair_paths),
                     model_config=effective_config, allowed_actions=("patch_bundle",),
                     forbidden_actions=("shell", "network", "blueprint_change", "hidden_acceptance"), run_id=request.run_id,
                     projected_prompt=prompt, prompt_projection_hash=canonical_hash(prompt),
@@ -899,6 +970,18 @@ class BlueprintUnitExecutor:
                     request, unit, mode, clock, config=effective_config, completion=completion,
                     call_class="REPAIR", prompt=prompt,
                 ))
+                self.calls[-1].update({
+                    "repair_evidence_mode": self.repair_evidence_mode,
+                    "repair_scope_mode": self.repair_scope_mode,
+                    "allowed_repair_paths": list(allowed_repair_paths),
+                    "repair_evidence_metrics": repair_evidence_metrics(evidence_packet) if evidence_packet else None,
+                    "failure_execution_slice_hash": (
+                        failure_execution_slice.get("slice_hash") if failure_execution_slice else None
+                    ),
+                    "contrastive_public_evidence_hash": (
+                        contrastive_public_evidence.get("contrast_hash") if contrastive_public_evidence else None
+                    ),
+                })
                 provider_recorded = True
                 value = parse_json_object(completion.text)
                 if str(value.get("unit_id", "")) != unit.unit_id:
@@ -910,8 +993,28 @@ class BlueprintUnitExecutor:
                 actions = [{"action": "patch_file", "path": path, "edits": [{"find": find, "replace": replacement} for find, replacement in edits]} for path, edits in bundle.files]
                 summary = bundle.summary
                 changed = tuple(item["path"] for item in actions)
-                if not changed or not set(changed) <= set(unit.owns):
-                    raise UnitOutputValidationError("UNIT_OUTPUT_SCOPE_VIOLATION", "repair bundle must modify a non-empty subset of unit.owns")
+                if not changed or not set(changed) <= set(allowed_repair_paths):
+                    raise UnitOutputValidationError("UNIT_OUTPUT_SCOPE_VIOLATION", "repair bundle must modify a non-empty subset of the allowed repair paths")
+                modified_symbols = patch_modified_symbols(sources, bundle.files)
+                target_symbol_entries = {
+                    f"{path}:{symbol}" for path in relevant_sources for symbol in relevant_functions
+                }
+                target_symbol_hit = bool(set(modified_symbols).intersection(target_symbol_entries))
+                self.calls[-1].update({
+                    "modified_files": list(changed),
+                    "modified_symbols": list(modified_symbols),
+                    "target_symbols": sorted(target_symbol_entries),
+                    "target_symbol_hit": target_symbol_hit,
+                    "execution_path_overlap": bool(
+                        failure_execution_slice
+                        and set(modified_symbols).intersection(failure_execution_slice.get("executed_functions", ()))
+                    ),
+                })
+                if self.repair_scope_mode == "LOCALIZED" and target_symbol_entries and not target_symbol_hit:
+                    raise UnitOutputValidationError(
+                        "UNIT_OUTPUT_SCOPE_VIOLATION",
+                        "localized repair must overlap at least one deterministic target symbol",
+                    )
                 scope = WorkerScope(unit.owns + unit.reads, unit.owns, max_actions=unit.max_actions, max_write_files=unit.max_files, max_total_output_bytes=unit.max_output_bytes, allow_create=False, allow_patch=True, allow_delete=False)
                 transaction = ScopedFileTransaction(self.root, scope)
                 _, planned = transaction.validate(actions)
@@ -1444,6 +1547,10 @@ class BlueprintUnitExecutor:
             len(str(value)) for value in dict(prompt or {}).get("staged_sibling_context", {}).values()
         )
         input_tokens = token("prompt_tokens", "input_tokens")
+        actual_model = completion.model if completion is not None else str(receipt.get("model") or config.model)
+        model_identity_kind = (
+            "SNAPSHOT" if re.search(r"-(?:20\d{6}|\d{4})$", actual_model) else "STABLE_ALIAS"
+        )
         return {
             "logical_call_id": f"{request.run_id}:{unit.unit_id}:{mode.lower()}:{len(self.calls) + 1}",
             "project_id": request.project_id, "run_id": request.run_id,
@@ -1451,13 +1558,23 @@ class BlueprintUnitExecutor:
             "call_class": effective_call_class,
             "materialization_policy": self.materialization_policy,
             "provider": config.model,
-            "model": completion.model if completion is not None else str(receipt.get("model") or config.model),
+            "model": actual_model,
+            "model_identity_kind": model_identity_kind,
             "request_id": completion.request_id if completion is not None else str(receipt.get("request_id") or ""),
             "transport_attempts": attempts_detail if attempts_detail else attempt_count,
             "transport_attempt_count": int(attempt_count or (len(attempts_detail) if isinstance(attempts_detail, list) else 0)),
             "thinking_mode_requested": config.thinking_mode,
             "thinking_mode_forwarded": metadata.get("thinking_mode_forwarded", receipt.get("thinking_mode_forwarded")),
             "reasoning_effort": config.reasoning_effort,
+            "temperature": metadata.get("temperature_requested", config.temperature),
+            "temperature_status": "SENT_TO_GATEWAY",
+            "top_p": metadata.get("top_p_requested"),
+            "top_k": metadata.get("top_k_requested"),
+            "seed": metadata.get("seed_requested"),
+            "max_output_tokens": config.max_output_tokens,
+            "response_format_mode": metadata.get("response_format_mode", "json_schema"),
+            "stream_mode": metadata.get("stream_mode", False),
+            "provider_request_hash": metadata.get("provider_request_hash") or receipt.get("provider_request_hash"),
             "prompt_tokens": input_tokens,
             "completion_tokens": token("completion_tokens", "output_tokens"),
             "reasoning_tokens": token("reasoning_tokens"),

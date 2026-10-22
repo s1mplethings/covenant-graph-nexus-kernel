@@ -12,8 +12,11 @@ from cgkn.application.repair_convergence import (
     RepairFailureFingerprint,
     RepairProgress,
     RepairTargetSpec,
+    capture_public_failure_context,
     classify_repair_progress,
     localize_repair_sources,
+    patch_modified_symbols,
+    repair_evidence_metrics,
 )
 from cgkn.execution import BlockExecutionRequest, TaskContext
 from cgkn.providers import ModelRoleConfig, ProviderCompletion
@@ -126,7 +129,14 @@ def _target(baseline_hash: str) -> RepairTargetSpec:
     )
 
 
-def _executor(root: pathlib.Path, responses, *, with_regression: bool = False):
+def _executor(
+    root: pathlib.Path,
+    responses,
+    *,
+    with_regression: bool = False,
+    repair_evidence_mode: str = "CURRENT",
+    repair_scope_mode: str = "NORMAL",
+):
     _workspace(root, with_regression=with_regression)
     unit = BlueprintUnit(
         "implementation-1", "CSV CLI", "implementation", ("csv_cleaner/__main__.py",),
@@ -134,7 +144,13 @@ def _executor(root: pathlib.Path, responses, *, with_regression: bool = False):
         allowed_effects=("filesystem.write",),
     )
     client = QueueClient(responses)
-    executor = BlueprintUnitExecutor(root, client, ModelRoleConfig("worker", "qwen3.7-flash"))
+    executor = BlueprintUnitExecutor(
+        root,
+        client,
+        ModelRoleConfig("worker", "qwen3.7-flash"),
+        repair_evidence_mode=repair_evidence_mode,
+        repair_scope_mode=repair_scope_mode,
+    )
     executor.register_materialized_baseline(unit)
     baseline_hash = executor.materialized_units[unit.unit_id][1]
     executor.repair_targets[unit.unit_id] = _target(baseline_hash)
@@ -189,6 +205,66 @@ def test_source_localization_selects_preview_function_not_csv_reader() -> None:
     assert locator.endswith(":_print_preview")
     assert "def _print_preview" in relevant["csv_cleaner/__main__.py"]
     assert "def _read_csv" in relevant["csv_cleaner/__main__.py"]
+
+
+def test_public_failure_slice_captures_only_project_execution_and_contrast(tmp_path: pathlib.Path) -> None:
+    _workspace(tmp_path)
+    sources = {"csv_cleaner/__main__.py": BROKEN_SOURCE}
+    execution_slice, contrast = capture_public_failure_context(
+        _target("sha256:baseline"), tmp_path, sources,
+    )
+    assert execution_slice.target_symbol_hit is True
+    assert "csv_cleaner/__main__.py:_print_preview" in execution_slice.observable_call_path
+    assert execution_slice.executed_files == ("csv_cleaner/__main__.py",)
+    assert all(not pathlib.PurePosixPath(path).is_absolute() for path in execution_slice.executed_files)
+    assert contrast["failing_example"]["actual"] == [["1", "Ada", ""], []]
+    assert contrast["nearest_passing_example"]["status"] == "PASS"
+    assert "hidden" not in json.dumps({"slice": execution_slice.as_dict(), "contrast": contrast}).casefold()
+
+
+def test_patch_symbol_audit_distinguishes_target_and_unrelated_edits() -> None:
+    sources = {"csv_cleaner/__main__.py": BROKEN_SOURCE}
+    target = (("csv_cleaner/__main__.py", (("sys.stdout.write(\",\".join(rows[0]) + \"\\n\\n\")", "pass"),)),)
+    unrelated = (("csv_cleaner/__main__.py", (("MARKER = 1", "MARKER = 2"),)),)
+    assert "csv_cleaner/__main__.py:_print_preview" in patch_modified_symbols(sources, target)
+    assert "csv_cleaner/__main__.py:_print_preview" not in patch_modified_symbols(sources, unrelated)
+
+
+def test_repair_evidence_metrics_separate_source_failure_trace_and_contrast() -> None:
+    packet = {
+        "relevant_implementation_files": {"a.py": "def f(): return 1"},
+        "canonical_public_requirement": "return one",
+        "public_interfaces": ["a.py:f"],
+        "requirement_ids": ["REQ-1"],
+        "exact_observable": "return.value",
+        "minimal_reproduction_input": {},
+        "expected_public_result": 1,
+        "actual_public_result": 0,
+        "failure_kind": "ASSERTION_MISMATCH",
+        "failure_execution_slice": {"executed_functions": ["a.py:f"]},
+        "contrastive_public_evidence": {"public_safe": True},
+    }
+    metrics = repair_evidence_metrics(packet)
+    assert metrics["chars"]["source"] > 0
+    assert metrics["chars"]["failure"] > 0
+    assert metrics["chars"]["trace"] > 0
+    assert metrics["chars"]["contrastive"] > 0
+    assert "provider-reported" in metrics["token_estimate_basis"]
+
+
+def test_current_evidence_mode_omits_enhanced_fields_for_hash_compatibility() -> None:
+    packet = RepairEvidencePacket(
+        project_goal="repair CSV preview",
+        unit_purpose="implement CSV CLI",
+        canonical_public_requirement="preview exactly one row",
+        fingerprint=_fingerprint("sha256:baseline"),
+        exact_reproduction={"commands": []},
+        relevant_files={"csv_cleaner/__main__.py": BROKEN_SOURCE},
+        relevant_functions=("_print_preview",),
+        public_interfaces=("csv_cleaner/__main__.py:_print_preview",),
+    ).as_dict()
+    assert "failure_execution_slice" not in packet
+    assert "contrastive_public_evidence" not in packet
 
 
 def test_canonical_validator_detects_extra_record_and_accepts_exact_fix(tmp_path: pathlib.Path) -> None:
@@ -341,6 +417,55 @@ def test_evidence_packet_is_minimal_public_safe_and_carries_previous_diff(tmp_pa
     assert "def _print_preview" in packet["relevant_implementation_files"]["csv_cleaner/__main__.py"]
     assert "def _read_csv" in packet["relevant_implementation_files"]["csv_cleaner/__main__.py"]
     assert len(json.dumps(second_prompt)) < len(json.dumps(first_prompt)) + 6000
+
+
+def test_failure_slice_variant_records_public_trace_contrast_and_metrics(tmp_path: pathlib.Path) -> None:
+    correct = _patch(('+ "\\n\\n"', '+ "\\n"'))
+    executor, client, request, _ = _executor(
+        tmp_path,
+        [correct],
+        repair_evidence_mode="FAILURE_SLICE_CONTRASTIVE",
+    )
+    result = executor.execute(request)
+    assert result.succeeded
+    prompt = json.loads(client.calls[0]["user"])
+    packet = prompt["repair_evidence_packet"]
+    assert packet["failure_execution_slice"]["target_symbol_hit"] is True
+    assert packet["contrastive_public_evidence"]["nearest_passing_example"]["status"] == "PASS"
+    assert executor.calls[0]["failure_execution_slice_hash"]
+    assert executor.calls[0]["contrastive_public_evidence_hash"]
+    assert executor.calls[0]["repair_evidence_metrics"]["chars"]["trace"] > 0
+
+
+def test_localized_repair_scope_rejects_edit_outside_target_symbol(tmp_path: pathlib.Path) -> None:
+    unrelated = _patch(("MARKER = 1", "MARKER = 2"))
+    executor, client, request, baseline_hash = _executor(
+        tmp_path,
+        [unrelated],
+        repair_evidence_mode="FAILURE_SLICE_CONTRASTIVE",
+        repair_scope_mode="LOCALIZED",
+    )
+    result = executor.execute(request)
+    assert not result.succeeded
+    assert result.error.details["failure_type"] == "UNIT_OUTPUT_SCOPE_VIOLATION"
+    assert executor.materialized_units["implementation-1"][1] == baseline_hash
+    assert executor.calls[0]["target_symbol_hit"] is False
+    assert executor.calls[0]["repair_scope_mode"] == "LOCALIZED"
+    assert client.calls[0]["schema"]["oneOf"][0]["properties"]["files"]["items"]["properties"]["path"]["enum"] == ["csv_cleaner/__main__.py"]
+
+
+def test_localized_repair_scope_accepts_target_symbol_fix(tmp_path: pathlib.Path) -> None:
+    correct = _patch(('+ "\\n\\n"', '+ "\\n"'))
+    executor, _, request, _ = _executor(
+        tmp_path,
+        [correct],
+        repair_evidence_mode="FAILURE_SLICE_CONTRASTIVE",
+        repair_scope_mode="LOCALIZED",
+    )
+    result = executor.execute(request)
+    assert result.succeeded
+    assert executor.calls[0]["target_symbol_hit"] is True
+    assert executor.calls[0]["execution_path_overlap"] is True
 
 
 def test_original_baseline_is_used_for_second_repair_after_discard(tmp_path: pathlib.Path) -> None:

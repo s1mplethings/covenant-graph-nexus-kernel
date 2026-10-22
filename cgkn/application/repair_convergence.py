@@ -8,8 +8,11 @@ import json
 import os
 import pathlib
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
+import textwrap
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Mapping
@@ -211,6 +214,8 @@ class RepairEvidencePacket:
     relevant_functions: tuple[str, ...]
     public_interfaces: tuple[str, ...]
     previous_attempt: RepairAttemptEvidence | None = None
+    failure_execution_slice: Mapping[str, Any] | None = None
+    contrastive_public_evidence: Mapping[str, Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         value = {
@@ -235,10 +240,287 @@ class RepairEvidencePacket:
             ),
             "previous_failed_attempt": self.previous_attempt.as_dict() if self.previous_attempt else None,
         }
+        if self.failure_execution_slice is not None:
+            value["failure_execution_slice"] = materialize_json(self.failure_execution_slice)
+        if self.contrastive_public_evidence is not None:
+            value["contrastive_public_evidence"] = materialize_json(self.contrastive_public_evidence)
         text = _canonical_json(value).casefold()
         if any(marker in text for marker in _PUBLIC_SAFE_FORBIDDEN):
             raise ValueError("repair evidence packet contains forbidden hidden material")
         return value
+
+
+@dataclass(frozen=True)
+class FailureExecutionSlice:
+    """Public-reproduction execution path, limited to project-owned source."""
+
+    operation_hash: str
+    executed_files: tuple[str, ...]
+    executed_functions: tuple[str, ...]
+    relevant_line_ranges: tuple[tuple[str, str, int, int], ...]
+    observable_call_path: tuple[str, ...]
+    target_file: str
+    target_symbol: str
+    target_symbol_hit: bool
+    return_code: int
+    slice_hash: str = ""
+
+    def __post_init__(self) -> None:
+        expected = canonical_hash(self.as_dict(include_hash=False))
+        if self.slice_hash and self.slice_hash != expected:
+            raise ValueError("failure execution slice hash mismatch")
+        object.__setattr__(self, "slice_hash", expected)
+
+    def as_dict(self, *, include_hash: bool = True) -> dict[str, Any]:
+        value = {
+            "operation_hash": self.operation_hash,
+            "executed_files": list(self.executed_files),
+            "executed_functions": list(self.executed_functions),
+            "relevant_line_ranges": [
+                {"path": path, "symbol": symbol, "start_line": start, "end_line": end}
+                for path, symbol, start, end in self.relevant_line_ranges
+            ],
+            "observable_call_path": list(self.observable_call_path),
+            "target_file": self.target_file,
+            "target_symbol": self.target_symbol,
+            "target_symbol_hit": self.target_symbol_hit,
+            "return_code": self.return_code,
+            "public_safe": True,
+        }
+        text = _canonical_json(value).casefold()
+        if any(marker in text for marker in _PUBLIC_SAFE_FORBIDDEN):
+            raise ValueError("failure execution slice contains forbidden hidden material")
+        return value | ({"slice_hash": self.slice_hash} if include_hash else {})
+
+
+def _safe_relative_project_path(root: pathlib.Path, filename: str) -> str | None:
+    try:
+        return pathlib.Path(filename).resolve().relative_to(root).as_posix()
+    except (OSError, ValueError):
+        return None
+
+
+def _symbol_ranges(source: str, path: str) -> dict[str, tuple[str, str, int, int]]:
+    try:
+        tree = ast.parse(source, filename=path)
+    except SyntaxError:
+        return {}
+    ranges = {
+        node.name: (path, node.name, int(node.lineno), int(getattr(node, "end_lineno", node.lineno)))
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+    }
+    ranges["<module>"] = (path, "<module>", 1, max(1, len(source.splitlines())))
+    return ranges
+
+
+def capture_public_failure_context(
+    target: RepairTargetSpec,
+    workspace: str | pathlib.Path,
+    visible_sources: Mapping[str, str],
+) -> tuple[FailureExecutionSlice, dict[str, Any]]:
+    """Run only the canonical public reproduction and capture project-code calls.
+
+    The trace records filenames, symbols and line ranges only.  Arguments,
+    locals, assertions and traceback text are intentionally excluded.
+    """
+
+    root = pathlib.Path(workspace).resolve()
+    operation = _json_value(target.operation)
+    setup = _json_value(target.setup)
+    if not isinstance(operation, Mapping) or not isinstance(setup, Mapping):
+        raise ValueError("repair target operation and setup must be objects")
+    commands = operation.get("commands", ())
+    if not commands:
+        raise ValueError("repair target requires one public command")
+    with tempfile.TemporaryDirectory(prefix="cgkn-public-failure-slice-") as temporary:
+        temporary_root = pathlib.Path(temporary)
+        staged_root = temporary_root / "workspace"
+        shutil.copytree(
+            root,
+            staged_root,
+            ignore=shutil.ignore_patterns(".git", ".cgkn", ".pytest_cache", "__pycache__", "*.pyc"),
+        )
+        input_relative = pathlib.PurePosixPath(str(setup.get("input_path", "input.csv")))
+        output_relative = pathlib.PurePosixPath(str(setup.get("output_path", "output.csv")))
+        if input_relative.is_absolute() or output_relative.is_absolute() or ".." in input_relative.parts or ".." in output_relative.parts:
+            raise ValueError("unsafe public reproduction fixture path")
+        input_path = staged_root / input_relative
+        output_path = staged_root / output_relative
+        input_path.parent.mkdir(parents=True, exist_ok=True)
+        with input_path.open("w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle, delimiter=str(setup.get("delimiter", ",")))
+            writer.writerow(setup.get("header", ()))
+            writer.writerows(setup.get("rows", ()))
+        trace_root = temporary_root / "trace"
+        trace_root.mkdir()
+        trace_path = trace_root / "events.json"
+        tracer = textwrap.dedent(
+            """
+            import atexit, json, os, pathlib, sys, threading
+            _root = pathlib.Path(os.environ["CGKN_PUBLIC_TRACE_ROOT"]).resolve()
+            _target = pathlib.Path(os.environ["CGKN_PUBLIC_TRACE_PATH"])
+            _events = []
+            def _trace(frame, event, arg):
+                if event == "call":
+                    try:
+                        path = pathlib.Path(frame.f_code.co_filename).resolve()
+                        relative = path.relative_to(_root).as_posix()
+                    except (OSError, ValueError):
+                        return _trace
+                    _events.append({"path": relative, "symbol": frame.f_code.co_name})
+                return _trace
+            def _write():
+                _target.write_text(json.dumps(_events, ensure_ascii=False), encoding="utf-8")
+            atexit.register(_write)
+            sys.settrace(_trace)
+            threading.settrace(_trace)
+            """
+        ).strip() + "\n"
+        (trace_root / "sitecustomize.py").write_text(tracer, encoding="utf-8")
+        command = [str(item) for item in commands[0]["argv"]]
+        if command[0].casefold() in {"python", "python.exe", "python3"}:
+            command[0] = sys.executable
+        environment = {
+            key: value
+            for key, value in os.environ.items()
+            if key.upper() in {"PATH", "SYSTEMROOT", "WINDIR", "PATHEXT", "TEMP", "TMP"}
+        }
+        environment.update({
+            "PYTHONPATH": os.pathsep.join((str(trace_root), str(staged_root))),
+            "CGKN_PUBLIC_TRACE_ROOT": str(staged_root),
+            "CGKN_PUBLIC_TRACE_PATH": str(trace_path),
+        })
+        completed = subprocess.run(
+            command,
+            cwd=staged_root,
+            env=environment,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=30,
+            check=False,
+        )
+        raw_events = json.loads(trace_path.read_text(encoding="utf-8")) if trace_path.is_file() else []
+        visible = set(visible_sources)
+        call_path: list[str] = []
+        for item in raw_events:
+            relative = _safe_relative_project_path(staged_root, str(staged_root / str(item.get("path", ""))))
+            symbol = str(item.get("symbol", ""))
+            if not relative or relative not in visible or not symbol:
+                continue
+            entry = f"{relative}:{symbol}"
+            if entry not in call_path:
+                call_path.append(entry)
+        range_catalog = {
+            f"{path}:{symbol}": record
+            for path, source in visible_sources.items()
+            for symbol, record in _symbol_ranges(source, path).items()
+        }
+        line_ranges = tuple(range_catalog[item] for item in call_path if item in range_catalog)
+        target_file, _, target_symbol = target.fingerprint.relevant_source_locator.partition(":")
+        slice_value = FailureExecutionSlice(
+            operation_hash=canonical_hash(operation),
+            executed_files=tuple(dict.fromkeys(item.split(":", 1)[0] for item in call_path)),
+            executed_functions=tuple(call_path),
+            relevant_line_ranges=line_ranges,
+            observable_call_path=tuple(call_path),
+            target_file=target_file,
+            target_symbol=target_symbol,
+            target_symbol_hit=f"{target_file}:{target_symbol}" in call_path,
+            return_code=completed.returncode,
+        )
+        output_rows: list[list[str]] | None = None
+        if output_path.is_file():
+            with output_path.open("r", newline="", encoding="utf-8") as handle:
+                output_rows = list(csv.reader(handle, delimiter=str(setup.get("delimiter", ","))))
+        actual_rows = list(csv.reader(io.StringIO(completed.stdout)))
+        expected_document = _json_value(target.expected)
+        expected_output_created = (
+            bool(expected_document.get("output_created"))
+            if isinstance(expected_document, Mapping)
+            else False
+        )
+        contrast = {
+            "failing_example": {
+                "observable": target.fingerprint.observable,
+                "input": _json_value(target.fingerprint.normalized_input),
+                "expected": _json_value(target.fingerprint.normalized_expected),
+                "actual": actual_rows,
+                "failure_kind": target.fingerprint.failure_kind,
+            },
+            "nearest_passing_example": {
+                "observable": "output_file.created",
+                "expected": expected_output_created,
+                "actual": output_path.is_file(),
+                "related_public_output_rows": output_rows,
+                "status": "PASS" if output_path.is_file() else "FAIL",
+            },
+            "public_safe": True,
+        }
+        contrast["contrast_hash"] = canonical_hash(contrast)
+        return slice_value, contrast
+
+
+def repair_evidence_metrics(packet: Mapping[str, Any]) -> dict[str, Any]:
+    components = {
+        "source": packet.get("relevant_implementation_files"),
+        "contract": {
+            "canonical_public_requirement": packet.get("canonical_public_requirement"),
+            "public_interfaces": packet.get("public_interfaces"),
+            "requirement_ids": packet.get("requirement_ids"),
+        },
+        "failure": {
+            "observable": packet.get("exact_observable"),
+            "input": packet.get("minimal_reproduction_input"),
+            "expected": packet.get("expected_public_result"),
+            "actual": packet.get("actual_public_result"),
+            "kind": packet.get("failure_kind"),
+        },
+        "trace": packet.get("failure_execution_slice"),
+        "contrastive": packet.get("contrastive_public_evidence"),
+    }
+    char_counts = {key: len(_canonical_json(value)) if value is not None else 0 for key, value in components.items()}
+    return {
+        "chars": char_counts | {"total": len(_canonical_json(packet))},
+        "estimated_tokens": {key: (count + 3) // 4 for key, count in char_counts.items()},
+        "token_estimate_basis": "ceil(utf8_json_chars/4); provider-reported prompt_tokens remains authoritative",
+    }
+
+
+def patch_modified_symbols(
+    sources: Mapping[str, str],
+    patch_files: tuple[tuple[str, tuple[tuple[str, str], ...]], ...],
+) -> tuple[str, ...]:
+    """Return deterministic source symbols overlapped by exact PatchBundle finds."""
+
+    touched: list[str] = []
+    for path, edits in patch_files:
+        source = sources.get(path, "")
+        ranges = tuple(_symbol_ranges(source, path).values())
+        lines = source.splitlines(keepends=True)
+        offsets: list[int] = [0]
+        for line in lines:
+            offsets.append(offsets[-1] + len(line))
+        for find, _ in edits:
+            start = source.find(find)
+            if start < 0:
+                continue
+            end = start + len(find)
+            edit_symbols: list[str] = []
+            for _, symbol, start_line, end_line in ranges:
+                symbol_start = offsets[min(start_line - 1, len(offsets) - 1)]
+                symbol_end = offsets[min(end_line, len(offsets) - 1)]
+                if start < symbol_end and end > symbol_start:
+                    entry = f"{path}:{symbol}"
+                    if entry not in edit_symbols:
+                        edit_symbols.append(entry)
+            specific = [item for item in edit_symbols if not item.endswith(":<module>")]
+            for entry in specific or edit_symbols:
+                if entry not in touched:
+                    touched.append(entry)
+    return tuple(touched)
 
 
 def _comparison_values(output: str, *, expected_hint: Any = None) -> tuple[Any, Any]:

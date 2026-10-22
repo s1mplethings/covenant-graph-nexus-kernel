@@ -126,6 +126,17 @@ class GatewayCompletionClient:
         if len(encoded) > MAX_REQUEST_BYTES:
             raise GatewayCompletionError("request_too_large", "gateway request exceeded the bounded request size")
         identity = "sha256:" + hashlib.sha256(encoded).hexdigest()
+        request_audit = {
+            "provider_request_hash": identity,
+            "temperature_requested": config.temperature,
+            "temperature_sent_to_gateway": True,
+            "top_p_requested": None,
+            "top_k_requested": None,
+            "seed_requested": None,
+            "max_output_tokens_requested": config.max_output_tokens,
+            "response_format_mode": "json_schema",
+            "stream_mode": False,
+        }
         outer_seconds = config.outer_deadline_seconds or (config.timeout_seconds + config.deadline_reserve_seconds)
         remaining_outer = max(0.0, outer_seconds - (time.monotonic() - logical_started))
         available_transport_seconds = remaining_outer - config.deadline_reserve_seconds
@@ -252,6 +263,7 @@ class GatewayCompletionClient:
                     "thinking_mode_forwarded": transport_metadata.get("thinking_mode_forwarded"),
                     "transport_attempts_detail": list(attempts) if isinstance(attempts, list) else [],
                 })
+                evidence.update(request_audit)
                 evidence["final_status"] = "PROVIDER_OUTPUT_TRUNCATED"
                 raise GatewayCompletionError(
                     "PROVIDER_OUTPUT_TRUNCATED", "Provider output reached its configured limit",
@@ -266,6 +278,7 @@ class GatewayCompletionClient:
                     "thinking_mode_forwarded": transport_metadata.get("thinking_mode_forwarded"),
                     "transport_attempts_detail": list(attempts) if isinstance(attempts, list) else [],
                 })
+                failed_evidence.update(request_audit)
                 raise GatewayCompletionError(
                     selection_error.status, selection_error.status,
                     http_status=http_status, evidence=failed_evidence,
@@ -279,6 +292,7 @@ class GatewayCompletionClient:
                 "api_lab_contract_version": API_LAB_RAW_DEFER_CONTRACT_VERSION,
                 "route_mode": "raw_defer",
             })
+            transport_metadata.update(request_audit)
             return ProviderCompletion(
                 json.dumps(selected, ensure_ascii=False, sort_keys=True, separators=(",", ":")),
                 str(transport_metadata.get("model") or decoded.get("model") or config.model),
@@ -310,19 +324,24 @@ class GatewayCompletionClient:
                 "response_format_mode": "json_schema",
                 "thinking_mode_requested": config.thinking_mode,
             })
+            evidence.update(request_audit)
             raise GatewayCompletionError(category, message, http_status=http_status, evidence=evidence) from None
-        except GatewayCompletionError:
+        except GatewayCompletionError as exc:
             provider_api_budget.finalize_call(reservation, usage=(response_doc or {}).get("usage") if response_doc else None, http_status=http_status, status="FAILED")
+            for key, value in request_audit.items():
+                exc.evidence.setdefault(key, value)
             raise
         except (TimeoutError, error.URLError, OSError) as exc:
             provider_api_budget.finalize_call(reservation, usage=None, http_status=http_status, status="FAILED")
             category = "outcome_unknown" if started else "gateway_unavailable"
             safe = str(getattr(exc, "reason", exc)).replace(self.access_token, "[REDACTED]")[:500]
-            raise GatewayCompletionError(category, safe, http_status=http_status, outcome_unknown=started) from None
+            raise GatewayCompletionError(
+                category, safe, http_status=http_status, outcome_unknown=started, evidence=request_audit,
+            ) from None
         except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
             provider_api_budget.finalize_call(reservation, usage=None, http_status=http_status, status="FAILED")
             safe = str(exc).replace(self.access_token, "[REDACTED]")[:500]
-            raise GatewayCompletionError("invalid_response", safe, http_status=http_status) from None
+            raise GatewayCompletionError("invalid_response", safe, http_status=http_status, evidence=request_audit) from None
 
     def _extract_text(self, doc: Mapping[str, Any]) -> str:
         if self.api_method == "chat_completions":

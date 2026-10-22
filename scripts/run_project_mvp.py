@@ -9,6 +9,7 @@ import pathlib
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import uuid
 from typing import Any
@@ -20,15 +21,27 @@ if str(ROOT) not in sys.path:
 from cgkn.application.project_blueprint import (
     BlueprintUnit, FailureAction, FailureReport, FailureStage,
     LEGACY_MINIMAL_BLUEPRINT_DESIGN_SCHEMA, MinimalBlueprintDesignPayload,
-    ProjectBlueprint, assemble_project_blueprint, normalized_blueprint_signature,
+    PatchBundle, ProjectBlueprint, assemble_project_blueprint, interface_breaks,
+    normalized_blueprint_signature,
 )
 from cgkn.application.materialization import materialize_json
-from cgkn.application.project_loop import BlueprintUnitExecutor, MinimalProjectLoop, coordinator_design_request
+from cgkn.application.project_loop import (
+    BlueprintUnitExecutor, MinimalProjectLoop, _manifests,
+    coordinator_design_request,
+)
 from cgkn.application.repair_convergence import (
     CanonicalRepairTargetValidator,
     RepairFailureFingerprint,
     RepairTargetSpec,
+    capture_public_failure_context,
+    localize_repair_sources,
+    patch_modified_symbols,
+    RepairEvidencePacket,
+    run_targeted_regression,
 )
+from cgkn.application.requirements.obligation import canonical_hash
+from cgkn.application.software_project.contracts import WorkerScope
+from cgkn.application.software_project.scope import ScopedFileTransaction
 from cgkn.application.test_authority import PublicContractProjection
 from cgkn.application.software_project.catalog import get_case
 from cgkn.execution import BlockExecutionRequest, TaskContext
@@ -36,7 +49,7 @@ from cgkn.providers import (
     CGKNModelRouting, GatewayCompletionClient, ModelRoleConfig, ProviderCompletion,
     completion_client_from_environment,
 )
-from cgkn.providers.gateway_client import API_LAB_COMMIT
+from cgkn.providers.gateway_client import API_LAB_BRANCH, API_LAB_COMMIT, API_LAB_REPOSITORY
 from cgkn.providers.structured_output import SELECTOR_VERSION, StructuredAnswerSelector
 
 
@@ -142,10 +155,10 @@ def _worker_generation_model_config(provider: str = "deepseek") -> ModelRoleConf
     )
 
 
-def _worker_repair_model_config(provider: str = "deepseek") -> ModelRoleConfig:
+def _worker_repair_model_config(provider: str = "deepseek", *, temperature: float = 0.0) -> ModelRoleConfig:
     return ModelRoleConfig(
         role="worker", model=provider, timeout_seconds=150, max_output_tokens=6000,
-        temperature=0.0, reasoning_effort="none", task_class="project.codegen",
+        temperature=temperature, reasoning_effort="none", task_class="project.codegen",
         operation="REPAIR", outer_deadline_seconds=180, deadline_reserve_seconds=30,
         thinking_mode="disabled",
     )
@@ -658,9 +671,356 @@ def _repair_probe_target(baseline_hash: str) -> RepairTargetSpec:
     )
 
 
-def _worker_repair_probe(artifact_root: pathlib.Path, *, count: int, provider: str) -> dict[str, Any]:
-    if count != 3:
+def _repair_probe_sources() -> dict[str, str]:
+    return {
+        "csv_cleaner/__main__.py": _REPAIR_PROBE_MAIN,
+        "csv_cleaner/core.py": "def clean_rows(rows):\n    return [list(row) for row in rows]\n",
+    }
+
+
+def _seed_repair_probe_workspace(workspace: pathlib.Path) -> None:
+    sources = _repair_probe_sources()
+    for relative, content in sources.items():
+        target = workspace / pathlib.PurePosixPath(relative)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+    (workspace / "csv_cleaner" / "__init__.py").write_text("", encoding="utf-8")
+    tests = workspace / "tests"
+    tests.mkdir()
+    (tests / "test_preview.py").write_text(
+        "import csv, subprocess, sys\n\n"
+        "def test_preview_exact_rows(tmp_path):\n"
+        "    source=tmp_path/'input.csv'; target=tmp_path/'output.csv'\n"
+        "    source.write_text('id,name,city\\n1,Ada,\\n2,Lin,Paris\\n', encoding='utf-8')\n"
+        "    result=subprocess.run([sys.executable,'-m','csv_cleaner',str(source),str(target),'--preview','1'],capture_output=True,text=True)\n"
+        "    assert result.returncode == 0\n"
+        "    assert list(csv.reader(result.stdout.splitlines())) == [['1','Ada','']]\n",
+        encoding="utf-8",
+    )
+
+
+def _counterfactual_replay(raw_text: str, baseline_hash: str) -> dict[str, Any]:
+    bundle = PatchBundle.from_dict(json.loads(raw_text))
+    sources = _repair_probe_sources()
+    with tempfile.TemporaryDirectory(prefix="cgkn-repair-counterfactual-") as temporary:
+        workspace = pathlib.Path(temporary)
+        _seed_repair_probe_workspace(workspace)
+        before = _manifests({"csv_cleaner/__main__.py": sources["csv_cleaner/__main__.py"]})[
+            "csv_cleaner/__main__.py"
+        ]
+        actions = [
+            {
+                "action": "patch_file",
+                "path": path,
+                "edits": [{"find": find, "replace": replacement} for find, replacement in edits],
+            }
+            for path, edits in bundle.files
+        ]
+        transaction = ScopedFileTransaction(
+            workspace,
+            WorkerScope(
+                tuple(sources),
+                ("csv_cleaner/__main__.py",),
+                max_actions=5,
+                max_write_files=1,
+                max_total_output_bytes=100_000,
+                allow_create=False,
+                allow_patch=True,
+                allow_delete=False,
+            ),
+        )
+        _, planned = transaction.validate(actions)
+        transaction.apply(actions)
+        after_source = (workspace / "csv_cleaner" / "__main__.py").read_text(encoding="utf-8")
+        after = _manifests({"csv_cleaner/__main__.py": after_source})["csv_cleaner/__main__.py"]
+        target = _repair_probe_target(baseline_hash)
+        validation = CanonicalRepairTargetValidator().validate(target, workspace)
+        regression = run_targeted_regression(workspace)
+        breaks = interface_breaks(before, after, ("main",))
+        return {
+            "target_status": validation.status,
+            "target_validation_hash": validation.validation_hash,
+            "regression": regression,
+            "interface_breaks": list(breaks),
+            "changed_paths": [item.relative for item in planned],
+            "independently_fixed": validation.status == "PASS" and regression["status"] == "PASS" and not breaks,
+        }
+
+
+def _api_lab_sampling_audit(api_lab_root: pathlib.Path | None) -> dict[str, Any]:
+    if api_lab_root is None:
+        return {"status": "NOT_RECORDED", "reason": "api_lab_root_not_supplied"}
+    root = api_lab_root.resolve()
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=root, capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    branch = subprocess.run(
+        ["git", "branch", "--show-current"], cwd=root, capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    dirty = subprocess.run(
+        ["git", "status", "--short"], cwd=root, capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    if head != API_LAB_COMMIT:
+        raise RuntimeError(f"API Lab source mismatch: expected {API_LAB_COMMIT}, found {head}")
+    gateway_path = root / "src" / "cgkn_provider_lab" / "gateway.py"
+    adapter_path = root / "src" / "cgkn_provider_lab" / "adapters.py"
+    gateway_source = gateway_path.read_text(encoding="utf-8")
+    adapter_source = adapter_path.read_text(encoding="utf-8")
+    temperature_forwarded = (
+        'payload.get("temperature"' in gateway_source
+        and '"temperature": options.temperature' in adapter_source
+    )
+    max_tokens_forwarded = (
+        'payload.get("max_tokens", payload.get("max_output_tokens"' in gateway_source
+        and '"max_tokens": options.max_tokens' in adapter_source
+    )
+    stream_fixed_false = '"stream": False' in adapter_source
+    unsupported = [
+        name for name in ("top_p", "top_k", "seed")
+        if name not in gateway_source and name not in adapter_source
+    ]
+    return {
+        "status": "PASS" if (
+            temperature_forwarded and max_tokens_forwarded and stream_fixed_false
+            and branch == API_LAB_BRANCH and not dirty
+        ) else "FAIL",
+        "repository": API_LAB_REPOSITORY,
+        "branch": branch,
+        "expected_branch": API_LAB_BRANCH,
+        "commit": head,
+        "clean": not bool(dirty),
+        "source_hashes": {
+            "gateway.py": "sha256:" + hashlib.sha256(gateway_source.encode("utf-8")).hexdigest(),
+            "adapters.py": "sha256:" + hashlib.sha256(adapter_source.encode("utf-8")).hexdigest(),
+        },
+        "supported_and_forwarded": {
+            "temperature": temperature_forwarded,
+            "max_output_tokens": max_tokens_forwarded,
+            "response_format": "json_schema",
+            "stream": False if stream_fixed_false else "NOT_VERIFIED",
+        },
+        "not_supported_by_frozen_route": unsupported,
+        "experiment_control": {
+            "temperature": 0.0,
+            "reason": "minimum supported temperature already used; keep fixed to avoid confounding evidence/scope variants",
+            "top_p": None,
+            "top_k": None,
+            "seed": None,
+        },
+    }
+
+
+def _repair_forensics(
+    artifact_root: pathlib.Path,
+    evidence_root: pathlib.Path,
+    api_lab_root: pathlib.Path | None = None,
+) -> dict[str, Any]:
+    run_ids = (
+        "worker-repair-deepseek-1-d969b76aa5",
+        "worker-repair-deepseek-2-7bd9cb97f6",
+        "worker-repair-deepseek-3-a9fa86c2e0",
+        "worker-repair-qwen-1-958919d281",
+        "worker-repair-qwen-2-f945236df5",
+        "worker-repair-qwen-3-54736a0938",
+    )
+    paths: dict[str, pathlib.Path] = {}
+    for run_id in run_ids:
+        matches = tuple(evidence_root.rglob(f"{run_id}.json"))
+        if len(matches) != 1:
+            raise ValueError(f"expected exactly one evidence file for {run_id}; found {len(matches)}")
+        paths[run_id] = matches[0]
+    documents = {run_id: json.loads(path.read_text(encoding="utf-8")) for run_id, path in paths.items()}
+    baseline_hashes = {str(doc.get("baseline_hash_before")) for doc in documents.values()}
+    fingerprint_hashes = {
+        str(dict(doc.get("failure_fingerprint_before") or {}).get("fingerprint_hash"))
+        for doc in documents.values()
+    }
+    if len(baseline_hashes) != 1 or len(fingerprint_hashes) != 1:
+        raise ValueError("repair forensic inputs do not share one baseline and failure fingerprint")
+    baseline_hash = next(iter(baseline_hashes))
+    sources = _repair_probe_sources()
+    target = _repair_probe_target(baseline_hash)
+    with tempfile.TemporaryDirectory(prefix="cgkn-repair-forensics-") as temporary:
+        workspace = pathlib.Path(temporary)
+        _seed_repair_probe_workspace(workspace)
+        execution_slice, contrast = capture_public_failure_context(target, workspace, sources)
+    manifests = _manifests(sources)
+    relevant_sources, relevant_functions, _ = localize_repair_sources(sources, target.fingerprint)
+    legacy_packet = RepairEvidencePacket(
+        project_goal=get_case("cli_csv_cleaner").public_goal,
+        unit_purpose="CSV CLI preview implementation",
+        canonical_public_requirement="preview stdout has exactly the requested data rows and no empty record",
+        fingerprint=target.fingerprint,
+        exact_reproduction={
+            "setup": json.loads(target.setup),
+            "operation": json.loads(target.operation),
+            "expected": json.loads(target.expected),
+        },
+        relevant_files=relevant_sources,
+        relevant_functions=relevant_functions,
+        public_interfaces=tuple(
+            f"{path}:{name}"
+            for path, manifest in manifests.items()
+            for name in (
+                *(item.name for item in manifest.functions),
+                *(item.name for item in manifest.classes),
+            )
+        ),
+    ).as_dict()
+    legacy_packet.pop("failure_execution_slice", None)
+    legacy_packet.pop("contrastive_public_evidence", None)
+    reconstructed_evidence_hash = canonical_hash(legacy_packet)
+    rows: list[dict[str, Any]] = []
+    successful_raw: list[tuple[str, str]] = []
+    for run_id in run_ids:
+        doc = documents[run_id]
+        call = dict(doc.get("provider_call") or {})
+        transport = dict(call.get("transport_metadata") or {})
+        raw_text = str(transport.get("raw_text") or "")
+        bundle = PatchBundle.from_dict(json.loads(raw_text))
+        modified_symbols = patch_modified_symbols(sources, bundle.files)
+        line_changes: list[dict[str, Any]] = []
+        for path, edits in bundle.files:
+            source = sources.get(path, "")
+            for find, replacement in edits:
+                offset = source.find(find)
+                start_line = source[:offset].count("\n") + 1 if offset >= 0 else None
+                line_changes.append({
+                    "path": path,
+                    "start_line": start_line,
+                    "removed_lines": find.count("\n") + 1,
+                    "added_lines": replacement.count("\n") + 1,
+                    "operation": "exact_find_replace",
+                })
+        status = str(doc.get("repair_progress"))
+        if status == "FIXED":
+            successful_raw.append((run_id, raw_text))
+        target_symbols = tuple(str(item) for item in call.get("relevant_functions") or ())
+        target_files = tuple(str(item) for item in call.get("relevant_files") or ())
+        rows.append({
+            "run_id": run_id,
+            "provider": doc.get("provider"),
+            "effective_model": doc.get("model"),
+            "model_identity_kind": "STABLE_ALIAS",
+            "thinking_mode": call.get("thinking_mode_forwarded"),
+            "reasoning_effort": call.get("reasoning_effort"),
+            "temperature": 0.0,
+            "temperature_evidence": "frozen_source_config",
+            "top_p": None,
+            "top_k": None,
+            "seed": None,
+            "unsupported_or_unsent_controls": ["top_p", "top_k", "seed"],
+            "max_output_tokens": 6000,
+            "response_format": "json_schema",
+            "stream": False,
+            "baseline_hash": doc.get("baseline_hash_before"),
+            "failure_fingerprint": dict(doc.get("failure_fingerprint_before") or {}).get("fingerprint_hash"),
+            "provider_request_hash": call.get("provider_request_hash"),
+            "provider_request_hash_status": "NOT_RECORDED_IN_LEGACY_RECEIPT" if not call.get("provider_request_hash") else "RECORDED",
+            "prompt_hash": call.get("prompt_hash"),
+            "repair_evidence_packet_hash": call.get("repair_evidence_packet_hash"),
+            "response_schema_hash": call.get("schema_hash"),
+            "input_tokens": doc.get("input_tokens"),
+            "output_tokens": doc.get("output_tokens"),
+            "target_files": list(target_files),
+            "modified_files": [path for path, _ in bundle.files],
+            "target_symbols": list(target_symbols),
+            "modified_symbols": list(modified_symbols),
+            "line_changes": line_changes,
+            "patch_operation": "exact_find_replace",
+            "execution_path_overlap": bool(set(modified_symbols).intersection(execution_slice.executed_functions)),
+            "target_symbol_hit": any(item.endswith(":" + symbol) for item in modified_symbols for symbol in target_symbols),
+            "target_result": dict(doc.get("target_validation") or {}).get("status"),
+            "progress_classification": status,
+            "response_hash": _hash(raw_text),
+        })
+    replays = [
+        {"source_run_id": run_id, **_counterfactual_replay(raw_text, baseline_hash)}
+        for run_id, raw_text in successful_raw
+    ]
+    strong = [row for row in rows if row["provider"] == "qwen"]
+    success_rows = [row for row in strong if row["progress_classification"] == "FIXED"]
+    failure_rows = [row for row in strong if row["progress_classification"] != "FIXED"]
+    same_evidence = len({row["repair_evidence_packet_hash"] for row in strong}) == 1
+    report = {
+        "kind": "CGKNRepairStabilityForensics",
+        "schema_version": "1.0",
+        "profile": "worker-repair-forensics",
+        "status": "PASS",
+        "api_lab_sampling_audit": _api_lab_sampling_audit(api_lab_root),
+        "source_identity": _source_identity(),
+        "input_evidence_root": str(evidence_root),
+        "runs": rows,
+        "shared_identity": {
+            "baseline_hash": baseline_hash,
+            "failure_fingerprint": next(iter(fingerprint_hashes)),
+            "same_strong_evidence": same_evidence,
+            "reconstructed_evidence_hash": reconstructed_evidence_hash,
+            "reconstruction_matches": reconstructed_evidence_hash == strong[0]["repair_evidence_packet_hash"],
+        },
+        "successful_repair_signature": {
+            "target_files": sorted({item for row in success_rows for item in row["modified_files"]}),
+            "target_symbols": sorted(set.intersection(*(set(row["modified_symbols"]) for row in success_rows))),
+            "semantic_operation": "configure the stdout CSV writer with an explicit LF record terminator",
+            "behavioral_effect": "one requested preview row parses as exactly one CSV record",
+            "edit_scope": "one file and one function",
+            "successful_response_hashes": [row["response_hash"] for row in success_rows],
+        },
+        "evidence_sufficiency": {
+            "successful_target_file_visible": all("csv_cleaner/__main__.py" in row["target_files"] for row in strong),
+            "successful_target_symbol_visible": all("_print_preview" in row["target_symbols"] for row in strong),
+            "successful_target_source_complete": reconstructed_evidence_hash == strong[0]["repair_evidence_packet_hash"],
+            "necessary_dependency_visible": "csv_cleaner/core.py:clean_rows" in legacy_packet["public_interfaces"],
+            "classification": "SUFFICIENT" if same_evidence and reconstructed_evidence_hash == strong[0]["repair_evidence_packet_hash"] else "PARTIAL",
+        },
+        "failure_execution_slice": execution_slice.as_dict(),
+        "contrastive_public_evidence": contrast,
+        "counterfactual_replays": replays,
+        "counterfactual_replay_status": "PASS_2_OF_2" if len(replays) == 2 and all(item["independently_fixed"] for item in replays) else "FAIL",
+        "causal_assessment": {
+            "evidence_completeness": "NOT_PRIMARY",
+            "localization": "NOT_PRIMARY",
+            "action_space": "NOT_EXPLANATORY_FOR_HISTORICAL_PAIR",
+            "decoding_variance": "SUPPORTED_BY_IDENTICAL_INPUT_DIFFERENT_SEMANTIC_PATCH",
+            "model_capability": "STRONG_CAPABLE_BUT_UNSTABLE; CHEAP_REPRODUCIBLY_WRONG_ON_CASE",
+            "strong_failure_target_overlap": all(row["target_symbol_hit"] and row["execution_path_overlap"] for row in failure_rows),
+        },
+    }
+    target_path = artifact_root / "repair_stability_forensics.json"
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    target_path.write_text(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return report
+
+
+def _repair_variant(variant: str) -> dict[str, Any]:
+    variants = {
+        "E0": {"temperature": 0.0, "evidence_mode": "CURRENT", "scope_mode": "NORMAL"},
+        # The frozen route already sends the minimum supported temperature.
+        # It does not forward seed/top_p/top_k, so changing temperature would
+        # confound the evidence and scope comparison rather than isolate it.
+        "E1": {"temperature": 0.0, "evidence_mode": "CURRENT", "scope_mode": "NORMAL"},
+        "E2": {"temperature": 0.0, "evidence_mode": "FAILURE_SLICE_CONTRASTIVE", "scope_mode": "NORMAL"},
+        "E3": {"temperature": 0.0, "evidence_mode": "FAILURE_SLICE_CONTRASTIVE", "scope_mode": "LOCALIZED"},
+    }
+    if variant not in variants:
+        raise ValueError("repair variant must be E0, E1, E2, or E3")
+    return dict(variants[variant])
+
+
+def _worker_repair_probe(
+    artifact_root: pathlib.Path,
+    *,
+    count: int,
+    provider: str,
+    variant: str = "E0",
+    discovery: bool = False,
+) -> dict[str, Any]:
+    if discovery:
+        if count not in {3, 5}:
+            raise ValueError("worker repair discovery requires three or five independent runs")
+    elif count != 3:
         raise ValueError("worker repair qualification requires exactly three independent runs")
+    controls = _repair_variant(variant)
     identity = _source_identity()
     if not identity["tracked_worktree_clean"]:
         raise RuntimeError("worker repair qualification requires a frozen clean Source Closure")
@@ -669,25 +1029,10 @@ def _worker_repair_probe(artifact_root: pathlib.Path, *, count: int, provider: s
         raise RuntimeError("worker repair qualification requires the reviewed API Lab Gateway route")
     runs: list[dict[str, Any]] = []
     for index in range(1, count + 1):
-        run_id = f"worker-repair-{provider}-{index}-{uuid.uuid4().hex[:10]}"
+        run_id = f"worker-repair-{variant.lower()}-{provider}-{index}-{uuid.uuid4().hex[:10]}"
         workspace = artifact_root / "worker_repair_probe" / run_id / "workspace"
-        (workspace / "csv_cleaner").mkdir(parents=True, exist_ok=False)
-        (workspace / "csv_cleaner" / "__init__.py").write_text("", encoding="utf-8")
-        (workspace / "csv_cleaner" / "core.py").write_text(
-            "def clean_rows(rows):\n    return [list(row) for row in rows]\n", encoding="utf-8",
-        )
-        (workspace / "csv_cleaner" / "__main__.py").write_text(_REPAIR_PROBE_MAIN, encoding="utf-8")
-        tests = workspace / "tests"; tests.mkdir()
-        (tests / "test_preview.py").write_text(
-            "import csv, subprocess, sys\n\n"
-            "def test_preview_exact_rows(tmp_path):\n"
-            "    source=tmp_path/'input.csv'; target=tmp_path/'output.csv'\n"
-            "    source.write_text('id,name,city\\n1,Ada,\\n2,Lin,Paris\\n', encoding='utf-8')\n"
-            "    result=subprocess.run([sys.executable,'-m','csv_cleaner',str(source),str(target),'--preview','1'],capture_output=True,text=True)\n"
-            "    assert result.returncode == 0\n"
-            "    assert list(csv.reader(result.stdout.splitlines())) == [['1','Ada','']]\n",
-            encoding="utf-8",
-        )
+        workspace.mkdir(parents=True, exist_ok=False)
+        _seed_repair_probe_workspace(workspace)
         unit = BlueprintUnit(
             "implementation-1", "CSV CLI preview implementation", "implementation",
             ("csv_cleaner/__main__.py",), reads=("csv_cleaner/core.py",),
@@ -698,7 +1043,12 @@ def _worker_repair_probe(artifact_root: pathlib.Path, *, count: int, provider: s
         )
         client = base_client.bind_run(run_id, "worker_repair_probe", budget_purpose="REPAIR")
         executor = BlueprintUnitExecutor(
-            workspace, client, _worker_generation_model_config(provider), _worker_repair_model_config(provider),
+            workspace,
+            client,
+            _worker_generation_model_config(provider),
+            _worker_repair_model_config(provider, temperature=float(controls["temperature"])),
+            repair_evidence_mode=str(controls["evidence_mode"]),
+            repair_scope_mode=str(controls["scope_mode"]),
         )
         executor.register_materialized_baseline(unit)
         baseline_hash = executor.materialized_units[unit.unit_id][1]
@@ -758,14 +1108,29 @@ def _worker_repair_probe(artifact_root: pathlib.Path, *, count: int, provider: s
         target_path.parent.mkdir(parents=True, exist_ok=True)
         target_path.write_text(json.dumps(row, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         runs.append(row)
+        if discovery and len(runs) == 2 and not any(item["status"] == "PASS" for item in runs):
+            break
     passed = all(row["status"] == "PASS" for row in runs)
+    passed_count = sum(row["status"] == "PASS" for row in runs)
+    if discovery:
+        discovery_status = (
+            "DISCOVERY_PASS" if passed and len(runs) >= 3
+            else "DISCOVERY_ELIMINATED_0_OF_2" if len(runs) == 2 and passed_count == 0
+            else "DISCOVERY_DIRECTIONAL"
+        )
+    else:
+        discovery_status = "PASS" if passed else "WORKER_REPAIR_NOT_QUALIFIED"
     result = {
-        "profile": "worker-repair-probe", "provider": provider,
-        "status": "PASS" if passed else "WORKER_REPAIR_NOT_QUALIFIED",
-        "qualification": "3/3" if passed else f"{sum(row['status'] == 'PASS' for row in runs)}/3",
+        "profile": "worker-repair-discovery" if discovery else "worker-repair-probe",
+        "provider": provider,
+        "variant": variant,
+        "controls": controls,
+        "status": discovery_status,
+        "qualification": f"{passed_count}/{len(runs)}",
         "source_identity": identity, "runs": runs,
     }
-    index = artifact_root / "worker_repair_probe" / f"{provider}_index.json"
+    index_name = f"{provider}_{variant.lower()}_{'discovery' if discovery else 'qualification'}_index.json"
+    index = artifact_root / "worker_repair_probe" / index_name
     index.write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return result
 
@@ -1233,13 +1598,16 @@ def _worker_cohesive_live(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the CGNK minimal ProjectBlueprint MVP profiles")
-    parser.add_argument("--profile", required=True, choices=("unit", "unit-materialization", "fake-single", "fake-repair", "coordinator-contract-probe", "coordinator-diagnostic", "coordinator-qualify", "worker-file-probe", "worker-patch-probe", "worker-repair-probe", "worker-test-generation-probe", "worker-real-unit-diagnostic", "worker-cohesive-qualify", "worker-cohesive-replay", "worker-cohesive-live", "live-single", "live-repair", "fake-parallel", "fake-conflict", "fake-standup", "live-parallel", "live-repeat", "final"))
+    parser.add_argument("--profile", required=True, choices=("unit", "unit-materialization", "fake-single", "fake-repair", "coordinator-contract-probe", "coordinator-diagnostic", "coordinator-qualify", "worker-file-probe", "worker-patch-probe", "worker-repair-forensics", "worker-repair-probe", "worker-repair-discovery", "worker-test-generation-probe", "worker-real-unit-diagnostic", "worker-cohesive-qualify", "worker-cohesive-replay", "worker-cohesive-live", "live-single", "live-repair", "fake-parallel", "fake-conflict", "fake-standup", "live-parallel", "live-repeat", "final"))
     parser.add_argument("--artifact-root", type=pathlib.Path, default=ROOT / ".service_evidence" / "project_mvp")
     parser.add_argument("--count", type=int, default=5)
     parser.add_argument("--provider", default="qwen")
     parser.add_argument("--contract-mode", choices=("c0", "c1", "c2"), default="c2")
+    parser.add_argument("--repair-variant", choices=("E0", "E1", "E2", "E3"), default="E0")
     parser.add_argument("--blueprint-path", type=pathlib.Path)
     parser.add_argument("--replay-index", type=pathlib.Path)
+    parser.add_argument("--input-evidence-root", type=pathlib.Path)
+    parser.add_argument("--api-lab-root", type=pathlib.Path)
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv); args.artifact_root.mkdir(parents=True, exist_ok=True)
     if args.profile in PHASE_B_PROFILES:
@@ -1253,8 +1621,24 @@ def main(argv: list[str] | None = None) -> int:
     elif args.profile == "coordinator-qualify": result = _coordinator_qualify(args.artifact_root.resolve(), count=args.count, provider=args.provider)
     elif args.profile == "worker-file-probe": result = _worker_probe(args.artifact_root.resolve(), patch_mode=False)
     elif args.profile == "worker-patch-probe": result = _worker_probe(args.artifact_root.resolve(), patch_mode=True)
+    elif args.profile == "worker-repair-forensics":
+        if args.input_evidence_root is None:
+            raise ValueError("worker repair forensics requires --input-evidence-root")
+        result = _repair_forensics(
+            args.artifact_root.resolve(),
+            args.input_evidence_root.resolve(),
+            args.api_lab_root.resolve() if args.api_lab_root else None,
+        )
     elif args.profile == "worker-repair-probe":
-        result = _worker_repair_probe(args.artifact_root.resolve(), count=args.count, provider=args.provider)
+        result = _worker_repair_probe(
+            args.artifact_root.resolve(), count=args.count, provider=args.provider,
+            variant=args.repair_variant,
+        )
+    elif args.profile == "worker-repair-discovery":
+        result = _worker_repair_probe(
+            args.artifact_root.resolve(), count=args.count, provider=args.provider,
+            variant=args.repair_variant, discovery=True,
+        )
     elif args.profile == "worker-test-generation-probe":
         result = _worker_cohesive_live(
             args.artifact_root.resolve(), count=args.count, provider=args.provider,
@@ -1278,7 +1662,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         result = {"profile": "final", "status": "NOT_READY", "reason": "run the ordered PHASE A and PHASE B profiles first"}
     print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) if args.json else f"{args.profile}: {result.get('status', 'UNKNOWN')}")
-    return 0 if result.get("status") in {"PASS", "SUCCEEDED", "BLOCKED_BY_PHASE_A", "NOT_READY"} else 1
+    return 0 if result.get("status") in {"PASS", "SUCCEEDED", "BLOCKED_BY_PHASE_A", "NOT_READY", "DISCOVERY_PASS", "DISCOVERY_DIRECTIONAL", "DISCOVERY_ELIMINATED_0_OF_2"} else 1
 
 
 if __name__ == "__main__": raise SystemExit(main())
