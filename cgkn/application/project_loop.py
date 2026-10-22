@@ -93,6 +93,8 @@ REPAIR_EVIDENCE_MODES = frozenset({
     "FAILURE_SLICE_TRANSPORT_CONTRASTIVE",
 })
 REPAIR_SCOPE_MODES = frozenset({"NORMAL", "LOCALIZED"})
+DEFAULT_REPAIR_EVIDENCE_MODE = "FAILURE_SLICE_TRANSPORT_CONTRASTIVE"
+DEFAULT_REPAIR_SCOPE_MODE = "NORMAL"
 
 
 def file_bundle_schema(requested_paths: tuple[str, ...]) -> dict[str, Any]:
@@ -626,8 +628,8 @@ class BlueprintUnitExecutor:
         repair_config: ModelRoleConfig | None = None,
         *,
         materialization_policy: str = "INCREMENTAL",
-        repair_evidence_mode: str = "CURRENT",
-        repair_scope_mode: str = "NORMAL",
+        repair_evidence_mode: str = DEFAULT_REPAIR_EVIDENCE_MODE,
+        repair_scope_mode: str = DEFAULT_REPAIR_SCOPE_MODE,
     ):
         if config.role != "worker": raise ValueError("unit executor requires worker role")
         if repair_config is not None and repair_config.role != "worker": raise ValueError("repair executor requires worker role")

@@ -5,7 +5,11 @@ import os
 import pathlib
 
 from cgkn.application.project_blueprint import BlueprintUnit, FailureAction, FailureReport, FailureStage
-from cgkn.application.project_loop import BlueprintUnitExecutor
+from cgkn.application.project_loop import (
+    DEFAULT_REPAIR_EVIDENCE_MODE,
+    DEFAULT_REPAIR_SCOPE_MODE,
+    BlueprintUnitExecutor,
+)
 from cgkn.application.repair_convergence import (
     CanonicalRepairTargetValidator,
     RepairAttemptEvidence,
@@ -288,6 +292,18 @@ def test_current_evidence_mode_omits_enhanced_fields_for_hash_compatibility() ->
     ).as_dict()
     assert "failure_execution_slice" not in packet
     assert "contrastive_public_evidence" not in packet
+
+
+def test_selected_repair_configuration_is_the_production_default(tmp_path: pathlib.Path) -> None:
+    executor = BlueprintUnitExecutor(
+        tmp_path,
+        QueueClient([]),
+        ModelRoleConfig("worker", "qwen3.7-flash"),
+    )
+    assert DEFAULT_REPAIR_EVIDENCE_MODE == "FAILURE_SLICE_TRANSPORT_CONTRASTIVE"
+    assert DEFAULT_REPAIR_SCOPE_MODE == "NORMAL"
+    assert executor.repair_evidence_mode == DEFAULT_REPAIR_EVIDENCE_MODE
+    assert executor.repair_scope_mode == DEFAULT_REPAIR_SCOPE_MODE
 
 
 def test_canonical_validator_detects_extra_record_and_accepts_exact_fix(tmp_path: pathlib.Path) -> None:
