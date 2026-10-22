@@ -177,3 +177,32 @@ def test_tier1_costs_use_official_prices_and_do_not_double_count_reasoning():
     assert row["efficiency_metrics"]["strong_worker_tokens"] == 1100
     assert row["efficiency_metrics"]["cheap_worker_tokens"] == 1100
     assert row["efficiency_metrics"]["continuation_calls"] == 1
+
+
+def test_tier1_costs_read_nested_coordinator_usage_and_infer_strong_provider():
+    catalog = {
+        "snapshot_hash": "sha256:snapshot",
+        "index": {"cross_currency": {"usd_cny": 7.0}},
+        "models": {
+            "qwen": {
+                "model": "qwen3.8-max", "currency": "CNY",
+                "input_price_per_million": 12, "cached_input_price_per_million": 1.5,
+                "output_price_per_million": 36,
+            },
+        },
+    }
+    row = {"provider_ledger": {"calls": {
+        "coordinator_design": [{
+            "model": "qwen3.8-max", "usage": {
+                "prompt_tokens": 1000, "cached_tokens": 200,
+                "completion_tokens": 100, "total_tokens": 1100,
+            },
+        }],
+        "coordinator_attribution": [],
+        "worker": [],
+    }}}
+    _annotate_tier1_costs(row, catalog, strong="qwen", cheap="deepseek")
+    assert row["efficiency_metrics"]["cost_evaluated"] is True
+    assert row["efficiency_metrics"]["coordinator_tokens"] == 1100
+    assert row["efficiency_metrics"]["cost_cny"] == 0.0135
+    assert row["efficiency_metrics"]["failed_call_cost_cny"] == 0

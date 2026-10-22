@@ -176,9 +176,10 @@ def _load_pricing_catalog(path: pathlib.Path | None) -> dict[str, Any] | None:
 def _call_cost_cny(call: Mapping[str, Any], catalog: Mapping[str, Any]) -> dict[str, Any]:
     provider = str(call.get("provider") or "")
     pricing = dict(catalog["models"].get(provider) or {})
-    prompt = call.get("prompt_tokens")
-    completion = call.get("completion_tokens")
-    cached = call.get("cached_tokens")
+    usage = call.get("usage") if isinstance(call.get("usage"), Mapping) else {}
+    prompt = call.get("prompt_tokens", usage.get("prompt_tokens"))
+    completion = call.get("completion_tokens", usage.get("completion_tokens"))
+    cached = call.get("cached_tokens", usage.get("cached_tokens"))
     if not pricing or prompt is None or completion is None:
         return {"provider": provider, "status": "NOT_EVALUATED", "cost_cny": None}
     cached_tokens = max(0, int(cached or 0))
@@ -199,7 +200,8 @@ def _call_cost_cny(call: Mapping[str, Any], catalog: Mapping[str, Any]) -> dict[
         "provider": provider, "model": pricing["model"], "status": "EVALUATED",
         "native_cost": native_cost, "native_currency": currency, "cost_cny": cost_cny,
         "prompt_tokens": int(prompt), "cached_tokens": cached_tokens,
-        "completion_tokens": int(completion), "reasoning_tokens": call.get("reasoning_tokens"),
+        "completion_tokens": int(completion),
+        "reasoning_tokens": call.get("reasoning_tokens", usage.get("reasoning_tokens")),
         "reasoning_billing": "INCLUDED_IN_COMPLETION_TOKENS_NOT_DOUBLE_COUNTED",
     }
 
@@ -209,14 +211,15 @@ def _annotate_tier1_costs(
 ) -> None:
     ledger = row.get("provider_ledger") if isinstance(row.get("provider_ledger"), Mapping) else {}
     grouped = ledger.get("calls") if isinstance(ledger, Mapping) else {}
-    coordinator = list(grouped.get("coordinator_design") or ()) + list(grouped.get("coordinator_attribution") or ()) if isinstance(grouped, Mapping) else []
+    coordinator_raw = list(grouped.get("coordinator_design") or ()) + list(grouped.get("coordinator_attribution") or ()) if isinstance(grouped, Mapping) else []
+    coordinator = [dict(call) | {"provider": call.get("provider") or strong} for call in coordinator_raw]
     workers = list(grouped.get("worker") or ()) if isinstance(grouped, Mapping) else list(row.get("calls") or ())
     calls = coordinator + workers
     costs = [_call_cost_cny(call, catalog) for call in calls] if catalog else []
     evaluated = bool(calls) and len(costs) == len(calls) and all(item["status"] == "EVALUATED" for item in costs)
 
     def tokens(items: list[Mapping[str, Any]]) -> int:
-        return sum(int(item.get("total_tokens") or 0) for item in items)
+        return sum(int(item.get("total_tokens") or (item.get("usage") or {}).get("total_tokens") or 0) for item in items)
 
     metrics = {
         "logical_provider_calls": len(calls),
@@ -234,7 +237,9 @@ def _annotate_tier1_costs(
         "cost_cny": sum(float(item["cost_cny"]) for item in costs) if evaluated else None,
         "failed_call_cost_cny": sum(
             float(cost["cost_cny"]) for call, cost in zip(calls, costs)
-            if cost.get("cost_cny") is not None and call.get("result") not in {"SUCCEEDED", "PASS"}
+            if cost.get("cost_cny") is not None and (
+                call.get("result") in {"FAILED", "FAIL"} or call.get("failure_type")
+            )
         ) if evaluated else None,
         "pricing_snapshot_hash": catalog.get("snapshot_hash") if catalog else None,
         "call_costs": costs,
