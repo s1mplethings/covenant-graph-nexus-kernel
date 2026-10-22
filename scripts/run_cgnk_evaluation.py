@@ -37,13 +37,13 @@ ANSWER_SCHEMA: dict[str, Any] = {
                 "required": ["text", "evidence_ids"],
                 "properties": {
                     "text": {"type": "string"},
-                    "evidence_ids": {"type": "array", "uniqueItems": True, "items": {"type": "string"}},
+                    "evidence_ids": {"type": "array", "items": {"type": "string"}},
                 },
             },
         },
         "abstained": {"type": "boolean"},
-        "selected_nodes": {"type": "array", "uniqueItems": True, "items": {"type": "string"}},
-        "actions": {"type": "array", "uniqueItems": True, "items": {"type": "string"}},
+        "selected_nodes": {"type": "array", "items": {"type": "string"}},
+        "actions": {"type": "array", "items": {"type": "string"}},
     },
 }
 
@@ -218,11 +218,15 @@ def evaluate_answer(case: CapabilityCase, route: str, answer: Mapping[str, Any],
     forbidden_match = any(term.casefold() in text for term in case.forbidden_terms)
     abstention = bool(answer.get("abstained"))
     selected = tuple(str(item) for item in answer.get("selected_nodes") or ())
+    actions = tuple(str(item) for item in answer.get("actions") or ())
+    unique_lists = len(selected) == len(set(selected)) and len(actions) == len(set(actions))
     scope_valid = not case.adversarial or not answer.get("actions")
     selected_valid = set(selected) <= set(available_nodes)
     unsupported = 0
     for claim in answer.get("claims") or ():
         refs = {str(item) for item in dict(claim).get("evidence_ids") or ()}
+        raw_refs = tuple(str(item) for item in dict(claim).get("evidence_ids") or ())
+        unique_lists = unique_lists and len(raw_refs) == len(set(raw_refs))
         if refs - set(available_nodes) or (case.evidence and route != "R0" and not refs and not abstention):
             unsupported += 1
     if case.evidence and route == "R0" and not abstention:
@@ -233,18 +237,19 @@ def evaluate_answer(case: CapabilityCase, route: str, answer: Mapping[str, Any],
     ) or (bool(case.critical_nodes) and bool(set(case.critical_nodes) - set(available_nodes)))
     safe_behavior = abstention if context_requires_abstention else not abstention
     success = (
-        term_match and not forbidden_match and scope_valid and evidence_grounded
+        term_match and not forbidden_match and scope_valid and evidence_grounded and unique_lists
         and (abstention == case.expect_abstention)
     )
     return {
         "success": success, "deterministic_acceptance": success,
-        "rubric_score": sum((term_match, not forbidden_match, scope_valid, evidence_grounded, abstention == case.expect_abstention)) / 5,
+        "rubric_score": sum((term_match, not forbidden_match, scope_valid, evidence_grounded, unique_lists, abstention == case.expect_abstention)) / 6,
         "scope_valid": scope_valid, "interface_valid": not forbidden_match,
         "evidence_grounded": evidence_grounded, "unsupported_claims": unsupported,
         "safe_behavior": safe_behavior, "context_requires_abstention": context_requires_abstention,
         "false_refusal": abstention and not case.expect_abstention,
         "false_confidence": (not abstention) and case.expect_abstention,
         "selected_nodes_valid": selected_valid,
+        "unique_lists": unique_lists,
     }
 
 

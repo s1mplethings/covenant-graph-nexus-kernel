@@ -65,3 +65,14 @@ def test_abstention_case_requires_explicit_abstention() -> None:
         "selected_nodes": [], "actions": [],
     }, ())
     assert result["success"] is True
+
+
+def test_deterministic_evaluator_rejects_duplicate_output_lists() -> None:
+    case = next(case for case in capability_cases() if case.case_id == "CAP-08")
+    result = evaluate_answer(case, "R2", {
+        "answer": "The release color is blue.",
+        "claims": [{"text": "blue", "evidence_ids": ["E1", "E1"]}],
+        "abstained": False, "selected_nodes": ["E1", "E1"], "actions": [],
+    }, ("E1",))
+    assert result["success"] is False
+    assert result["unique_lists"] is False
