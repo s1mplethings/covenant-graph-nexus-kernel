@@ -19,9 +19,11 @@ from cgkn.providers import CompletionClient, ModelRoleConfig, parse_json_object
 
 try:
     from cgnk_knowledge import load_project_knowledge, retrieve_relevant_knowledge
+    from cgnk_knowledge.retrieve import item_relevance
 except ImportError:  # pragma: no cover - caller must expose the repository src directory
     load_project_knowledge = None  # type: ignore[assignment]
     retrieve_relevant_knowledge = None  # type: ignore[assignment]
+    item_relevance = None  # type: ignore[assignment]
 
 
 class ConversationStatus(str, Enum):
@@ -168,7 +170,7 @@ class ConversationService:
         if not selected:
             return self._response(ConversationStatus.INSUFFICIENT_EVIDENCE, "", "NONE", (), retrieval,
                                   {"status": "NOT_CALLED"}, ["NO_RELEVANT_EVIDENCE"], started)
-        if any(item.get("review_state") == "conflict" for item in selected):
+        if retrieval.get("relevant_conflict_node_ids"):
             return self._response(ConversationStatus.INSUFFICIENT_EVIDENCE, "", "NONE", selected, retrieval,
                                   {"status": "NOT_CALLED"}, ["CONTRADICTORY_EVIDENCE"], started)
         if not provider_enabled or self.client is None:
@@ -263,6 +265,11 @@ class ConversationService:
             selected = []
         raw_count = sum(not _is_summary(item) for item in selected)
         summary_count = sum(_is_summary(item) for item in selected)
+        assert item_relevance is not None
+        relevant_conflicts = [
+            str(item.get("id")) for item in selected
+            if item.get("review_state") == "conflict" and item_relevance(item, query) > 0
+        ]
         return selected, {
             "authority": RETRIEVAL_POLICY["authority"],
             "mode": "flat_complete" if retrieval_mode == "flat_complete" else RETRIEVAL_POLICY["mode"],
@@ -273,6 +280,7 @@ class ConversationService:
             "expanded_node_ids": expanded, "context_chars": context_chars,
             "max_nodes": max_nodes, "max_context_chars": max_chars,
             "irrelevant_context_count": 0,
+            "relevant_conflict_node_ids": relevant_conflicts,
             "budget_exceeded": budget_exceeded, "malformed_metadata": malformed,
             "query_hash": stable_hash({"query": request.query, "constraints": constraints}),
         }

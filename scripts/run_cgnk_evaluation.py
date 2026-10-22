@@ -303,7 +303,11 @@ def _conversation_structure_eval(artifact_root: pathlib.Path, provider: str, *, 
             started = time.perf_counter()
             response = service.answer(ConversationRequest(case.question, retrieval_constraints=constraints), knowledge)
             text = str(response.get("answer", "")).casefold()
-            expected = all(term.casefold() in text for term in case.expected_terms)
+            expected = (
+                response.get("status") == "INSUFFICIENT_EVIDENCE"
+                if case.expect_insufficient
+                else all(term.casefold() in text for term in case.expected_terms)
+            )
             status_ok = response.get("status") == ("INSUFFICIENT_EVIDENCE" if case.expect_insufficient else "ANSWERED")
             selected = set(response.get("retrieval", {}).get("selected_node_ids", ()))
             claims = response.get("claims", ())

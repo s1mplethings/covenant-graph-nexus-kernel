@@ -129,6 +129,19 @@ def test_flat_complete_control_uses_same_retrieval_authority() -> None:
     assert set(result["retrieval"]["selected_node_ids"]) == {"payments.retry", "media"}
 
 
+def test_flat_complete_unrelated_conflict_does_not_force_global_abstention() -> None:
+    result = ConversationService(None).answer(
+        request("What is the payments retry policy?", retrieval_mode="flat_complete", max_nodes=8),
+        pack(
+            item("payments.retry", "Payments retry HTTP 503 twice."),
+            item("scope.conflict", "Workers may write any path.", review_state="conflict"),
+        ),
+        provider_enabled=False,
+    )
+    assert result["status"] == "EVIDENCE_ONLY"
+    assert result["retrieval"]["relevant_conflict_node_ids"] == []
+
+
 def test_raw_evidence_drill_down_for_ordering_sensitive_query() -> None:
     knowledge = pack(
         item("trace.summary", "Trace T9 contained alpha and beta.", tags=("lossy-summary",), source_refs=("trace.raw",), importance="critical", retention="compress"),
