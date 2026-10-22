@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import argparse
+import copy
+import hashlib
 import json
 import os
 import pathlib
@@ -21,7 +23,10 @@ from cgkn.application.project_loop import BlueprintUnitExecutor, MinimalProjectL
 from cgkn.application.software_project.acceptance import ExternalAcceptanceExecutor
 from cgkn.application.software_project.catalog import get_case
 from cgkn.execution import BlockExecutionRequest, TaskContext
-from cgkn.providers import CGKNModelRouting, GatewayCompletionClient, ModelRoleConfig, completion_client_from_environment
+from cgkn.providers import (
+    CGKNModelRouting, GatewayCompletionClient, ModelRoleConfig, ProviderCompletion,
+    completion_client_from_environment, parse_json_object,
+)
 
 
 PROFILES = ("ingress", "coordinator", "generation", "worker-strength", "materialization-benchmark", "tier1-efficiency", "tier1", "tier2", "tier3", "analyze", "final")
@@ -30,6 +35,15 @@ PROFILES = ("ingress", "coordinator", "generation", "worker-strength", "material
 def _source_commit() -> str:
     result = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True, encoding="utf-8", capture_output=True, check=True)
     return result.stdout.strip()
+
+
+def _validated_product_source_commit() -> str:
+    receipt = ROOT / "governance" / "software_project_generation_receipt.json"
+    value = json.loads(receipt.read_text(encoding="utf-8"))
+    source = str(value.get("source_commit") or "").strip()
+    if len(source) != 40:
+        raise RuntimeError("validated product Source Closure is unavailable")
+    return source
 
 
 def _public_contract() -> dict[str, Any]:
@@ -120,6 +134,81 @@ def _load_pricing_snapshot(path: pathlib.Path | None, provider: str) -> dict[str
     return value
 
 
+def _controlled_partial_schema(schema: dict[str, Any], allowed_paths: tuple[str, ...]) -> dict[str, Any]:
+    """Constrain only the benchmark capture call to an exact non-empty partial slice."""
+
+    if not allowed_paths:
+        raise ValueError("controlled partial paths are required")
+    value = copy.deepcopy(schema)
+    branches = value.get("oneOf")
+    if not isinstance(branches, list):
+        raise ValueError("controlled partial requires the FileBundle union schema")
+    bundle = next(
+        (
+            branch for branch in branches
+            if isinstance(branch, dict)
+            and branch.get("properties", {}).get("kind", {}).get("const") == "file_bundle"
+        ),
+        None,
+    )
+    if bundle is None:
+        raise ValueError("controlled partial FileBundle branch is unavailable")
+    files = bundle["properties"]["files"]
+    files["minItems"] = len(allowed_paths)
+    files["maxItems"] = len(allowed_paths)
+    files["items"]["properties"]["path"] = {"enum": list(allowed_paths)}
+    return value
+
+
+class _ControlledPartialCaptureClient:
+    """Make one real Provider call whose schema guarantees the paired partial condition."""
+
+    def __init__(self, client: GatewayCompletionClient, allowed_paths: tuple[str, ...]):
+        self.client = client
+        self.allowed_paths = allowed_paths
+        self.completion: ProviderCompletion | None = None
+
+    def complete(self, *, system: str, user: str, schema_name: str, schema: dict[str, Any], config: ModelRoleConfig) -> ProviderCompletion:
+        if self.completion is not None:
+            raise RuntimeError("controlled partial capture permits exactly one Provider call")
+        controlled = _controlled_partial_schema(schema, self.allowed_paths)
+        completion = self.client.complete(
+            system=system, user=user, schema_name=schema_name, schema=controlled, config=config,
+        )
+        value = parse_json_object(completion.text)
+        paths = tuple(str(item.get("path") or "") for item in value.get("files", ()))
+        if value.get("kind") != "file_bundle" or set(paths) != set(self.allowed_paths):
+            raise RuntimeError("Provider did not satisfy the controlled first-partial condition")
+        receipt = dict(completion.selection_receipt)
+        receipt["benchmark_control"] = {
+            "kind": "CONTROLLED_FIRST_PARTIAL",
+            "allowed_paths": list(self.allowed_paths),
+            "schema_changed_for_capture_only": True,
+        }
+        self.completion = ProviderCompletion(
+            completion.text, completion.model, completion.request_id, dict(completion.usage),
+            completion.attempts, receipt, dict(completion.transport_metadata),
+        )
+        return self.completion
+
+
+class _ReplayFirstThenLiveClient:
+    """Replay the pair's exact capture once, then use policy-specific live transport."""
+
+    def __init__(self, first: ProviderCompletion, live: GatewayCompletionClient):
+        self.first = first
+        self.live = live
+        self.calls = 0
+
+    def complete(self, *, system: str, user: str, schema_name: str, schema: dict[str, Any], config: ModelRoleConfig) -> ProviderCompletion:
+        self.calls += 1
+        if self.calls == 1:
+            return self.first
+        return self.live.complete(
+            system=system, user=user, schema_name=schema_name, schema=schema, config=config,
+        )
+
+
 def _materialization_metrics(
     calls: list[dict[str, Any]], *, final_file_count: int, success: bool,
     pricing: dict[str, Any] | None,
@@ -181,77 +270,173 @@ def _materialization_benchmark(
 ) -> dict[str, Any]:
     if repeat != 3:
         raise ValueError("materialization benchmark requires exactly three runs per policy")
-    source = _source_commit()
+    harness_source = _source_commit()
+    product_source = _validated_product_source_commit()
     if subprocess.check_output(["git", "status", "--short", "--untracked-files=no"], cwd=ROOT, text=True).strip():
         raise RuntimeError("materialization benchmark requires a frozen clean Source Closure")
     base_client = completion_client_from_environment()
     if not isinstance(base_client, GatewayCompletionClient):
         raise RuntimeError("materialization benchmark requires the reviewed local Gateway route")
     pricing = _load_pricing_snapshot(pricing_path, provider)
-    destination = artifact_root / source / "materialization_benchmark"
+    destination = artifact_root / harness_source / "materialization_benchmark"
     destination.mkdir(parents=True, exist_ok=True)
     policies: dict[str, list[dict[str, Any]]] = {"M0_FULL_RETRY": [], "M1_INCREMENTAL": []}
-    for label, policy in (("M0_FULL_RETRY", "FULL_RETRY"), ("M1_INCREMENTAL", "INCREMENTAL")):
-        for index in range(1, repeat + 1):
+    unit = BlueprintUnit(
+        "tests", "public CSV cleaner tests", "tests",
+        ("tests/__init__.py", "tests/test_cleaner.py", "tests/test_cli.py"),
+        reads=("csv_cleaner/cleaner.py", "csv_cleaner/cli.py"),
+        executor_ref="llm.cheap@1",
+        instruction=(
+            "Create all three cohesive pytest package files. Cover dedupe_rows, fill_empty, and the CLI main entrypoint. "
+            "Keep every test deterministic, offline, and compatible with the declared interfaces."
+        ),
+        required_interfaces=(
+            "csv_cleaner.cleaner.dedupe_rows", "csv_cleaner.cleaner.fill_empty", "csv_cleaner.cli.main",
+        ),
+        acceptance=("all three owned files are complete, syntactically valid, and pytest passes",),
+        allowed_effects=("filesystem.read", "filesystem.write"), max_actions=3, max_files=3,
+    )
+    config = ModelRoleConfig(
+        "worker", provider, timeout_seconds=150, max_output_tokens=6000, temperature=0.0,
+        reasoning_effort="none", task_class="project.codegen", operation="EXECUTE",
+        outer_deadline_seconds=180, deadline_reserve_seconds=30, thinking_mode="disabled",
+    )
+
+    def prepare(workspace: pathlib.Path) -> None:
+        (workspace / "csv_cleaner").mkdir(parents=True, exist_ok=False)
+        (workspace / "csv_cleaner" / "cleaner.py").write_text(
+            "def dedupe_rows(header, rows, column=None):\n"
+            "    index = header.index(column) if column else None\n"
+            "    seen = set(); result = []\n"
+            "    for row in rows:\n"
+            "        key = row[index] if index is not None else tuple(row)\n"
+            "        if key not in seen:\n"
+            "            seen.add(key); result.append(list(row))\n"
+            "    return result\n\n"
+            "def fill_empty(header, rows, value):\n"
+            "    return [[value if cell == '' else cell for cell in row] for row in rows]\n",
+            encoding="utf-8",
+        )
+        (workspace / "csv_cleaner" / "cli.py").write_text(
+            "def main(argv=None):\n    return 0\n", encoding="utf-8",
+        )
+
+    def request(run_id: str) -> BlockExecutionRequest:
+        return BlockExecutionRequest(
+            "materialization_tests_probe", run_id, "attempt-1", unit.unit_id,
+            "project.unit.tests@1", "llm.cheap@1",
+            TaskContext(
+                unit.instruction, node_config={"unit": unit.as_dict()},
+                dependency_results={"core": {"public_interfaces": list(unit.required_interfaces)}},
+                project_constraints=("offline", "no hidden acceptance"), acceptance=unit.acceptance,
+            ),
+        )
+
+    pairs: list[dict[str, Any]] = []
+    first_partial_paths = unit.owns[:2]
+    for index in range(1, repeat + 1):
+        pair_id = f"controlled-pair-{index}-{uuid.uuid4().hex[:8]}"
+        capture_workspace = destination / pair_id / "capture-workspace"
+        prepare(capture_workspace)
+        capture_client = _ControlledPartialCaptureClient(
+            base_client.bind_run(f"{pair_id}-capture", "materialization_tests_probe", budget_purpose="GENERATION"),
+            first_partial_paths,
+        )
+        capture_executor = BlueprintUnitExecutor(
+            capture_workspace, capture_client, config, materialization_policy="FULL_RETRY",
+        )
+        capture_block = capture_executor.execute(request(f"{pair_id}-capture"))
+        if capture_client.completion is None or capture_block.succeeded:
+            raise RuntimeError("controlled capture did not produce the required partial failure")
+        captured = capture_client.completion
+        capture_hash = "sha256:" + hashlib.sha256(captured.text.encode("utf-8")).hexdigest()
+        pair = {
+            "pair_id": pair_id,
+            "capture": {
+                "status": "PASS", "actual_current_provider_call": True,
+                "response_hash": capture_hash, "returned_paths": list(first_partial_paths),
+                "usage": dict(captured.usage), "request_id": captured.request_id,
+                "selection_receipt": dict(captured.selection_receipt),
+                "token_evidence": "REAL_CURRENT_PROVIDER_USAGE",
+            },
+            "policies": {},
+        }
+        for label, policy in (("M0_FULL_RETRY", "FULL_RETRY"), ("M1_INCREMENTAL", "INCREMENTAL")):
             run_id = f"{label.lower()}-{index}-{uuid.uuid4().hex[:8]}"
-            workspace = destination / run_id / "workspace"
-            (workspace / "csv_cleaner").mkdir(parents=True, exist_ok=False)
-            (workspace / "csv_cleaner" / "cleaner.py").write_text(
-                "def dedupe_rows(header, rows, column=None):\n    return list(rows)\n\n"
-                "def fill_empty(header, rows, value):\n    return list(rows)\n",
-                encoding="utf-8",
+            workspace = destination / pair_id / label.lower() / "workspace"
+            prepare(workspace)
+            replay = _ReplayFirstThenLiveClient(
+                captured,
+                base_client.bind_run(run_id, "materialization_tests_probe", budget_purpose="GENERATION"),
             )
-            (workspace / "csv_cleaner" / "cli.py").write_text("def main(argv=None):\n    return 0\n", encoding="utf-8")
-            unit = BlueprintUnit(
-                "tests", "public CSV cleaner tests", "tests",
-                ("tests/test_cleaner.py", "tests/test_cli.py"),
-                reads=("csv_cleaner/cleaner.py", "csv_cleaner/cli.py"),
-                executor_ref="llm.cheap@1",
-                instruction="Create both cohesive pytest files covering the declared cleaner functions and CLI main entrypoint.",
-                required_interfaces=("csv_cleaner.cleaner.dedupe_rows", "csv_cleaner.cleaner.fill_empty", "csv_cleaner.cli.main"),
-                acceptance=("both owned files are complete and syntactically valid",),
-                allowed_effects=("filesystem.read", "filesystem.write"), max_actions=2, max_files=2,
-            )
-            client = base_client.bind_run(run_id, "materialization_tests_probe", budget_purpose="GENERATION")
-            config = ModelRoleConfig(
-                "worker", provider, timeout_seconds=150, max_output_tokens=6000, temperature=0.0,
-                reasoning_effort="none", task_class="project.codegen", operation="EXECUTE",
-                outer_deadline_seconds=180, deadline_reserve_seconds=30, thinking_mode="disabled",
-            )
-            executor = BlueprintUnitExecutor(workspace, client, config, materialization_policy=policy)
-            request = BlockExecutionRequest(
-                "materialization_tests_probe", run_id, "attempt-1", unit.unit_id,
-                "project.unit.tests@1", "llm.cheap@1",
-                TaskContext(
-                    unit.instruction, node_config={"unit": unit.as_dict()},
-                    dependency_results={"core": {"public_interfaces": list(unit.required_interfaces)}},
-                    project_constraints=("offline", "no hidden acceptance"), acceptance=unit.acceptance,
-                ),
-            )
+            executor = BlueprintUnitExecutor(workspace, replay, config, materialization_policy=policy)
             started = time.perf_counter()
-            block = executor.execute(request)
+            block = executor.execute(request(run_id))
             while (
                 policy == "FULL_RETRY" and not block.succeeded and len(executor.calls) < 3
                 and block.error is not None and block.error.details.get("failure_type") == "UNIT_OUTPUT_INCOMPLETE"
             ):
-                block = executor.execute(request)
+                block = executor.execute(request(run_id))
+            if executor.calls:
+                executor.calls[0].update({
+                    "benchmark_evidence_mode": "REPLAYED_CURRENT_PAIR_CAPTURE",
+                    "actual_current_provider_call": False,
+                    "counterfactual_token_basis": "REAL_CURRENT_PAIR_CAPTURE_USAGE",
+                    "controlled_capture_response_hash": capture_hash,
+                })
+            for call in executor.calls[1:]:
+                call["benchmark_evidence_mode"] = "LIVE_POLICY_CALL"
+                call["actual_current_provider_call"] = True
             files = [path for path in unit.owns if (workspace / pathlib.PurePosixPath(path)).is_file()]
             syntax = block.succeeded and all(
-                subprocess.run([sys.executable, "-m", "py_compile", str(workspace / pathlib.PurePosixPath(path))], capture_output=True, text=True).returncode == 0
+                subprocess.run(
+                    [sys.executable, "-m", "py_compile", str(workspace / pathlib.PurePosixPath(path))],
+                    capture_output=True, text=True,
+                ).returncode == 0
                 for path in unit.owns
             )
+            pytest_run = subprocess.run(
+                [sys.executable, "-m", "pytest", "-q"], cwd=workspace,
+                capture_output=True, text=True, encoding="utf-8", errors="replace",
+            )
             receipts = bool(executor.calls) and all(bool(call.get("selection_receipt_hash")) for call in executor.calls)
-            success = block.succeeded and len(files) == len(unit.owns) and syntax and receipts
+            success = (
+                block.succeeded and len(files) == len(unit.owns) and syntax and receipts
+                and pytest_run.returncode == 0
+            )
             row = {
-                "run_id": run_id, "policy": policy, "status": "PASS" if success else "FAIL",
-                "source_commit": source, "provider": provider,
-                "calls": executor.calls, "files": files, "syntax": syntax,
+                "run_id": run_id, "pair_id": pair_id, "policy": policy,
+                "status": "PASS" if success else "FAIL",
+                "product_source_commit": product_source,
+                "experiment_harness_commit": harness_source,
+                "provider": provider, "calls": executor.calls, "files": files,
+                "syntax": syntax, "pytest": "PASS" if pytest_run.returncode == 0 else "FAIL",
+                "pytest_stdout": pytest_run.stdout[-2000:],
+                "controlled_first_partial": {
+                    "same_pair_response_hash": capture_hash,
+                    "returned_paths": list(first_partial_paths),
+                    "missing_paths": list(unit.owns[2:]),
+                    "response_replayed": True,
+                    "token_evidence": "REAL_CAPTURED_USAGE_REPLAYED_COUNTERFACTUALLY",
+                    "current_run_incurred_provider_cost": False,
+                },
+                "actual_current_provider_calls": max(0, len(executor.calls) - 1),
+                "counterfactual_policy_calls": len(executor.calls),
                 "duration_ms": int((time.perf_counter() - started) * 1000),
-                "metrics": _materialization_metrics(executor.calls, final_file_count=len(unit.owns), success=success, pricing=pricing),
+                "metrics": _materialization_metrics(
+                    executor.calls, final_file_count=len(unit.owns), success=success, pricing=pricing,
+                ),
                 "block_result": block.as_dict(),
             }
-            (destination / f"{run_id}.json").write_text(json.dumps(row, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            (destination / f"{run_id}.json").write_text(
+                json.dumps(row, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8",
+            )
             policies[label].append(row)
+            pair["policies"][label] = {
+                "run_id": run_id, "status": row["status"],
+                "first_response_hash": capture_hash, "counterfactual_policy_calls": len(executor.calls),
+            }
+        pairs.append(pair)
     summary: dict[str, Any] = {}
     for label, rows in policies.items():
         successes = [row for row in rows if row["status"] == "PASS"]
@@ -274,8 +459,20 @@ def _materialization_benchmark(
     ) else "HARMFUL" if m1["successes"] < m0["successes"] else "NEUTRAL"
     result = {
         "profile": "materialization-benchmark", "status": "PASS",
-        "source_commit": source, "repeat": repeat, "pricing_snapshot": pricing,
+        "product_source_commit": product_source,
+        "experiment_harness_commit": harness_source,
+        "repeat": repeat, "pricing_snapshot": pricing,
         "cost_evaluated": pricing is not None, "policies": policies, "summary": summary,
+        "controlled_pairs": pairs,
+        "first_partial_control": {
+            "method": "one real schema-constrained capture per pair, replayed once into each policy",
+            "same_prompt_foundation": True,
+            "same_first_partial_within_pair": True,
+            "capture_tokens": "real current Provider usage",
+            "policy_first_call_tokens": "counterfactual replay of the pair capture",
+            "policy_followup_tokens": "real current Provider usage",
+            "actual_cost_note": "capture cost is incurred once per pair; per-policy totals model the mutually exclusive counterfactuals",
+        },
         "generation_token_reduction": reduction,
         "incremental_materialization_benefit": benefit,
         "statistical_claim": "DIRECTIONAL_ONLY",
