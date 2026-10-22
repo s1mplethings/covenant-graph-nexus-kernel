@@ -1,209 +1,222 @@
 {
   "kind": "CGKNRoleModelEfficiencyReceipt",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-REPAIR-CONVERGENCE-AND-WORKER-CAPABILITY-040",
-  "source_closure_commit": "c34ea2b11c1cd080bd9436eb652bf4369f8daffb",
-  "source_tree_sha": "fa1c9d7f85bfc05f698ecd734209d94c1a6550cf",
-  "execution_head": "c34ea2b11c1cd080bd9436eb652bf4369f8daffb",
+  "iteration": "ITER-CGNK-REPAIR-STABILITY-ROOT-CAUSE-AND-CAPABILITY-041",
+  "source_closure_commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
+  "source_tree_sha": "66056cf6432227681a117b1f5df9c3e6999475cd",
+  "application_boundary_hash": "sha256:095d4cb0466c5ed3bed45a1dee4d261528e4b39525686f828fae73f7e359308f",
+  "execution_head": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
   "api_lab_dependency": {
     "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
     "branch": "codex/qwen-thinking-control-20261021",
     "commit": "7c15f2546ec007cc7e601fa62ae4d88b9ba12f80",
+    "remote_commit": "7c15f2546ec007cc7e601fa62ae4d88b9ba12f80",
     "contract_version": "1.1",
     "route_mode": "raw_defer",
     "selector_authority": "CGKN",
+    "clean": true,
     "modified_this_iteration": false
   },
-  "incremental_materialization": {
+  "offline_forensics": {
     "status": "PASS",
-    "policy": "INCREMENTAL",
-    "partial_output_action": "STAGE_VALID_SUBSET_AND_REQUEST_MISSING_PATHS",
-    "atomic_visibility": true,
-    "max_materialization_calls_per_unit": 3,
-    "fake_validation": "PASS",
-    "benefit": "NOT_EVALUATED_DUE_PHASE_E_GATE"
-  },
-  "worker_cohesive_live": {
-    "status": "PASS_2_OF_2",
-    "evidence_root": "D:/CGKN/.service_evidence/canonical-test-authority-full-eval-live/worker-cohesive-v9/worker_cohesive_live",
-    "runs": [
-      {
-        "run_id": "worker-cohesive-live-1-5fe7ff2d4b",
-        "status": "PASS",
-        "call_classes": ["GENERATION"],
-        "logical_calls": 1,
-        "input_tokens": 4159,
-        "output_tokens": 2235,
-        "returned_paths": ["tests/test_cleaner.py", "tests/test_cli.py"],
-        "test_authority_receipt_hash": "sha256:a9826a09d47c992bcbfa6e8625b8963aa5f9285c972a544d76d66755d2d0c5c3",
-        "external_assertions": 12,
-        "normative_mappings": 12,
-        "non_normative_assertions": 0,
-        "unmapped_assertions": 0,
-        "syntax": "PASS",
-        "pytest": "PASS",
-        "atomic_commit": "COMMITTED",
-        "duration_ms": 11270
-      },
-      {
-        "run_id": "worker-cohesive-live-2-8228c99888",
-        "status": "PASS",
-        "call_classes": ["GENERATION"],
-        "logical_calls": 1,
-        "input_tokens": 4159,
-        "output_tokens": 2229,
-        "returned_paths": ["tests/test_cleaner.py", "tests/test_cli.py"],
-        "test_authority_receipt_hash": "sha256:637e38f99dd629411af26ccbc9e5b68e9d9c3f8d30a749e3096a1caa4ea216c4",
-        "external_assertions": 11,
-        "normative_mappings": 11,
-        "non_normative_assertions": 0,
-        "unmapped_assertions": 0,
-        "syntax": "PASS",
-        "pytest": "PASS",
-        "atomic_commit": "COMMITTED",
-        "duration_ms": 12685
-      }
-    ],
-    "projection_hash": "sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1"
-  },
-  "coordinator_qualification": {
-    "status": "PASS_5_OF_5",
-    "provider_reliability": "QUALIFIED",
-    "provider": "qwen",
-    "thinking_mode": "disabled",
-    "normalized_signature_count": 1,
-    "unit_count_each": 3,
-    "check_count_each": 4,
-    "transport_attempts_each": 1,
-    "input_tokens_each": 338,
-    "output_tokens": [163, 170, 151, 165, 162],
-    "duration_ms": [4590, 5714, 3006, 3321, 3110],
-    "evidence_root": "D:/CGKN/.service_evidence/ITER-CGNK-COORDINATOR-RELIABILITY-AND-CAPABILITY-038/source_f841f266/coordinator-5of5/coordinator_qualification"
-  },
-  "test_authority": {
-    "status": "PASS",
-    "canonical_contract_projection_status": "PASS",
-    "test_contract_guard_status": "PASS",
-    "projection_hash": "sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1",
-    "deterministic_regression": "PASS_18_TESTS_COVERING_A_THROUGH_R",
-    "live_probe": "PASS_2_OF_2",
-    "external_assertions": 23,
-    "normative_mappings": 23,
-    "non_normative_assertions": 0,
-    "unmapped_external_assertions": 0,
-    "repair_oscillation_detected": false,
-    "public_safe_projection": true,
-    "hidden_source_exposed": false
-  },
-  "repair_capability_current_source": {
-    "repair_candidate_gate_status": "PASS_OFFLINE_AND_LIVE_CONTAINMENT",
-    "repair_failure_fingerprint_status": "PASS",
-    "repair_evidence_projection_status": "NOT_QUALIFIED_AFTER_6_FRAMEWORK_ROUNDS",
-    "cheap": {
-      "provider": "deepseek",
-      "model": "deepseek-flash",
-      "qualification": "FAIL_0_OF_3",
-      "first_call_success_rate": 0.0,
-      "no_progress_rate": 1.0,
-      "evidence": "D:/CGKN/.service_evidence/repair-convergence-worker-capability-v9/worker-repair-probe/worker_repair_probe/deepseek_index.json"
+    "evidence": "D:/CGKN/.service_evidence/repair-stability-root-cause-v1/offline/repair_stability_forensics.json",
+    "historical_evidence_hash_reconstructed": true,
+    "historical_evidence_hash": "sha256:017383b8d93539300f224cbc6b1d38e8eb50cdbf79021c4189d2c585f619782f",
+    "repair_evidence_sufficiency": "SUFFICIENT",
+    "successful_target_file_visible": true,
+    "successful_target_symbol_visible": true,
+    "successful_target_source_complete": true,
+    "necessary_dependency_visible": true,
+    "counterfactual_replay": "PASS_2_OF_2",
+    "strong_success_signature": {
+      "target_file": "csv_cleaner/__main__.py",
+      "target_symbol": "_print_preview",
+      "edit_scope": "ONE_FILE_ONE_FUNCTION",
+      "behavioral_effect": "ONE_REQUESTED_PREVIEW_ROW_SERIALIZES_AS_EXACTLY_ONE_CSV_RECORD"
     },
-    "strong": {
-      "provider": "qwen",
-      "model": "qwen3.8-max",
-      "qualification": "PASS_2_OF_3",
-      "first_call_success_rate": 0.666667,
-      "no_progress_rate": 0.333333,
-      "evidence": "D:/CGKN/.service_evidence/repair-convergence-worker-capability-v9/worker-repair-probe/worker_repair_probe/qwen_index.json"
+    "historical_localization": {
+      "all_six_target_symbol_hit": true,
+      "all_six_execution_path_overlap": true,
+      "classification": "NOT_PRIMARY"
     },
-    "comparison": "INCONCLUSIVE_STRONG_NOT_3_OF_3",
-    "system_containment_success": true,
-    "baseline_pollution": false,
-    "hidden_source_exposed": false
-  },
-  "real_csv_single": {
-    "status": "INVALIDATED_BY_LATER_SOURCE_CHANGE_DIAGNOSTIC_ONLY",
-    "source_commit": "2491bbe03b8db74db59364261e52be026b544a20",
-    "run_id": "blueprint-cli_csv_cleaner-9ae2056f37",
-    "blueprint_hash": "sha256:31fe084862ebb082a581c6c6a5fee43fa3a4ad2a8d359f0c72204126eddda8f8",
-    "logical_calls": 8,
-    "budget_limit": 8,
-    "budget_compliance": true,
-    "calls": {
-      "coordinator_design": 1,
-      "generation": 3,
-      "continuation": 0,
-      "generation_retry": 2,
-      "repair": 2
+    "historical_action_space": {
+      "all_six_modified_same_file_and_symbol": true,
+      "classification": "NOT_PRIMARY"
     },
-    "worker_token_usage": {
-      "input_tokens": 38975,
-      "output_tokens": 6944,
-      "cached_tokens": 6272,
-      "usage_status": "KNOWN"
-    },
-    "final_failure": "UNIT_MATERIALIZATION_INCOMPLETE",
-    "final_owner": "tests-1",
-    "failed_nodes": ["tests-1"],
-    "blocked_nodes": ["compile", "pytest", "runtime_smoke", "external_acceptance"],
-    "root_cause": "The Test Authority Firewall admitted a canonical public assertion and routed its failure to implementation twice. Both implementation PatchBundle calls reported success but preserved the extra blank preview row; downstream Tests generation then exhausted its bounded attempts at the fixed project budget.",
-    "evidence": "D:/CGKN/.service_evidence/canonical-test-authority-full-eval-live/csv-single-v5/blueprint-cli_csv_cleaner-9ae2056f37/live-single_receipt.json",
-    "manual_edits": 0,
-    "hidden_acceptance": "BLOCKED_AFTER_TEST_STAGE_FAILURE",
-    "test_authority": "PASS_LIVE_EXERCISED",
-    "repair_oscillation_detected": false,
-    "hidden_source_exposed": false
-  },
-  "invalidated_live_progress": {
-    "source_commit": "b7ea7c412a4920260f013205afed3a102b94c813",
-    "csv_single": {
-      "status": "PASS_INVALIDATED_BY_SOURCE_CHANGE",
-      "run_id": "blueprint-cli_csv_cleaner-cb7d93fda4",
-      "logical_calls": 7,
-      "repair_candidates_discarded": 1,
-      "exact_target_repairs_committed": 1,
-      "hidden_acceptance": "PASS"
-    },
-    "seeded_repair": {
-      "status": "PASS_INVALIDATED_BY_SOURCE_CHANGE",
-      "run_id": "blueprint-seeded_repair-d7bab0e206",
-      "logical_calls": 4,
-      "repair_calls": 1,
-      "hidden_acceptance": "PASS"
-    },
-    "csv_repeat_1": {
-      "status": "FAIL_INVALIDATED_BY_SOURCE_CHANGE",
-      "run_id": "blueprint-cli_csv_cleaner-fb47bc4b11",
-      "logical_calls": 6,
-      "candidate_progress": ["NO_PROGRESS", "REGRESSED"],
-      "baseline_pollution": false
+    "historical_decoding_variance": "SUPPORTED_BY_IDENTICAL_EVIDENCE_AND_MODEL_PRODUCING_DIFFERENT_SEMANTIC_PATCHES",
+    "historical_model_result": {
+      "qwen3.8-max": "FIXED_2_OF_3",
+      "deepseek-flash": "NO_PROGRESS_3_OF_3"
     }
   },
-  "real_seeded_repair": "NOT_EVALUATED_ON_CURRENT_SOURCE",
-  "real_csv_repeatability": "NOT_EVALUATED_ON_CURRENT_SOURCE",
-  "materialization_benchmark": "NOT_EVALUATED_DUE_CSV_SINGLE_GATE",
-  "tier1_efficiency": "NOT_EVALUATED_DUE_CSV_SINGLE_GATE",
-  "formal_server_evaluation": "NOT_EVALUATED_DUE_REPAIR_QUALIFICATION_GATE",
-  "model_capability_evaluation": "PARTIAL_REPAIR_ONLY",
-  "cost_evaluated": false,
-  "cost_note": "Official price snapshot was not captured; zero-valued ledger price fields are not treated as zero cost.",
+  "failure_execution_slice": {
+    "status": "PASS_PUBLIC_SAFE",
+    "target_file": "csv_cleaner/__main__.py",
+    "target_symbol": "_print_preview",
+    "slice_hash": "sha256:2bc24343fbffae754cea6ad8f3027f417eb505cd35e13616c508894aab1b0669",
+    "hidden_source_included": false,
+    "arguments_or_locals_included": false,
+    "hidden_assertions_or_tracebacks_included": false
+  },
+  "root_cause": {
+    "primary": "PUBLIC_OBSERVABLE_TRANSPORT_DETAIL_WAS_NORMALIZED_AWAY",
+    "secondary": "MODEL_SEMANTIC_PATCH_VARIANCE",
+    "not_primary": ["MISSING_SOURCE", "SOURCE_LOCALIZATION", "PATCH_ACTION_SPACE", "CHEAP_MODEL_STRENGTH_ALONE"],
+    "mechanism": "The earlier packet represented stdout as parsed CSV rows and reported an extra empty record, but omitted raw stdout newline facts. That abstraction hid the Windows CRLF plus text-translation mechanism. Generic failure slice and contrast increased context without resolving it; adding public raw-byte/newline transport contrast made the causal repair observable.",
+    "hardcoded_answer_in_prompt": false
+  },
+  "provider_sampling_audit": {
+    "status": "PASS",
+    "temperature": 0.0,
+    "temperature_forwarded": true,
+    "thinking_mode": "disabled",
+    "reasoning_effort": "none",
+    "max_output_tokens": 6000,
+    "response_format": "json_schema",
+    "stream": false,
+    "top_p": null,
+    "top_k": null,
+    "seed": null,
+    "unsupported_by_frozen_route": ["top_p", "top_k", "seed"],
+    "control_decision": "KEEP_MINIMUM_SUPPORTED_TEMPERATURE_FIXED_TO_AVOID_CONFOUNDING"
+  },
+  "discovery": {
+    "historical_e0": {
+      "strong": "2_OF_3_DIAGNOSTIC_ONLY",
+      "cheap": "0_OF_3_DIAGNOSTIC_ONLY"
+    },
+    "e1_current_low_variance": {
+      "source_commit": "caa5d20430910165cd4ea5926ac37cdfd1b033c5",
+      "result": "4_OF_5_DIRECTIONAL",
+      "input_tokens_each": 1097,
+      "target_symbol_hit_all": true
+    },
+    "e2_slice_contrast": {
+      "source_commit": "fb662c32306b4dbf27c16e905c413090fb48b3d5",
+      "result": "0_OF_2_EARLY_ELIMINATED",
+      "input_tokens_each": 1837,
+      "target_symbol_hit_all": true
+    },
+    "e3_slice_contrast_localized": {
+      "source_commit": "fb662c32306b4dbf27c16e905c413090fb48b3d5",
+      "result": "0_OF_2_EARLY_ELIMINATED",
+      "input_tokens_each": 1838,
+      "target_symbol_hit_all": true
+    },
+    "e4_slice_transport_contrast": {
+      "source_commit": "caa5d20430910165cd4ea5926ac37cdfd1b033c5",
+      "result": "3_OF_3",
+      "input_tokens_each": 1923,
+      "output_tokens": [161, 161, 168],
+      "target_symbol_hit_all": true
+    },
+    "winner": "E4_FAILURE_SLICE_TRANSPORT_CONTRASTIVE_NORMAL_SCOPE",
+    "directional_comparison": "E4_100_PERCENT_VS_E1_80_PERCENT_WITH_75_PERCENT_MORE_INPUT_TOKENS",
+    "statistical_significance_claimed": false
+  },
+  "formal_strong_qualification": {
+    "status": "PASS_3_OF_3",
+    "source_commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
+    "provider": "qwen",
+    "model": "qwen3.8-max",
+    "variant": "E4",
+    "logical_calls_each": 1,
+    "transport_attempts_each": 1,
+    "input_tokens_each": 1923,
+    "output_tokens": [161, 161, 161],
+    "cached_tokens": [0, 1024, 1024],
+    "duration_ms": [13309, 10116, 10058],
+    "finish_reason_each": "stop",
+    "provider_request_hash": "sha256:9306af9d59f2943278453e272ed3d21c01e33720f69158e36a3855e05b6f0b33",
+    "provider_request_hash_basis": "CGKN_COMPLETION_REQUEST_V1",
+    "run_ids": [
+      "worker-repair-e4-qwen-1-840c360108",
+      "worker-repair-e4-qwen-2-c190fc0fb0",
+      "worker-repair-e4-qwen-3-3dd73c4e34"
+    ],
+    "selection_receipt_hashes": [
+      "sha256:19e6bcc4e7a5fa1ff281b1fe74efc50e3a336b167dae25593323b68ab019cec9",
+      "sha256:c1fdeebc3409118b78f95c1b05383276200c3ef8a9bcd51466a567d9fac64cb4",
+      "sha256:7948fc265df4a18f8b4491e2414da50fee0e4a0a49869de7742f3da0fce7d00d"
+    ],
+    "target_validation": "PASS_3_OF_3",
+    "targeted_pytest": "PASS_3_OF_3",
+    "interface_regressions": 0,
+    "baseline_contamination": false,
+    "manual_edits": 0,
+    "evidence": "D:/CGKN/.service_evidence/repair-stability-root-cause-v1/qualification-final/strong-qwen/worker_repair_probe/qwen_e4_qualification_index.json"
+  },
+  "formal_cheap_qualification": {
+    "status": "QUALIFIED_ON_CASE_3_OF_3",
+    "source_commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "variant": "E4",
+    "logical_calls_each": 1,
+    "transport_attempts_each": 1,
+    "input_tokens_each": 2370,
+    "output_tokens": [152, 152, 152],
+    "cached_tokens": [2176, 2176, 2176],
+    "duration_ms": [7908, 6584, 7285],
+    "finish_reason_each": "stop",
+    "provider_request_hash": "sha256:d5a87391f1c17a14b65c8b2dbc94d52aa8dfc9a9133c3e40ac131908dfc57d45",
+    "provider_request_hash_basis": "CGKN_COMPLETION_REQUEST_V1",
+    "run_ids": [
+      "worker-repair-e4-deepseek-1-ded64e68f4",
+      "worker-repair-e4-deepseek-2-0f00695a75",
+      "worker-repair-e4-deepseek-3-c0a76b9290"
+    ],
+    "selection_receipt_hashes": [
+      "sha256:4483de782fe9fc970275f7490983a012c51ea8ee32c82331b0697b0f37a1c2f0",
+      "sha256:558fd4ee6d0483d29d1fdc04a091f1b88ddbe4ee450e4efe5631e4bb6aa73190",
+      "sha256:72bed5d3fec043d4001de4cde6f07525c344fb6dc0b46c45e1bb11753ed520c8"
+    ],
+    "target_validation": "PASS_3_OF_3",
+    "targeted_pytest": "PASS_3_OF_3",
+    "interface_regressions": 0,
+    "baseline_contamination": false,
+    "manual_edits": 0,
+    "evidence": "D:/CGKN/.service_evidence/repair-stability-root-cause-v1/qualification-final/cheap-deepseek/worker_repair_probe/deepseek_e4_qualification_index.json"
+  },
   "security": {
     "hidden_source_exposed": false,
+    "hidden_assertion_exposed": false,
+    "hidden_traceback_exposed": false,
+    "successful_patch_leaked_to_prompt": false,
     "secret_persisted": false,
-    "partial_staging_visible_before_commit": false,
+    "scope_violation": false,
     "manual_candidate_edits": 0
   },
   "regression": {
-    "targeted_tests": "PASS_107",
-    "application_tests": "PASS_435_SKIP_1",
+    "targeted_tests": "PASS_137",
     "product_direction_gate": "PASS",
-    "kernel_profiles": "STALE_ON_CURRENT_SOURCE_AFTER_STOP_CONDITION",
-    "active_repository": "STALE_AFTER_SOURCE_CHANGE_NOT_RERUN_DUE_STOP_CONDITION",
-    "kernel_evidence_fresh": false
+    "kernel_completeness_gate": "PASS",
+    "kernel_receipt_freshness": "PASS",
+    "kernel_profiles": {
+      "static": "PASS",
+      "unit": "PASS_479_SKIP_1",
+      "boundary": "PASS_325_SKIP_1",
+      "fault": "PASS_80",
+      "security": "PASS_119_SKIP_1",
+      "local_functional": "PASS_6",
+      "full_core": "PASS_479_SKIP_1",
+      "active_repository": "PASS_2637_SKIP_351"
+    },
+    "full_collection": "PASS_2988",
+    "compileall": "PASS",
+    "kernel_architecture_gate": "PASS",
+    "test_architecture_gate": "PASS",
+    "application_receipt_freshness": "PASS",
+    "evidence": "D:/CGKN/.service_evidence/repair-stability-root-cause-v1/regression-final-2/kernel_profiles.json"
   },
+  "real_csv_single": "NOT_EVALUATED_ON_CURRENT_SOURCE",
+  "real_seeded_repair": "NOT_EVALUATED_ON_CURRENT_SOURCE",
+  "real_csv_repeatability": "NOT_EVALUATED_ON_CURRENT_SOURCE",
   "minimal_blueprint_status": "PARTIAL",
   "efficiency_experiment_ready": false,
   "multi_agent_status": "BLOCKED_BY_EFFICIENCY_EXPERIMENT",
-  "stop_status": "FRAMEWORK_REPAIR_ROUNDS_EXHAUSTED_REPAIR_QUALIFICATION_UNSTABLE",
+  "cost_evaluated": false,
+  "cost_note": "The live ledger price values were authorization placeholders, not an official price snapshot, so no cost conclusion is claimed.",
   "contains_credentials": false,
-  "receipt_hash": "sha256:2af1b00134fa2495b6495b953a96652a41f7fe6b142addb1ab60b601a8fc538a"
+  "receipt_hash": "sha256:954b704d3940d63f3ebfe06114d2da25f807b103c7fd9e333c01a7da8d6cdbc7"
 }
