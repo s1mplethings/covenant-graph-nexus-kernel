@@ -5,8 +5,8 @@
   "project_id": "cgkn",
   "goal": "Expose existing structured knowledge and evidence as a read-only, evidence-grounded Conversation product surface and validate it through the formal server and a fixed C1/C2 comparison.",
   "backlog_item_ids": ["PB-015"],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "PASS",
   "acceptance_criteria": [
     "Conversation reuses the existing knowledge, retrieval, capability, guard, and model-routing authorities",
     "grounded answers, provenance, fidelity drill-down, no-evidence refusal, and Provider fallback pass targeted tests",
@@ -51,13 +51,29 @@
     "governance/role_model_efficiency_receipt.json"
   ],
   "review": {
-    "outcome": "pending",
-    "feedback": [],
-    "accepted_backlog_item_ids": []
+    "outcome": "accepted",
+    "feedback": [
+      "Conversation is now a read-only evidence-grounded Component/Block surface over the existing knowledge authority.",
+      "Formal server, real E2E, fixed C1/C2 comparison, and full regression passed on one frozen source commit.",
+      "Multi-Agent remains not recommended because current evidence favors cheap execution and structured evidence over additional orchestration."
+    ],
+    "accepted_backlog_item_ids": [
+      "PB-015"
+    ]
   },
   "retrospective": {
-    "worked": [],
-    "did_not_work": [],
-    "experiments": []
+    "worked": [
+      "reusing the existing cgnk_knowledge retrieval authority",
+      "summary-as-index with bounded raw-evidence drill-down",
+      "strict grounded claim references and honest evidence-only fallback",
+      "version-pinned API Lab raw-defer ingress"
+    ],
+    "did_not_work": [
+      "an outdated local API Lab worktree produced fail-closed contract-version errors until the frozen dependency SHA was used",
+      "a lexical-only retry rubric treated two retries and twice as different until deterministic normalization"
+    ],
+    "experiments": [
+      "C1 flat-complete and C2 structured both reached 10/10 accuracy; C2 reduced input tokens by 74.71 percent and irrelevant-context ratio by 57.67 percent"
+    ]
   }
 }

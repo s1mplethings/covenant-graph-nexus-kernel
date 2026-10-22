@@ -1,7 +1,7 @@
 {
   "kind": "CGKNRoleModelEfficiencyReceipt",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-FROZEN-MVP-EFFICIENCY-MODEL-EVAL-042",
+  "iteration": "ITER-CGNK-CONVERSATION-PRODUCT-SURFACE-AND-ARCHITECTURE-CONVERGENCE-043",
   "product_source": {
     "commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
     "tree": "66056cf6432227681a117b1f5df9c3e6999475cd",
@@ -20,6 +20,61 @@
     "case_count": 28,
     "routes": ["R0", "R1", "R2"],
     "summary_only_diagnostic_cases": 2
+  },
+  "conversation_product_surface": {
+    "source_commit": "7320040abef270fd0dbf98ff5e80218ec1204e50",
+    "source_tree": "348979a9f7ec9ea7b158ddd3ef803349a03083c4",
+    "component_ref": "conversation.answer@1.0",
+    "conversation_spec_hash": "sha256:34073c9e6467ec788ff70439f1c4e2395723b42b274281bdf8609629f242e0b6",
+    "context_policy_hash": "sha256:612fd56b47af75e9e90a74e247549b7338fab1c565c57960ad2f5e04f66ee0bb",
+    "retrieval_policy_hash": "sha256:4c8ab829857dfab3b3123ae2cd0c95e0f18118c6c070c45ba35fffd6eb0986d9",
+    "model_config_hash": "sha256:b9976c84b9b960f570860b50052c4833cdd9af35cc2a0d7b203563e27b4623e0",
+    "formal_server": "PASS",
+    "real_e2e": "PASS",
+    "structure_eval": "PASS_20_OF_20",
+    "case_count": 10,
+    "case_hash": "sha256:1831fe29acb47a81bc95103755afca11adec0e51675f01248d6effa465e97566",
+    "corpus_hash": "sha256:82c5a77de1eeffcf4dbcdd57fd1de2e0f77d1cd76ec54d092f3d661888f6b999",
+    "provider": "deepseek",
+    "model": "deepseek-flash",
+    "c1_flat_complete": {
+      "accuracy": 1.0,
+      "grounded_claim_rate": 1.0,
+      "abstention_correct_rate": 1.0,
+      "provenance_correct_rate": 1.0,
+      "input_tokens": 17329,
+      "output_tokens": 530,
+      "retrieved_nodes": 130,
+      "irrelevant_nodes": 117,
+      "irrelevant_context_ratio": 0.9,
+      "raw_expansion_count": 0,
+      "latency_ms": 11384
+    },
+    "c2_cgkn_structured": {
+      "accuracy": 1.0,
+      "grounded_claim_rate": 1.0,
+      "abstention_correct_rate": 1.0,
+      "provenance_correct_rate": 1.0,
+      "input_tokens": 4382,
+      "output_tokens": 501,
+      "retrieved_nodes": 21,
+      "irrelevant_nodes": 8,
+      "irrelevant_context_ratio": 0.38095238095238093,
+      "raw_expansion_count": 2,
+      "latency_ms": 8581
+    },
+    "input_token_reduction_percent": 74.71,
+    "irrelevant_context_reduction_percent": 57.67,
+    "conversation_structure_benefit": "PROVEN_DIRECTIONALLY",
+    "statistical_significance_claimed": false,
+    "provider_ledger": {
+      "api_calls": 19,
+      "input_tokens": 22583,
+      "output_tokens": 1155,
+      "estimated_cost_usd": 0.00408045,
+      "actual_token_usage_complete": true
+    },
+    "evidence": "D:/CGKN/.service_evidence/conversation-product-surface-v4"
   },
   "api_lab_dependency": {
     "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
@@ -120,13 +175,17 @@
     ]
   },
   "formal_server": {
-    "status": "FAIL_MISSING_CONVERSATION",
+    "status": "PASS",
     "supported_surface": "PASS",
-    "provider_recovery_model": "qwen3.8-max",
+    "provider_recovery_model": "deepseek-flash",
     "provider_recovery": "PASS",
     "timeout_probe": "PASS_REAL_LOCAL_HTTP_TIMEOUT",
-    "conversation_answer_path": false,
-    "evidence": "D:/CGKN/.service_evidence/frozen-mvp-efficiency-model-eval-v1/phase-g-server-formal-v3/server-formal-f43fe2617a/index.json"
+    "conversation_answer_path": true,
+    "provider_unavailable_fallback": "PASS_EVIDENCE_ONLY",
+    "no_evidence_refusal": "PASS_INSUFFICIENT_EVIDENCE",
+    "provenance": "PASS",
+    "restart": "PASS",
+    "evidence": "D:/CGKN/.service_evidence/conversation-product-surface-v4/command-1-stdout.json"
   },
   "qwen_model_capability": {
     "model": "qwen3.8-max",
@@ -186,20 +245,22 @@
     "test_architecture_gate": "PASS",
     "kernel_completeness_gate": "PASS",
     "receipt_freshness": "PASS",
-    "application": "PASS_447_SKIP_1",
+    "application": "PASS_471_SKIP_1",
     "kernel_profiles_fast": "PASS",
-    "active_repository": "PASS_2646_SKIP_351",
-    "full_pytest": "PASS_2646_SKIP_351_SUBTESTS_26",
-    "collection": "PASS_2997",
+    "active_repository": "PASS_2671_SKIP_351",
+    "full_pytest": "PASS_2671_SKIP_351",
+    "collection": "PASS_3022",
     "canonical_python": "C:/Users/sunom/AppData/Local/Programs/Python/Python313/python.exe",
     "noncanonical_python_diagnostic": "PYTHON_3_12_TEST_AUTHORITY_AST_VARIANCE_NOT_FORMAL_EVIDENCE",
-    "evidence": "D:/CGKN/.service_evidence/frozen-mvp-efficiency-model-eval-v1/phase-i-regression"
+    "evidence": "D:/CGKN/.service_worktree/conversation-product-surface/artifacts/kernel-profile-active-repository-0.xml"
   },
   "minimal_blueprint_status": "COMPLETE",
   "efficiency_experiment_ready": true,
-  "formal_server_evaluation": "FAIL_MISSING_CONVERSATION",
+  "formal_server_evaluation": "PASS",
+  "conversation_capability": "PASS",
+  "conversation_structure_benefit": "PROVEN_DIRECTIONALLY",
   "model_capability_evaluation": "COMPLETE",
-  "multi_agent_status": "BLOCKED_BY_FORMAL_SERVER_CONVERSATION",
+  "multi_agent_status": "NOT_RECOMMENDED_CURRENT_EVIDENCE",
   "contains_credentials": false,
-  "receipt_hash": "sha256:48cd9c521ddb2bf54e5e897a62f1ba8d25d9a6e47f31d5292a624283c5b40097"
+  "receipt_hash": "sha256:0ba059e4d4421ad0227a04fc2b2f1b9bc0908d71b8ab590a7f5e374b780e9d43"
 }

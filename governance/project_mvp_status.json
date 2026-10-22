@@ -1,9 +1,9 @@
 {
   "kind": "CGKNProjectMVPStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-FROZEN-MVP-EFFICIENCY-MODEL-EVAL-042",
-  "source_commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
-  "source_tree_sha": "66056cf6432227681a117b1f5df9c3e6999475cd",
+  "iteration": "ITER-CGNK-CONVERSATION-PRODUCT-SURFACE-AND-ARCHITECTURE-CONVERGENCE-043",
+  "source_commit": "7320040abef270fd0dbf98ff5e80218ec1204e50",
+  "source_tree_sha": "348979a9f7ec9ea7b158ddd3ef803349a03083c4",
   "product_source_commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
   "product_source_tree": "66056cf6432227681a117b1f5df9c3e6999475cd",
   "experiment_harness_commit": "bb65c0dd7ea6369487516dc6183e38cb8b541e34",
@@ -36,12 +36,14 @@
   "project_budget_convergence": "PASS_STABLE_WITH_TWO_CALL_SPARE",
   "csv_calls_each": [6, 6, 6],
   "manual_candidate_edits": 0,
-  "formal_server_evaluation": "FAIL_MISSING_CONVERSATION",
+  "formal_server_evaluation": "PASS",
   "formal_server_supported_surface": "PASS",
+  "conversation_capability": "PASS",
+  "conversation_structure_benefit": "PROVEN_DIRECTIONALLY",
   "model_capability_evaluation": "COMPLETE",
   "cgnk_structure_benefit": "PROVEN_DIRECTIONALLY",
   "efficiency_experiment_ready": true,
-  "multi_agent_status": "BLOCKED_BY_FORMAL_SERVER_CONVERSATION",
+  "multi_agent_status": "NOT_RECOMMENDED_CURRENT_EVIDENCE",
   "api_lab_dependency": {
     "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
     "branch": "codex/qwen-thinking-control-20261021",
@@ -54,14 +56,14 @@
   },
   "blockers": [
     {
-      "priority": "P0",
-      "code": "FORMAL_SERVER_CONVERSATION_NOT_EXPOSED",
-      "detail": "The installed formal server passed its supported protocol surface but exposes no Conversation answer path, so the mandatory formal server evaluation cannot be marked PASS and the Multi-Agent gate remains closed."
-    },
-    {
-      "priority": "P1",
+      "priority": "P2",
       "code": "GENERAL_MODEL_GENERATION_REPAIR_CAPABILITY_MIXED",
       "detail": "The 28-case benchmark completed, but per-model generation, repair, and abstention results remain mixed; the structural result is directional rather than statistically significant."
+    },
+    {
+      "priority": "P2",
+      "code": "KNOWLEDGE_UPDATE_AND_RETRIEVAL_SCALING_NOT_EVALUATED",
+      "detail": "Conversation is read-only and validated on a fixed corpus; knowledge growth/update and larger-corpus retrieval scaling remain future product work."
     }
   ]
 }
