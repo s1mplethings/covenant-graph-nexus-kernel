@@ -318,6 +318,8 @@ def capture_public_failure_context(
     target: RepairTargetSpec,
     workspace: str | pathlib.Path,
     visible_sources: Mapping[str, str],
+    *,
+    include_transport_details: bool = False,
 ) -> tuple[FailureExecutionSlice, dict[str, Any]]:
     """Run only the canonical public reproduction and capture project-code calls.
 
@@ -396,9 +398,6 @@ def capture_public_failure_context(
             cwd=staged_root,
             env=environment,
             capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
             timeout=30,
             check=False,
         )
@@ -435,7 +434,8 @@ def capture_public_failure_context(
         if output_path.is_file():
             with output_path.open("r", newline="", encoding="utf-8") as handle:
                 output_rows = list(csv.reader(handle, delimiter=str(setup.get("delimiter", ","))))
-        actual_rows = list(csv.reader(io.StringIO(completed.stdout)))
+        stdout_text = completed.stdout.decode("utf-8", errors="replace")
+        actual_rows = list(csv.reader(io.StringIO(stdout_text)))
         expected_document = _json_value(target.expected)
         expected_output_created = (
             bool(expected_document.get("output_created"))
@@ -459,6 +459,34 @@ def capture_public_failure_context(
             },
             "public_safe": True,
         }
+        if include_transport_details:
+            expected_rows = _json_value(target.fingerprint.normalized_expected)
+            expected_buffer = io.StringIO(newline="")
+            if isinstance(expected_rows, list):
+                csv.writer(
+                    expected_buffer,
+                    delimiter=str(setup.get("delimiter", ",")),
+                    lineterminator="\n",
+                ).writerows(expected_rows)
+            expected_bytes = expected_buffer.getvalue().encode("utf-8")
+
+            def transport_summary(raw: bytes) -> dict[str, Any]:
+                crlf = raw.count(b"\r\n")
+                return {
+                    "utf8_bytes": len(raw),
+                    "escaped": raw.decode("utf-8", errors="replace").encode("unicode_escape").decode("ascii")[:4096],
+                    "line_endings": {
+                        "crlf": crlf,
+                        "bare_cr": raw.count(b"\r") - crlf,
+                        "bare_lf": raw.count(b"\n") - crlf,
+                    },
+                }
+
+            contrast["stdout_transport_contrast"] = {
+                "observed": transport_summary(completed.stdout),
+                "expected": transport_summary(expected_bytes),
+                "source": "canonical_public_reproduction",
+            }
         contrast["contrast_hash"] = canonical_hash(contrast)
         return slice_value, contrast
 

@@ -87,7 +87,11 @@ PATCH_BUNDLE_SCHEMA: dict[str, Any] = {"oneOf": [
 ]}
 UNIT_PAYLOAD_SCHEMA = {"oneOf": [FILE_BUNDLE_SCHEMA["oneOf"][0], PATCH_BUNDLE_SCHEMA["oneOf"][0]]}
 MAX_UNIT_MATERIALIZATION_CALLS = 3
-REPAIR_EVIDENCE_MODES = frozenset({"CURRENT", "FAILURE_SLICE_CONTRASTIVE"})
+REPAIR_EVIDENCE_MODES = frozenset({
+    "CURRENT",
+    "FAILURE_SLICE_CONTRASTIVE",
+    "FAILURE_SLICE_TRANSPORT_CONTRASTIVE",
+})
 REPAIR_SCOPE_MODES = frozenset({"NORMAL", "LOCALIZED"})
 
 
@@ -863,9 +867,17 @@ class BlueprintUnitExecutor:
                             target.operation, target.setup, target.expected,
                         )
                         self.repair_targets[unit.unit_id] = target
-                    if self.repair_evidence_mode == "FAILURE_SLICE_CONTRASTIVE":
+                    if self.repair_evidence_mode in {
+                        "FAILURE_SLICE_CONTRASTIVE",
+                        "FAILURE_SLICE_TRANSPORT_CONTRASTIVE",
+                    }:
                         execution_slice, contrastive_public_evidence = capture_public_failure_context(
-                            target, self.root, sources,
+                            target,
+                            self.root,
+                            sources,
+                            include_transport_details=(
+                                self.repair_evidence_mode == "FAILURE_SLICE_TRANSPORT_CONTRASTIVE"
+                            ),
                         )
                         failure_execution_slice = execution_slice.as_dict()
                     packet = RepairEvidencePacket(

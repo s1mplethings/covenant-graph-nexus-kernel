@@ -1001,9 +1001,10 @@ def _repair_variant(variant: str) -> dict[str, Any]:
         "E1": {"temperature": 0.0, "evidence_mode": "CURRENT", "scope_mode": "NORMAL"},
         "E2": {"temperature": 0.0, "evidence_mode": "FAILURE_SLICE_CONTRASTIVE", "scope_mode": "NORMAL"},
         "E3": {"temperature": 0.0, "evidence_mode": "FAILURE_SLICE_CONTRASTIVE", "scope_mode": "LOCALIZED"},
+        "E4": {"temperature": 0.0, "evidence_mode": "FAILURE_SLICE_TRANSPORT_CONTRASTIVE", "scope_mode": "NORMAL"},
     }
     if variant not in variants:
-        raise ValueError("repair variant must be E0, E1, E2, or E3")
+        raise ValueError("repair variant must be E0, E1, E2, E3, or E4")
     return dict(variants[variant])
 
 
@@ -1619,7 +1620,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--count", type=int, default=5)
     parser.add_argument("--provider", default="qwen")
     parser.add_argument("--contract-mode", choices=("c0", "c1", "c2"), default="c2")
-    parser.add_argument("--repair-variant", choices=("E0", "E1", "E2", "E3"), default="E0")
+    parser.add_argument("--repair-variant", choices=("E0", "E1", "E2", "E3", "E4"), default="E0")
     parser.add_argument("--blueprint-path", type=pathlib.Path)
     parser.add_argument("--replay-index", type=pathlib.Path)
     parser.add_argument("--input-evidence-root", type=pathlib.Path)

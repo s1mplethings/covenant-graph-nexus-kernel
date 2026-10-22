@@ -373,8 +373,9 @@ def test_project_route_separates_coordinator_and_worker_thinking_policies() -> N
     assert _worker_generation_model_config().thinking_mode == "disabled"
     assert _worker_repair_model_config().thinking_mode == "disabled"
     assert routing.worker.thinking_mode == "default"
-    assert {_repair_variant(name)["temperature"] for name in ("E0", "E1", "E2", "E3")} == {0.0}
+    assert {_repair_variant(name)["temperature"] for name in ("E0", "E1", "E2", "E3", "E4")} == {0.0}
     assert _repair_variant("E3")["scope_mode"] == "LOCALIZED"
+    assert _repair_variant("E4")["evidence_mode"] == "FAILURE_SLICE_TRANSPORT_CONTRASTIVE"
     assert _repair_discovery_status([{"status": "FAIL"}, {"status": "FAIL"}]) == "DISCOVERY_ELIMINATED_0_OF_2"
     assert _repair_discovery_status([{"status": "PASS"}] * 3) == "DISCOVERY_PASS"
     assert _repair_discovery_status([{"status": "PASS"}] * 4 + [{"status": "FAIL"}]) == "DISCOVERY_PASS"

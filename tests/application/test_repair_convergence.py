@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 
 from cgkn.application.project_blueprint import BlueprintUnit, FailureAction, FailureReport, FailureStage
@@ -222,6 +223,28 @@ def test_public_failure_slice_captures_only_project_execution_and_contrast(tmp_p
     assert "hidden" not in json.dumps({"slice": execution_slice.as_dict(), "contrast": contrast}).casefold()
 
 
+def test_transport_contrast_exposes_public_newline_mechanism_without_traceback(tmp_path: pathlib.Path) -> None:
+    _workspace(tmp_path)
+    transport_source = BROKEN_SOURCE.replace(
+        'sys.stdout.write(",".join(rows[0]) + "\\n\\n")',
+        "csv.writer(sys.stdout).writerows(rows[:count])",
+    )
+    (tmp_path / "csv_cleaner" / "__main__.py").write_text(transport_source, encoding="utf-8")
+    _, contrast = capture_public_failure_context(
+        _target("sha256:baseline"),
+        tmp_path,
+        {"csv_cleaner/__main__.py": transport_source},
+        include_transport_details=True,
+    )
+    transport = contrast["stdout_transport_contrast"]
+    assert transport["source"] == "canonical_public_reproduction"
+    assert transport["expected"]["escaped"].endswith("\\n")
+    if os.name == "nt":
+        assert transport["observed"]["line_endings"]["bare_cr"] >= 1
+        assert "\\r\\r\\n" in transport["observed"]["escaped"]
+    assert "traceback" not in json.dumps(contrast).casefold()
+
+
 def test_patch_symbol_audit_distinguishes_target_and_unrelated_edits() -> None:
     sources = {"csv_cleaner/__main__.py": BROKEN_SOURCE}
     target = (("csv_cleaner/__main__.py", (("sys.stdout.write(\",\".join(rows[0]) + \"\\n\\n\")", "pass"),)),)
@@ -435,6 +458,18 @@ def test_failure_slice_variant_records_public_trace_contrast_and_metrics(tmp_pat
     assert executor.calls[0]["failure_execution_slice_hash"]
     assert executor.calls[0]["contrastive_public_evidence_hash"]
     assert executor.calls[0]["repair_evidence_metrics"]["chars"]["trace"] > 0
+
+
+def test_transport_contrast_variant_reaches_worker_prompt(tmp_path: pathlib.Path) -> None:
+    correct = _patch(('+ "\\n\\n"', '+ "\\n"'))
+    executor, client, request, _ = _executor(
+        tmp_path,
+        [correct],
+        repair_evidence_mode="FAILURE_SLICE_TRANSPORT_CONTRASTIVE",
+    )
+    assert executor.execute(request).succeeded
+    contrast = json.loads(client.calls[0]["user"])["repair_evidence_packet"]["contrastive_public_evidence"]
+    assert contrast["stdout_transport_contrast"]["source"] == "canonical_public_reproduction"
 
 
 def test_localized_repair_scope_rejects_edit_outside_target_symbol(tmp_path: pathlib.Path) -> None:
