@@ -1,222 +1,205 @@
 {
   "kind": "CGKNRoleModelEfficiencyReceipt",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-REPAIR-STABILITY-ROOT-CAUSE-AND-CAPABILITY-041",
-  "source_closure_commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
-  "source_tree_sha": "66056cf6432227681a117b1f5df9c3e6999475cd",
-  "application_boundary_hash": "sha256:095d4cb0466c5ed3bed45a1dee4d261528e4b39525686f828fae73f7e359308f",
-  "execution_head": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
+  "iteration": "ITER-CGNK-FROZEN-MVP-EFFICIENCY-MODEL-EVAL-042",
+  "product_source": {
+    "commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
+    "tree": "66056cf6432227681a117b1f5df9c3e6999475cd",
+    "production_semantics_modified": false
+  },
+  "experiment_harness": {
+    "commit": "bb65c0dd7ea6369487516dc6183e38cb8b541e34",
+    "production_semantics_modified": false
+  },
+  "model_eval": {
+    "commit": "e04f260c3ed4381dfeb3729c6c0790f413de7be4",
+    "tree": "192e3e4bac34b172d90f99cc2e3928867a097b86",
+    "taskset_hash": "sha256:a249482175d0355ac336f446c7fe5f8ec2b2d76738ba04bceae0e1245040bc9a",
+    "schema_hash": "sha256:ca494e36369c0edb9554ccf7dd0bf45c4c675e012f800c8995833029dc61d4",
+    "prompt_hash": "sha256:77f15cf8c526c8a5638cb62bff0a10c2ffaa0513211a8c43479fd26b6b6d0b16",
+    "case_count": 28,
+    "routes": ["R0", "R1", "R2"],
+    "summary_only_diagnostic_cases": 2
+  },
   "api_lab_dependency": {
     "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
     "branch": "codex/qwen-thinking-control-20261021",
     "commit": "7c15f2546ec007cc7e601fa62ae4d88b9ba12f80",
-    "remote_commit": "7c15f2546ec007cc7e601fa62ae4d88b9ba12f80",
     "contract_version": "1.1",
     "route_mode": "raw_defer",
     "selector_authority": "CGKN",
-    "clean": true,
     "modified_this_iteration": false
   },
-  "offline_forensics": {
-    "status": "PASS",
-    "evidence": "D:/CGKN/.service_evidence/repair-stability-root-cause-v1/offline/repair_stability_forensics.json",
-    "historical_evidence_hash_reconstructed": true,
-    "historical_evidence_hash": "sha256:017383b8d93539300f224cbc6b1d38e8eb50cdbf79021c4189d2c585f619782f",
-    "repair_evidence_sufficiency": "SUFFICIENT",
-    "successful_target_file_visible": true,
-    "successful_target_symbol_visible": true,
-    "successful_target_source_complete": true,
-    "necessary_dependency_visible": true,
-    "counterfactual_replay": "PASS_2_OF_2",
-    "strong_success_signature": {
-      "target_file": "csv_cleaner/__main__.py",
-      "target_symbol": "_print_preview",
-      "edit_scope": "ONE_FILE_ONE_FUNCTION",
-      "behavioral_effect": "ONE_REQUESTED_PREVIEW_ROW_SERIALIZES_AS_EXACTLY_ONE_CSV_RECORD"
+  "real_project": {
+    "fresh_csv_single": {
+      "status": "PASS",
+      "run_id": "blueprint-cli_csv_cleaner-da1958e552",
+      "logical_calls": 6,
+      "call_budget": 8,
+      "generation_calls": 3,
+      "continuation_calls": 0,
+      "retry_calls": 1,
+      "repair_calls": 1,
+      "compile": "PASS",
+      "pytest": "PASS",
+      "runtime": "PASS",
+      "hidden_acceptance": "PASS",
+      "manual_edits": 0,
+      "evidence": "D:/CGKN/.service_evidence/frozen-mvp-efficiency-model-eval-v1/phase-a-csv-single"
     },
-    "historical_localization": {
-      "all_six_target_symbol_hit": true,
-      "all_six_execution_path_overlap": true,
-      "classification": "NOT_PRIMARY"
+    "seeded_repair": {
+      "status": "PASS",
+      "seed_id": "SEED-CSV-PREVIEW-POSITIVE-CONDITION-001",
+      "provider": "deepseek",
+      "model": "deepseek-flash",
+      "logical_calls": 1,
+      "input_tokens": 3382,
+      "output_tokens": 197,
+      "cached_tokens": 384,
+      "same_blueprint": true,
+      "manual_edits": 0,
+      "evidence": "D:/CGKN/.service_evidence/frozen-mvp-efficiency-model-eval-v1/phase-b-seeded-repair/seeded_repair_receipt.json"
     },
-    "historical_action_space": {
-      "all_six_modified_same_file_and_symbol": true,
-      "classification": "NOT_PRIMARY"
-    },
-    "historical_decoding_variance": "SUPPORTED_BY_IDENTICAL_EVIDENCE_AND_MODEL_PRODUCING_DIFFERENT_SEMANTIC_PATCHES",
-    "historical_model_result": {
-      "qwen3.8-max": "FIXED_2_OF_3",
-      "deepseek-flash": "NO_PROGRESS_3_OF_3"
+    "csv_repeatability": {
+      "status": "PASS_3_OF_3",
+      "run_ids": [
+        "blueprint-cli_csv_cleaner-da1958e552",
+        "blueprint-cli_csv_cleaner-b1bdfe3263",
+        "blueprint-cli_csv_cleaner-d0f269ad28"
+      ],
+      "logical_calls_each": [6, 6, 6],
+      "call_budget_each": 8,
+      "project_budget_convergence": "PASS_STABLE_WITH_TWO_CALL_SPARE"
     }
   },
-  "failure_execution_slice": {
-    "status": "PASS_PUBLIC_SAFE",
-    "target_file": "csv_cleaner/__main__.py",
-    "target_symbol": "_print_preview",
-    "slice_hash": "sha256:2bc24343fbffae754cea6ad8f3027f417eb505cd35e13616c508894aab1b0669",
-    "hidden_source_included": false,
-    "arguments_or_locals_included": false,
-    "hidden_assertions_or_tracebacks_included": false
+  "materialization_comparison": {
+    "status": "VALID_CONTROLLED_3_RUNS_EACH",
+    "m0_full_retry": {
+      "success": "3_OF_3",
+      "generation_tokens": 11130,
+      "tokens_per_success": 3710.0,
+      "duplicate_generation_token_waste": 4181
+    },
+    "m1_incremental": {
+      "success": "3_OF_3",
+      "generation_tokens": 14203,
+      "tokens_per_success": 4734.333333333333,
+      "duplicate_generation_token_waste": 0
+    },
+    "generation_token_reduction_percent": -27.61,
+    "conclusion": "NEUTRAL",
+    "statistical_significance_claimed": false,
+    "evidence": "D:/CGKN/.service_evidence/frozen-mvp-efficiency-model-eval-v1/phase-d-materialization-v3/1fa89c162fd9176e8144328bb549a10f7b918c1c/materialization_benchmark/index.json"
   },
-  "root_cause": {
-    "primary": "PUBLIC_OBSERVABLE_TRANSPORT_DETAIL_WAS_NORMALIZED_AWAY",
-    "secondary": "MODEL_SEMANTIC_PATCH_VARIANCE",
-    "not_primary": ["MISSING_SOURCE", "SOURCE_LOCALIZATION", "PATCH_ACTION_SPACE", "CHEAP_MODEL_STRENGTH_ALONE"],
-    "mechanism": "The earlier packet represented stdout as parsed CSV rows and reported an extra empty record, but omitted raw stdout newline facts. That abstraction hid the Windows CRLF plus text-translation mechanism. Generic failure slice and contrast increased context without resolving it; adding public raw-byte/newline transport contrast made the causal repair observable.",
-    "hardcoded_answer_in_prompt": false
+  "pricing_snapshot": {
+    "captured_at": "2026-10-22T11:29:34Z",
+    "qwen3_8_max_cny_per_million": {"input": 12.0, "cached_input": 1.5, "output": 36.0, "reasoning": 36.0},
+    "deepseek_flash_usd_per_million": {"input": 0.15, "cached_input": 0.003, "output": 0.6, "reasoning": 0.6},
+    "usd_cny": 6.72,
+    "sources": [
+      "https://help.aliyun.com/en/model-studio/qwen3-8-max",
+      "https://api-docs.deepseek.com/quick_start/pricing/",
+      "https://www.chinamoney.com.cn/english/"
+    ],
+    "evidence": "D:/CGKN/.service_evidence/frozen-mvp-efficiency-model-eval-v1/phase-e-pricing"
   },
-  "provider_sampling_audit": {
-    "status": "PASS",
-    "temperature": 0.0,
-    "temperature_forwarded": true,
-    "thinking_mode": "disabled",
-    "reasoning_effort": "none",
-    "max_output_tokens": 6000,
-    "response_format": "json_schema",
-    "stream": false,
-    "top_p": null,
-    "top_k": null,
-    "seed": null,
-    "unsupported_by_frozen_route": ["top_p", "top_k", "seed"],
-    "control_decision": "KEEP_MINIMUM_SUPPORTED_TEMPERATURE_FIXED_TO_AVOID_CONFOUNDING"
+  "tier1_efficiency": {
+    "v0_direct_strong": {"runs": 5, "successes": 3, "csv": "0_OF_2_ELIMINATED", "repair": "3_OF_3", "total_tokens": 35646, "cost_cny": 0.749688},
+    "v0b_blueprint_strong": {"runs": 5, "successes": 3, "csv": "0_OF_2_ELIMINATED", "repair": "3_OF_3", "total_tokens": 54367, "cost_cny": 0.769836},
+    "v1_strong_split": {"runs": 5, "successes": 3, "csv": "0_OF_2_ELIMINATED", "repair": "3_OF_3", "coordinator_tokens": 2041, "strong_worker_tokens": 64400, "total_tokens": 66441, "cost_cny": 0.934092},
+    "v2_cheap_worker": {"runs": 6, "successes": 6, "csv": "3_OF_3", "repair": "3_OF_3", "coordinator_tokens": 2583, "cheap_worker_tokens": 100510, "total_tokens": 103093, "cost_cny": 0.178007},
+    "blueprint_benefit": "HARMFUL_DIRECTIONALLY",
+    "role_separation_benefit": "HARMFUL_DIRECTIONALLY",
+    "cheap_executor_benefit": "QUALIFIED",
+    "statistical_significance_claimed": false,
+    "evidence_roots": [
+      "D:/CGKN/.service_evidence/frozen-mvp-efficiency-model-eval-v1/phase-f-tier1/bb65c0dd669cda092b34124e41acb0e3445c9d81",
+      "D:/CGKN/.service_evidence/frozen-mvp-efficiency-model-eval-v1/phase-f-tier1/aee09c9ed69ee47cd3a395f20b26c7c0fb5a8ef4",
+      "D:/CGKN/.service_evidence/frozen-mvp-efficiency-model-eval-v1/phase-f-tier1-third-valid/aee09c9ed69ee47cd3a395f20b26c7c0fb5a8ef4",
+      "D:/CGKN/.service_evidence/frozen-mvp-efficiency-model-eval-v1/phase-f-v0-fair-retry/8b0ca93523300415578974e1ba91ef1a46b1ef39"
+    ]
   },
-  "discovery": {
-    "historical_e0": {
-      "strong": "2_OF_3_DIAGNOSTIC_ONLY",
-      "cheap": "0_OF_3_DIAGNOSTIC_ONLY"
-    },
-    "e1_current_low_variance": {
-      "source_commit": "caa5d20430910165cd4ea5926ac37cdfd1b033c5",
-      "result": "4_OF_5_DIRECTIONAL",
-      "input_tokens_each": 1097,
-      "target_symbol_hit_all": true
-    },
-    "e2_slice_contrast": {
-      "source_commit": "fb662c32306b4dbf27c16e905c413090fb48b3d5",
-      "result": "0_OF_2_EARLY_ELIMINATED",
-      "input_tokens_each": 1837,
-      "target_symbol_hit_all": true
-    },
-    "e3_slice_contrast_localized": {
-      "source_commit": "fb662c32306b4dbf27c16e905c413090fb48b3d5",
-      "result": "0_OF_2_EARLY_ELIMINATED",
-      "input_tokens_each": 1838,
-      "target_symbol_hit_all": true
-    },
-    "e4_slice_transport_contrast": {
-      "source_commit": "caa5d20430910165cd4ea5926ac37cdfd1b033c5",
-      "result": "3_OF_3",
-      "input_tokens_each": 1923,
-      "output_tokens": [161, 161, 168],
-      "target_symbol_hit_all": true
-    },
-    "winner": "E4_FAILURE_SLICE_TRANSPORT_CONTRASTIVE_NORMAL_SCOPE",
-    "directional_comparison": "E4_100_PERCENT_VS_E1_80_PERCENT_WITH_75_PERCENT_MORE_INPUT_TOKENS",
-    "statistical_significance_claimed": false
+  "formal_server": {
+    "status": "FAIL_MISSING_CONVERSATION",
+    "supported_surface": "PASS",
+    "provider_recovery_model": "qwen3.8-max",
+    "provider_recovery": "PASS",
+    "timeout_probe": "PASS_REAL_LOCAL_HTTP_TIMEOUT",
+    "conversation_answer_path": false,
+    "evidence": "D:/CGKN/.service_evidence/frozen-mvp-efficiency-model-eval-v1/phase-g-server-formal-v3/server-formal-f43fe2617a/index.json"
   },
-  "formal_strong_qualification": {
-    "status": "PASS_3_OF_3",
-    "source_commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
-    "provider": "qwen",
+  "qwen_model_capability": {
     "model": "qwen3.8-max",
-    "variant": "E4",
-    "logical_calls_each": 1,
-    "transport_attempts_each": 1,
-    "input_tokens_each": 1923,
-    "output_tokens": [161, 161, 161],
-    "cached_tokens": [0, 1024, 1024],
-    "duration_ms": [13309, 10116, 10058],
-    "finish_reason_each": "stop",
-    "provider_request_hash": "sha256:9306af9d59f2943278453e272ed3d21c01e33720f69158e36a3855e05b6f0b33",
-    "provider_request_hash_basis": "CGKN_COMPLETION_REQUEST_V1",
-    "run_ids": [
-      "worker-repair-e4-qwen-1-840c360108",
-      "worker-repair-e4-qwen-2-c190fc0fb0",
-      "worker-repair-e4-qwen-3-3dd73c4e34"
-    ],
-    "selection_receipt_hashes": [
-      "sha256:19e6bcc4e7a5fa1ff281b1fe74efc50e3a336b167dae25593323b68ab019cec9",
-      "sha256:c1fdeebc3409118b78f95c1b05383276200c3ef8a9bcd51466a567d9fac64cb4",
-      "sha256:7948fc265df4a18f8b4491e2414da50fee0e4a0a49869de7742f3da0fce7d00d"
-    ],
-    "target_validation": "PASS_3_OF_3",
-    "targeted_pytest": "PASS_3_OF_3",
-    "interface_regressions": 0,
-    "baseline_contamination": false,
-    "manual_edits": 0,
-    "evidence": "D:/CGKN/.service_evidence/repair-stability-root-cause-v1/qualification-final/strong-qwen/worker_repair_probe/qwen_e4_qualification_index.json"
+    "case_count": 28,
+    "formal_runs": 84,
+    "overall_success_rate": 0.5595238095238095,
+    "grounded_answer_rate": 0.8571428571428571,
+    "safe_behavior_rate": 0.8690476190476191,
+    "input_tokens": 19660,
+    "output_tokens": 7126,
+    "projected_cost_cny": 0.492456,
+    "route_success": {"R0": 0.2857142857142857, "R1": 0.6428571428571429, "R2": 0.75},
+    "r2_dimensions": {"generation": "1_OF_3", "repair": "1_OF_3", "reasoning": "6_OF_6", "grounding": "7_OF_7", "abstention": "5_OF_7"},
+    "structured_evidence": {"R1": "12_OF_12", "R2": "12_OF_12", "r1_tokens_per_success": 524.4166666666666, "r2_tokens_per_success": 339.3333333333333, "token_reduction_percent": 35.3},
+    "evidence": "D:/CGKN/.service_evidence/frozen-mvp-efficiency-model-eval-v1/phase-h-qwen/model-eval-ba5e07cc10/index.json"
   },
-  "formal_cheap_qualification": {
-    "status": "QUALIFIED_ON_CASE_3_OF_3",
-    "source_commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
-    "provider": "deepseek",
+  "deepseek_model_capability": {
     "model": "deepseek-flash",
-    "variant": "E4",
-    "logical_calls_each": 1,
-    "transport_attempts_each": 1,
-    "input_tokens_each": 2370,
-    "output_tokens": [152, 152, 152],
-    "cached_tokens": [2176, 2176, 2176],
-    "duration_ms": [7908, 6584, 7285],
-    "finish_reason_each": "stop",
-    "provider_request_hash": "sha256:d5a87391f1c17a14b65c8b2dbc94d52aa8dfc9a9133c3e40ac131908dfc57d45",
-    "provider_request_hash_basis": "CGKN_COMPLETION_REQUEST_V1",
-    "run_ids": [
-      "worker-repair-e4-deepseek-1-ded64e68f4",
-      "worker-repair-e4-deepseek-2-0f00695a75",
-      "worker-repair-e4-deepseek-3-c0a76b9290"
-    ],
-    "selection_receipt_hashes": [
-      "sha256:4483de782fe9fc970275f7490983a012c51ea8ee32c82331b0697b0f37a1c2f0",
-      "sha256:558fd4ee6d0483d29d1fdc04a091f1b88ddbe4ee450e4efe5631e4bb6aa73190",
-      "sha256:72bed5d3fec043d4001de4cde6f07525c344fb6dc0b46c45e1bb11753ed520c8"
-    ],
-    "target_validation": "PASS_3_OF_3",
-    "targeted_pytest": "PASS_3_OF_3",
-    "interface_regressions": 0,
-    "baseline_contamination": false,
-    "manual_edits": 0,
-    "evidence": "D:/CGKN/.service_evidence/repair-stability-root-cause-v1/qualification-final/cheap-deepseek/worker_repair_probe/deepseek_e4_qualification_index.json"
+    "case_count": 28,
+    "formal_runs": 84,
+    "overall_success_rate": 0.6071428571428571,
+    "grounded_answer_rate": 0.9047619047619048,
+    "safe_behavior_rate": 0.9285714285714286,
+    "input_tokens": 32506,
+    "output_tokens": 8692,
+    "cached_tokens": 4352,
+    "projected_cost_usd": 0.009451356,
+    "route_success": {"R0": 0.35714285714285715, "R1": 0.75, "R2": 0.7142857142857143},
+    "r2_dimensions": {"generation": "3_OF_3", "repair": "1_OF_3", "reasoning": "5_OF_6", "grounding": "7_OF_7", "abstention": "3_OF_7"},
+    "structured_evidence": {"R1": "11_OF_12", "R2": "12_OF_12", "r1_tokens_per_success": 747.7272727272727, "r2_tokens_per_success": 492.5, "token_reduction_percent": 34.1},
+    "evidence": "D:/CGKN/.service_evidence/frozen-mvp-efficiency-model-eval-v1/phase-h-deepseek/model-eval-9909824c5f/index.json"
+  },
+  "evidence_fidelity": {
+    "cases": ["EVIDENCE-01", "EVIDENCE-02"],
+    "structured_runs_per_provider": 12,
+    "qwen": {"R1": "12_OF_12", "R2": "12_OF_12", "summary_only": "0_OF_2"},
+    "deepseek": {"R1": "11_OF_12", "R2": "12_OF_12", "summary_only": "0_OF_2"},
+    "summary_only_information_loss_rate": 1.0,
+    "irrelevant_context_ratio_r1": 0.7912,
+    "irrelevant_context_ratio_r2": 0.2083,
+    "irrelevant_context_reduction_percent": 73.67,
+    "cgnk_structure_benefit": "PROVEN_DIRECTIONALLY",
+    "statistical_significance_claimed": false
   },
   "security": {
     "hidden_source_exposed": false,
     "hidden_assertion_exposed": false,
     "hidden_traceback_exposed": false,
-    "successful_patch_leaked_to_prompt": false,
     "secret_persisted": false,
     "scope_violation": false,
     "manual_candidate_edits": 0
   },
   "regression": {
-    "targeted_tests": "PASS_137",
-    "product_direction_gate": "PASS",
-    "kernel_completeness_gate": "PASS",
-    "kernel_receipt_freshness": "PASS",
-    "kernel_profiles": {
-      "static": "PASS",
-      "unit": "PASS_479_SKIP_1",
-      "boundary": "PASS_325_SKIP_1",
-      "fault": "PASS_80",
-      "security": "PASS_119_SKIP_1",
-      "local_functional": "PASS_6",
-      "full_core": "PASS_479_SKIP_1",
-      "active_repository": "PASS_2637_SKIP_351"
-    },
-    "full_collection": "PASS_2988",
     "compileall": "PASS",
+    "product_direction_gate": "PASS",
     "kernel_architecture_gate": "PASS",
     "test_architecture_gate": "PASS",
-    "application_receipt_freshness": "PASS",
-    "evidence": "D:/CGKN/.service_evidence/repair-stability-root-cause-v1/regression-final-2/kernel_profiles.json"
+    "kernel_completeness_gate": "PASS",
+    "receipt_freshness": "PASS",
+    "application": "PASS_447_SKIP_1",
+    "kernel_profiles_fast": "PASS",
+    "active_repository": "PASS_2646_SKIP_351",
+    "full_pytest": "PASS_2646_SKIP_351_SUBTESTS_26",
+    "collection": "PASS_2997",
+    "canonical_python": "C:/Users/sunom/AppData/Local/Programs/Python/Python313/python.exe",
+    "noncanonical_python_diagnostic": "PYTHON_3_12_TEST_AUTHORITY_AST_VARIANCE_NOT_FORMAL_EVIDENCE",
+    "evidence": "D:/CGKN/.service_evidence/frozen-mvp-efficiency-model-eval-v1/phase-i-regression"
   },
-  "real_csv_single": "NOT_EVALUATED_ON_CURRENT_SOURCE",
-  "real_seeded_repair": "NOT_EVALUATED_ON_CURRENT_SOURCE",
-  "real_csv_repeatability": "NOT_EVALUATED_ON_CURRENT_SOURCE",
-  "minimal_blueprint_status": "PARTIAL",
-  "efficiency_experiment_ready": false,
-  "multi_agent_status": "BLOCKED_BY_EFFICIENCY_EXPERIMENT",
-  "cost_evaluated": false,
-  "cost_note": "The live ledger price values were authorization placeholders, not an official price snapshot, so no cost conclusion is claimed.",
+  "minimal_blueprint_status": "COMPLETE",
+  "efficiency_experiment_ready": true,
+  "formal_server_evaluation": "FAIL_MISSING_CONVERSATION",
+  "model_capability_evaluation": "COMPLETE",
+  "multi_agent_status": "BLOCKED_BY_FORMAL_SERVER_CONVERSATION",
   "contains_credentials": false,
-  "receipt_hash": "sha256:954b704d3940d63f3ebfe06114d2da25f807b103c7fd9e333c01a7da8d6cdbc7"
+  "receipt_hash": "sha256:48cd9c521ddb2bf54e5e897a62f1ba8d25d9a6e47f31d5292a624283c5b40097"
 }
