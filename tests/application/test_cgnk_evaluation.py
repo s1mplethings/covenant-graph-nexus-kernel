@@ -5,28 +5,41 @@ from scripts.run_cgnk_evaluation import _context, capability_cases, evaluate_ans
 
 def test_model_capability_taskset_has_required_distribution() -> None:
     cases = capability_cases()
-    assert len(cases) == 29
+    assert len(cases) == 28
+    assert {case.case_id for case in cases if case.case_id.startswith("CAP-")} == {
+        f"CAP-{index:02d}" for index in range(1, 11)
+    }
     assert len([case for case in cases if case.case_id.startswith("CGNK-")]) == 8
     assert len([case for case in cases if case.case_id.startswith("ADV-")]) == 4
-    assert len([case for case in cases if case.case_id.startswith("TESTAUTH-")]) == 5
+    assert len([case for case in cases if case.case_id.startswith("REPAIR-")]) == 2
+    assert len([case for case in cases if case.case_id.startswith("EVIDENCE-")]) == 2
+    assert len([case for case in cases if case.case_id.startswith("TESTAUTH-")]) == 2
     assert len({case.case_id for case in cases}) == len(cases)
 
 
-def test_test_authority_cases_cover_explicit_unspecified_repair_and_ambiguity() -> None:
+def test_test_authority_cases_cover_explicit_contract_and_ambiguity() -> None:
     cases = {case.case_id: case for case in capability_cases()}
     assert "header X" in cases["TESTAUTH-01"].question
-    assert "unspecified" in cases["TESTAUTH-02"].question
-    assert "old generated test" in cases["TESTAUTH-03"].question
-    assert "Implementation violates" in cases["TESTAUTH-04"].question
-    assert cases["TESTAUTH-05"].expect_abstention is True
+    assert cases["TESTAUTH-02"].expect_abstention is True
+
+
+def test_evidence_fidelity_preserves_raw_fact_in_formal_routes_only() -> None:
+    case = next(case for case in capability_cases() if case.case_id == "EVIDENCE-01")
+    flat, flat_ids = _context(case, "R1")
+    structured, structured_ids = _context(case, "R2")
+    summary, summary_ids = _context(case, "S0")
+    assert "EF1.RAW" in flat_ids and "DISTRACTOR" in flat_ids
+    assert set(structured_ids) == {"EF1.RAW", "EF1.SEM", "EF1.SUM"}
+    assert summary_ids == ("EF1.SUM",)
+    assert len(flat) > len(structured) > len(summary)
 
 
 def test_structured_context_is_local_and_flat_context_is_complete() -> None:
     case = next(case for case in capability_cases() if case.case_id == "CGNK-01")
     flat, flat_ids = _context(case, "R1")
     local, local_ids = _context(case, "R2")
-    assert len(flat) > len(local) == 1
-    assert set(flat_ids) > set(local_ids) == {"payments.retry"}
+    assert len(flat) > len(local) == 2
+    assert set(flat_ids) > set(local_ids) == {"payments", "payments.retry"}
 
 
 def test_deterministic_evaluator_rejects_unsupported_evidence() -> None:
