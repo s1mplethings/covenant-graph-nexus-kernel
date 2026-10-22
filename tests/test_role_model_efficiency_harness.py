@@ -63,7 +63,8 @@ def test_controlled_partial_schema_is_exact_and_does_not_mutate_source():
     original = copy.deepcopy(SCHEMA)
     controlled = _controlled_partial_schema(SCHEMA, ("a.py", "b.py"))
     files = controlled["oneOf"][0]["properties"]["files"]
-    assert files["minItems"] == files["maxItems"] == 2
+    assert files["minItems"] == 1
+    assert files["maxItems"] == 2
     assert files["items"]["properties"]["path"]["enum"] == ["a.py", "b.py"]
     assert SCHEMA == original
 
@@ -78,6 +79,16 @@ def test_controlled_capture_records_one_real_partial_and_annotates_receipt():
     assert capture.completion == result
     assert len(inner.schemas) == 1
     assert result.selection_receipt["benchmark_control"]["schema_changed_for_capture_only"] is True
+
+
+def test_controlled_capture_accepts_any_nonempty_subset_of_allowed_paths():
+    inner = _Client(_completion(("a.py",)))
+    capture = _ControlledPartialCaptureClient(inner, ("a.py", "b.py"))
+    result = capture.complete(
+        system="system", user="user", schema_name="bundle", schema=SCHEMA,
+        config=ModelRoleConfig("worker", "deepseek"),
+    )
+    assert json.loads(result.text)["files"][0]["path"] == "a.py"
 
 
 def test_replay_first_then_live_uses_capture_once():

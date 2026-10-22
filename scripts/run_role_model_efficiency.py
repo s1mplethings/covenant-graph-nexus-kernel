@@ -154,7 +154,7 @@ def _controlled_partial_schema(schema: dict[str, Any], allowed_paths: tuple[str,
     if bundle is None:
         raise ValueError("controlled partial FileBundle branch is unavailable")
     files = bundle["properties"]["files"]
-    files["minItems"] = len(allowed_paths)
+    files["minItems"] = 1
     files["maxItems"] = len(allowed_paths)
     files["items"]["properties"]["path"] = {"enum": list(allowed_paths)}
     return value
@@ -177,7 +177,11 @@ class _ControlledPartialCaptureClient:
         )
         value = parse_json_object(completion.text)
         paths = tuple(str(item.get("path") or "") for item in value.get("files", ()))
-        if value.get("kind") != "file_bundle" or set(paths) != set(self.allowed_paths):
+        if (
+            value.get("kind") != "file_bundle" or not paths
+            or len(paths) != len(set(paths))
+            or not set(paths) <= set(self.allowed_paths)
+        ):
             raise RuntimeError("Provider did not satisfy the controlled first-partial condition")
         receipt = dict(completion.selection_receipt)
         receipt["benchmark_control"] = {
@@ -359,7 +363,7 @@ def _materialization_benchmark(
             "pair_id": pair_id,
             "capture": {
                 "status": "PASS", "actual_current_provider_call": True,
-                "response_hash": capture_hash, "returned_paths": list(first_partial_paths),
+                "response_hash": capture_hash, "returned_paths": list(captured_files),
                 "usage": dict(captured.usage), "request_id": captured.request_id,
                 "selection_receipt": dict(captured.selection_receipt),
                 "token_evidence": "REAL_CURRENT_PROVIDER_USAGE",
@@ -431,8 +435,8 @@ def _materialization_benchmark(
                 "pytest_stdout": pytest_run.stdout[-2000:],
                 "controlled_first_partial": {
                     "same_pair_response_hash": capture_hash,
-                    "returned_paths": list(first_partial_paths),
-                    "missing_paths": list(unit.owns[2:]),
+                    "returned_paths": list(captured_files),
+                    "missing_paths": [path for path in unit.owns if path not in captured_files],
                     "response_replayed": True,
                     "token_evidence": "REAL_CAPTURED_USAGE_REPLAYED_COUNTERFACTUALLY",
                     "current_run_incurred_provider_cost": False,
@@ -482,7 +486,7 @@ def _materialization_benchmark(
         "cost_evaluated": pricing is not None, "policies": policies, "summary": summary,
         "controlled_pairs": pairs,
         "first_partial_control": {
-            "method": "one real schema-constrained capture per pair, replayed once into each policy",
+            "method": "one real schema-constrained non-empty proper-subset capture per pair, replayed once into each policy",
             "same_prompt_foundation": True,
             "same_first_partial_within_pair": True,
             "capture_tokens": "real current Provider usage",
