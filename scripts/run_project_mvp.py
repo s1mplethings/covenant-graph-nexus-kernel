@@ -1007,6 +1007,15 @@ def _repair_variant(variant: str) -> dict[str, Any]:
     return dict(variants[variant])
 
 
+def _repair_discovery_status(runs: list[dict[str, Any]]) -> str:
+    passed = sum(row.get("status") == "PASS" for row in runs)
+    if len(runs) == 2 and passed == 0:
+        return "DISCOVERY_ELIMINATED_0_OF_2"
+    if (len(runs) == 3 and passed == 3) or (len(runs) == 5 and passed >= 4):
+        return "DISCOVERY_PASS"
+    return "DISCOVERY_DIRECTIONAL"
+
+
 def _worker_repair_probe(
     artifact_root: pathlib.Path,
     *,
@@ -1027,8 +1036,21 @@ def _worker_repair_probe(
     base_client = completion_client_from_environment()
     if not isinstance(base_client, GatewayCompletionClient):
         raise RuntimeError("worker repair qualification requires the reviewed API Lab Gateway route")
+    index_name = f"{provider}_{variant.lower()}_{'discovery' if discovery else 'qualification'}_index.json"
+    index_path = artifact_root / "worker_repair_probe" / index_name
     runs: list[dict[str, Any]] = []
-    for index in range(1, count + 1):
+    if index_path.is_file():
+        prior = json.loads(index_path.read_text(encoding="utf-8"))
+        can_extend = (
+            discovery and count == 5 and len(prior.get("runs", ())) == 3
+            and prior.get("provider") == provider and prior.get("variant") == variant
+            and prior.get("controls") == controls and prior.get("source_identity") == identity
+            and prior.get("qualification") == "2/3"
+        )
+        if not can_extend:
+            raise FileExistsError(f"refusing to overwrite existing repair probe index: {index_path}")
+        runs.extend(prior["runs"])
+    for index in range(len(runs) + 1, count + 1):
         run_id = f"worker-repair-{variant.lower()}-{provider}-{index}-{uuid.uuid4().hex[:10]}"
         workspace = artifact_root / "worker_repair_probe" / run_id / "workspace"
         workspace.mkdir(parents=True, exist_ok=False)
@@ -1110,16 +1132,11 @@ def _worker_repair_probe(
         runs.append(row)
         if discovery and len(runs) == 2 and not any(item["status"] == "PASS" for item in runs):
             break
-    passed = all(row["status"] == "PASS" for row in runs)
     passed_count = sum(row["status"] == "PASS" for row in runs)
     if discovery:
-        discovery_status = (
-            "DISCOVERY_PASS" if passed and len(runs) >= 3
-            else "DISCOVERY_ELIMINATED_0_OF_2" if len(runs) == 2 and passed_count == 0
-            else "DISCOVERY_DIRECTIONAL"
-        )
+        discovery_status = _repair_discovery_status(runs)
     else:
-        discovery_status = "PASS" if passed else "WORKER_REPAIR_NOT_QUALIFIED"
+        discovery_status = "PASS" if passed_count == 3 else "WORKER_REPAIR_NOT_QUALIFIED"
     result = {
         "profile": "worker-repair-discovery" if discovery else "worker-repair-probe",
         "provider": provider,
@@ -1129,9 +1146,8 @@ def _worker_repair_probe(
         "qualification": f"{passed_count}/{len(runs)}",
         "source_identity": identity, "runs": runs,
     }
-    index_name = f"{provider}_{variant.lower()}_{'discovery' if discovery else 'qualification'}_index.json"
-    index = artifact_root / "worker_repair_probe" / index_name
-    index.write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    index_path.parent.mkdir(parents=True, exist_ok=True)
+    index_path.write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return result
 
 

@@ -358,7 +358,13 @@ def test_routing_switch_grok_and_snapshot_are_immutable(tmp_path: pathlib.Path) 
 def test_project_route_separates_coordinator_and_worker_thinking_policies() -> None:
     root = pathlib.Path(__file__).resolve().parents[2]
     routing = CGKNModelRouting.load(root / "config" / "provider_profiles" / "gateway_model_routing.json")
-    from scripts.run_project_mvp import _coordinator_model_config, _repair_variant, _worker_generation_model_config, _worker_repair_model_config
+    from scripts.run_project_mvp import (
+        _coordinator_model_config,
+        _repair_discovery_status,
+        _repair_variant,
+        _worker_generation_model_config,
+        _worker_repair_model_config,
+    )
     coordinator = _coordinator_model_config()
     assert coordinator.model == "qwen"
     assert coordinator.thinking_mode == "disabled"
@@ -369,6 +375,10 @@ def test_project_route_separates_coordinator_and_worker_thinking_policies() -> N
     assert routing.worker.thinking_mode == "default"
     assert {_repair_variant(name)["temperature"] for name in ("E0", "E1", "E2", "E3")} == {0.0}
     assert _repair_variant("E3")["scope_mode"] == "LOCALIZED"
+    assert _repair_discovery_status([{"status": "FAIL"}, {"status": "FAIL"}]) == "DISCOVERY_ELIMINATED_0_OF_2"
+    assert _repair_discovery_status([{"status": "PASS"}] * 3) == "DISCOVERY_PASS"
+    assert _repair_discovery_status([{"status": "PASS"}] * 4 + [{"status": "FAIL"}]) == "DISCOVERY_PASS"
+    assert _repair_discovery_status([{"status": "PASS"}] * 2 + [{"status": "FAIL"}]) == "DISCOVERY_DIRECTIONAL"
 
 
 def test_worker_retry_receipts_remain_auditable_without_relabeling_failure() -> None:
