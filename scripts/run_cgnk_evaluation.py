@@ -728,6 +728,7 @@ def _server_formal(
         {"jsonrpc": "2.0", "id": 2, "method": "ping", "params": {}},
     ])
     unavailable_environment = dict(os.environ)
+    unavailable_environment["CGKN_PROVIDER_GATEWAY_ENABLED"] = "0"
     unavailable_environment["CGKN_OPENAI_API_KEY_OVERRIDE"] = "placeholder-unavailable-token"
     unavailable_environment["CGKN_OPENAI_BASE_URL_OVERRIDE"] = "http://127.0.0.1:9/v1"
     unavailable_response = _mcp_exchange([{
