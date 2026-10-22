@@ -111,6 +111,7 @@ def test_mcp_protocol_lists_typed_tools_with_honest_annotations(client: MCPClien
     tools = client.request("tools/list")["result"]["tools"]
     assert {tool["name"] for tool in tools} == {
         "cgkn_doctor",
+        "cgkn_conversation",
         "cgkn_init",
         "cgkn_prepare",
         "cgkn_seal_brief",
@@ -210,6 +211,34 @@ def test_mcp_end_to_end_init_prepare_seal_plan_and_status(client: MCPClient, tmp
     assert status["formal_evidence_status"] == "NOT_EVALUATED"
     assert status["artifacts"]["brief"]["valid"] is True
     assert status["diagnosis"]["has_failure"] is False
+
+
+def test_mcp_conversation_exposes_read_only_evidence_surface(client: MCPClient, tmp_path: pathlib.Path) -> None:
+    project = tmp_path / "conversation"
+    knowledge_dir = project / ".cgkn"
+    knowledge_dir.mkdir(parents=True)
+    source = ROOT / "examples" / "project-generation" / "knowledge" / "cgkn_refactor.project_knowledge_pack.json"
+    target = knowledge_dir / "project_knowledge_pack.json"
+    target.write_bytes(source.read_bytes())
+    before = target.read_bytes()
+
+    grounded = client.tool(
+        "cgkn_conversation",
+        {"project_root": str(project), "query": "Is CGKN read-only?", "provider_mode": "disabled"},
+    )["structuredContent"]
+    assert grounded["ok"] is True
+    assert grounded["component_ref"] == "conversation.answer@1.0"
+    assert grounded["response"]["status"] == "EVIDENCE_ONLY"
+    assert grounded["response"]["answer_kind"] == "EVIDENCE_ONLY"
+    assert grounded["response"]["provenance"]
+    assert grounded["response"]["read_only"] is True
+
+    missing = client.tool(
+        "cgkn_conversation",
+        {"project_root": str(project), "query": "What is the lunar launch date?", "provider_mode": "disabled"},
+    )["structuredContent"]
+    assert missing["response"]["status"] == "INSUFFICIENT_EVIDENCE"
+    assert target.read_bytes() == before
 
 
 def test_mcp_prepare_round_trips_chinese_utf8_without_surrogates(

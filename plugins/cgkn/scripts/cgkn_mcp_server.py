@@ -13,6 +13,7 @@ import re
 import shutil
 import subprocess
 import sys
+import uuid
 from typing import Any, Callable
 
 
@@ -124,6 +125,26 @@ TOOLS = [
         object_schema({"ok": BOOLEAN, "report": JSON_OBJECT}, ("ok", "report")),
         read_only=True,
         open_world=False,
+    ),
+    tool_definition(
+        "cgkn_conversation",
+        "Answer from CGKN evidence",
+        "Answer one read-only query from the existing CGKN knowledge authority with localized retrieval, auditable provenance, and honest no-evidence or Provider-unavailable behavior.",
+        object_schema(
+            {
+                **PROJECT,
+                "query": {"type": "string", "minLength": 1, "maxLength": 4000},
+                "thread_context_id": {"type": "string", "default": ""},
+                "knowledge_path": {"type": "string", "default": ".cgkn/project_knowledge_pack.json"},
+                "retrieval_constraints": {"type": "object", "additionalProperties": True},
+                "provider_mode": {"enum": ["auto", "disabled"], "default": "auto"},
+            },
+            ("project_root", "query"),
+        ),
+        object_schema({"ok": BOOLEAN, "response": JSON_OBJECT, "component_ref": STRING}, ("ok", "response", "component_ref")),
+        read_only=True,
+        open_world=True,
+        idempotent=False,
     ),
     tool_definition(
         "cgkn_init",
@@ -319,6 +340,8 @@ class CGKNPluginServer:
             raise RuntimeError(f"Not a compatible CGKN checkout: {self.cgkn_root}")
         source = self.cgkn_root / "tools" / "cgkn-agent-kit" / "src"
         sys.path.insert(0, str(source))
+        sys.path.insert(0, str(self.cgkn_root / "src"))
+        sys.path.insert(0, str(self.cgkn_root))
         scripts = self.cgkn_root / "scripts"
         sys.path.insert(0, str(scripts))
         from cgkn_agent_kit import core
@@ -336,6 +359,7 @@ class CGKNPluginServer:
         spec.loader.exec_module(self.supervisor)
         self.handlers: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
             "cgkn_doctor": self.doctor,
+            "cgkn_conversation": self.conversation,
             "cgkn_init": self.initialize,
             "cgkn_prepare": self.prepare,
             "cgkn_seal_brief": self.seal_brief,
@@ -348,6 +372,59 @@ class CGKNPluginServer:
             "cgkn_test_generated": self.test_generated,
             "cgkn_status": self.status,
         }
+
+    def conversation(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from cgkn.application.conversation import (
+            CONVERSATION_COMPONENT_SPEC, ConversationExecutor, ConversationService,
+        )
+        from cgkn.execution import BlockExecutionRequest, TaskContext
+        from cgkn.providers import CGKNModelRouting, GatewayCompletionClient, completion_client_from_environment
+
+        project = self._project(arguments["project_root"])
+        relative = str(arguments.get("knowledge_path") or ".cgkn/project_knowledge_pack.json")
+        knowledge_path = (project / relative).resolve()
+        try:
+            knowledge_path.relative_to(project)
+        except ValueError as exc:
+            raise ToolError("knowledge_path must stay within project_root") from exc
+        if not knowledge_path.is_file():
+            raise ToolError(f"Knowledge pack does not exist: {knowledge_path}")
+        provider_mode = str(arguments.get("provider_mode") or "auto")
+        client = None
+        config = None
+        run_id = f"conversation-{uuid.uuid4().hex[:12]}"
+        if provider_mode == "auto":
+            try:
+                client = completion_client_from_environment()
+                routing = CGKNModelRouting.load(self.cgkn_root / "config" / "provider_profiles" / "gateway_model_routing.json")
+                config = routing.worker
+                if isinstance(client, GatewayCompletionClient):
+                    client = client.bind_run(run_id, "conversation", budget_purpose="BENCHMARK")
+            except Exception:
+                client = None
+                config = None
+        service = ConversationService(client, config)
+        executor = ConversationExecutor(service)
+        request = BlockExecutionRequest(
+            project.name or "conversation", run_id, "attempt-1", "conversation.answer",
+            CONVERSATION_COMPONENT_SPEC.ref, executor.descriptor.executor_ref,
+            TaskContext("Answer one read-only evidence-grounded Conversation query."),
+            input_values={"request": {
+                "query": arguments["query"],
+                "thread_context_id": arguments.get("thread_context_id", ""),
+                "retrieval_constraints": arguments.get("retrieval_constraints", {}),
+                "knowledge_path": str(knowledge_path),
+                "provider_enabled": provider_mode == "auto",
+            }},
+            timeout_seconds=float((config.timeout_seconds if config else 45) + 30),
+            declared_effects=("provider.optional",),
+            metadata={"read_only": True},
+        )
+        result = executor.execute(request)
+        if not result.succeeded:
+            raise ToolError(result.error.message if result.error else "Conversation execution failed")
+        response = result.as_dict()["outputs"]["response"]
+        return {"ok": response["status"] != "INVALID_REQUEST", "response": response, "component_ref": CONVERSATION_COMPONENT_SPEC.ref}
 
     @staticmethod
     def _project(value: Any) -> pathlib.Path:

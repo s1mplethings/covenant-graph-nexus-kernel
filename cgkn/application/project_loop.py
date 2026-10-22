@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import ast
 import json
+import os
 import pathlib
 import re
 import shutil
@@ -709,9 +710,16 @@ class BlueprintUnitExecutor:
                 target = staged_root / relative
                 target.parent.mkdir(parents=True, exist_ok=True)
                 target.write_text(content, encoding="utf-8")
+            environment = os.environ.copy()
+            # Generated-project tests must not inherit arbitrary workstation
+            # pytest plugins.  The same isolation is used by the other CGKN
+            # verification executors; without it an unrelated broken plugin
+            # can turn valid staged source into UNIT_OUTPUT_INVALID.
+            environment["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
             completed = subprocess.run(
                 [sys.executable, "-m", "pytest", "-q"],
                 cwd=staged_root,
+                env=environment,
                 capture_output=True,
                 text=True,
                 timeout=max(1, unit.timeout_seconds),

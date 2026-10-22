@@ -13,6 +13,7 @@ DIRECT_COMPLETE_ALLOWLIST = {
     "cgkn/application/learning/integration.py",
     "cgkn/application/requirements/comparison.py",  # recording-only benchmark delegate
     "cgkn/application/project_campaign/provider.py",  # transparent route guard and usage ledger
+    "cgkn/application/conversation/service.py",  # read-only grounded answer, not project/capability generation
 }
 
 

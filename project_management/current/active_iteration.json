@@ -1,52 +1,63 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-CGNK-FROZEN-MVP-EFFICIENCY-MODEL-EVAL-042",
+  "iteration_id": "ITER-043",
   "project_id": "cgkn",
-  "goal": "Validate the frozen minimal-blueprint MVP, quantify structural efficiency, exercise the formal server, and compare raw, flat-complete, and CGKN-structured evidence on two qualified models.",
-  "backlog_item_ids": ["MVP-015"],
-  "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "goal": "Expose existing structured knowledge and evidence as a read-only, evidence-grounded Conversation product surface and validate it through the formal server and a fixed C1/C2 comparison.",
+  "backlog_item_ids": ["PB-015"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "fresh CSV generation and a non-blank-row seeded repair pass without manual edits",
-    "three independent CSV runs pass within the unchanged eight-call budget",
-    "M0/M1 and V0/V0B/V1/V2 results use frozen semantics and official pricing",
-    "formal server supported capabilities are exercised through a live protocol process",
-    "Qwen and DeepSeek each run the frozen 28-case R0/R1/R2 taskset",
-    "full canonical-Python regression has zero failures and zero errors"
+    "Conversation reuses the existing knowledge, retrieval, capability, guard, and model-routing authorities",
+    "grounded answers, provenance, fidelity drill-down, no-evidence refusal, and Provider fallback pass targeted tests",
+    "the complete formal server evaluation passes with a real Conversation route",
+    "a fixed ten-case flat-complete versus structured Conversation evaluation produces auditable evidence",
+    "full repository regression has zero failures and zero errors"
   ],
   "quality_metrics": [
-    {"id": "QM-CSV-REPEATABILITY", "measure": "independent successful CSV projects", "target": "3/3", "actual": "3/3"},
-    {"id": "QM-CALL-BUDGET", "measure": "logical calls per CSV run", "target": "<=8", "actual": "6,6,6"},
-    {"id": "QM-MODEL-EVAL", "measure": "formal model cases per provider", "target": "28 x R0/R1/R2", "actual": "28 x R0/R1/R2"},
-    {"id": "QM-REGRESSION", "measure": "canonical full repository", "target": "0 failed / 0 errors", "actual": "2646 passed / 351 skipped / 0 failed / 0 errors"}
+    {
+      "id": "QM-CONVERSATION-TARGETED",
+      "measure": "targeted Conversation behaviors",
+      "target": "all required cases pass",
+      "method": "deterministic pytest suite with fake Provider and real MCP process"
+    },
+    {
+      "id": "QM-CONVERSATION-STRUCTURE",
+      "measure": "C2 accuracy and irrelevant-context efficiency relative to C1",
+      "target": "accuracy comparable or better and irrelevant context reduced at least 30 percent",
+      "method": "ten fixed questions over one frozen corpus, model, rubric, and answer budget"
+    },
+    {
+      "id": "QM-REGRESSION",
+      "measure": "canonical full repository",
+      "target": "0 failed / 0 errors",
+      "method": "active-repository profile plus collection and application suite"
+    }
   ],
   "quality_activities": {
-    "prevention": ["frozen product source", "frozen taskset and hashes", "hidden-source exclusion", "canonical Python identity"],
-    "assurance": ["CSV 3/3", "seeded repair", "controlled M0/M1", "Tier-1 variants", "formal server", "two-provider model benchmark", "full regression"],
-    "control": ["eight-call budget", "no automatic fallback", "invalid batch retention", "directional-only small-sample conclusions"],
-    "improvement": ["separated task-stated constraints from external evidence in the model benchmark"]
+    "prevention": ["single existing retrieval authority", "read-only contract", "bounded fidelity expansion", "cheap-first frozen routing"],
+    "assurance": ["targeted A-T cases", "formal MCP server", "real Conversation E2E", "C1/C2 product-surface comparison", "full regression"],
+    "control": ["strict model schema", "claim-reference validation", "context budget", "no knowledge writes", "no automatic fallback"],
+    "improvement": ["harden staged pytest against unrelated workstation plugin autoload"]
   },
+  "interface_expectations": [
+    "conversation.answer@1.0 remains a common Component/Block capability",
+    "cgkn_conversation returns answer, status, evidence, provenance, and retrieval audit metadata",
+    "summary nodes remain indexes and exact-detail queries can expand only their referenced raw evidence"
+  ],
   "evidence_refs": [
     "governance/project_mvp_status.json",
     "governance/role_model_efficiency_status.json",
-    "governance/role_model_efficiency_receipt.json",
-    "governance/software_project_generation_receipt.json",
-    "project_management/summaries/ITER-CGNK-FROZEN-MVP-EFFICIENCY-MODEL-EVAL-042.md"
+    "governance/role_model_efficiency_receipt.json"
   ],
   "review": {
-    "outcome": "accepted_with_limits",
-    "feedback": [
-      "Frozen MVP reliability closed at CSV 3/3 plus a distinct seeded repair.",
-      "Cheap execution qualified economically; Blueprint and role separation did not show benefit in this sample.",
-      "CGKN structured evidence reduced irrelevant context and tokens per successful evidence case directionally.",
-      "The Multi-Agent gate remains closed because the installed formal server does not expose Conversation."
-    ],
-    "accepted_backlog_item_ids": ["MVP-015"]
+    "outcome": "pending",
+    "feedback": [],
+    "accepted_backlog_item_ids": []
   },
   "retrospective": {
-    "worked": ["frozen-source live validation", "cheap Worker routing", "structured evidence fidelity", "canonical publication"],
-    "did_not_work": ["incremental materialization token efficiency", "Blueprint-only strong generation", "strong role split generation", "formal Conversation surface"],
-    "experiments": ["M0/M1 3x3", "Tier-1 V0/V0B/V1/V2", "formal server protocol", "Qwen and DeepSeek 28-case R0/R1/R2"]
+    "worked": [],
+    "did_not_work": [],
+    "experiments": []
   }
 }

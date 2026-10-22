@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from .store import IMPORTANCE_RANK, NEED_RANK
@@ -7,6 +8,35 @@ from .store import IMPORTANCE_RANK, NEED_RANK
 
 REVIEW_RANK = {"accepted": 0, "auto_extracted": 1, "candidate": 2, "conflict": 3, "rejected": 9}
 SCOPE_RANK = {"project.cgkn": 0, "project": 1, "project.cgnk": 1, "global": 2, "module": 3, "agent": 3, "session": 4}
+_TOKEN = re.compile(r"[A-Za-z0-9_.+-]+|[\u3400-\u9fff]+")
+_STOPWORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "by", "do", "does", "for", "from", "how", "in",
+    "is", "it", "of", "on", "or", "the", "to", "what", "when", "which", "with",
+}
+
+
+def _terms(value: Any) -> set[str]:
+    return {
+        token.casefold()
+        for token in _TOKEN.findall(str(value or ""))
+        if len(token) > 1 and token.casefold() not in _STOPWORDS
+    }
+
+
+def relevance_terms(item: dict[str, Any], query: dict[str, Any]) -> tuple[set[str], set[str]]:
+    query_terms = _terms(query.get("goal"))
+    item_terms = _terms(" ".join((
+        str(item.get("id", "")), str(item.get("title", "")), str(item.get("content", "")),
+        " ".join(str(row) for row in item.get("tags", ())),
+    )))
+    return query_terms, item_terms
+
+
+def item_relevance(item: dict[str, Any], query: dict[str, Any]) -> int:
+    query_terms, item_terms = relevance_terms(item, query)
+    selected_modules = {str(row).casefold() for row in query.get("selected_modules", ())}
+    tags = {str(row).casefold() for row in item.get("tags", ())}
+    return len(query_terms & item_terms) + (2 if selected_modules & tags else 0)
 
 
 def _exclude_reason(item: dict[str, Any], query: dict[str, Any]) -> str | None:
@@ -37,8 +67,10 @@ def _score(item: dict[str, Any], query: dict[str, Any]) -> tuple[Any, ...]:
     exact_scope = 0 if scope and item.get("scope") == scope else 1
     type_rank = 0 if item.get("type") in needed_types else 1
     tag_rank = 0 if selected_modules and selected_modules.intersection(tags) else 1
+    lexical_rank = -item_relevance(item, query)
     return (
         REVIEW_RANK.get(item.get("review_state"), 8),
+        lexical_rank,
         IMPORTANCE_RANK.get(item.get("importance"), 9),
         NEED_RANK.get(item.get("need_state"), 9),
         exact_scope,
@@ -57,6 +89,7 @@ def retrieve_relevant_knowledge(pack: dict[str, Any], query: dict[str, Any]) -> 
         "include_reference": False,
         "include_archived": False,
         "include_uncertain": False,
+        "require_relevance": False,
         "max_items": 20,
         **(query or {}),
     }
@@ -66,6 +99,8 @@ def retrieve_relevant_knowledge(pack: dict[str, Any], query: dict[str, Any]) -> 
         reason = _exclude_reason(item, effective_query)
         if reason:
             excluded.append({"item": item, "reason": reason})
+        elif effective_query.get("require_relevance") and item_relevance(item, effective_query) <= 0:
+            excluded.append({"item": item, "reason": "low_relevance"})
         else:
             candidates.append(item)
     ranked = sorted(candidates, key=lambda item: _score(item, effective_query))
@@ -84,7 +119,7 @@ def retrieve_relevant_knowledge(pack: dict[str, Any], query: dict[str, Any]) -> 
         "selected_items": selected,
         "excluded_items": excluded,
         "ranking_reasons": [
-            {"item_id": item.get("id"), "reason": "ranked by review_state, importance, need_state, scope, type, tags"}
+            {"item_id": item.get("id"), "reason": "ranked by review_state, lexical relevance, importance, need_state, scope, type, tags"}
             for item in selected
         ],
         "diagnostics": diagnostics,

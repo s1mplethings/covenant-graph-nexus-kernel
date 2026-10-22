@@ -74,6 +74,15 @@ repair. Fresh live generation and repair receipts remain required before the MVP
 status can advance. Run the bounded profiles through `python
 scripts/run_project_mvp.py`.
 
+The read-only Conversation product surface in
+`cgkn/application/conversation/` consumes the existing `cgnk_knowledge`
+store and retrieval authority through the common Component/Block boundary.
+It performs localized retrieval, bounded raw-evidence drill-down when exact
+details are required, and returns model answers separately from evidence and
+provenance. Provider failure degrades to `EVIDENCE_ONLY`; absent evidence is
+reported as `INSUFFICIENT_EVIDENCE`. The `cgkn_conversation` MCP tool exposes
+this capability without writing memory or creating another retrieval store.
+
 Cleanup status and the exact migration boundary are recorded in:
 
 - `docs/MVP_RUNTIME_MIGRATION_BOUNDARY.md`
@@ -97,6 +106,7 @@ decision.
 - `cgkn/executors/` — replaceable executor protocol, registry, and local adapters
 - `cgkn/capabilities/` — versioned capability lifecycle registry
 - `cgkn/growth/` — local gap, discovery, sandbox trial, admission, and reuse loop
+- `cgkn/application/conversation/` — evidence-grounded read-only Conversation surface
 - `scripts/local_agent_actions.py` — bounded deterministic action compatibility adapter
 - `scripts/provider_jobs.py` — Provider execution/PatchSet compatibility adapter
 - `scripts/real_test_execution.py` — real test/runtime support

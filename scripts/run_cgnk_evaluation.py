@@ -19,8 +19,15 @@ from typing import Any, Mapping
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+if str(ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(ROOT / "src"))
 
 from cgkn.providers import CGKNModelRouting, GatewayCompletionClient, ModelRoleConfig, completion_client_from_environment
+from cgkn.application.conversation import (
+    CONVERSATION_CONTEXT_POLICY_HASH, CONVERSATION_SPEC_HASH, MODEL_CONFIG_HASH,
+    RETRIEVAL_POLICY_HASH, ConversationRequest, ConversationService,
+)
+from cgnk_knowledge import new_project_knowledge_pack, upsert_knowledge_items
 
 
 ANSWER_SCHEMA: dict[str, Any] = {
@@ -200,6 +207,178 @@ def capability_cases() -> tuple[CapabilityCase, ...]:
     if not 24 <= len(cases) <= 28:
         raise AssertionError("model capability taskset must contain 24-28 cases")
     return cases
+
+
+@dataclass(frozen=True)
+class ConversationCase:
+    case_id: str
+    question: str
+    expected_terms: tuple[str, ...]
+    relevant_nodes: tuple[str, ...]
+    critical_nodes: tuple[str, ...] = ()
+    expect_insufficient: bool = False
+
+
+def _knowledge_item(
+    item_id: str, content: str, *, tags: tuple[str, ...] = (),
+    source_refs: tuple[str, ...] = ("source:conversation-eval",),
+    importance: str = "high", retention: str = "keep", review_state: str = "accepted",
+    status: str = "active", supersedes: tuple[str, ...] = (),
+) -> dict[str, Any]:
+    return {
+        "kind": "KnowledgeItem", "id": item_id, "title": item_id.replace(".", " "),
+        "type": "research_finding", "scope": "project.cgnk", "content": content,
+        "source_refs": list(source_refs), "tags": list(tags), "importance": importance,
+        "need_state": "needed_now", "retention": retention, "review_state": review_state,
+        "status": status, "supersedes": list(supersedes), "stable_hash": _hash({"id": item_id, "content": content}),
+        "diagnostics": [],
+    }
+
+
+def conversation_corpus() -> dict[str, Any]:
+    rows = [
+        _knowledge_item("payments", "Payments settle in EUR.", tags=("payments",)),
+        _knowledge_item("payments.retry", "Payment requests retry only HTTP 429 and 503, at most twice.", tags=("payments", "retry")),
+        _knowledge_item("catalog", "The catalog refresh cadence is every six hours.", tags=("catalog",)),
+        _knowledge_item("catalog.search.old", "Old catalog search ranked prefix matches before exact title.", tags=("catalog", "search"), status="superseded"),
+        _knowledge_item("catalog.search", "Current catalog search ranks exact title before prefix matches.", tags=("catalog", "search"), supersedes=("catalog.search.old",)),
+        _knowledge_item("media", "Media exports use H.264 with AAC audio.", tags=("media",)),
+        _knowledge_item("media.retention", "Source media is retained for 30 days.", tags=("media",)),
+        _knowledge_item("trace.summary", "Trace T9 contained alpha and beta events.", tags=("trace", "lossy-summary"), source_refs=("trace.raw",), importance="critical", retention="compress"),
+        _knowledge_item("trace.raw", "Raw trace T9: sequence 41 event beta; sequence 42 event alpha.", tags=("trace", "raw-evidence")),
+        _knowledge_item("line.summary", "Record R7 parsed successfully as one line.", tags=("record", "lossy-summary"), source_refs=("line.raw",), importance="critical", retention="compress"),
+        _knowledge_item("line.raw", "Raw record R7 ended with bytes 0D 0A, the CRLF terminator.", tags=("record", "raw-evidence")),
+        _knowledge_item("security.scope", "Workers may write only paths owned by their Unit.", tags=("security", "scope")),
+        _knowledge_item("security.scope.conflict", "Conflicting note says Workers may write any repository path.", tags=("security", "scope"), review_state="conflict"),
+        _knowledge_item("port.old", "Old active service port was 8000.", tags=("service", "port"), status="superseded"),
+        _knowledge_item("port.current", "Current active service port is 9000.", tags=("service", "port"), supersedes=("port.old",)),
+    ]
+    return upsert_knowledge_items(new_project_knowledge_pack("Conversation Product Surface"), rows)
+
+
+def conversation_cases() -> tuple[ConversationCase, ...]:
+    return (
+        ConversationCase("CONV-01", "What currency do payments settle in?", ("eur",), ("payments",)),
+        ConversationCase("CONV-02", "What currency do payments use and which payment HTTP errors retry?", ("eur", "429", "503"), ("payments", "payments.retry")),
+        ConversationCase("CONV-03", "A payment got HTTP 503. What bounded retry follows?", ("retry", "twice"), ("payments.retry",)),
+        ConversationCase("CONV-04", "Which exact event arrived first for trace T9?", ("beta",), ("trace.summary", "trace.raw"), ("trace.raw",)),
+        ConversationCase("CONV-05", "What is the current catalog search ranking rule?", ("exact title", "prefix"), ("catalog.search",)),
+        ConversationCase("CONV-06", "What Worker write scope is authoritative when the evidence conflicts?", ("insufficient",), ("security.scope", "security.scope.conflict"), expect_insufficient=True),
+        ConversationCase("CONV-07", "What is the catalog refresh cadence?", ("six hours",), ("catalog",)),
+        ConversationCase("CONV-08", "What is the lunar launch date?", ("insufficient",), (), expect_insufficient=True),
+        ConversationCase("CONV-09", "What exact byte terminator followed record R7?", ("crlf",), ("line.summary", "line.raw"), ("line.raw",)),
+        ConversationCase("CONV-10", "What is the current active service port?", ("9000",), ("port.current",)),
+    )
+
+
+def _conversation_structure_eval(artifact_root: pathlib.Path, provider: str, *, e2e_only: bool = False) -> dict[str, Any]:
+    base = completion_client_from_environment()
+    if not isinstance(base, GatewayCompletionClient):
+        return {"profile": "conversation-e2e" if e2e_only else "conversation-structure-eval", "status": "BLOCKED_PROVIDER", "reason": "reviewed Gateway route unavailable"}
+    routing = CGKNModelRouting.load(ROOT / "config" / "provider_profiles" / "gateway_model_routing.json")
+    if provider not in routing.allowed_providers:
+        raise ValueError("Provider is not allowlisted")
+    cases = conversation_cases()[:1] if e2e_only else conversation_cases()
+    routes = ("C2",) if e2e_only else ("C1", "C2")
+    batch_id = f"conversation-{'e2e' if e2e_only else 'structure'}-{uuid.uuid4().hex[:10]}"
+    destination = artifact_root / batch_id
+    destination.mkdir(parents=True, exist_ok=False)
+    config = ModelRoleConfig(
+        "worker", provider, timeout_seconds=45, max_output_tokens=900, temperature=0.0,
+        reasoning_effort="none", task_class="conversation.answer", operation="ANSWER",
+        outer_deadline_seconds=75, deadline_reserve_seconds=30, thinking_mode="disabled",
+    )
+    knowledge = conversation_corpus()
+    rows: list[dict[str, Any]] = []
+    all_active_ids = {
+        str(item["id"]) for item in knowledge["all_items"]
+        if item.get("status") == "active" and item.get("review_state") != "rejected"
+    }
+    for case in cases:
+        for route in routes:
+            run_id = f"{batch_id}-{case.case_id.lower()}-{route.lower()}"
+            client = base.bind_run(run_id, case.case_id, budget_purpose="BENCHMARK")
+            service = ConversationService(client, config)
+            constraints = {"max_nodes": 32, "retrieval_mode": "flat_complete"} if route == "C1" else {"max_nodes": 8, "retrieval_mode": "structured"}
+            started = time.perf_counter()
+            response = service.answer(ConversationRequest(case.question, retrieval_constraints=constraints), knowledge)
+            text = str(response.get("answer", "")).casefold()
+            expected = all(term.casefold() in text for term in case.expected_terms)
+            status_ok = response.get("status") == ("INSUFFICIENT_EVIDENCE" if case.expect_insufficient else "ANSWERED")
+            selected = set(response.get("retrieval", {}).get("selected_node_ids", ()))
+            claims = response.get("claims", ())
+            grounded = all(set(map(str, claim.get("evidence_refs", ()))) <= selected for claim in claims)
+            provenance_ids = {str(item.get("evidence_id")) for item in response.get("provenance", ())}
+            provenance_correct = provenance_ids == selected
+            irrelevant = selected - set(case.relevant_nodes)
+            critical_missing = set(case.critical_nodes) - selected
+            success = expected and status_ok and grounded and provenance_correct and not critical_missing
+            usage = dict(response.get("provider", {}).get("usage", {}))
+            row = {
+                "case_id": case.case_id, "route": route, "question": case.question,
+                "provider": provider, "model": response.get("provider", {}).get("model", provider),
+                "status": response.get("status"), "success": success, "accuracy": 1 if success else 0,
+                "grounded_claims": grounded, "unsupported_claims": 0 if grounded else 1,
+                "abstention_correct": status_ok if case.expect_insufficient else response.get("status") != "INSUFFICIENT_EVIDENCE",
+                "retrieved_nodes": sorted(selected), "irrelevant_nodes": sorted(irrelevant),
+                "raw_expansion_count": response.get("retrieval", {}).get("raw_expansion_count", 0),
+                "input_tokens": usage.get("prompt_tokens"), "output_tokens": usage.get("completion_tokens"),
+                "latency_ms": int((time.perf_counter() - started) * 1000),
+                "provenance_correct": provenance_correct,
+                "cross_domain_contamination": bool(irrelevant) if route == "C2" else False,
+                "critical_information_loss": bool(critical_missing),
+                "context_chars": response.get("retrieval", {}).get("context_chars"),
+                "selection_receipt": response.get("provider", {}).get("selection_receipt", {}),
+                "answer": response.get("answer"),
+            }
+            (destination / f"{case.case_id.lower()}-{route.lower()}.json").write_text(
+                json.dumps(row, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8",
+            )
+            rows.append(row)
+    comparison: dict[str, Any] = {}
+    for route in routes:
+        subset = [row for row in rows if row["route"] == route]
+        total_nodes = sum(len(row["retrieved_nodes"]) for row in subset)
+        irrelevant_nodes = sum(len(row["irrelevant_nodes"]) for row in subset)
+        comparison[route] = {
+            "runs": len(subset), "accuracy": sum(row["accuracy"] for row in subset) / len(subset),
+            "grounded_claim_rate": sum(bool(row["grounded_claims"]) for row in subset) / len(subset),
+            "abstention_correct_rate": sum(bool(row["abstention_correct"]) for row in subset) / len(subset),
+            "retrieved_nodes": total_nodes, "irrelevant_nodes": irrelevant_nodes,
+            "irrelevant_context_ratio": irrelevant_nodes / max(1, total_nodes),
+            "raw_expansion_count": sum(int(row["raw_expansion_count"]) for row in subset),
+            "input_tokens": sum(int(row.get("input_tokens") or 0) for row in subset),
+            "output_tokens": sum(int(row.get("output_tokens") or 0) for row in subset),
+            "latency_ms": sum(int(row["latency_ms"]) for row in subset),
+            "provenance_correct_rate": sum(bool(row["provenance_correct"]) for row in subset) / len(subset),
+            "critical_information_loss_rate": sum(bool(row["critical_information_loss"]) for row in subset) / len(subset),
+        }
+    benefit = "NOT_EVALUATED"
+    if not e2e_only:
+        c1, c2 = comparison["C1"], comparison["C2"]
+        reduction = (c1["irrelevant_context_ratio"] - c2["irrelevant_context_ratio"]) / max(c1["irrelevant_context_ratio"], 1e-9)
+        benefit = (
+            "PROVEN_DIRECTIONALLY" if c2["accuracy"] >= c1["accuracy"] - 0.05 and reduction >= 0.30
+            else "HARMFUL" if c2["accuracy"] < c1["accuracy"] - 0.05 else "NEUTRAL"
+        )
+        comparison["accuracy_delta_c2_minus_c1"] = c2["accuracy"] - c1["accuracy"]
+        comparison["irrelevant_context_reduction"] = reduction
+    status = "PASS" if all(row["success"] for row in rows) else "FAIL"
+    result = {
+        "profile": "conversation-e2e" if e2e_only else "conversation-structure-eval",
+        "status": status, "batch_id": batch_id, "case_count": len(cases), "run_count": len(rows),
+        "provider": provider, "rows": rows, "comparison": comparison,
+        "conversation_structure_benefit": benefit,
+        "conversation_spec_hash": CONVERSATION_SPEC_HASH,
+        "conversation_context_policy_hash": CONVERSATION_CONTEXT_POLICY_HASH,
+        "retrieval_policy_hash": RETRIEVAL_POLICY_HASH, "model_config_hash": MODEL_CONFIG_HASH,
+        "corpus_hash": _hash(knowledge), "case_hash": _hash([case.__dict__ for case in cases]),
+        "flat_active_corpus_nodes": len(all_active_ids), "statistical_claim": "DIRECTIONAL_EVIDENCE",
+        "chain": ["ProjectKnowledgePack", "retrieve_relevant_knowledge", "ConversationService", "evidence/provenance"],
+        "clip_supported": False,
+    }
+    (destination / "index.json").write_text(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return result
 
 
 def _context(case: CapabilityCase, route: str) -> tuple[list[dict[str, str]], tuple[str, ...]]:
@@ -510,6 +689,11 @@ def _server_formal(
     project = artifact_root / run_id / "project"
     project.mkdir(parents=True, exist_ok=False)
     (project / "README.md").write_text("# Formal server fixture\n", encoding="utf-8")
+    knowledge_dir = project / ".cgkn"
+    knowledge_dir.mkdir()
+    (knowledge_dir / "project_knowledge_pack.json").write_bytes(
+        (ROOT / "examples" / "project-generation" / "knowledge" / "cgkn_refactor.project_knowledge_pack.json").read_bytes()
+    )
     draft = {
         "workflow_state": "ready", "summary": "Bounded formal server fixture.",
         "diagnosis": ["No production change requested."], "provider_guidance": ["Keep output bounded."],
@@ -529,6 +713,8 @@ def _server_formal(
         ("tools/call", {"name": "cgkn_plan_generation", "arguments": {"project_root": str(project), "goal": "Protocol validation", "provider_mode": "live"}}),
         ("tools/call", {"name": "cgkn_generate", "arguments": {"project_root": str(project), "goal": "Protocol validation", "confirmation": "WRONG"}}),
         ("tools/call", {"name": "cgkn_status", "arguments": {"project_root": str(project)}}),
+        ("tools/call", {"name": "cgkn_conversation", "arguments": {"project_root": str(project), "query": "Is CGKN read-only?", "provider_mode": "disabled"}}),
+        ("tools/call", {"name": "cgkn_conversation", "arguments": {"project_root": str(project), "query": "What is the lunar launch date?", "provider_mode": "disabled"}}),
     ]
     messages = [{"jsonrpc": "2.0", "id": index + 1, "method": method, "params": params} for index, (method, params) in enumerate(calls)]
     started = time.perf_counter()
@@ -545,8 +731,16 @@ def _server_formal(
         "params": {"name": "cgkn_probe_provider", "arguments": {"project_root": str(project), "confirmation": "RUN_PROVIDER_PROBE", "timeout": 5}},
     }], environment=unavailable_environment)
     unavailable_payload = unavailable_response[0] if unavailable_response else {"status": "NO_RESPONSE"}
+    conversation_unavailable_response = _mcp_exchange([{
+        "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+        "params": {"name": "cgkn_conversation", "arguments": {
+            "project_root": str(project), "query": "Is CGKN read-only?", "provider_mode": "auto",
+        }},
+    }], environment=unavailable_environment)
+    conversation_unavailable = conversation_unavailable_response[0] if conversation_unavailable_response else {"status": "NO_RESPONSE"}
     timeout_payload = _real_timeout_probe(project, model=probe_model or "qwen3.8-max")
     probe: dict[str, Any] = {"status": "NOT_EVALUATED"}
+    conversation_probe: dict[str, Any] = {"status": "NOT_EVALUATED"}
     if probe_provider:
         if not probe_model.strip():
             raise ValueError("formal Provider recovery requires an explicit frozen route model")
@@ -558,9 +752,20 @@ def _server_formal(
             }},
         }])
         probe = probe_response[0] if probe_response else {"status": "NO_RESPONSE"}
+        conversation_probe_response = _mcp_exchange([{
+            "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+            "params": {"name": "cgkn_conversation", "arguments": {
+                "project_root": str(project), "query": "Is CGKN read-only?", "provider_mode": "auto",
+            }},
+        }])
+        conversation_probe = conversation_probe_response[0] if conversation_probe_response else {"status": "NO_RESPONSE"}
     by_id = {item.get("id"): item for item in responses}
     listed = by_id.get(3, {}).get("result", {}).get("tools", [])
     status_payload = by_id.get(13, {}).get("result", {}).get("structuredContent", {})
+    conversation_payload = by_id.get(14, {}).get("result", {}).get("structuredContent", {}).get("response", {})
+    no_evidence_payload = by_id.get(15, {}).get("result", {}).get("structuredContent", {}).get("response", {})
+    unavailable_conversation_payload = conversation_unavailable.get("result", {}).get("structuredContent", {}).get("response", {})
+    recovered_conversation_payload = conversation_probe.get("result", {}).get("structuredContent", {}).get("response", {})
     checks = {
         "server_boot": by_id.get(1, {}).get("result", {}).get("serverInfo", {}).get("name") == "cgkn",
         "health_readiness": by_id.get(2, {}).get("result") == {},
@@ -577,15 +782,20 @@ def _server_formal(
         ),
         "provider_unavailable_behavior": (
             unavailable_payload.get("result", {}).get("structuredContent", {}).get("ok") is False
-            and unavailable_payload.get("result", {}).get("structuredContent", {}).get("formal_evidence_status") == "NOT_EVALUATED"
+            and unavailable_conversation_payload.get("status") == "EVIDENCE_ONLY"
+            and unavailable_conversation_payload.get("answer_kind") == "EVIDENCE_ONLY"
         ),
         "provider_recovery_behavior": None if not probe_provider else (
             probe.get("result", {}).get("structuredContent", {}).get("ok") is True
+            and recovered_conversation_payload.get("status") == "ANSWERED"
         ),
-        "result_provenance": bool(status_payload.get("artifacts", {}).get("runtime_identity", {}).get("repository_revision")),
-        "evidence_only_fallback": by_id.get(4, {}).get("result", {}).get("structuredContent", {}).get("formal_evidence_status") == "NOT_EVALUATED",
-        "conversation_answer_path": False,
-        "no_evidence_refusal": by_id.get(4, {}).get("result", {}).get("structuredContent", {}).get("initialized") is False,
+        "result_provenance": (
+            bool(status_payload.get("artifacts", {}).get("runtime_identity", {}).get("repository_revision"))
+            and bool(conversation_payload.get("provenance"))
+        ),
+        "evidence_only_fallback": conversation_payload.get("status") == "EVIDENCE_ONLY",
+        "conversation_answer_path": conversation_payload.get("answer_kind") == "EVIDENCE_ONLY",
+        "no_evidence_refusal": no_evidence_payload.get("status") == "INSUFFICIENT_EVIDENCE",
         "security_boundary": bool(by_id.get(12, {}).get("result", {}).get("isError")),
         "restart_behavior": len(restart) == 2 and restart[-1].get("result") == {},
     }
@@ -593,8 +803,10 @@ def _server_formal(
     passed = all(checks[key] for key in evaluated)
     result = {
         "profile": "server-formal", "status": "PASS" if passed else "FAIL", "run_id": run_id,
-        "checks": checks, "unsupported": {"conversation_answer_path": "not exposed by the installed formal server"},
+        "checks": checks, "unsupported": {},
         "provider_probe": probe, "provider_unavailable_probe": unavailable_payload,
+        "conversation_provider_probe": conversation_probe,
+        "conversation_provider_unavailable_probe": conversation_unavailable,
         "provider_timeout_probe": timeout_payload,
         "provider_probe_model": probe_model or None,
         "responses": responses, "restart_responses": restart,
@@ -607,7 +819,7 @@ def _server_formal(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run formal CGNK server and model capability evaluations")
-    parser.add_argument("--profile", required=True, choices=("server-formal", "model-capability", "cgnk-structure-eval", "final"))
+    parser.add_argument("--profile", required=True, choices=("server-formal", "model-capability", "cgnk-structure-eval", "conversation-e2e", "conversation-structure-eval", "final"))
     parser.add_argument("--artifact-root", type=pathlib.Path, default=ROOT / "artifacts" / "cgnk_evaluation")
     parser.add_argument("--provider", choices=("qwen", "deepseek", "grok"), default="qwen")
     parser.add_argument("--probe-provider", action="store_true")
@@ -624,6 +836,11 @@ def main(argv: list[str] | None = None) -> int:
         result = _model_capability(args.artifact_root.resolve(), args.provider)
         if args.profile == "cgnk-structure-eval":
             result = {"profile": args.profile, "status": result["status"], "source": result}
+    elif args.profile in {"conversation-e2e", "conversation-structure-eval"}:
+        result = _conversation_structure_eval(
+            args.artifact_root.resolve(), args.provider,
+            e2e_only=args.profile == "conversation-e2e",
+        )
     else:
         result = {"profile": "final", "status": "NOT_READY", "reason": "run ordered profiles first"}
     print(json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True) if args.json else f"{args.profile}: {result['status']}")

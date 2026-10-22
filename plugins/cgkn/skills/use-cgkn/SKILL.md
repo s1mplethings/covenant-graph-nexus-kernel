@@ -9,6 +9,12 @@ Use the `cgkn_*` MCP tools. Do not replace them with direct shell calls to CGKN 
 
 ## Normal sequence
 
+For a read-only question over an existing `.cgkn/project_knowledge_pack.json`,
+call `cgkn_conversation` directly. Treat its `answer_kind` as authoritative:
+`MODEL_GENERATED_ANSWER` is distinct from attached evidence, while
+`EVIDENCE_ONLY` is an honest Provider-unavailable fallback. Do not treat
+`INSUFFICIENT_EVIDENCE` as permission to invent or write knowledge.
+
 1. Call `cgkn_doctor` or `cgkn_status` for the target project.
 2. Call `cgkn_init` when the project has no `.cgkn/agent-kit.json`.
 3. Call `cgkn_prepare` with the user's goal and the concrete planning gap.
