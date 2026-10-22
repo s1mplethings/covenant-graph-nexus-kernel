@@ -295,6 +295,8 @@ def test_current_evidence_mode_omits_enhanced_fields_for_hash_compatibility() ->
 
 
 def test_selected_repair_configuration_is_the_production_default(tmp_path: pathlib.Path) -> None:
+    from scripts.run_project_mvp import _repair_discovery_status, _repair_variant
+
     executor = BlueprintUnitExecutor(
         tmp_path,
         QueueClient([]),
@@ -304,6 +306,13 @@ def test_selected_repair_configuration_is_the_production_default(tmp_path: pathl
     assert DEFAULT_REPAIR_SCOPE_MODE == "NORMAL"
     assert executor.repair_evidence_mode == DEFAULT_REPAIR_EVIDENCE_MODE
     assert executor.repair_scope_mode == DEFAULT_REPAIR_SCOPE_MODE
+    assert {_repair_variant(name)["temperature"] for name in ("E0", "E1", "E2", "E3", "E4")} == {0.0}
+    assert _repair_variant("E3")["scope_mode"] == "LOCALIZED"
+    assert _repair_variant("E4")["evidence_mode"] == DEFAULT_REPAIR_EVIDENCE_MODE
+    assert _repair_discovery_status([{"status": "FAIL"}, {"status": "FAIL"}]) == "DISCOVERY_ELIMINATED_0_OF_2"
+    assert _repair_discovery_status([{"status": "PASS"}] * 3) == "DISCOVERY_PASS"
+    assert _repair_discovery_status([{"status": "PASS"}] * 4 + [{"status": "FAIL"}]) == "DISCOVERY_PASS"
+    assert _repair_discovery_status([{"status": "PASS"}] * 2 + [{"status": "FAIL"}]) == "DISCOVERY_DIRECTIONAL"
 
 
 def test_canonical_validator_detects_extra_record_and_accepts_exact_fix(tmp_path: pathlib.Path) -> None:

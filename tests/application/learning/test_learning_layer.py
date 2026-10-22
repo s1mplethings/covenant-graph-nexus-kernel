@@ -173,10 +173,17 @@ class FakeClient:
 def test_production_client_adds_snapshot_metadata(tmp_path):
     store = FileLessonStore(tmp_path); item = lesson(LessonScope(task_class="project.codegen", operation="GENERATION")); store.append_revision(item)
     fake = FakeClient(); client = ProductionGenerationClient(fake, StoreLessonReader(store), store=store)
-    result = client.generate(GenerationRequest("project.codegen", "GENERATION", "p", "", "grok", "system", "goal", {"x": 1}, {}, {}, "shape", {"type": "object"}, ModelRoleConfig("worker", "grok")))
+    request = GenerationRequest("project.codegen", "GENERATION", "p", "", "grok", "system", "goal", {"x": 1}, {}, {}, "shape", {"type": "object"}, ModelRoleConfig("worker", "grok"))
+    result = client.generate(request)
     assert result.applied_lesson_ids == (item.lesson_id,)
     assert result.completion.usage["lesson_snapshot_hash"] == result.lesson_snapshot_hash
     assert result.completion.selection_receipt["final_status"] == "ACCEPTED"
+    assert result.completion.usage["provider_request_hash"].startswith("sha256:")
+    assert result.completion.usage["provider_request_hash_basis"] == "CGKN_COMPLETION_REQUEST_V1"
+    repeated = client.generate(request)
+    changed = client.generate(replace(request, model_config=ModelRoleConfig("worker", "grok", temperature=0.1)))
+    assert repeated.completion.usage["provider_request_hash"] == result.completion.usage["provider_request_hash"]
+    assert changed.completion.usage["provider_request_hash"] != result.completion.usage["provider_request_hash"]
 
 
 def test_production_noop_requires_explicit_disable():

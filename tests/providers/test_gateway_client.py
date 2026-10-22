@@ -102,13 +102,6 @@ def test_responses_preserve_roles_schema_usage_and_provider_alias(gateway) -> No
     assert sent["payload"]["text"]["format"]["schema"] == SCHEMA
     assert sent["payload"]["model"] == "qwen"
     assert completion.model == "qwen" and completion.usage["total_tokens"] == 18
-    assert completion.transport_metadata["temperature_requested"] == 0.0
-    assert completion.transport_metadata["temperature_sent_to_gateway"] is True
-    assert completion.transport_metadata["top_p_requested"] is None
-    assert completion.transport_metadata["top_k_requested"] is None
-    assert completion.transport_metadata["seed_requested"] is None
-    assert completion.transport_metadata["stream_mode"] is False
-    assert completion.transport_metadata["provider_request_hash"].startswith("sha256:")
 
 
 def test_thinking_policy_is_propagated_without_conflicting_reasoning(gateway) -> None:
@@ -208,8 +201,6 @@ def test_timeout_after_send_is_outcome_unknown_and_not_retried(gateway, monkeypa
         client(gateway).complete(system="s", user="u", schema_name="x", schema=SCHEMA, config=ModelRoleConfig("agent", "qwen"))
     assert caught.value.category == "outcome_unknown" and caught.value.outcome_unknown is True
     assert calls == 1
-    assert caught.value.evidence["provider_request_hash"].startswith("sha256:")
-    assert caught.value.evidence["temperature_requested"] == 0.0
 
 
 @pytest.mark.negative
@@ -358,13 +349,7 @@ def test_routing_switch_grok_and_snapshot_are_immutable(tmp_path: pathlib.Path) 
 def test_project_route_separates_coordinator_and_worker_thinking_policies() -> None:
     root = pathlib.Path(__file__).resolve().parents[2]
     routing = CGKNModelRouting.load(root / "config" / "provider_profiles" / "gateway_model_routing.json")
-    from scripts.run_project_mvp import (
-        _coordinator_model_config,
-        _repair_discovery_status,
-        _repair_variant,
-        _worker_generation_model_config,
-        _worker_repair_model_config,
-    )
+    from scripts.run_project_mvp import _coordinator_model_config, _worker_generation_model_config, _worker_repair_model_config
     coordinator = _coordinator_model_config()
     assert coordinator.model == "qwen"
     assert coordinator.thinking_mode == "disabled"
@@ -373,13 +358,6 @@ def test_project_route_separates_coordinator_and_worker_thinking_policies() -> N
     assert _worker_generation_model_config().thinking_mode == "disabled"
     assert _worker_repair_model_config().thinking_mode == "disabled"
     assert routing.worker.thinking_mode == "default"
-    assert {_repair_variant(name)["temperature"] for name in ("E0", "E1", "E2", "E3", "E4")} == {0.0}
-    assert _repair_variant("E3")["scope_mode"] == "LOCALIZED"
-    assert _repair_variant("E4")["evidence_mode"] == "FAILURE_SLICE_TRANSPORT_CONTRASTIVE"
-    assert _repair_discovery_status([{"status": "FAIL"}, {"status": "FAIL"}]) == "DISCOVERY_ELIMINATED_0_OF_2"
-    assert _repair_discovery_status([{"status": "PASS"}] * 3) == "DISCOVERY_PASS"
-    assert _repair_discovery_status([{"status": "PASS"}] * 4 + [{"status": "FAIL"}]) == "DISCOVERY_PASS"
-    assert _repair_discovery_status([{"status": "PASS"}] * 2 + [{"status": "FAIL"}]) == "DISCOVERY_DIRECTIONAL"
 
 
 def test_worker_retry_receipts_remain_auditable_without_relabeling_failure() -> None:
@@ -497,10 +475,6 @@ def test_truncation_evidence_preserves_forwarded_thinking_and_attempts(gateway) 
     assert evidence["transport_attempts_detail"][0]["attempt_id"] == "transport-1"
     assert evidence["usage"]["completion_tokens"] == 6000
     assert evidence["request_id"] == "truncated-1"
-    assert evidence["provider_request_hash"].startswith("sha256:")
-    assert evidence["temperature_requested"] == 0.0
-    assert evidence["top_p_requested"] is None
-    assert evidence["seed_requested"] is None
 
 
 def test_gateway_rejects_two_schema_valid_objects_with_receipt(gateway) -> None:

@@ -62,6 +62,25 @@ class ProductionGenerationClient:
             raise RuntimeError(f"PROVIDER_CALL_LIMIT_EXCEEDED:{self.max_provider_calls}")
         self.provider_call_count += 1
         model_config = replace(request.model_config, task_class=request.task_class, operation=request.operation)
+        provider_request_hash = canonical_hash({
+            "system": request.system,
+            "user": prompt,
+            "schema_name": request.schema_name,
+            "schema": request.schema,
+            "model_config": {
+                "role": model_config.role,
+                "model": model_config.model,
+                "temperature": model_config.temperature,
+                "max_output_tokens": model_config.max_output_tokens,
+                "timeout_seconds": model_config.timeout_seconds,
+                "outer_deadline_seconds": model_config.outer_deadline_seconds,
+                "deadline_reserve_seconds": model_config.deadline_reserve_seconds,
+                "thinking_mode": model_config.thinking_mode,
+                "reasoning_effort": model_config.reasoning_effort,
+                "task_class": model_config.task_class,
+                "operation": model_config.operation,
+            },
+        })
         completion = self.client.complete(
             system=request.system, user=prompt, schema_name=request.schema_name,
             schema=request.schema, config=model_config,
@@ -72,6 +91,8 @@ class ProductionGenerationClient:
             "lesson_context_chars": context.lesson_context.context_chars,
             "generation_context_hash": context.context_hash,
             "prompt_projection_hash": request.prompt_projection_hash,
+            "provider_request_hash": provider_request_hash,
+            "provider_request_hash_basis": "CGKN_COMPLETION_REQUEST_V1",
         }
         enriched = ProviderCompletion(
             completion.text, completion.model, completion.request_id, usage, completion.attempts,

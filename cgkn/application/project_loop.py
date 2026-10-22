@@ -1588,7 +1588,16 @@ class BlueprintUnitExecutor:
             "max_output_tokens": config.max_output_tokens,
             "response_format_mode": metadata.get("response_format_mode", "json_schema"),
             "stream_mode": metadata.get("stream_mode", False),
-            "provider_request_hash": metadata.get("provider_request_hash") or receipt.get("provider_request_hash"),
+            "provider_request_hash": (
+                metadata.get("provider_request_hash")
+                or receipt.get("provider_request_hash")
+                or reported_usage.get("provider_request_hash")
+            ),
+            "provider_request_hash_basis": (
+                "GATEWAY_HTTP_PAYLOAD"
+                if metadata.get("provider_request_hash") or receipt.get("provider_request_hash")
+                else reported_usage.get("provider_request_hash_basis")
+            ),
             "prompt_tokens": input_tokens,
             "completion_tokens": token("completion_tokens", "output_tokens"),
             "reasoning_tokens": token("reasoning_tokens"),
