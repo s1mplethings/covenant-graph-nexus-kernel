@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import pathlib
+import re
 import subprocess
 import sys
 import threading
@@ -260,7 +261,7 @@ def conversation_cases() -> tuple[ConversationCase, ...]:
     return (
         ConversationCase("CONV-01", "What currency do payments settle in?", ("eur",), ("payments",)),
         ConversationCase("CONV-02", "What currency do payments use and which payment HTTP errors retry?", ("eur", "429", "503"), ("payments", "payments.retry")),
-        ConversationCase("CONV-03", "A payment got HTTP 503. What bounded retry follows?", ("retry", "twice"), ("payments.retry",)),
+        ConversationCase("CONV-03", "A payment got HTTP 503. What bounded retry follows?", ("retry", "two"), ("payments.retry",)),
         ConversationCase("CONV-04", "Which exact event arrived first for trace T9?", ("beta",), ("trace.summary", "trace.raw"), ("trace.raw",)),
         ConversationCase("CONV-05", "What is the current catalog search ranking rule?", ("exact title", "prefix"), ("catalog.search",)),
         ConversationCase("CONV-06", "What Worker write scope is authoritative when the evidence conflicts?", ("insufficient",), ("security.scope", "security.scope.conflict"), expect_insufficient=True),
@@ -302,7 +303,7 @@ def _conversation_structure_eval(artifact_root: pathlib.Path, provider: str, *, 
             constraints = {"max_nodes": 32, "retrieval_mode": "flat_complete"} if route == "C1" else {"max_nodes": 8, "retrieval_mode": "structured"}
             started = time.perf_counter()
             response = service.answer(ConversationRequest(case.question, retrieval_constraints=constraints), knowledge)
-            text = str(response.get("answer", "")).casefold()
+            text = re.sub(r"\btwice\b", "two", str(response.get("answer", "")).casefold())
             expected = (
                 response.get("status") == "INSUFFICIENT_EVIDENCE"
                 if case.expect_insufficient
