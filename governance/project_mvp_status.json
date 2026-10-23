@@ -1,7 +1,7 @@
 {
   "kind": "CGKNProjectMVPStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-KNOWLEDGE-GROWTH-INTERNALIZATION-044",
+  "iteration": "ITER-CGNK-KNOWLEDGE-PERSISTENCE-RETRIEVAL-SCALING-045",
   "source_commit": "b1c6eb9673fd20a2631e6a8f3a9206495dd1fef2",
   "source_tree_sha": "62610b8600b8da4ea4c4586660b52ed7b3eca424",
   "product_source_commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
@@ -47,6 +47,17 @@
   "knowledge_internalization_benefit": "PROVEN_DIRECTIONALLY",
   "knowledge_hot_path_model_calls": 0,
   "knowledge_maintenance_scaling": "PASS_100_1000_5000_DIRECTIONAL",
+  "knowledge_persistence_scaling": "PASS_CORRECTNESS_AT_250K_PERSISTENCE_BOUND",
+  "persistence_locality_gap": "PROVEN",
+  "algorithmic_update_locality": "PASS_SEMANTIC_LOCALITY_WITH_LINEAR_CONTAINER_COPY",
+  "persistence_update_locality": "PERSISTENCE_BOUND",
+  "retrieval_scalability": "DEGRADED_AMBIGUOUS_CANDIDATES_LINEAR_CORRECTNESS_PASS_AT_250K",
+  "cold_start_scalability": "DEGRADED_37_43_SECONDS_AT_250K",
+  "memory_scalability": "PASS_AT_250K_LINEAR_3_16_GIB_PEAK",
+  "maximum_evaluated_knowledge_items": 250000,
+  "storage_redesign_recommended": true,
+  "storage_redesign_production_status": "NOT_IMPLEMENTED_RESEARCH_ONLY",
+  "scaling_harness_commit": "657574921ff0a06fb742294d12027160c07bdcf2",
   "model_capability_evaluation": "COMPLETE",
   "cgnk_structure_benefit": "PROVEN_DIRECTIONALLY",
   "efficiency_experiment_ready": true,
@@ -68,9 +79,14 @@
       "detail": "The 28-case benchmark completed, but per-model generation, repair, and abstention results remain mixed; the structural result is directional rather than statistically significant."
     },
     {
+      "priority": "P1",
+      "code": "KNOWLEDGE_PERSISTENCE_LOCALITY_AND_CRASH_SAFETY_GAP_PROVEN",
+      "detail": "Current saves rewrite the full pack without atomic rename or checksum; measured save P50 is 29.72 seconds at 100k and 80.62 seconds at 250k. A backward-compatible segmented append authority with validated derived checkpoints is the recommended next phase."
+    },
+    {
       "priority": "P2",
-      "code": "MONOLITHIC_KNOWLEDGE_PACK_SERIALIZATION_IS_LINEAR",
-      "detail": "Semantic invalidation and indexed retrieval remain local, but serializing the complete ProjectKnowledgePack still grows linearly with pack size; sharding is deferred until real persistence evidence justifies it."
+      "code": "AMBIGUOUS_RETRIEVAL_CANDIDATES_GROW_LINEARLY",
+      "detail": "Correctness remains 100 percent through 250k, but ambiguous candidate maxima and P95 latency grow with corpus size and worsen under hot/long-tail skew."
     }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "kind": "CGKNRoleModelEfficiencyReceipt",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-KNOWLEDGE-GROWTH-INTERNALIZATION-044",
+  "iteration": "ITER-CGNK-KNOWLEDGE-PERSISTENCE-RETRIEVAL-SCALING-045",
   "product_source": {
     "commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
     "tree": "66056cf6432227681a117b1f5df9c3e6999475cd",
@@ -129,6 +129,63 @@
     "benchmark_hash": "sha256:fa7abf6958776948543254be9bc02f321f4b614c15de84496fcd4752a3575d74",
     "conversation_after_update_hash": "sha256:a565ee264c948774740633d8ad5107487570afed398f25abc3f0a7e35a549feb",
     "evidence": "D:/CGKN/.service_evidence/knowledge-growth-internalization-v1"
+  },
+  "knowledge_persistence_scaling": {
+    "scaling_base_source": "b1c6eb9673fd20a2631e6a8f3a9206495dd1fef2",
+    "benchmark_harness_commit": "657574921ff0a06fb742294d12027160c07bdcf2",
+    "production_source_modified": false,
+    "persistence_gap_classification": "MONOLITHIC_FULL_REWRITE_WITH_PERSISTED_REBUILT_DERIVED_INDEX_AND_NO_ATOMIC_COMMIT",
+    "uniform_scales": [1000, 5000, 10000, 50000, 100000, 250000],
+    "skews": ["UNIFORM", "HOT_BRANCH_SKEW", "LONG_TAIL"],
+    "fixed_query_accuracy": 1.0,
+    "authority_restart_equivalence": "PASS_ALL",
+    "persistence_locality_gap": "PROVEN",
+    "baseline_100k": {
+      "file_mb": 255.75,
+      "save_p50_ms": 29715.30,
+      "cold_load_ms": 12757.03,
+      "peak_rss_gb": 1.28,
+      "query_p95_ms": 72.79,
+      "candidate_max": 2000
+    },
+    "baseline_250k": {
+      "file_mb": 639.47,
+      "save_p50_ms": 80617.51,
+      "cold_load_ms": 37430.23,
+      "peak_rss_gb": 3.16,
+      "query_p95_ms": 199.71,
+      "candidate_max": 5000
+    },
+    "largest_persistence_wall_share": 0.99681,
+    "write_amplification_250k": 2001607.3,
+    "alternatives_100k": {
+      "S0_CURRENT_update_p50_ms": 29715.30,
+      "S1_CHUNKED_update_p50_ms": 26.75,
+      "S2_APPEND_LOG_update_p50_ms": 3.18,
+      "S3_AUTHORITY_SIDECAR_update_p50_ms": 4508.71,
+      "all_semantic_equivalence": "PASS"
+    },
+    "mixed_workloads": {
+      "planned": 18,
+      "executed": 10,
+      "passed": 10,
+      "current_guarded_skips": 8,
+      "s0_10k_read_heavy_wall_seconds": 233.30,
+      "s0_10k_read_heavy_physical_mb": 2315.29,
+      "s2_100k_write_heavy_wall_seconds": 100.10,
+      "s2_100k_write_heavy_physical_mb": 1.03
+    },
+    "crash_safety_current": "FAIL_NO_ATOMIC_RENAME_NO_CHECKSUM_NO_PARTIAL_WRITE_RECOVERY",
+    "crash_safety_candidates": "PASS_RESEARCH_PROBES",
+    "should_storage_be_redesigned_now": "YES",
+    "recommended_candidate": "S2_APPEND_LOG_WITH_VALIDATED_CHECKPOINT_AND_COMPACTION",
+    "production_adoption_status": "NOT_IMPLEMENTED_RESEARCH_ONLY",
+    "report_hashes": {
+      "baseline": "sha256:acf0f0401845a42d3dda0e4c51d9c94d3afd1ca9e0f46433c08029ccc7cfd996",
+      "alternatives": "sha256:b067e1b588b25a619d8a9007e29b3602efff3f9d5f462067c27480b7e60f6b37",
+      "mixed_workloads": "sha256:669c49489553f1e74e9b00104888d3beef85c6f5bfbcaefd81670b3d0b3ca023"
+    },
+    "evidence": "D:/CGKN/.service_evidence/knowledge-persistence-retrieval-scaling-v1"
   },
   "api_lab_dependency": {
     "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
@@ -319,8 +376,11 @@
   "knowledge_invalidation_status": "PASS_LOCAL_LAZY",
   "conversation_after_knowledge_update": "PASS",
   "knowledge_internalization_benefit": "PROVEN_DIRECTIONALLY",
+  "knowledge_persistence_scaling": "PASS_CORRECTNESS_AT_250K_PERSISTENCE_BOUND",
+  "persistence_locality_gap": "PROVEN",
+  "storage_redesign_recommended": true,
   "model_capability_evaluation": "COMPLETE",
   "multi_agent_status": "NOT_RECOMMENDED_CURRENT_EVIDENCE",
   "contains_credentials": false,
-  "receipt_hash": "sha256:b4ca72246f4c47e0793f9441043c7fa3684d95f614338775345250fbca514851"
+  "receipt_hash": "sha256:7098fd0b13cf0b573543ecb602fc7169b68636cb94d9efdb12c190a543432b49"
 }

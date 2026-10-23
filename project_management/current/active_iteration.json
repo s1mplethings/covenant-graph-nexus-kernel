@@ -1,89 +1,87 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-044",
+  "iteration_id": "ITER-045",
   "project_id": "cgkn",
-  "goal": "Validate local-lazy knowledge growth, update, invalidation, internalization, and maintenance cost without adding a second knowledge authority.",
-  "backlog_item_ids": ["PB-025"],
+  "goal": "Measure real ProjectKnowledgePack persistence, retrieval, cold-start, and memory scaling before deciding whether physical storage must change.",
+  "backlog_item_ids": ["PB-026"],
   "workflow_state": "closed",
-  "evidence_status": "PASS",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
-    "raw evidence remains byte-faithful and provenance-bound while derived abstractions remain recomputable",
-    "all required update relations and lifecycle stages produce deterministic auditable receipts",
-    "exact duplicate ingestion performs zero model calls and no derived rebuild",
-    "leaf updates invalidate only actual dependent abstractions and Conversation excludes stale derived evidence",
-    "flat, eager-global, and local-lazy policies are compared at 100, 1000, and 5000 entries",
-    "full repository regression has zero failures and zero errors"
+    "production Knowledge and Conversation semantics remain unchanged",
+    "real filesystem save/load and new-process cold-start measurements cover 1k through 100k and 250k when resource-safe",
+    "fixed queries preserve correctness, provenance, lifecycle filtering, and cross-domain isolation",
+    "mixed workloads separate internalization, retrieval, serialization, index rebuild, and disk costs",
+    "storage alternatives are researched only after a measured persistence-locality gap",
+    "one logical ProjectKnowledgePack authority is preserved in every candidate"
   ],
   "quality_metrics": [
     {
-      "id": "QM-KNOWLEDGE-LIFECYCLE",
-      "measure": "required ingestion, relation, invalidation, refresh, and Conversation-after-update behaviors",
-      "target": "all targeted cases pass",
-      "method": "deterministic unit, schema, application-boundary, and integration tests"
+      "id": "QM-PERSISTENCE-LOCALITY",
+      "measure": "physical bytes and save wall time per logical local update",
+      "target": "measure slope and dominant cost without an invented product SLO",
+      "method": "five real single-update saves at each uniform scale"
     },
     {
-      "id": "QM-KNOWLEDGE-LOCALITY",
-      "measure": "unrelated nodes touched and derived nodes recomputed per local update",
-      "target": "zero unrelated nodes and no hot-path derived recomputation",
-      "method": "receipt counters and 100/1000/5000-entry controlled comparison"
+      "id": "QM-COLD-START",
+      "measure": "read, parse, rebuild, time-to-first-retrieval, time-to-first-answer, and RSS",
+      "target": "state/query equivalence and bounded resources",
+      "method": "new-process load at every evaluated scale"
     },
     {
-      "id": "QM-KNOWLEDGE-COST",
-      "measure": "write latency, retrieval candidates, context characters, model calls, and persisted pack size",
-      "target": "local semantic maintenance remains bounded and exact duplicates use zero model calls",
-      "method": "fixed deterministic Flat Append, Eager Global Rebuild, and Local Lazy benchmark"
+      "id": "QM-RETRIEVAL-SCALING",
+      "measure": "P50/P95 latency, candidates, locality, recall, and correctness",
+      "target": "no false locality or quality regression",
+      "method": "12 fixed query classes under uniform, hot-branch, and long-tail shape"
     },
     {
-      "id": "QM-REGRESSION",
-      "measure": "canonical full repository",
-      "target": "0 failed / 0 errors",
-      "method": "kernel profiles, collection, application suite, and full pytest"
+      "id": "QM-MIXED-WORKLOAD",
+      "measure": "1000-operation read-heavy, balanced, and write-heavy cost composition",
+      "target": "all admitted runs pass within the measured runtime guard",
+      "method": "S0 feasibility gate and complete S2 10k/50k/100k matrix"
     }
   ],
   "quality_activities": {
-    "prevention": ["single ProjectKnowledgePack authority", "raw evidence cannot be replaced by summaries", "actual dependency edges only", "zero-model deterministic hot path"],
-    "assurance": ["gap audit A-O", "relation and lifecycle tests", "Conversation-after-update test", "100/1000/5000 policy comparison", "full regression"],
-    "control": ["strict evidence identity and relation target validation", "stale-derived retrieval exclusion", "bounded indexed lookup", "explicit cold refresh"],
-    "improvement": ["replace compatibility bucket scans with indexed changed-node updates"]
+    "prevention": ["single truth authority", "Provider-free core", "frozen corpus/query/workload hashes", "75 percent resource guard"],
+    "assurance": ["persistence gap audit", "real filesystem matrix", "new-process restart equivalence", "S0/S1/S2/S3 comparison", "crash probes"],
+    "control": ["checksum validation", "fail-closed corrupt chunk/log detection", "derived cache rebuild", "runtime projection guard"],
+    "improvement": ["recommend backward-compatible segmented append authority with validated derived checkpoints"]
   },
   "interface_expectations": [
-    "knowledge.internalize@1.0 uses the common Component/Block boundary",
-    "ProjectKnowledgePack remains the only knowledge and evidence identity authority",
+    "ProjectKnowledgePack remains the only logical knowledge authority",
     "cgnk_knowledge.retrieve_relevant_knowledge remains the only retrieval authority",
-    "Conversation request and response semantics remain unchanged"
+    "Conversation request/response and read-only behavior remain unchanged",
+    "research storage adapters are not production entrypoints"
   ],
   "evidence_refs": [
-    "governance/project_mvp_status.json",
-    "governance/role_model_efficiency_status.json",
-    "governance/role_model_efficiency_receipt.json",
-    "governance/software_project_generation_receipt.json",
-    "D:/CGKN/.service_evidence/knowledge-growth-internalization-v1/benchmark.json",
-    "D:/CGKN/.service_evidence/knowledge-growth-internalization-v1/conversation-after-update.json",
-    "D:/CGKN/.service_evidence/knowledge-growth-internalization-v1/kernel-profile-unit-rerun.json",
-    "D:/CGKN/.service_evidence/knowledge-growth-internalization-v1/kernel-profiles.json"
+    "evidence/knowledge_persistence_scaling/summary.json",
+    "project_management/summaries/knowledge_persistence_retrieval_scaling_20261023.md",
+    "D:/CGKN/.service_evidence/knowledge-persistence-retrieval-scaling-v1/baseline/baseline-report.json",
+    "D:/CGKN/.service_evidence/knowledge-persistence-retrieval-scaling-v1/alternatives/alternatives-report.json",
+    "D:/CGKN/.service_evidence/knowledge-persistence-retrieval-scaling-v1/workloads/mixed-workloads-report.json"
   ],
   "review": {
-    "outcome": "accepted",
+    "outcome": "accepted_with_limits",
     "feedback": [
-      "ProjectKnowledgePack remains the only knowledge authority and existing Conversation retrieval remains the only retrieval authority.",
-      "Local-lazy invalidation is bounded by actual dependencies and performs no hot-path recomputation or model calls.",
-      "The benefit claim is directional; full-pack serialization remains linear and is explicitly retained as a P2 risk."
+      "Correctness and restart equivalence pass through 250k, but current physical save and cold-load costs are not local.",
+      "S2 is the leading research candidate for update locality and crash recovery, but its cold replay requires validated checkpoints and compaction before production adoption.",
+      "No production storage or public persistence format changed in this iteration."
     ],
-    "accepted_backlog_item_ids": ["PB-025"]
+    "accepted_backlog_item_ids": ["PB-026"]
   },
   "retrospective": {
     "worked": [
-      "separating exact raw identity from semantic similarity",
-      "using explicit dependency edges and stale-derived exclusion",
-      "freezing source before 100/1000/5000 evidence and full regression"
+      "separating semantic locality from persistence locality",
+      "using authority and query hashes after every process restart",
+      "using measured runtime projection to avoid hundreds of GiB of redundant S0 writes"
     ],
     "did_not_work": [
-      "the first unit profile ran before the application receipt was refreshed and correctly failed freshness"
+      "the first query evaluator treated one ID as the only correct answer for intentionally equivalent ambiguous facts",
+      "the first workload trace queried lifecycle-inactive fixture IDs"
     ],
     "experiments": [
-      "Flat Append versus Eager Global Rebuild versus Local Lazy at 100, 1000, and 5000 entries",
-      "Conversation query after superseding evidence and stale-summary invalidation"
+      "S0 current monolith versus S1 chunked, S2 append authority, and S3 compact authority plus sidecar",
+      "1000-operation read-heavy, balanced, and write-heavy workloads"
     ]
   }
 }

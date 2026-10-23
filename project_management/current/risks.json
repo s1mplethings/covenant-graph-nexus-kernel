@@ -131,11 +131,20 @@
     {
       "id": "R-MVP-015",
       "title": "Monolithic ProjectKnowledgePack persistence may dominate large write cost",
+      "probability": "high",
+      "impact": "high",
+      "signal": "At 100k items a local update requires a 255.75 MiB rewrite and 29.72 s P50 save; at 250k it requires 639.47 MiB and 80.62 s while persistence consumes 99.68 percent of update wall time.",
+      "response": "Treat the locality gap as proven. In a separate backward-compatible iteration, implement a checksummed segmented append authority with validated derived checkpoints and bounded compaction; preserve old-format loading and one logical ProjectKnowledgePack truth authority.",
+      "owner": "knowledge storage"
+    },
+    {
+      "id": "R-MVP-016",
+      "title": "Common or skewed retrieval terms produce linearly growing candidate sets",
       "probability": "medium",
       "impact": "medium",
-      "signal": "Semantic update scope remains local but full JSON serialization grows linearly and becomes the dominant latency or storage cost.",
-      "response": "Keep semantic maintenance local and measure serialization separately; consider sharded persistence only after real scale evidence and without creating a second truth authority.",
-      "owner": "knowledge storage"
+      "signal": "Exact query P50 stays near constant, but ambiguous candidate maxima reach 5,000 and P95 reaches 199.71 ms at 250k; 10k long-tail skew reaches 2,312 candidates.",
+      "response": "Preserve recall and retrieval authority; profile branch/term selectivity and add only semantics-preserving derived acceleration after the persistence authority is made crash-safe.",
+      "owner": "knowledge retrieval"
     }
   ]
 }

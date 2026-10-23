@@ -331,6 +331,21 @@
         "100, 1000, and 5000 entry comparisons report write, retrieval, context, recomputation, and model-call costs for flat, eager, and local-lazy policies"
       ],
       "evidence_status": "PASS"
+    },
+    {
+      "id": "PB-026",
+      "title": "Measure ProjectKnowledgePack persistence and retrieval scaling",
+      "priority": 23,
+      "state": "done_with_follow_up",
+      "value": "Separate logical local-lazy behavior from physical persistence, cold-start, memory, and retrieval costs before authorizing a storage redesign.",
+      "acceptance": [
+        "real filesystem and new-process measurements cover 1k, 5k, 10k, 50k, 100k, and resource-safe 250k",
+        "uniform, hot-branch, and long-tail corpora preserve fixed-query correctness and restart equivalence",
+        "physical write and serialization amplification are reported separately from node-level invalidation",
+        "S0/S1/S2/S3 research preserves one logical authority and tests corruption behavior",
+        "any production redesign remains backward-compatible and starts in a separate follow-up"
+      ],
+      "evidence_status": "PASS_PERSISTENCE_LOCALITY_GAP_PROVEN"
     }
   ]
 }

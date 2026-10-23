@@ -1,7 +1,7 @@
 {
   "kind": "CGKNRoleModelEfficiencyStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-KNOWLEDGE-GROWTH-INTERNALIZATION-044",
+  "iteration": "ITER-CGNK-KNOWLEDGE-PERSISTENCE-RETRIEVAL-SCALING-045",
   "source_commit": "b1c6eb9673fd20a2631e6a8f3a9206495dd1fef2",
   "product_source_commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
   "experiment_harness_commit": "bb65c0dd7ea6369487516dc6183e38cb8b541e34",
@@ -39,7 +39,12 @@
   "cgnk_structure_benefit": "PROVEN_DIRECTIONALLY",
   "manual_candidate_edits": 0,
   "stop_condition": "ITERATION_COMPLETE",
-  "stop_status": "KNOWLEDGE_GROWTH_INTERNALIZATION_COMPLETE",
+  "stop_status": "KNOWLEDGE_PERSISTENCE_SCALING_COMPLETE_REDESIGN_RECOMMENDED",
+  "knowledge_persistence_scaling": "PASS_CORRECTNESS_AT_250K_PERSISTENCE_BOUND",
+  "persistence_locality_gap": "PROVEN",
+  "storage_redesign_recommended": true,
+  "storage_redesign_production_status": "NOT_IMPLEMENTED_RESEARCH_ONLY",
+  "scaling_harness_commit": "657574921ff0a06fb742294d12027160c07bdcf2",
   "multi_agent_status": "NOT_RECOMMENDED_CURRENT_EVIDENCE",
   "api_lab_dependency": {
     "commit": "7c15f2546ec007cc7e601fa62ae4d88b9ba12f80",
@@ -55,9 +60,14 @@
       "detail": "Incremental materialization was neutral and Blueprint/role separation were harmful directionally in this small sample; only the cheap executor and structured evidence organization showed directional value."
     },
     {
+      "priority": "P1",
+      "code": "KNOWLEDGE_PERSISTENCE_LOCALITY_AND_CRASH_SAFETY_GAP_PROVEN",
+      "detail": "The current monolith rewrites 255.75 MiB at 100k for each small update, lacks atomic commit and checksum recovery, and consumes 99.68 percent of large-update wall time."
+    },
+    {
       "priority": "P2",
-      "code": "MONOLITHIC_KNOWLEDGE_PACK_SERIALIZATION_IS_LINEAR",
-      "detail": "Local semantic maintenance is bounded, but full ProjectKnowledgePack serialization remains linear and requires real persistence evidence before any sharding decision."
+      "code": "AMBIGUOUS_RETRIEVAL_CANDIDATES_GROW_LINEARLY",
+      "detail": "Selective lookup stays fast and correctness passes, but ambiguous candidate count and P95 latency grow linearly and are sensitive to branch skew."
     }
   ]
 }
