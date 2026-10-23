@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/raw_evidence.schema.json",
+  "title": "RawEvidence",
+  "type": "object",
+  "required": ["content", "item_type", "scope", "source_ref"],
+  "additionalProperties": false,
+  "properties": {
+    "content": {"type": "string", "minLength": 1},
+    "item_type": {"enum": ["goal", "constraint", "decision", "preference", "requirement", "risk", "open_question", "artifact_ref", "module_mapping", "agent_mapping", "next_step", "research_finding", "test_result", "correction"]},
+    "scope": {"enum": ["session", "project", "global", "project.cgkn", "project.cgnk", "agent", "module"]},
+    "source_ref": {"type": "string", "minLength": 1},
+    "subject_ref": {"type": "string"},
+    "branch_ref": {"type": "string"},
+    "source_version": {"type": "string"},
+    "observed_at": {"type": "string"},
+    "tags": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "importance": {"enum": ["critical", "high", "medium", "low", "noise"]},
+    "need_state": {"enum": ["needed_now", "needed_later", "reference_only", "not_needed", "unknown"]},
+    "relation": {"enum": ["AUTO", "SUPPORTING", "NOVEL", "SUPERSEDING", "CONTRADICTING", "CORRECTION", "RETRACTION", "UNRESOLVED_RELATION"]},
+    "target_id": {"type": "string"}
+  }
+}

@@ -25,6 +25,11 @@
     "archived_items": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
     "discarded_items": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
     "all_items": {"type": "array", "items": {"$ref": "knowledge_item.schema.json"}},
-    "diagnostics": {"type": "array", "items": {"type": "object"}}
+    "diagnostics": {"type": "array", "items": {"type": "object"}},
+    "knowledge_revision": {"type": "integer", "minimum": 0},
+    "knowledge_index": {
+      "type": "object",
+      "description": "Deterministic derived index owned by this ProjectKnowledgePack; never a second truth authority."
+    }
   }
 }

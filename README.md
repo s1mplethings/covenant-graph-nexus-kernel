@@ -83,6 +83,14 @@ provenance. Provider failure degrades to `EVIDENCE_ONLY`; absent evidence is
 reported as `INSUFFICIENT_EVIDENCE`. The `cgkn_conversation` MCP tool exposes
 this capability without writing memory or creating another retrieval store.
 
+Knowledge growth now uses the same `ProjectKnowledgePack` authority through
+`knowledge.internalize@1.0`. Raw evidence remains byte-faithful and
+provenance-bound; deterministic hot-path updates classify relations and mark
+only actual dependent abstractions stale. Derived summaries refresh explicitly
+on demand or in a batch rather than rebuilding globally on every write. See
+`docs/KNOWLEDGE_GROWTH_INTERNALIZATION.md` and run the 100/1000/5000-entry
+comparison with `python scripts/run_knowledge_growth_evaluation.py --profile final --json`.
+
 Cleanup status and the exact migration boundary are recorded in:
 
 - `docs/MVP_RUNTIME_MIGRATION_BOUNDARY.md`
@@ -107,6 +115,7 @@ decision.
 - `cgkn/capabilities/` — versioned capability lifecycle registry
 - `cgkn/growth/` — local gap, discovery, sandbox trial, admission, and reuse loop
 - `cgkn/application/conversation/` — evidence-grounded read-only Conversation surface
+- `cgkn/application/knowledge_growth/` — local-lazy ProjectKnowledgePack update capability
 - `scripts/local_agent_actions.py` — bounded deterministic action compatibility adapter
 - `scripts/provider_jobs.py` — Provider execution/PatchSet compatibility adapter
 - `scripts/real_test_execution.py` — real test/runtime support

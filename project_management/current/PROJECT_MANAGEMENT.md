@@ -22,17 +22,14 @@ Further cleanup inside that cluster now requires a working replacement path.
 
 ## Current feature increment
 
-`ITER-PROVIDER-CONNECTION-NORMALIZATION-017` preserves the pre-normalization
-Provider failures, ratchets the existing evaluation source into
-`BASELINE-PROVIDER-EVAL-001`, and separates vendor connectivity from Provider
-quality. Qwen, Grok, and DeepSeek receive independent bounded connectors behind
-one canonical completion contract; connection, selection, repository codegen,
-capability building, and self-growth retain independent readiness states.
+`ITER-CGNK-KNOWLEDGE-GROWTH-INTERNALIZATION-044` validates how the existing
+`ProjectKnowledgePack` accepts new raw evidence, preserves provenance, records
+relations, invalidates dependent abstractions, and refreshes derived knowledge
+without introducing a second knowledge or retrieval authority.
 
-The iteration uses a hybrid approach: stable product, budget, credential,
-fallback, DAG, and admission governance surrounds incremental connector and
-builder slices. A single eligible Provider may support explicitly labelled
-single-provider validation, but cannot authorize adaptive selection.
+The iteration uses a hybrid approach: stable raw-evidence, identity, safety,
+Conversation, and authority constraints surround an adaptive local-lazy update
+implementation and deterministic 100/1000/5000-entry maintenance comparison.
 
 ## Roadmap after the active increment
 

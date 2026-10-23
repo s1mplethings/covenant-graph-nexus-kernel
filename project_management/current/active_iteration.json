@@ -1,79 +1,59 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-043",
+  "iteration_id": "ITER-044",
   "project_id": "cgkn",
-  "goal": "Expose existing structured knowledge and evidence as a read-only, evidence-grounded Conversation product surface and validate it through the formal server and a fixed C1/C2 comparison.",
-  "backlog_item_ids": ["PB-015"],
-  "workflow_state": "closed",
-  "evidence_status": "PASS",
+  "goal": "Validate local-lazy knowledge growth, update, invalidation, internalization, and maintenance cost without adding a second knowledge authority.",
+  "backlog_item_ids": ["PB-025"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "Conversation reuses the existing knowledge, retrieval, capability, guard, and model-routing authorities",
-    "grounded answers, provenance, fidelity drill-down, no-evidence refusal, and Provider fallback pass targeted tests",
-    "the complete formal server evaluation passes with a real Conversation route",
-    "a fixed ten-case flat-complete versus structured Conversation evaluation produces auditable evidence",
+    "raw evidence remains byte-faithful and provenance-bound while derived abstractions remain recomputable",
+    "all required update relations and lifecycle stages produce deterministic auditable receipts",
+    "exact duplicate ingestion performs zero model calls and no derived rebuild",
+    "leaf updates invalidate only actual dependent abstractions and Conversation excludes stale derived evidence",
+    "flat, eager-global, and local-lazy policies are compared at 100, 1000, and 5000 entries",
     "full repository regression has zero failures and zero errors"
   ],
   "quality_metrics": [
     {
-      "id": "QM-CONVERSATION-TARGETED",
-      "measure": "targeted Conversation behaviors",
-      "target": "all required cases pass",
-      "method": "deterministic pytest suite with fake Provider and real MCP process"
+      "id": "QM-KNOWLEDGE-LIFECYCLE",
+      "measure": "required ingestion, relation, invalidation, refresh, and Conversation-after-update behaviors",
+      "target": "all targeted cases pass",
+      "method": "deterministic unit, schema, application-boundary, and integration tests"
     },
     {
-      "id": "QM-CONVERSATION-STRUCTURE",
-      "measure": "C2 accuracy and irrelevant-context efficiency relative to C1",
-      "target": "accuracy comparable or better and irrelevant context reduced at least 30 percent",
-      "method": "ten fixed questions over one frozen corpus, model, rubric, and answer budget"
+      "id": "QM-KNOWLEDGE-LOCALITY",
+      "measure": "unrelated nodes touched and derived nodes recomputed per local update",
+      "target": "zero unrelated nodes and no hot-path derived recomputation",
+      "method": "receipt counters and 100/1000/5000-entry controlled comparison"
+    },
+    {
+      "id": "QM-KNOWLEDGE-COST",
+      "measure": "write latency, retrieval candidates, context characters, model calls, and persisted pack size",
+      "target": "local semantic maintenance remains bounded and exact duplicates use zero model calls",
+      "method": "fixed deterministic Flat Append, Eager Global Rebuild, and Local Lazy benchmark"
     },
     {
       "id": "QM-REGRESSION",
       "measure": "canonical full repository",
       "target": "0 failed / 0 errors",
-      "method": "active-repository profile plus collection and application suite"
+      "method": "kernel profiles, collection, application suite, and full pytest"
     }
   ],
   "quality_activities": {
-    "prevention": ["single existing retrieval authority", "read-only contract", "bounded fidelity expansion", "cheap-first frozen routing"],
-    "assurance": ["targeted A-T cases", "formal MCP server", "real Conversation E2E", "C1/C2 product-surface comparison", "full regression"],
-    "control": ["strict model schema", "claim-reference validation", "context budget", "no knowledge writes", "no automatic fallback"],
-    "improvement": ["harden staged pytest against unrelated workstation plugin autoload"]
+    "prevention": ["single ProjectKnowledgePack authority", "raw evidence cannot be replaced by summaries", "actual dependency edges only", "zero-model deterministic hot path"],
+    "assurance": ["gap audit A-O", "relation and lifecycle tests", "Conversation-after-update test", "100/1000/5000 policy comparison", "full regression"],
+    "control": ["strict evidence identity and relation target validation", "stale-derived retrieval exclusion", "bounded indexed lookup", "explicit cold refresh"],
+    "improvement": ["replace compatibility bucket scans with indexed changed-node updates"]
   },
   "interface_expectations": [
-    "conversation.answer@1.0 remains a common Component/Block capability",
-    "cgkn_conversation returns answer, status, evidence, provenance, and retrieval audit metadata",
-    "summary nodes remain indexes and exact-detail queries can expand only their referenced raw evidence"
+    "knowledge.internalize@1.0 uses the common Component/Block boundary",
+    "ProjectKnowledgePack remains the only knowledge and evidence identity authority",
+    "cgnk_knowledge.retrieve_relevant_knowledge remains the only retrieval authority",
+    "Conversation request and response semantics remain unchanged"
   ],
-  "evidence_refs": [
-    "governance/project_mvp_status.json",
-    "governance/role_model_efficiency_status.json",
-    "governance/role_model_efficiency_receipt.json"
-  ],
-  "review": {
-    "outcome": "accepted",
-    "feedback": [
-      "Conversation is now a read-only evidence-grounded Component/Block surface over the existing knowledge authority.",
-      "Formal server, real E2E, fixed C1/C2 comparison, and full regression passed on one frozen source commit.",
-      "Multi-Agent remains not recommended because current evidence favors cheap execution and structured evidence over additional orchestration."
-    ],
-    "accepted_backlog_item_ids": [
-      "PB-015"
-    ]
-  },
-  "retrospective": {
-    "worked": [
-      "reusing the existing cgnk_knowledge retrieval authority",
-      "summary-as-index with bounded raw-evidence drill-down",
-      "strict grounded claim references and honest evidence-only fallback",
-      "version-pinned API Lab raw-defer ingress"
-    ],
-    "did_not_work": [
-      "an outdated local API Lab worktree produced fail-closed contract-version errors until the frozen dependency SHA was used",
-      "a lexical-only retry rubric treated two retries and twice as different until deterministic normalization"
-    ],
-    "experiments": [
-      "C1 flat-complete and C2 structured both reached 10/10 accuracy; C2 reduced input tokens by 74.71 percent and irrelevant-context ratio by 57.67 percent"
-    ]
-  }
+  "evidence_refs": [],
+  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
+  "retrospective": {"worked": [], "did_not_work": [], "experiments": []}
 }

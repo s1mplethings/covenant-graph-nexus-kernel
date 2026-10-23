@@ -118,6 +118,24 @@
       "signal": "A scoped repair passes action validation but replaces a declared target with code or public tests that no longer match the existing generated interfaces.",
       "response": "Keep fixed budgets and external acceptance; improve public interface context, patch intent, and proposal verification before rerunning Stage 1. Never repair candidate projects manually or widen worker scope.",
       "owner": "L6 software project generation"
+    },
+    {
+      "id": "R-MVP-014",
+      "title": "Stale derived knowledge could be mistaken for current raw evidence",
+      "probability": "medium",
+      "impact": "high",
+      "signal": "A changed or retracted leaf remains represented by an active summary returned to Conversation.",
+      "response": "Treat raw observations as source evidence, maintain explicit dependency edges, mark only dependent abstractions stale, exclude stale nodes from retrieval, and refresh them explicitly on demand or in a batch.",
+      "owner": "knowledge authority"
+    },
+    {
+      "id": "R-MVP-015",
+      "title": "Monolithic ProjectKnowledgePack persistence may dominate large write cost",
+      "probability": "medium",
+      "impact": "medium",
+      "signal": "Semantic update scope remains local but full JSON serialization grows linearly and becomes the dominant latency or storage cost.",
+      "response": "Keep semantic maintenance local and measure serialization separately; consider sharded persistence only after real scale evidence and without creating a second truth authority.",
+      "owner": "knowledge storage"
     }
   ]
 }

@@ -64,6 +64,24 @@ class KnowledgeSchemaTests(unittest.TestCase):
         context = json.loads((KNOWLEDGE_EXAMPLES / "agent_context_pack.example.json").read_text(encoding="utf-8"))
         self.assertEqual([], self.validate_doc(context, "agent_context_pack.schema.json"))
 
+    def test_internalized_pack_extensions_validate(self) -> None:
+        from cgnk_knowledge import internalize_evidence, new_project_knowledge_pack
+
+        result = internalize_evidence(
+            new_project_knowledge_pack("schema"),
+            {
+                "content": "Exact raw\r\nevidence\r\n",
+                "item_type": "research_finding",
+                "scope": "project",
+                "source_ref": "source:schema",
+                "subject_ref": "schema.raw",
+                "branch_ref": "schema",
+                "source_version": "1",
+            },
+        )
+        self.assertEqual([], self.validate_doc(result["pack"], "project_knowledge_pack.schema.json"))
+        self.assertEqual([], self.validate_doc(result["receipt"], "knowledge_internalization_receipt.schema.json"))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/knowledge_internalization_receipt.schema.json",
+  "title": "KnowledgeInternalizationReceipt",
+  "type": "object",
+  "required": ["kind", "schema_version", "relation", "evidence_id", "content_hash", "raw_committed", "lifecycle", "model_calls", "provider_calls", "nodes_invalidated", "nodes_recomputed", "unrelated_nodes_touched", "index_items_scanned", "candidate_items_visited", "bucket_items_touched", "policy", "elapsed_ms"],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {"const": "KnowledgeInternalizationReceipt"},
+    "schema_version": {"const": "1.0"},
+    "relation": {"enum": ["EXACT_DUPLICATE", "SUPPORTING", "NOVEL", "SUPERSEDING", "CONTRADICTING", "CORRECTION", "RETRACTION", "UNRESOLVED_RELATION"]},
+    "evidence_id": {"type": "string", "minLength": 1},
+    "target_id": {"type": "string"},
+    "content_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "raw_committed": {"type": "boolean"},
+    "observation_metadata_updated": {"type": "boolean"},
+    "lifecycle": {"type": "array", "items": {"enum": ["OBSERVED", "IDENTIFIED", "DEDUPED", "LOCATED", "RAW_COMMITTED", "RELATION_CLASSIFIED", "DEPENDENTS_INVALIDATED", "DERIVED_STALE", "INTERNALIZED", "AVAILABLE"]}},
+    "model_calls": {"type": "integer", "minimum": 0},
+    "provider_calls": {"type": "integer", "minimum": 0},
+    "nodes_invalidated": {"type": "array", "items": {"type": "string"}},
+    "nodes_recomputed": {"type": "array", "items": {"type": "string"}},
+    "unrelated_nodes_touched": {"type": "integer", "minimum": 0},
+    "index_items_scanned": {"type": "integer", "minimum": 0},
+    "candidate_items_visited": {"type": "integer", "minimum": 0},
+    "bucket_items_touched": {"type": "integer", "minimum": 0},
+    "policy": {"enum": ["FLAT_APPEND", "EAGER_GLOBAL_REBUILD", "LOCAL_LAZY"]},
+    "elapsed_ms": {"type": "number", "minimum": 0}
+  }
+}

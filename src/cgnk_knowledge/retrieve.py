@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .store import IMPORTANCE_RANK, NEED_RANK
+from .store import IMPORTANCE_RANK, NEED_RANK, knowledge_index_is_current
 
 
 REVIEW_RANK = {"accepted": 0, "auto_extracted": 1, "candidate": 2, "conflict": 3, "rejected": 9}
@@ -40,6 +40,8 @@ def item_relevance(item: dict[str, Any], query: dict[str, Any]) -> int:
 
 
 def _exclude_reason(item: dict[str, Any], query: dict[str, Any]) -> str | None:
+    if item.get("derived_state") == "stale":
+        return "derived_stale"
     status = item.get("status", "active")
     retention = item.get("retention", "keep")
     if status == "superseded":
@@ -93,9 +95,31 @@ def retrieve_relevant_knowledge(pack: dict[str, Any], query: dict[str, Any]) -> 
         "max_items": 20,
         **(query or {}),
     }
+    all_items = pack.get("all_items", [])
+    index_used = False
+    candidate_pool = all_items
+    if effective_query.get("require_relevance") and knowledge_index_is_current(pack):
+        index = pack["knowledge_index"]
+        query_terms = _terms(effective_query.get("goal")) | {
+            str(value).casefold() for value in effective_query.get("selected_modules", ()) if str(value)
+        }
+        # This is an indexed implementation of the existing any-term lexical
+        # relevance rule, so candidate acceleration does not change selection
+        # semantics or lose multi-fact evidence.
+        indexed_ids = {
+            item_id
+            for term in query_terms
+            for item_id in index.get("by_term", {}).get(term, ())
+        }
+        candidate_pool = [
+            all_items[int(index["by_id"][item_id])]
+            for item_id in sorted(indexed_ids)
+            if item_id in index.get("by_id", {})
+        ]
+        index_used = True
     candidates: list[dict[str, Any]] = []
     excluded: list[dict[str, Any]] = []
-    for item in pack.get("all_items", []):
+    for item in candidate_pool:
         reason = _exclude_reason(item, effective_query)
         if reason:
             excluded.append({"item": item, "reason": reason})
@@ -122,5 +146,11 @@ def retrieve_relevant_knowledge(pack: dict[str, Any], query: dict[str, Any]) -> 
             {"item_id": item.get("id"), "reason": "ranked by review_state, lexical relevance, importance, need_state, scope, type, tags"}
             for item in selected
         ],
+        "metrics": {
+            "index_used": index_used,
+            "pack_items": len(all_items),
+            "candidates_evaluated": len(candidate_pool),
+            "selected_items": len(selected),
+        },
         "diagnostics": diagnostics,
     }
