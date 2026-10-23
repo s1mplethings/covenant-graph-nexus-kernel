@@ -17,12 +17,22 @@ from cgkn.execution import (
 from cgkn.executors import ExecutorDescriptor
 
 try:
-    from cgnk_knowledge import KnowledgeMaintenancePolicy, internalize_evidence
+    from cgnk_knowledge import (
+        KnowledgeMaintenancePolicy,
+        internalize_evidence,
+        load_project_knowledge,
+        save_project_knowledge,
+    )
 except ImportError:  # pragma: no cover - repository source layout fallback
     source_root = pathlib.Path(__file__).resolve().parents[3] / "src"
     if str(source_root) not in sys.path:
         sys.path.insert(0, str(source_root))
-    from cgnk_knowledge import KnowledgeMaintenancePolicy, internalize_evidence
+    from cgnk_knowledge import (
+        KnowledgeMaintenancePolicy,
+        internalize_evidence,
+        load_project_knowledge,
+        save_project_knowledge,
+    )
 
 
 KNOWLEDGE_INTERNALIZATION_COMPONENT_SPEC = ComponentSpec(
@@ -54,6 +64,26 @@ class KnowledgeInternalizationService:
     ) -> dict[str, Any]:
         return internalize_evidence(pack, evidence, policy=policy)
 
+    def internalize_persisted(
+        self,
+        knowledge_path: str,
+        evidence: Mapping[str, Any],
+        *,
+        policy: KnowledgeMaintenancePolicy | str = KnowledgeMaintenancePolicy.LOCAL_LAZY,
+    ) -> dict[str, Any]:
+        """Load, mutate, and CAS-commit one bounded authoritative delta."""
+        pack = load_project_knowledge(knowledge_path)
+        result = internalize_evidence(pack, evidence, policy=policy)
+        persistence = save_project_knowledge(
+            knowledge_path,
+            result["pack"],
+            mutation=result.get("persistence_mutation"),
+        )
+        result["receipt"] = {**dict(result["receipt"]), "persistence": {
+            key: value for key, value in persistence.items() if key != "pack"
+        }}
+        return result
+
 
 class KnowledgeInternalizationExecutor:
     descriptor = ExecutorDescriptor(
@@ -77,7 +107,12 @@ class KnowledgeInternalizationExecutor:
             if not isinstance(pack, Mapping) or not isinstance(evidence, Mapping):
                 raise ValueError("knowledge_pack and evidence inputs are required")
             policy = str(request.metadata.get("maintenance_policy", KnowledgeMaintenancePolicy.LOCAL_LAZY.value))
-            result = self.service.internalize(_thaw(pack), _thaw(evidence), policy=policy)
+            knowledge_path = str(request.metadata.get("knowledge_path", ""))
+            result = (
+                self.service.internalize_persisted(knowledge_path, _thaw(evidence), policy=policy)
+                if knowledge_path
+                else self.service.internalize(_thaw(pack), _thaw(evidence), policy=policy)
+            )
             receipt = dict(result["receipt"])
             return BlockExecutionResult(
                 request.project_id,

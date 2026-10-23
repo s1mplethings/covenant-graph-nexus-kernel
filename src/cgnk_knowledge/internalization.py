@@ -7,7 +7,13 @@ from enum import Enum
 from typing import Any, Callable, Mapping
 
 from .normalize import normalize_text, stable_hash_for
-from .store import ACTIVE_BUCKETS, build_knowledge_index, knowledge_index_is_current
+from .store import (
+    ACTIVE_BUCKETS,
+    attach_pending_mutation,
+    build_knowledge_index,
+    build_pack_mutation,
+    knowledge_index_is_current,
+)
 
 
 class KnowledgeRelation(str, Enum):
@@ -360,9 +366,18 @@ def internalize_evidence(
             out["knowledge_revision"] = int(out.get("knowledge_revision", 0)) + 1
             index["pack_revision"] = out["knowledge_revision"]
             bucket_touched = _sync_buckets(out, index, {existing_id: existing})
+        persistence_mutation = (
+            build_pack_mutation(
+                out, [existing_id], operation_kind="UPSERT_ITEMS",
+                provenance={"relation": KnowledgeRelation.EXACT_DUPLICATE.value, "policy": policy.value},
+            )
+            if changed else None
+        )
+        attach_pending_mutation(out, persistence_mutation)
         lifecycle.extend(["DEDUPED", "AVAILABLE"])
         return {
             "kind": "KnowledgeInternalizationResult", "pack": out,
+            "persistence_mutation": persistence_mutation,
             "receipt": {
                 "kind": "KnowledgeInternalizationReceipt", "schema_version": "1.0",
                 "relation": KnowledgeRelation.EXACT_DUPLICATE.value, "evidence_id": existing_id,
@@ -449,9 +464,20 @@ def internalize_evidence(
         refresh = refresh_stale_abstractions(out, node_ids=invalidated, reducer=eager_reducer)
         out = refresh["pack"]
         recomputed = list(refresh["receipt"]["nodes_recomputed"])
+        refreshed_index = out.get("knowledge_index", {}).get("by_id", {})
+        for item_id in recomputed:
+            if item_id in refreshed_index:
+                changed[item_id] = out["all_items"][int(refreshed_index[item_id])]
+    persistence_mutation = build_pack_mutation(
+        out, changed,
+        operation_kind="UPSERT_ITEMS",
+        provenance={"relation": relation.value, "policy": policy.value},
+    )
+    attach_pending_mutation(out, persistence_mutation)
     lifecycle.extend(["INTERNALIZED", "AVAILABLE"])
     return {
         "kind": "KnowledgeInternalizationResult", "pack": out,
+        "persistence_mutation": persistence_mutation,
         "receipt": {
             "kind": "KnowledgeInternalizationReceipt", "schema_version": "1.0",
             "relation": relation.value, "evidence_id": evidence_id, "target_id": target_id,
@@ -530,8 +556,13 @@ def refresh_stale_abstractions(
         out["knowledge_revision"] = int(out.get("knowledge_revision", 0)) + 1
         index["pack_revision"] = out["knowledge_revision"]
         _sync_buckets(out, index, changed)
+    persistence_mutation = (
+        build_pack_mutation(out, recomputed, operation_kind="REFRESH") if recomputed else None
+    )
+    attach_pending_mutation(out, persistence_mutation)
     return {
         "kind": "KnowledgeRefreshResult", "pack": out,
+        "persistence_mutation": persistence_mutation,
         "receipt": {
             "kind": "KnowledgeRefreshReceipt", "schema_version": "1.0",
             "status": "PASS" if not pending else "PARTIAL_BLOCKED_DEPENDENCY",

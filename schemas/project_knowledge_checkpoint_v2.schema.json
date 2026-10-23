@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/project_knowledge_checkpoint_v2.schema.json",
+  "title": "ProjectKnowledgeCheckpointV2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "format_version", "checkpoint_id", "pack_id", "covered_sequence", "authority_root_hash", "logical_state_hash", "schema_version", "created_at", "authority", "knowledge_index", "index_hash"],
+  "properties": {
+    "kind": {"const": "ProjectKnowledgeCheckpoint"},
+    "format_version": {"const": "2.0"},
+    "checkpoint_id": {"type": "string"},
+    "pack_id": {"type": "string"},
+    "covered_sequence": {"type": "integer", "minimum": 1},
+    "authority_root_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "logical_state_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "schema_version": {"type": "string"},
+    "created_at": {"type": "string"},
+    "authority": {"type": "object"},
+    "knowledge_index": {"type": "object"},
+    "index_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

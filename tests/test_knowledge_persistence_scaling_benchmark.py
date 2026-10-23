@@ -6,6 +6,11 @@ import pathlib
 import sys
 import tempfile
 
+import pytest
+
+
+pytestmark = pytest.mark.benchmark
+
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PATH = ROOT / "benchmarks" / "knowledge_persistence_scaling" / "runner.py"

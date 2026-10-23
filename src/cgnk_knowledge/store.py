@@ -2,9 +2,22 @@ from __future__ import annotations
 
 import json
 import hashlib
+import os
 import pathlib
 import re
 from typing import Any
+
+from .persistence import (
+    DEFAULT_POLICY,
+    PersistencePolicy,
+    SegmentedKnowledgeStore,
+    TrackedKnowledgePack,
+    attach_pending_mutation,
+    build_pack_mutation,
+    clone_pack,
+    detect_persistence_format,
+    tracked_pack,
+)
 
 
 IMPORTANCE_RANK = {"critical": 0, "high": 1, "medium": 2, "low": 3, "noise": 4}
@@ -132,8 +145,10 @@ def _active(item: dict[str, Any]) -> bool:
     )
 
 
-def rebuild_pack_indexes(pack: dict[str, Any]) -> dict[str, Any]:
-    all_items = _sorted_items([dict(row) for row in pack.get("all_items", [])])
+def rebuild_pack_buckets(pack: dict[str, Any], *, sort_all_items: bool = True) -> dict[str, Any]:
+    all_items = [dict(row) for row in pack.get("all_items", [])]
+    if sort_all_items:
+        all_items = _sorted_items(all_items)
     pack["all_items"] = all_items
     for bucket in ACTIVE_BUCKETS.values():
         pack[bucket] = []
@@ -149,6 +164,11 @@ def rebuild_pack_indexes(pack: dict[str, Any]) -> dict[str, Any]:
         list({row["id"]: row for row in pack.get("discarded_items", []) + [row for row in all_items if row.get("retention") == "discard"]}.values())
     )
     pack.setdefault("knowledge_revision", 0)
+    return pack
+
+
+def rebuild_pack_indexes(pack: dict[str, Any]) -> dict[str, Any]:
+    rebuild_pack_buckets(pack)
     pack["knowledge_index"] = build_knowledge_index(pack)
     return pack
 
@@ -178,24 +198,116 @@ def new_project_knowledge_pack(project: str, pack_id: str | None = None) -> dict
         "knowledge_revision": 0,
         "knowledge_index": {},
     }
-    return rebuild_pack_indexes(pack)
+    return tracked_pack(rebuild_pack_indexes(pack))
 
 
-def load_project_knowledge(path: str | pathlib.Path) -> dict[str, Any]:
+def load_legacy_project_knowledge(path: str | pathlib.Path) -> TrackedKnowledgePack:
     data = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
-    return rebuild_pack_indexes(data)
+    if not isinstance(data, dict) or data.get("kind") != "ProjectKnowledgePack":
+        raise ValueError("legacy ProjectKnowledgePack document is invalid")
+    return tracked_pack(rebuild_pack_indexes(data))
 
 
-def save_project_knowledge(path: str | pathlib.Path, pack: dict[str, Any]) -> dict[str, Any]:
+def load_project_knowledge(
+    path: str | pathlib.Path, *, use_checkpoint: bool = True, as_of_sequence: int | None = None,
+) -> dict[str, Any]:
+    persistence_format = detect_persistence_format(path)
+    if persistence_format == "1":
+        if as_of_sequence is not None:
+            raise ValueError("legacy ProjectKnowledgePack does not support as_of_sequence")
+        return load_legacy_project_knowledge(path)
+    if persistence_format == "2":
+        return SegmentedKnowledgeStore(path).load(use_checkpoint=use_checkpoint, as_of_sequence=as_of_sequence)
+    raise FileNotFoundError(path)
+
+
+def save_legacy_project_knowledge(path: str | pathlib.Path, pack: dict[str, Any]) -> dict[str, Any]:
     target = pathlib.Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     clean = rebuild_pack_indexes(dict(pack))
-    target.write_text(json.dumps(clean, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    data = (json.dumps(clean, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    temporary = target.with_name(f".{target.name}.{os.getpid()}.tmp")
+    with temporary.open("wb") as handle:
+        handle.write(data)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary, target)
     return {"kind": "KnowledgeStoreWriteResult", "path": str(target), "pack": clean, "diagnostics": []}
 
 
+def _fallback_mutation(current: dict[str, Any], desired: dict[str, Any]) -> dict[str, Any] | None:
+    current_by_id = {str(row.get("id")): row for row in current.get("all_items", ())}
+    desired_by_id = {str(row.get("id")): row for row in desired.get("all_items", ())}
+    removed = sorted(set(current_by_id) - set(desired_by_id))
+    if removed:
+        raise ValueError("v2 persistence forbids deleting authoritative history; use lifecycle state: " + ",".join(removed))
+    changed = sorted(
+        item_id for item_id, item in desired_by_id.items()
+        if item_id not in current_by_id
+        or json.dumps(item, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        != json.dumps(current_by_id[item_id], ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    )
+    metadata_keys = ("kind", "id", "project", "version", "knowledge_revision", "diagnostics")
+    metadata_changed = any(current.get(key) != desired.get(key) for key in metadata_keys)
+    if not changed and not metadata_changed:
+        return None
+    return build_pack_mutation(desired, changed, operation_kind="UPSERT_ITEMS", provenance={"reason": "fallback_diff"})
+
+
+def save_project_knowledge(
+    path: str | pathlib.Path, pack: dict[str, Any], *, format_version: str | None = None,
+    mutation: dict[str, Any] | list[dict[str, Any]] | None = None,
+    policy: PersistencePolicy = DEFAULT_POLICY,
+) -> dict[str, Any]:
+    target = pathlib.Path(path)
+    detected = detect_persistence_format(target)
+    requested = str(format_version) if format_version is not None else None
+    if requested not in {None, "1", "2", "2.0"}:
+        raise ValueError(f"unsupported persistence format: {requested}")
+    if detected == "1":
+        if requested in {"2", "2.0"}:
+            raise ValueError("legacy stores require explicit migrate_legacy_pack")
+        return save_legacy_project_knowledge(target, pack)
+    if requested == "1":
+        if detected == "2":
+            raise ValueError("cannot write legacy format over a v2 store")
+        return save_legacy_project_knowledge(target, pack)
+    if detected == "NEW":
+        store = SegmentedKnowledgeStore(target, policy=policy)
+        result = store.initialize(pack)
+        if isinstance(pack, TrackedKnowledgePack):
+            pack._persistence_root = str(target.resolve())
+            pack._persistence_sequence = int(result["sequence_end"])
+            pack._persistence_authority_root = str(result["authority_root_hash"])
+            pack._pending_mutations.clear()
+        return {**result, "pack": pack}
+    store = SegmentedKnowledgeStore(target, policy=policy)
+    mutations: list[dict[str, Any]]
+    if isinstance(mutation, list):
+        mutations = [dict(row) for row in mutation]
+    elif isinstance(mutation, dict):
+        mutations = [dict(mutation)]
+    elif isinstance(pack, TrackedKnowledgePack) and pack._persistence_root == str(target.resolve()):
+        mutations = [dict(row) for row in pack._pending_mutations]
+    else:
+        current = store.load()
+        fallback = _fallback_mutation(current, pack)
+        mutations = [fallback] if fallback else []
+    expected_sequence = None
+    expected_root = None
+    if isinstance(pack, TrackedKnowledgePack) and pack._persistence_root == str(target.resolve()):
+        expected_sequence = pack._persistence_sequence
+        expected_root = pack._persistence_authority_root
+    result = store.commit_mutations(mutations, expected_sequence=expected_sequence, expected_authority_root=expected_root)
+    if isinstance(pack, TrackedKnowledgePack) and not result.get("no_op"):
+        pack._persistence_sequence = int(result["sequence_end"])
+        pack._persistence_authority_root = str(result["authority_root_hash"])
+        pack._pending_mutations.clear()
+    return {**result, "pack": pack}
+
+
 def upsert_knowledge_items(pack: dict[str, Any], items: list[dict[str, Any]]) -> dict[str, Any]:
-    out = dict(pack or new_project_knowledge_pack("CGKN"))
+    out = clone_pack(pack) if pack else new_project_knowledge_pack("CGKN")
     by_id = {str(row.get("id")): dict(row) for row in out.get("all_items", [])}
     diagnostics: list[dict[str, Any]] = []
     for item in items:
@@ -212,25 +324,39 @@ def upsert_knowledge_items(pack: dict[str, Any], items: list[dict[str, Any]]) ->
     out["all_items"] = list(by_id.values())
     out["diagnostics"] = list(out.get("diagnostics", [])) + diagnostics
     out["knowledge_revision"] = int(out.get("knowledge_revision", 0)) + 1
-    return rebuild_pack_indexes(out)
+    rebuild_pack_indexes(out)
+    attach_pending_mutation(out, build_pack_mutation(out, [str(row.get("id")) for row in items], operation_kind="UPSERT_ITEMS"))
+    return out
 
 
 def archive_knowledge_item(pack: dict[str, Any], item_id: str, reason: str | None = None) -> dict[str, Any]:
-    out = dict(pack)
+    out = clone_pack(pack)
+    out["all_items"] = [dict(item) for item in out.get("all_items", ())]
+    changed = False
     for item in out.get("all_items", []):
         if item.get("id") == item_id:
             item["status"] = "archived"
             item["retention"] = "archive"
             item.setdefault("diagnostics", []).append({"code": "CGNK_KNOWLEDGE_SUPERSEDED", "severity": "info", "message": reason or "archived"})
             out["knowledge_revision"] = int(out.get("knowledge_revision", 0)) + 1
-    return rebuild_pack_indexes(out)
+            changed = True
+    rebuild_pack_indexes(out)
+    if changed:
+        attach_pending_mutation(out, build_pack_mutation(out, [item_id], operation_kind="ARCHIVE", provenance={"reason": reason or "archived"}))
+    return out
 
 
 def discard_knowledge_item(pack: dict[str, Any], item_id: str, reason: str | None = None) -> dict[str, Any]:
-    out = dict(pack)
+    out = clone_pack(pack)
+    out["all_items"] = [dict(item) for item in out.get("all_items", ())]
+    changed = False
     for item in out.get("all_items", []):
         if item.get("id") == item_id:
             item["retention"] = "discard"
             item.setdefault("diagnostics", []).append({"code": "CGNK_KNOWLEDGE_DISCARDED", "severity": "info", "message": reason or "discarded"})
             out["knowledge_revision"] = int(out.get("knowledge_revision", 0)) + 1
-    return rebuild_pack_indexes(out)
+            changed = True
+    rebuild_pack_indexes(out)
+    if changed:
+        attach_pending_mutation(out, build_pack_mutation(out, [item_id], operation_kind="DISCARD", provenance={"reason": reason or "discarded"}))
+    return out
