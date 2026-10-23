@@ -321,7 +321,7 @@
       "id": "PB-025",
       "title": "Validate local-lazy knowledge growth and internalization",
       "priority": 22,
-      "state": "in_progress",
+      "state": "done",
       "value": "Preserve raw evidence while classifying updates, invalidating only dependent abstractions, refreshing derived knowledge on demand, and measuring maintenance cost as the knowledge pack grows.",
       "acceptance": [
         "exact duplicate ingestion performs zero model calls and no derived rebuild",
@@ -330,7 +330,7 @@
         "Conversation excludes stale abstractions and can retrieve updated raw evidence with preserved provenance",
         "100, 1000, and 5000 entry comparisons report write, retrieval, context, recomputation, and model-call costs for flat, eager, and local-lazy policies"
       ],
-      "evidence_status": "NOT_EVALUATED"
+      "evidence_status": "PASS"
     }
   ]
 }

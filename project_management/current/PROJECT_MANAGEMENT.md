@@ -20,7 +20,7 @@ The remaining compatibility runtime is intentionally retained:
 
 Further cleanup inside that cluster now requires a working replacement path.
 
-## Current feature increment
+## Completed feature increment
 
 `ITER-CGNK-KNOWLEDGE-GROWTH-INTERNALIZATION-044` validates how the existing
 `ProjectKnowledgePack` accepts new raw evidence, preserves provenance, records
@@ -30,6 +30,12 @@ without introducing a second knowledge or retrieval authority.
 The iteration uses a hybrid approach: stable raw-evidence, identity, safety,
 Conversation, and authority constraints surround an adaptive local-lazy update
 implementation and deterministic 100/1000/5000-entry maintenance comparison.
+
+The increment is closed `PASS`. Exact duplicates use zero model calls, local
+updates invalidate only actual dependent abstractions, stale derived nodes are
+excluded from Conversation, and on-demand refresh recomputes only the selected
+stale closure. The result is directional rather than statistically significant;
+full-pack JSON serialization remains linear and is tracked as a P2 risk.
 
 ## Roadmap after the active increment
 
@@ -54,6 +60,8 @@ Management records cannot authorize functional success, formal evidence, packagi
 
 ## Verification
 
-Local direction, focused, import, and collection checks pass. Full pytest
-execution and GitHub Actions verification remain `NOT_EVALUATED` and cannot be
-inferred from cleanup evidence.
+Source-bound validation passed: compileall, product direction, kernel
+architecture, test architecture, kernel completeness, receipt freshness, all
+eight deterministic Kernel profiles, 3041-test collection, and full pytest
+(`2690 passed`, `351 skipped`, `0 failed`, `0 errors`). Provider network usage
+was not required for this deterministic knowledge-maintenance increment.

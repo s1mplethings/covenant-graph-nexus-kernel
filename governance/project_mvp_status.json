@@ -1,9 +1,9 @@
 {
   "kind": "CGKNProjectMVPStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-CONVERSATION-PRODUCT-SURFACE-AND-ARCHITECTURE-CONVERGENCE-043",
-  "source_commit": "7320040abef270fd0dbf98ff5e80218ec1204e50",
-  "source_tree_sha": "348979a9f7ec9ea7b158ddd3ef803349a03083c4",
+  "iteration": "ITER-CGNK-KNOWLEDGE-GROWTH-INTERNALIZATION-044",
+  "source_commit": "b1c6eb9673fd20a2631e6a8f3a9206495dd1fef2",
+  "source_tree_sha": "62610b8600b8da4ea4c4586660b52ed7b3eca424",
   "product_source_commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
   "product_source_tree": "66056cf6432227681a117b1f5df9c3e6999475cd",
   "experiment_harness_commit": "bb65c0dd7ea6369487516dc6183e38cb8b541e34",
@@ -40,6 +40,13 @@
   "formal_server_supported_surface": "PASS",
   "conversation_capability": "PASS",
   "conversation_structure_benefit": "PROVEN_DIRECTIONALLY",
+  "conversation_after_knowledge_update": "PASS",
+  "knowledge_growth_status": "PASS",
+  "knowledge_internalization_status": "PASS",
+  "knowledge_invalidation_status": "PASS_LOCAL_LAZY",
+  "knowledge_internalization_benefit": "PROVEN_DIRECTIONALLY",
+  "knowledge_hot_path_model_calls": 0,
+  "knowledge_maintenance_scaling": "PASS_100_1000_5000_DIRECTIONAL",
   "model_capability_evaluation": "COMPLETE",
   "cgnk_structure_benefit": "PROVEN_DIRECTIONALLY",
   "efficiency_experiment_ready": true,
@@ -62,8 +69,8 @@
     },
     {
       "priority": "P2",
-      "code": "KNOWLEDGE_UPDATE_AND_RETRIEVAL_SCALING_NOT_EVALUATED",
-      "detail": "Conversation is read-only and validated on a fixed corpus; knowledge growth/update and larger-corpus retrieval scaling remain future product work."
+      "code": "MONOLITHIC_KNOWLEDGE_PACK_SERIALIZATION_IS_LINEAR",
+      "detail": "Semantic invalidation and indexed retrieval remain local, but serializing the complete ProjectKnowledgePack still grows linearly with pack size; sharding is deferred until real persistence evidence justifies it."
     }
   ]
 }

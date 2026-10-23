@@ -5,8 +5,8 @@
   "project_id": "cgkn",
   "goal": "Validate local-lazy knowledge growth, update, invalidation, internalization, and maintenance cost without adding a second knowledge authority.",
   "backlog_item_ids": ["PB-025"],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "PASS",
   "acceptance_criteria": [
     "raw evidence remains byte-faithful and provenance-bound while derived abstractions remain recomputable",
     "all required update relations and lifecycle stages produce deterministic auditable receipts",
@@ -53,7 +53,37 @@
     "cgnk_knowledge.retrieve_relevant_knowledge remains the only retrieval authority",
     "Conversation request and response semantics remain unchanged"
   ],
-  "evidence_refs": [],
-  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
-  "retrospective": {"worked": [], "did_not_work": [], "experiments": []}
+  "evidence_refs": [
+    "governance/project_mvp_status.json",
+    "governance/role_model_efficiency_status.json",
+    "governance/role_model_efficiency_receipt.json",
+    "governance/software_project_generation_receipt.json",
+    "D:/CGKN/.service_evidence/knowledge-growth-internalization-v1/benchmark.json",
+    "D:/CGKN/.service_evidence/knowledge-growth-internalization-v1/conversation-after-update.json",
+    "D:/CGKN/.service_evidence/knowledge-growth-internalization-v1/kernel-profile-unit-rerun.json",
+    "D:/CGKN/.service_evidence/knowledge-growth-internalization-v1/kernel-profiles.json"
+  ],
+  "review": {
+    "outcome": "accepted",
+    "feedback": [
+      "ProjectKnowledgePack remains the only knowledge authority and existing Conversation retrieval remains the only retrieval authority.",
+      "Local-lazy invalidation is bounded by actual dependencies and performs no hot-path recomputation or model calls.",
+      "The benefit claim is directional; full-pack serialization remains linear and is explicitly retained as a P2 risk."
+    ],
+    "accepted_backlog_item_ids": ["PB-025"]
+  },
+  "retrospective": {
+    "worked": [
+      "separating exact raw identity from semantic similarity",
+      "using explicit dependency edges and stale-derived exclusion",
+      "freezing source before 100/1000/5000 evidence and full regression"
+    ],
+    "did_not_work": [
+      "the first unit profile ran before the application receipt was refreshed and correctly failed freshness"
+    ],
+    "experiments": [
+      "Flat Append versus Eager Global Rebuild versus Local Lazy at 100, 1000, and 5000 entries",
+      "Conversation query after superseding evidence and stale-summary invalidation"
+    ]
+  }
 }

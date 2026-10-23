@@ -1,7 +1,7 @@
 {
   "kind": "CGKNRoleModelEfficiencyReceipt",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-CONVERSATION-PRODUCT-SURFACE-AND-ARCHITECTURE-CONVERGENCE-043",
+  "iteration": "ITER-CGNK-KNOWLEDGE-GROWTH-INTERNALIZATION-044",
   "product_source": {
     "commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
     "tree": "66056cf6432227681a117b1f5df9c3e6999475cd",
@@ -75,6 +75,60 @@
       "actual_token_usage_complete": true
     },
     "evidence": "D:/CGKN/.service_evidence/conversation-product-surface-v4"
+  },
+  "knowledge_growth_internalization": {
+    "source_commit": "b1c6eb9673fd20a2631e6a8f3a9206495dd1fef2",
+    "source_tree": "62610b8600b8da4ea4c4586660b52ed7b3eca424",
+    "component_ref": "knowledge.internalize@1.0",
+    "knowledge_authority": "ProjectKnowledgePack",
+    "retrieval_authority": "cgnk_knowledge.retrieve_relevant_knowledge",
+    "pre_iteration_gap_classification": "PARTIAL_LIFECYCLE_WITHOUT_DEPENDENCY_INVALIDATION",
+    "raw_evidence_is_source": true,
+    "derived_abstraction_is_recomputable_cache": true,
+    "relations": ["EXACT_DUPLICATE", "SUPPORTING", "NOVEL", "SUPERSEDING", "CONTRADICTING", "CORRECTION", "RETRACTION", "UNRESOLVED_RELATION"],
+    "hot_path_model_calls": 0,
+    "warm_classifier": "OPTIONAL_BOUNDED_AND_DETERMINISTICALLY_VALIDATED",
+    "cold_refresh": "EXPLICIT_ON_DEMAND_OR_BATCH",
+    "exact_duplicate": {
+      "status": "PASS",
+      "model_calls": 0,
+      "raw_committed": false,
+      "nodes_invalidated": 0,
+      "nodes_recomputed": 0
+    },
+    "conversation_after_update": {
+      "status": "PASS",
+      "relation": "SUPERSEDING",
+      "stale_summary_excluded": true,
+      "updated_raw_selected": true,
+      "provider_calls": 0
+    },
+    "maintenance_comparison": {
+      "sizes": [100, 1000, 5000],
+      "flat_append": {
+        "write_ms": [0.295, 0.603, 1.681],
+        "retrieval_candidates": [101, 1001, 5001],
+        "context_chars": [3290, 34790, 182790]
+      },
+      "eager_global_rebuild": {
+        "write_ms": [2.719, 160.145, 4843.445],
+        "nodes_recomputed_on_write": [10, 100, 500]
+      },
+      "local_lazy": {
+        "write_ms": [0.207, 0.491, 1.975],
+        "nodes_invalidated": [1, 1, 1],
+        "nodes_recomputed_on_write": [0, 0, 0],
+        "nodes_recomputed_on_demand": [1, 1, 1],
+        "retrieval_candidates": [2, 2, 2],
+        "context_chars": [32, 32, 32]
+      }
+    },
+    "knowledge_internalization_benefit": "PROVEN_DIRECTIONALLY",
+    "monolithic_pack_serialization": "LINEAR_IN_PACK_SIZE",
+    "statistical_significance_claimed": false,
+    "benchmark_hash": "sha256:fa7abf6958776948543254be9bc02f321f4b614c15de84496fcd4752a3575d74",
+    "conversation_after_update_hash": "sha256:a565ee264c948774740633d8ad5107487570afed398f25abc3f0a7e35a549feb",
+    "evidence": "D:/CGKN/.service_evidence/knowledge-growth-internalization-v1"
   },
   "api_lab_dependency": {
     "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
@@ -245,22 +299,28 @@
     "test_architecture_gate": "PASS",
     "kernel_completeness_gate": "PASS",
     "receipt_freshness": "PASS",
-    "application": "PASS_471_SKIP_1",
-    "kernel_profiles_fast": "PASS",
-    "active_repository": "PASS_2671_SKIP_351",
-    "full_pytest": "PASS_2671_SKIP_351",
-    "collection": "PASS_3022",
-    "canonical_python": "C:/Users/sunom/AppData/Local/Programs/Python/Python313/python.exe",
-    "noncanonical_python_diagnostic": "PYTHON_3_12_TEST_AUTHORITY_AST_VARIANCE_NOT_FORMAL_EVIDENCE",
-    "evidence": "D:/CGKN/.service_worktree/conversation-product-surface/artifacts/kernel-profile-active-repository-0.xml"
+    "application_and_knowledge": "PASS_518_SKIP_1",
+    "kernel_profiles": "PASS_STATIC_UNIT_BOUNDARY_FAULT_SECURITY_LOCAL_FUNCTIONAL_FULL_CORE_ACTIVE_REPOSITORY",
+    "unit_profile": "PASS_479_SKIP_1_AFTER_RECEIPT_REFRESH",
+    "active_repository": "PASS_2690_SKIP_351",
+    "full_pytest": "PASS_2690_SKIP_351",
+    "collection": "PASS_3041",
+    "canonical_python": "D:/anaconda/python.exe (Python 3.12.3)",
+    "evidence": "D:/CGKN/.service_evidence/knowledge-growth-internalization-v1/kernel-profiles.json",
+    "unit_rerun_evidence": "D:/CGKN/.service_evidence/knowledge-growth-internalization-v1/kernel-profile-unit-rerun.json"
   },
   "minimal_blueprint_status": "COMPLETE",
   "efficiency_experiment_ready": true,
   "formal_server_evaluation": "PASS",
   "conversation_capability": "PASS",
   "conversation_structure_benefit": "PROVEN_DIRECTIONALLY",
+  "knowledge_growth_status": "PASS",
+  "knowledge_internalization_status": "PASS",
+  "knowledge_invalidation_status": "PASS_LOCAL_LAZY",
+  "conversation_after_knowledge_update": "PASS",
+  "knowledge_internalization_benefit": "PROVEN_DIRECTIONALLY",
   "model_capability_evaluation": "COMPLETE",
   "multi_agent_status": "NOT_RECOMMENDED_CURRENT_EVIDENCE",
   "contains_credentials": false,
-  "receipt_hash": "sha256:0ba059e4d4421ad0227a04fc2b2f1b9bc0908d71b8ab590a7f5e374b780e9d43"
+  "receipt_hash": "sha256:b4ca72246f4c47e0793f9441043c7fa3684d95f614338775345250fbca514851"
 }
