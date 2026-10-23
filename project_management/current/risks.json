@@ -133,8 +133,8 @@
       "title": "Monolithic ProjectKnowledgePack persistence may dominate large write cost",
       "probability": "high",
       "impact": "high",
-      "signal": "At 100k items a local update requires a 255.75 MiB rewrite and 29.72 s P50 save; at 250k it requires 639.47 MiB and 80.62 s while persistence consumes 99.68 percent of update wall time.",
-      "response": "Treat the locality gap as proven. In a separate backward-compatible iteration, implement a checksummed segmented append authority with validated derived checkpoints and bounded compaction; preserve old-format loading and one logical ProjectKnowledgePack truth authority.",
+      "signal": "Production v2 local updates passed through 250k at 105.886 ms P50 and 15.472x write amplification, but 250k checkpoint cold start remains 21.485 percent slower than S0.",
+      "response": "Keep v2 explicit and v1 as the new-pack default until checkpoint deserialization and index materialization beat the 37.430 s S0 cold-start baseline without weakening correctness or crash safety.",
       "owner": "knowledge storage"
     },
     {

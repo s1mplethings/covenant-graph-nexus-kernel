@@ -1,57 +1,60 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-CGNK-V2-RESOURCE-SAFE-SCALE-QUALIFICATION-047",
+  "iteration_id": "ITER-CGNK-V2-RESOURCE-GATE-CALIBRATION-AND-SCALE-QUALIFICATION-048",
   "project_id": "cgkn",
-  "goal": "Qualify frozen production persistence v2 at 10k, 50k, 100k, and 250k under explicit resource safety gates without changing production semantics.",
+  "goal": "Replace the fixed 75 percent disk gate with an empirical peak-and-reserve policy, qualify frozen production persistence v2 through 250k, and adopt it only if every gate including S0 cold-start improvement passes.",
   "backlog_item_ids": ["PB-026"],
   "workflow_state": "closed",
-  "evidence_status": "BLOCKED_ENVIRONMENT",
-  "source_commit": "3439370f3e0a5ba118199dce10d429e77b77e24f",
-  "source_tree": "7de7e2a25b54fd6924f9e623253b7d6524f374e0",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "production_source_commit": "3439370f3e0a5ba118199dce10d429e77b77e24f",
+  "production_source_tree": "7de7e2a25b54fd6924f9e623253b7d6524f374e0",
+  "harness_commit": "e602f54adc620e5c91c94cf5f457ef808a71a48e",
   "acceptance_criteria": [
-    "run production v2 sequentially at 10k, 50k, 100k, and 250k only after resource gates pass",
-    "separate normal update, checkpoint, compaction, cold-start, workload, and crash-safety costs",
-    "preserve the frozen persistence, checkpoint, compaction, migration, Knowledge, retrieval, and Conversation semantics",
-    "adopt v2 for new packs only after every scale and correctness gate passes"
+    "calibrate the resource gate with real production-v2 1k and 5k probes",
+    "freeze the resource policy before formal 10k, 50k, 100k, and 250k runs",
+    "validate locality, checkpoint, compaction, crash recovery, mixed workloads, and restart-update-Conversation",
+    "retain v1 as the new-pack default unless every adoption gate including S0 cold-start improvement passes"
   ],
   "quality_metrics": [
-    {"id": "QM-RESOURCE-PREFLIGHT", "measure": "all available filesystems below 75 percent use before formal execution", "result": "FAIL_ALL_VOLUMES_ABOVE_75_PERCENT"},
-    {"id": "QM-SEQUENTIAL-SCALE", "measure": "10k then 50k then 100k then 250k production qualification", "result": "NOT_STARTED_RESOURCE_CAPACITY_NEEDS_USER"},
-    {"id": "QM-SOURCE-FREEZE", "measure": "production implementation and benchmark harness hashes remain unchanged", "result": "PASS"}
+    {"id": "QM-RESOURCE-CALIBRATION", "measure": "empirical absolute peak and explicit reserves", "result": "PASS_OLD_75_PERCENT_GATE_CONFIRMED_OVER_CONSERVATIVE"},
+    {"id": "QM-SEQUENTIAL-SCALE", "measure": "10k then 50k then 100k then 250k production qualification", "result": "PASS_4_OF_4"},
+    {"id": "QM-COLD-START", "measure": "250k checkpoint cold start improves on 37.430 s S0", "result": "FAIL_45_472_S_21_485_PERCENT_SLOWER"},
+    {"id": "QM-SOURCE-FREEZE", "measure": "production source remains unchanged", "result": "PASS"}
   ],
   "quality_activities": {
-    "prevention": ["75 percent pre-run volume threshold", "80 percent peak ceiling", "sequential scale retention", "production source freeze"],
-    "assurance": ["all fixed local volumes inventoried", "RAM, process RSS, and pagefile captured", "known benchmark scratch prefixes searched", "production-source diff checked empty"],
-    "control": ["10k not started while every volume failed the hard gate", "no user-owned data, repository, evidence, or authoritative pack deleted", "v1 remains the new-pack default"],
-    "improvement": ["resume only after a benchmark volume is below 75 percent use with peak headroom"]
+    "prevention": ["empirical calibration", "frozen conservative estimator", "transaction and OS reserves", "memory gate", "98 percent predicted-use secondary guard"],
+    "assurance": ["per-scale preflight", "actual-versus-predicted peak monitoring", "semantic equivalence", "crash recovery", "restart-update-Conversation"],
+    "control": ["sequential scratch lifecycle", "post-run cleanup", "no user or authoritative data deletion", "v1 default retained after cold-start failure"],
+    "improvement": ["optimize v2 checkpoint deserialization/index materialization before reconsidering default adoption"]
   },
   "interface_expectations": [
     "ProjectKnowledgePack remains the sole logical authority",
     "production v2 source stays frozen at 3439370f3e0a5ba118199dce10d429e77b77e24f",
-    "benchmark results remain NOT_EVALUATED rather than inferred",
-    "existing v1 packs remain readable and never auto-migrate"
+    "existing v1 packs remain readable and never auto-migrate",
+    "retrieval P2 remains unchanged"
   ],
   "evidence_refs": [
     "project_management/current/resource_preflight_report.json",
-    "project_management/summaries/v2_resource_safe_scale_qualification_20261023.md",
+    "project_management/current/v2_scale_qualification_report.json",
+    "project_management/summaries/v2_resource_gate_scale_qualification_20261024.md",
     "governance/role_model_efficiency_receipt.json",
-    "artifacts/kernel-profile-active-repository-iter-046-final.json"
+    "D:/CGKN/.service_evidence/v2-resource-gate-scale-qualification-048/formal-final/productionization-report.json"
   ],
   "review": {
-    "outcome": "blocked_environment",
+    "outcome": "scale_pass_adoption_blocked_cold_start",
     "feedback": [
-      "No fixed local volume satisfied the less-than-75-percent used hard gate.",
-      "Memory fell from 78.57 percent to 68.05 percent, so disk capacity is the decisive blocker.",
-      "No disposable production-v2 scale workspace existed; 125.85 MiB of generic caches was materially insufficient to open the gate.",
-      "No formal scale worker was started and no production or harness source was changed."
+      "F: safely passed the empirical absolute-headroom gate despite 82.904 percent pre-run use.",
+      "All formal scales and correctness checks passed within the frozen conservative bounds.",
+      "250k checkpoint cold start was 45.472 s versus the 37.430 s S0 baseline, so the adoption gate did not pass.",
+      "No adoption commit was created and v1 remains the new-pack default."
     ],
-    "accepted_backlog_item_ids": [],
-    "blocked_backlog_item_ids": ["PB-026"]
+    "accepted_backlog_item_ids": ["PB-026"],
+    "blocked_backlog_item_ids": []
   },
   "retrospective": {
-    "worked": ["fail-closed preflight prevented unsafe disk pressure", "separating resource bounds from product failure", "preserving the frozen source and prior correctness evidence"],
-    "did_not_work": ["the host had no volume below the required 75 percent utilization threshold", "safe scratch discovery found no material disposable v2 benchmark corpus"],
-    "experiments": ["resource preflight only; 10k formal measurement intentionally not started"]
+    "worked": ["empirical resource calibration", "absolute-headroom volume selection", "sequential disposable scratch", "formal 250k semantic and crash validation"],
+    "did_not_work": ["fixed 75 percent used as a standalone hard gate", "v2 checkpoint cold start did not beat S0 at 250k"],
+    "experiments": ["1k and 5k calibration", "10k/50k/100k/250k scale", "100k crash", "100k and 250k mixed workloads"]
   }
 }

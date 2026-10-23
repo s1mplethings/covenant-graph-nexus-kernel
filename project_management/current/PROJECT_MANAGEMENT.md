@@ -22,15 +22,17 @@ Further cleanup inside that cluster now requires a working replacement path.
 
 ## Current feature increment
 
-`ITER-CGNK-V2-RESOURCE-SAFE-SCALE-QUALIFICATION-047` attempted to qualify the
-frozen production persistence-v2 source at 10k, 50k, 100k, and 250k without
-changing storage or knowledge semantics.
+`ITER-CGNK-V2-RESOURCE-GATE-CALIBRATION-AND-SCALE-QUALIFICATION-048` replaced
+the fixed 75 percent disk gate with a frozen empirical peak-and-reserve policy.
+Real production-v2 probes at 1k and 5k calibrated the estimator, after which F:
+passed on absolute disk and memory headroom despite being 82.904 percent used.
 
-The increment is closed `BLOCKED_ENVIRONMENT`. Every fixed local volume exceeded
-the hard 75 percent pre-run utilization threshold, so no 10k worker was started.
-Memory recovered below the threshold; disk remains decisive. Q: needs at least
-31.117 GiB additional free space to cross the hard gate. Production v2 remains
-explicit opt-in and v1 remains the new-pack default.
+The frozen production v2 source passed formal 10k, 50k, 100k, and 250k scale,
+checkpoint, compaction, semantic, mixed-workload, crash-recovery, and
+restart-update-Conversation checks. However, the adoption gate remains closed:
+250k checkpoint cold start took 45.472 seconds versus the 37.430-second S0
+baseline, a 21.485 percent regression. No adoption commit was created; v1
+remains the new-pack default and v2 remains explicit opt-in.
 
 ## Roadmap after the active increment
 
@@ -55,8 +57,11 @@ Management records cannot authorize functional success, formal evidence, packagi
 
 ## Verification
 
-The frozen ITER-046 source-bound validation remains current: compileall, product
-direction, kernel architecture, test architecture, kernel completeness, receipt
-freshness, all eight deterministic Kernel profiles, 3112-test collection, and
-full pytest (`2755 passed`, `357 skipped`, `0 failed`, `0 errors`). ITER-047
-changed evidence only and started no benchmark worker.
+The frozen product source retains the ITER-046 source-bound full regression:
+compileall, all deterministic Kernel profiles, 3112-test collection, and full
+pytest (`2755 passed`, `357 skipped`, `0 failed`, `0 errors`). ITER-048 changed
+only benchmark harness/tests and evidence. Its targeted verification is 70/70,
+and product direction, kernel architecture, test architecture, kernel
+completeness, and kernel test receipt gates all pass. Adoption-specific full
+regression is not applicable because the failed cold-start gate prevented any
+default change.

@@ -1,0 +1,91 @@
+{
+  "kind": "CGKNV2ScaleQualificationReport",
+  "schema_version": "1.0",
+  "iteration": "ITER-CGNK-V2-RESOURCE-GATE-CALIBRATION-AND-SCALE-QUALIFICATION-048",
+  "status": "PASS_WITH_ADOPTION_BLOCKED_COLD_START",
+  "production_source": {
+    "commit": "3439370f3e0a5ba118199dce10d429e77b77e24f",
+    "tree": "7de7e2a25b54fd6924f9e623253b7d6524f374e0",
+    "modified": false
+  },
+  "harness": {
+    "commit": "e602f54adc620e5c91c94cf5f457ef808a71a48e",
+    "resource_policy_hash": "sha256:51e774f95fac372862d1a9fc270ad48983c7d99b95a7dbb178be0e384c514ba9",
+    "peak_estimator_hash": "sha256:6b7ea0bf565a4fea46be4bfaae437675a2b6577c0909c84048ee950dc41482e7",
+    "harness_hash": "sha256:4af62c41c0c8e235fd077ff026cff18853cc1109e2c074be34696c064b783cc8",
+    "corpus_generator_hash": "sha256:affd7cca5ce88fc0732b1194ad0b2e7f3739b77678b7e8dd125a0ed8ba365c53",
+    "workload_hash": "sha256:82405d03ff53533bf72ee982905e1ada8e8f1bfdeb8ec6dccb925a289ab7914e"
+  },
+  "resource_gate": {
+    "status": "OVER_CONSERVATIVE_OLD_GATE_CONFIRMED",
+    "primary_rule": "conservative_peak_plus_explicit_reserves_with_memory_headroom",
+    "percentage_rule": "secondary_predicted_post_run_used_percent_below_98",
+    "selected_scratch_volume": "F:",
+    "pre_run_free_bytes": 341981667328,
+    "pre_run_used_percent": 82.904,
+    "predicted_250k_peak_bytes": 5701169517,
+    "required_250k_free_bytes": 27852463306,
+    "predicted_250k_post_run_free_bytes": 336280497811,
+    "actual_250k_peak_bytes": 479389001,
+    "actual_to_conservative_bound_percent": 8.409,
+    "deleted_user_or_authoritative_bytes": 0
+  },
+  "calibration": [
+    {"scale": 1000, "status": "PASS", "peak_disk_bytes": 3140456, "peak_rss_bytes": 64438272, "checkpoint_due_at_mutation": 255, "compaction_due_at_mutation": 63},
+    {"scale": 5000, "status": "PASS", "peak_disk_bytes": 10772539, "peak_rss_bytes": 146575360, "checkpoint_due_at_mutation": 255, "compaction_due_at_mutation": 63}
+  ],
+  "formal_scales": [
+    {"scale": 10000, "status": "PASS", "predicted_peak_bytes": 1388562886, "actual_peak_bytes": 20153443, "actual_to_bound_percent": 1.451, "peak_rss_bytes": 251555840, "update_p50_ms": 100.1, "write_amplification_p50": 15.451, "checkpoint_ms": 6386.044, "compaction_ms": 228.921, "full_replay_ms": 3204.732, "checkpoint_load_ms": 1559.973},
+    {"scale": 50000, "status": "PASS", "predicted_peak_bytes": 2107330662, "actual_peak_bytes": 96943994, "actual_to_bound_percent": 4.6, "peak_rss_bytes": 1082650624, "update_p50_ms": 113.859, "write_amplification_p50": 15.454, "checkpoint_ms": 35080.258, "compaction_ms": 217.059, "full_replay_ms": 19227.534, "checkpoint_load_ms": 8321.997},
+    {"scale": 100000, "status": "PASS", "predicted_peak_bytes": 3005790378, "actual_peak_bytes": 191697785, "actual_to_bound_percent": 6.378, "peak_rss_bytes": 2115465216, "update_p50_ms": 72.017, "write_amplification_p50": 15.469, "checkpoint_ms": 58451.113, "compaction_ms": 121.475, "full_replay_ms": 28041.999, "checkpoint_load_ms": 17060.153},
+    {"scale": 250000, "status": "PASS", "predicted_peak_bytes": 5701169517, "actual_peak_bytes": 479389001, "actual_to_bound_percent": 8.409, "peak_rss_bytes": 5276147712, "update_p50_ms": 105.886, "write_amplification_p50": 15.472, "checkpoint_ms": 151341.903, "compaction_ms": 150.741, "full_replay_ms": 73293.641, "checkpoint_load_ms": 45472.051}
+  ],
+  "correctness": {
+    "semantic_equivalence": "PASS",
+    "checkpoint_scale": "PASS",
+    "compaction_scale": "PASS",
+    "crash_recovery_100k": "PASS_C1_C6",
+    "restart_update_conversation_250k": "PASS",
+    "mixed_workloads_100k": "PASS_3_OF_3",
+    "mixed_workloads_250k": "PASS_3_OF_3",
+    "provider_calls": 0
+  },
+  "s0_comparison_250k": {
+    "s0_update_p50_ms": 80617.51,
+    "s2_update_p50_ms": 105.886,
+    "update_latency_speedup": 761.361,
+    "write_byte_reduction": 129371.579,
+    "write_amplification_reduction": 129369.655,
+    "s0_cold_load_ms": 37430.23,
+    "s2_checkpoint_load_ms": 45472.051,
+    "checkpoint_vs_s0_percent": 21.485,
+    "s2_full_replay_ms": 73293.641,
+    "full_replay_vs_s0_percent": 95.814
+  },
+  "adoption_gate": {
+    "decision": "NO",
+    "blocking_class": "COLD_START",
+    "reason": "250k checkpoint cold start is 21.485 percent slower than the S0 baseline; the required cold-start improvement did not pass.",
+    "new_pack_default": "V1_RETAINED",
+    "adoption_commit": null,
+    "adoption_regression": "NOT_RUN_NOT_APPLICABLE"
+  },
+  "retrieval_scaling_p2": "RETAINED_AMBIGUOUS_P95_199_71_MS_AT_250K",
+  "formal_evidence": {
+    "path": "D:/CGKN/.service_evidence/v2-resource-gate-scale-qualification-048/formal-final/productionization-report.json",
+    "sha256": "sha256:ff4eaf052d257ab9fd81337a322fb6d31f4ce5b4c315a47492c7fde5471e4252"
+  },
+  "verification": {
+    "resource_and_productionization_tests": "PASS_13",
+    "persistence_v2_tests": "PASS_57",
+    "targeted_total": "PASS_70",
+    "compileall": "PASS",
+    "product_direction_gate": "PASS",
+    "kernel_architecture_gate": "PASS",
+    "test_architecture_gate": "PASS",
+    "kernel_completeness_gate": "PASS",
+    "kernel_test_receipt": "PASS",
+    "prior_frozen_product_full_regression": "PASS_2755_SKIP_357_0_FAILED_0_ERRORS",
+    "adoption_full_regression": "NOT_RUN_NOT_APPLICABLE"
+  }
+}
