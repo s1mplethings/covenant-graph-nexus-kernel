@@ -1,11 +1,11 @@
 {
   "kind": "CGKNRoleModelEfficiencyReceipt",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-KNOWLEDGE-PERSISTENCE-RETRIEVAL-SCALING-045",
+  "iteration": "ITER-CGNK-SEGMENTED-PERSISTENCE-PRODUCTIONIZATION-046",
   "product_source": {
-    "commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
-    "tree": "66056cf6432227681a117b1f5df9c3e6999475cd",
-    "production_semantics_modified": false
+    "commit": "3439370f3e0a5ba118199dce10d429e77b77e24f",
+    "tree": "7de7e2a25b54fd6924f9e623253b7d6524f374e0",
+    "production_semantics_modified": true
   },
   "experiment_harness": {
     "commit": "bb65c0dd7ea6369487516dc6183e38cb8b541e34",
@@ -187,6 +187,45 @@
     },
     "evidence": "D:/CGKN/.service_evidence/knowledge-persistence-retrieval-scaling-v1"
   },
+  "segmented_persistence_productionization": {
+    "source_commit": "3439370f3e0a5ba118199dce10d429e77b77e24f",
+    "source_tree": "7de7e2a25b54fd6924f9e623253b7d6524f374e0",
+    "format_version": "2.0",
+    "format_schema_hash": "sha256:b0847728e602c4c01e2fc572c2832ea91e600d69ede603120cda239e44c61334",
+    "manifest_schema_hash": "sha256:1d243051d4d260bdb7823f070e90a3e07b507e567f1f0470c8c4fa99eebf46a8",
+    "segment_schema_hash": "sha256:be777521d4a05e5ebf0621e96c304f2d2b2fe51dd8b36a7128db28730b892eb2",
+    "checkpoint_schema_hash": "sha256:15fb1a82ece97f32228ca06dc09ffb89761996b196b7b82d7d19e0d8ac6c7acd",
+    "checkpoint_policy_hash": "sha256:22d3b98d90c1818bd5a7017711f5b37a32e159896d19a4cd2957e2cde18542f7",
+    "compaction_policy_hash": "sha256:814d0238253902e71531081099a7cfdef00d63c52936d595a795a923c391c28b",
+    "migration_policy_hash": "sha256:a94d027736ebae6c79a38ca2665df8ad74ccbcb5925c68a0af33b0d3048b7fe6",
+    "benchmark_harness_hash": "sha256:327d8da27bd313af42cd839acdea87a52f9318c1c67536157a2ed795862da7ec",
+    "authority": "ORDERED_VALIDATED_AUTHORITATIVE_SEGMENTS",
+    "checkpoint_authority": "DERIVED_REBUILDABLE_NON_AUTHORITATIVE",
+    "index_authority": "DERIVED_REBUILDABLE_NON_AUTHORITATIVE",
+    "persistence_format_v2_status": "PASS_TARGETED_FULL_REGRESSION_NOT_SCALE_QUALIFIED",
+    "segmented_authority_status": "PASS_TARGETED",
+    "checkpoint_status": "PASS_TARGETED",
+    "compaction_status": "PASS_TARGETED",
+    "crash_recovery_status": "PASS_FAILURE_INJECTION_TARGETED",
+    "legacy_compatibility_status": "PASS",
+    "migration_status": "PASS_10_OF_10",
+    "formal_scale_status": "NOT_STARTED_RESOURCE_SAFETY",
+    "persistence_update_locality": "NOT_EVALUATED_RESOURCE_SAFETY",
+    "cold_start_scalability": "NOT_EVALUATED_RESOURCE_SAFETY",
+    "persistence_write_amplification": "NOT_EVALUATED_RESOURCE_SAFETY",
+    "disk_space_amplification": "NOT_EVALUATED_RESOURCE_SAFETY",
+    "end_to_end_internalization_benefit": "NOT_EVALUATED_RESOURCE_SAFETY",
+    "max_validated_persistence_scale": 0,
+    "new_pack_default": "V1_RETAINED",
+    "should_v2_become_default_for_new_packs": "NO",
+    "resource_preflight": {
+      "memory_used_percent": 84.55,
+      "memory_free_gib": 4.89,
+      "volumes_used_percent": {"C": 93.73, "D": 98.42, "E": 94.67, "F": 81.94, "G": 89.56, "Q": 88.05},
+      "threshold_percent": 75,
+      "decision": "STOP_BEFORE_FORMAL_SCALE"
+    }
+  },
   "api_lab_dependency": {
     "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
     "branch": "codex/qwen-thinking-control-20261021",
@@ -356,15 +395,15 @@
     "test_architecture_gate": "PASS",
     "kernel_completeness_gate": "PASS",
     "receipt_freshness": "PASS",
-    "application_and_knowledge": "PASS_518_SKIP_1",
+    "application_and_knowledge": "PASS_580_SKIP_39",
     "kernel_profiles": "PASS_STATIC_UNIT_BOUNDARY_FAULT_SECURITY_LOCAL_FUNCTIONAL_FULL_CORE_ACTIVE_REPOSITORY",
     "unit_profile": "PASS_479_SKIP_1_AFTER_RECEIPT_REFRESH",
-    "active_repository": "PASS_2690_SKIP_351",
-    "full_pytest": "PASS_2690_SKIP_351",
-    "collection": "PASS_3041",
-    "canonical_python": "D:/anaconda/python.exe (Python 3.12.3)",
-    "evidence": "D:/CGKN/.service_evidence/knowledge-growth-internalization-v1/kernel-profiles.json",
-    "unit_rerun_evidence": "D:/CGKN/.service_evidence/knowledge-growth-internalization-v1/kernel-profile-unit-rerun.json"
+    "active_repository": "PASS_2755_SKIP_357",
+    "full_pytest": "PASS_2755_SKIP_357",
+    "collection": "PASS_3112",
+    "canonical_python": "C:/Users/sunom/AppData/Local/Programs/Python/Python313/python.exe",
+    "evidence": "artifacts/kernel-profile-active-repository-iter-046-final.json",
+    "unit_rerun_evidence": "artifacts/kernel-profiles-iter-046-fresh-receipt.json"
   },
   "minimal_blueprint_status": "COMPLETE",
   "efficiency_experiment_ready": true,
@@ -379,8 +418,10 @@
   "knowledge_persistence_scaling": "PASS_CORRECTNESS_AT_250K_PERSISTENCE_BOUND",
   "persistence_locality_gap": "PROVEN",
   "storage_redesign_recommended": true,
+  "persistence_format_v2_status": "PASS_TARGETED_FULL_REGRESSION_NOT_SCALE_QUALIFIED",
+  "should_v2_become_default_for_new_packs": "NO",
   "model_capability_evaluation": "COMPLETE",
   "multi_agent_status": "NOT_RECOMMENDED_CURRENT_EVIDENCE",
   "contains_credentials": false,
-  "receipt_hash": "sha256:7098fd0b13cf0b573543ecb602fc7169b68636cb94d9efdb12c190a543432b49"
+  "receipt_hash": "sha256:619993efbbe8d66cca4f7b1106b5de4e2ca6d9eabcf6f12dd9da28bcd5f860d7"
 }

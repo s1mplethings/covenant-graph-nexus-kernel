@@ -4,8 +4,8 @@
   "source_commit": "3439370f3e0a5ba118199dce10d429e77b77e24f",
   "source_tree_sha": "7de7e2a25b54fd6924f9e623253b7d6524f374e0",
   "application_boundary_hash": "sha256:6baae2f60491e086fe88e81ca230423fe04520cf62b331adc4d6dfa22a5192cf",
-  "suite_result": "PASS_SEGMENTED_PERSISTENCE_TARGETED_FULL_RECHECK_PENDING",
-  "formal_final_suite": "PENDING_FULL_RECHECK",
+  "suite_result": "PASS_SEGMENTED_PERSISTENCE_PRODUCTIONIZATION_RESOURCE_LIMITED",
+  "formal_final_suite": "PASS_CURRENT_SOURCE",
   "generation_readiness": "GENERATION_LEVEL_3",
   "bundle_status": "COMPLETE",
   "application_validation": {
@@ -14,11 +14,11 @@
     "targeted_failed": 0,
     "targeted_errors": 0,
     "targeted_skipped": 39,
-    "full_repository_status": "PENDING_FULL_RECHECK",
-    "full_repository_passed": null,
-    "full_repository_failed": null,
-    "full_repository_errors": null,
-    "full_repository_skipped": null,
+    "full_repository_status": "PASS",
+    "full_repository_passed": 2755,
+    "full_repository_failed": 0,
+    "full_repository_errors": 0,
+    "full_repository_skipped": 357,
     "collection_count": 3112,
     "provider_network_usage_during_regression": false
   },
@@ -69,5 +69,5 @@
   "no_secret_assertion": true,
   "hidden_source_exposed": false,
   "manual_candidate_edits": 0,
-  "receipt_hash": "sha256:a23f5003a582e96df0eaf61947f5de84ca8b4a63e242f0f0260cc33300c5ded1"
+  "receipt_hash": "sha256:84bbce88adc6941805748f1cdb648dae3d394d95297e4c4ad74b1e42df8d17de"
 }

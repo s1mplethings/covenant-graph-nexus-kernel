@@ -1,87 +1,60 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-045",
+  "iteration_id": "ITER-046",
   "project_id": "cgkn",
-  "goal": "Measure real ProjectKnowledgePack persistence, retrieval, cold-start, and memory scaling before deciding whether physical storage must change.",
+  "goal": "Productionize segmented append authority with derived validated checkpoints, bounded compaction, reversible v1 migration, and resource-safe production qualification.",
   "backlog_item_ids": ["PB-026"],
-  "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "workflow_state": "closed_with_blocker",
+  "evidence_status": "PASS_IMPLEMENTATION_NOT_EVALUATED_AT_SCALE",
+  "source_commit": "3439370f3e0a5ba118199dce10d429e77b77e24f",
+  "source_tree": "7de7e2a25b54fd6924f9e623253b7d6524f374e0",
   "acceptance_criteria": [
-    "production Knowledge and Conversation semantics remain unchanged",
-    "real filesystem save/load and new-process cold-start measurements cover 1k through 100k and 250k when resource-safe",
-    "fixed queries preserve correctness, provenance, lifecycle filtering, and cross-domain isolation",
-    "mixed workloads separate internalization, retrieval, serialization, index rebuild, and disk costs",
-    "storage alternatives are researched only after a measured persistence-locality gap",
-    "one logical ProjectKnowledgePack authority is preserved in every candidate"
+    "one logical ProjectKnowledgePack authority is preserved",
+    "ordered authoritative segments are checksummed, chained, and atomically exposed",
+    "checkpoints and indexes remain validated rebuildable derived data",
+    "bounded compaction preserves raw history, provenance, hashes, and as-of semantics",
+    "legacy v1 remains readable and migration remains explicit, reversible, and non-dual-write",
+    "crash points C1 through C8 recover old or fully committed new state without silent corruption",
+    "production v2 must pass 100k and 250k scale, cold-start, workload, and crash benchmarks before default adoption"
   ],
   "quality_metrics": [
-    {
-      "id": "QM-PERSISTENCE-LOCALITY",
-      "measure": "physical bytes and save wall time per logical local update",
-      "target": "measure slope and dominant cost without an invented product SLO",
-      "method": "five real single-update saves at each uniform scale"
-    },
-    {
-      "id": "QM-COLD-START",
-      "measure": "read, parse, rebuild, time-to-first-retrieval, time-to-first-answer, and RSS",
-      "target": "state/query equivalence and bounded resources",
-      "method": "new-process load at every evaluated scale"
-    },
-    {
-      "id": "QM-RETRIEVAL-SCALING",
-      "measure": "P50/P95 latency, candidates, locality, recall, and correctness",
-      "target": "no false locality or quality regression",
-      "method": "12 fixed query classes under uniform, hot-branch, and long-tail shape"
-    },
-    {
-      "id": "QM-MIXED-WORKLOAD",
-      "measure": "1000-operation read-heavy, balanced, and write-heavy cost composition",
-      "target": "all admitted runs pass within the measured runtime guard",
-      "method": "S0 feasibility gate and complete S2 10k/50k/100k matrix"
-    }
+    {"id": "QM-V2-CORRECTNESS", "measure": "semantic, retrieval, Conversation, history, raw-byte, migration, and crash equivalence", "result": "PASS_TARGETED"},
+    {"id": "QM-FULL-REGRESSION", "measure": "active repository pytest", "result": "PASS_2755_SKIP_357_ZERO_FAILED_ZERO_ERRORS"},
+    {"id": "QM-PRODUCTION-SCALE", "measure": "10k, 50k, 100k, and 250k update/cold/workload/maintenance metrics", "result": "NOT_EVALUATED_RESOURCE_SAFETY"}
   ],
   "quality_activities": {
-    "prevention": ["single truth authority", "Provider-free core", "frozen corpus/query/workload hashes", "75 percent resource guard"],
-    "assurance": ["persistence gap audit", "real filesystem matrix", "new-process restart equivalence", "S0/S1/S2/S3 comparison", "crash probes"],
-    "control": ["checksum validation", "fail-closed corrupt chunk/log detection", "derived cache rebuild", "runtime projection guard"],
-    "improvement": ["recommend backward-compatible segmented append authority with validated derived checkpoints"]
+    "prevention": ["single authority", "explicit migration", "v1 default retained", "single-writer lock", "75 percent resource preflight"],
+    "assurance": ["56 persistence cases", "3 benchmark harness cases", "10-shape migration gate", "580 application/Knowledge/Conversation targeted tests", "full repository regression"],
+    "control": ["checksums", "sequence and chain validation", "CAS writer identity", "fail-closed unknown version", "checkpoint fallback", "orphan classification"],
+    "improvement": ["rerun frozen production benchmark when a workspace and memory are both below 75 percent utilization"]
   },
   "interface_expectations": [
-    "ProjectKnowledgePack remains the only logical knowledge authority",
-    "cgnk_knowledge.retrieve_relevant_knowledge remains the only retrieval authority",
-    "Conversation request/response and read-only behavior remain unchanged",
-    "research storage adapters are not production entrypoints"
+    "ProjectKnowledgePack remains the sole logical authority",
+    "v2 storage is internal to persistence and transparent to Knowledge/Conversation semantics",
+    "new packs remain v1 by default until the adoption gate passes",
+    "v2 creation is explicit through format_version 2.0 or migration"
   ],
   "evidence_refs": [
-    "evidence/knowledge_persistence_scaling/summary.json",
-    "project_management/summaries/knowledge_persistence_retrieval_scaling_20261023.md",
-    "D:/CGKN/.service_evidence/knowledge-persistence-retrieval-scaling-v1/baseline/baseline-report.json",
-    "D:/CGKN/.service_evidence/knowledge-persistence-retrieval-scaling-v1/alternatives/alternatives-report.json",
-    "D:/CGKN/.service_evidence/knowledge-persistence-retrieval-scaling-v1/workloads/mixed-workloads-report.json"
+    "docs/project_knowledge_persistence_v2.md",
+    "project_management/summaries/segmented_persistence_productionization_20261023.md",
+    "governance/role_model_efficiency_receipt.json",
+    "artifacts/kernel-profile-active-repository-iter-046-final.json"
   ],
   "review": {
-    "outcome": "accepted_with_limits",
+    "outcome": "implementation_accepted_scale_adoption_blocked",
     "feedback": [
-      "Correctness and restart equivalence pass through 250k, but current physical save and cold-load costs are not local.",
-      "S2 is the leading research candidate for update locality and crash recovery, but its cold replay requires validated checkpoints and compaction before production adoption.",
-      "No production storage or public persistence format changed in this iteration."
+      "Format v2, segment authority, checkpoint, compaction, crash injection, v1 compatibility, and 10-shape migration pass targeted validation.",
+      "The final source passes 2755 tests with zero failures or errors.",
+      "Formal production scaling was not started because memory and every available volume exceeded the explicit 75 percent safety threshold.",
+      "SHOULD_V2_BECOME_DEFAULT_FOR_NEW_PACKS = NO until 100k/250k production qualification passes."
     ],
-    "accepted_backlog_item_ids": ["PB-026"]
+    "accepted_backlog_item_ids": [],
+    "blocked_backlog_item_ids": ["PB-026"]
   },
   "retrospective": {
-    "worked": [
-      "separating semantic locality from persistence locality",
-      "using authority and query hashes after every process restart",
-      "using measured runtime projection to avoid hundreds of GiB of redundant S0 writes"
-    ],
-    "did_not_work": [
-      "the first query evaluator treated one ID as the only correct answer for intentionally equivalent ambiguous facts",
-      "the first workload trace queried lifecycle-inactive fixture IDs"
-    ],
-    "experiments": [
-      "S0 current monolith versus S1 chunked, S2 append authority, and S3 compact authority plus sidecar",
-      "1000-operation read-heavy, balanced, and write-heavy workloads"
-    ]
+    "worked": ["separating logical authority from physical segments and derived acceleration", "controlled C1-C8 failure injection and semantic hash equality", "retaining v1 default after adoption-gate review", "source-bound application receipt refresh"],
+    "did_not_work": ["the first source commit enabled v2 for new packs before the scale adoption gate", "the first full regression exposed a missing benchmark marker", "formal scale preflight could not pass on any available volume or current memory state"],
+    "experiments": ["development-only 100-item smoke", "development-only 1k checkpoint interval and compaction threshold study", "formal scale run intentionally not started"]
   }
 }
