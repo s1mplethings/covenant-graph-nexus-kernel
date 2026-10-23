@@ -244,7 +244,8 @@ def _restart_superseding_visibility(
     return {
         "operation": "restart_then_superseding_update_then_conversation",
         "subject_ref": subject_ref, "old_id": old_id, "new_id": new_id,
-        "relation": result["receipt"]["relation"], "write": write,
+        "relation": result["receipt"]["relation"],
+        "write": {key: value for key, value in write.items() if key != "pack"},
         "query_ids": sorted(query_ids), "conversation_evidence_ids": sorted(conversation_ids),
         "checks": checks, "status": "PASS" if all(checks.values()) else "FAIL",
     }

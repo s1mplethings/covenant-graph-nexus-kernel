@@ -77,6 +77,8 @@ def test_restart_superseding_update_is_visible_without_losing_history(tmp_path: 
     assert result["status"] == "PASS"
     assert result["relation"] == "SUPERSEDING"
     assert all(result["checks"].values())
+    assert "pack" not in result["write"]
+    assert len(json.dumps(result)) < 20_000
 
 
 def test_workload_worker_measures_query_conversation_and_disk(tmp_path: Path) -> None:
