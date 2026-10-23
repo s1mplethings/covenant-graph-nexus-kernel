@@ -130,6 +130,12 @@ reload v2, compare semantic hashes, and only then expose the v2 target. The v1
 source is retained and receives no further writes after the caller selects v2
 as active. There is no dual-write mode.
 
+Until the production 100k/250k adoption gate is satisfied, a previously
+nonexistent path continues to use the legacy v1 default. New v2 stores require
+an explicit `format_version="2.0"` request or the migration command. This keeps
+deployment reversible and prevents offline correctness alone from silently
+changing the public persistence default.
+
 The semantic hash includes authoritative pack metadata and all authoritative
 item values sorted by stable item identity. It excludes indexes, compatibility
 buckets, checkpoint metadata, manifest generation, timestamps, segment order

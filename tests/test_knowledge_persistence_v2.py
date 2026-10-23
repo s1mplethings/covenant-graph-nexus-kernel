@@ -61,7 +61,7 @@ def append(pack: dict, path: pathlib.Path, value: dict) -> tuple[dict, dict]:
 def create_store(tmp_path: pathlib.Path, *, policy: PersistencePolicy | None = None) -> tuple[pathlib.Path, dict]:
     path = tmp_path / "knowledge.pack"
     pack = new_project_knowledge_pack("fixture", "pkp_fixture")
-    save_project_knowledge(path, pack, policy=policy or PersistencePolicy())
+    save_project_knowledge(path, pack, format_version="2.0", policy=policy or PersistencePolicy())
     return path, load_project_knowledge(path)
 
 
@@ -82,12 +82,23 @@ def fail_at(point: str):
     return inject
 
 
-def test_new_v2_empty_pack_is_default_and_round_trips(tmp_path: pathlib.Path) -> None:
+def test_new_v2_empty_pack_is_explicit_and_round_trips(tmp_path: pathlib.Path) -> None:
     path, pack = create_store(tmp_path)
     assert path.is_dir()
     assert manifest_payload(path)["format_version"] == "2.0"
     assert pack["all_items"] == []
     assert SegmentedKnowledgeStore(path).verify()["status"] == "PASS"
+
+
+def test_new_pack_retains_legacy_default_until_adoption_gate(tmp_path: pathlib.Path) -> None:
+    path = tmp_path / "knowledge.json"
+    pack = new_project_knowledge_pack("fixture", "pkp_legacy_default")
+
+    result = save_project_knowledge(path, pack)
+
+    assert path.is_file()
+    assert result["kind"] == "KnowledgeStoreWriteResult"
+    assert load_project_knowledge(path)["id"] == "pkp_legacy_default"
 
 
 def test_single_append_is_bounded_and_visible(tmp_path: pathlib.Path) -> None:

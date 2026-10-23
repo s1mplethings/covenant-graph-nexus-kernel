@@ -178,7 +178,7 @@ def scale_worker(args: argparse.Namespace) -> int:
         pack = foundation.generate_corpus(args.size, branches, "uniform")
         expected_initial_hash = project_knowledge_semantic_hash(pack)
         started = time.perf_counter()
-        initial = save_project_knowledge(root, pack, policy=policy)
+        initial = save_project_knowledge(root, pack, format_version="2.0", policy=policy)
         initial_ms = (time.perf_counter() - started) * 1000
         pack = load_project_knowledge(root, use_checkpoint=False)
         update_rows: list[dict[str, Any]] = []
@@ -262,7 +262,7 @@ def policy_worker(args: argparse.Namespace) -> int:
         root = root_base / f"checkpoint-{label}"
         policy = PersistencePolicy(checkpoint_mutation_interval=interval, checkpoint_tail_bytes=1024 * 1024 * 1024)
         pack = foundation.generate_corpus(args.size, branches, "uniform")
-        save_project_knowledge(root, pack, policy=policy)
+        save_project_knowledge(root, pack, format_version="2.0", policy=policy)
         pack = load_project_knowledge(root)
         maintenance_ms = 0.0
         checkpoint_count = 0
@@ -289,7 +289,7 @@ def policy_worker(args: argparse.Namespace) -> int:
         policy = PersistencePolicy(compaction_segment_threshold=threshold, compaction_batch_size=max(2, threshold // 2),
                                    checkpoint_mutation_interval=10_000, checkpoint_tail_bytes=1024 * 1024 * 1024)
         pack = foundation.generate_corpus(args.size, branches, "uniform")
-        save_project_knowledge(root, pack, policy=policy)
+        save_project_knowledge(root, pack, format_version="2.0", policy=policy)
         pack = load_project_knowledge(root)
         compaction_ms = 0.0
         compactions = 0
@@ -325,7 +325,7 @@ def workload_worker(args: argparse.Namespace) -> int:
     branches = foundation.branch_count_for(args.size)
     policy = PersistencePolicy()
     pack = foundation.generate_corpus(args.size, branches, "uniform")
-    save_project_knowledge(root, pack, policy=policy)
+    save_project_knowledge(root, pack, format_version="2.0", policy=policy)
     SegmentedKnowledgeStore(root, policy=policy).create_checkpoint()
     pack = load_project_knowledge(root)
     rows: list[dict[str, Any]] = []
@@ -396,7 +396,7 @@ def crash_worker(args: argparse.Namespace) -> int:
     root = pathlib.Path(args.store_root)
     branches = foundation.branch_count_for(args.size)
     pack = foundation.generate_corpus(args.size, branches, "uniform")
-    save_project_knowledge(root, pack)
+    save_project_knowledge(root, pack, format_version="2.0")
     SegmentedKnowledgeStore(root).create_checkpoint()
     pack = load_project_knowledge(root)
     rows: list[dict[str, Any]] = []

@@ -273,6 +273,11 @@ def save_project_knowledge(
             raise ValueError("cannot write legacy format over a v2 store")
         return save_legacy_project_knowledge(target, pack)
     if detected == "NEW":
+        # Adoption is deliberately explicit until the production scale gate
+        # qualifies v2 as the default for newly created packs. Existing
+        # callers retain v1 behavior; migrations and benchmarks opt in.
+        if requested not in {"2", "2.0"}:
+            return save_legacy_project_knowledge(target, pack)
         store = SegmentedKnowledgeStore(target, policy=policy)
         result = store.initialize(pack)
         if isinstance(pack, TrackedKnowledgePack):
