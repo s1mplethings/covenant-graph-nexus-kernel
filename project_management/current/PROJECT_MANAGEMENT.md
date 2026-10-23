@@ -20,22 +20,17 @@ The remaining compatibility runtime is intentionally retained:
 
 Further cleanup inside that cluster now requires a working replacement path.
 
-## Completed feature increment
+## Current feature increment
 
-`ITER-CGNK-KNOWLEDGE-GROWTH-INTERNALIZATION-044` validates how the existing
-`ProjectKnowledgePack` accepts new raw evidence, preserves provenance, records
-relations, invalidates dependent abstractions, and refreshes derived knowledge
-without introducing a second knowledge or retrieval authority.
+`ITER-CGNK-V2-RESOURCE-SAFE-SCALE-QUALIFICATION-047` attempted to qualify the
+frozen production persistence-v2 source at 10k, 50k, 100k, and 250k without
+changing storage or knowledge semantics.
 
-The iteration uses a hybrid approach: stable raw-evidence, identity, safety,
-Conversation, and authority constraints surround an adaptive local-lazy update
-implementation and deterministic 100/1000/5000-entry maintenance comparison.
-
-The increment is closed `PASS`. Exact duplicates use zero model calls, local
-updates invalidate only actual dependent abstractions, stale derived nodes are
-excluded from Conversation, and on-demand refresh recomputes only the selected
-stale closure. The result is directional rather than statistically significant;
-full-pack JSON serialization remains linear and is tracked as a P2 risk.
+The increment is closed `BLOCKED_ENVIRONMENT`. Every fixed local volume exceeded
+the hard 75 percent pre-run utilization threshold, so no 10k worker was started.
+Memory recovered below the threshold; disk remains decisive. Q: needs at least
+31.117 GiB additional free space to cross the hard gate. Production v2 remains
+explicit opt-in and v1 remains the new-pack default.
 
 ## Roadmap after the active increment
 
@@ -60,8 +55,8 @@ Management records cannot authorize functional success, formal evidence, packagi
 
 ## Verification
 
-Source-bound validation passed: compileall, product direction, kernel
-architecture, test architecture, kernel completeness, receipt freshness, all
-eight deterministic Kernel profiles, 3041-test collection, and full pytest
-(`2690 passed`, `351 skipped`, `0 failed`, `0 errors`). Provider network usage
-was not required for this deterministic knowledge-maintenance increment.
+The frozen ITER-046 source-bound validation remains current: compileall, product
+direction, kernel architecture, test architecture, kernel completeness, receipt
+freshness, all eight deterministic Kernel profiles, 3112-test collection, and
+full pytest (`2755 passed`, `357 skipped`, `0 failed`, `0 errors`). ITER-047
+changed evidence only and started no benchmark worker.

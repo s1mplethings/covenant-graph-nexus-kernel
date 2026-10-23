@@ -1,7 +1,7 @@
 {
   "kind": "CGKNProjectMVPStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-SEGMENTED-PERSISTENCE-PRODUCTIONIZATION-046",
+  "iteration": "ITER-CGNK-V2-RESOURCE-SAFE-SCALE-QUALIFICATION-047",
   "source_commit": "3439370f3e0a5ba118199dce10d429e77b77e24f",
   "source_tree_sha": "7de7e2a25b54fd6924f9e623253b7d6524f374e0",
   "product_source_commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
@@ -51,6 +51,7 @@
   "persistence_locality_gap": "PROVEN",
   "algorithmic_update_locality": "PASS_SEMANTIC_LOCALITY_WITH_LINEAR_CONTAINER_COPY",
   "persistence_update_locality": "NOT_EVALUATED_RESOURCE_SAFETY",
+  "production_v2_scale_qualification": "NOT_EVALUATED_RESOURCE_SAFETY",
   "retrieval_scalability": "DEGRADED_AMBIGUOUS_CANDIDATES_LINEAR_CORRECTNESS_PASS_AT_250K",
   "cold_start_scalability": "NOT_EVALUATED_RESOURCE_SAFETY",
   "memory_scalability": "PASS_AT_250K_LINEAR_3_16_GIB_PEAK",
@@ -60,22 +61,32 @@
   "persistence_format_v2_status": "PASS_TARGETED_FULL_REGRESSION_NOT_SCALE_QUALIFIED",
   "segmented_authority_status": "PASS_TARGETED",
   "checkpoint_status": "PASS_TARGETED",
+  "checkpoint_scale_status": "NOT_EVALUATED_RESOURCE_SAFETY",
   "compaction_status": "PASS_TARGETED",
+  "compaction_scale_status": "NOT_EVALUATED_RESOURCE_SAFETY",
   "crash_recovery_status": "PASS_FAILURE_INJECTION_TARGETED",
+  "crash_recovery_scale_status": "NOT_EVALUATED_RESOURCE_SAFETY",
+  "restart_update_conversation_scale_status": "NOT_EVALUATED_RESOURCE_SAFETY",
   "legacy_compatibility_status": "PASS",
   "migration_status": "PASS_10_OF_10",
   "persistence_write_amplification": "NOT_EVALUATED_RESOURCE_SAFETY",
   "disk_space_amplification": "NOT_EVALUATED_RESOURCE_SAFETY",
+  "amortized_persistence_cost": "NOT_EVALUATED_RESOURCE_SAFETY",
   "end_to_end_internalization_benefit": "NOT_EVALUATED_RESOURCE_SAFETY",
   "max_validated_persistence_scale": 0,
   "v2_new_pack_default": false,
   "should_v2_become_default_for_new_packs": "NO",
+  "retrieval_scaling_p2": "RETAINED_AMBIGUOUS_P95_199_71_MS_AT_250K",
   "benchmark_freeze": {
     "source_commit": "3439370f3e0a5ba118199dce10d429e77b77e24f",
     "benchmark_harness_hash": "sha256:327d8da27bd313af42cd839acdea87a52f9318c1c67536157a2ed795862da7ec",
-    "formal_scale_status": "NOT_STARTED_RESOURCE_SAFETY",
-    "memory_used_percent": 84.55,
-    "disk_used_percent": {"C": 93.73, "D": 98.42, "E": 94.67, "F": 81.94, "G": 89.56, "Q": 88.05}
+    "formal_scale_status": "NOT_STARTED_RESOURCE_CAPACITY_NEEDS_USER",
+    "memory_used_percent_initial": 78.57,
+    "memory_used_percent_recheck": 68.046,
+    "disk_used_percent": {"C": 93.802, "D": 98.465, "E": 94.669, "F": 82.599, "Q": 88.048},
+    "minimum_additional_free_gib": {"volume": "Q", "hard_gate": 31.117, "preferred_70_percent": 43.04},
+    "formal_runs_started": 0,
+    "resource_report": "project_management/current/resource_preflight_report.json"
   },
   "full_regression": {"collected": 3112, "passed": 2755, "skipped": 357, "failed": 0, "errors": 0},
   "scaling_harness_commit": "657574921ff0a06fb742294d12027160c07bdcf2",
@@ -101,8 +112,8 @@
     },
     {
       "priority": "P1",
-      "code": "SEGMENTED_PERSISTENCE_SCALE_QUALIFICATION_BLOCKED_BY_RESOURCE_SAFETY",
-      "detail": "Production v2, migration, crash injection, and full regression pass, but every available volume and total memory exceeded the explicit 75 percent preflight threshold before formal scale execution. No 10k/50k/100k/250k production result was started; v2 remains explicit and is not the new-pack default."
+      "code": "RESOURCE_CAPACITY_NEEDS_USER",
+      "detail": "Production v2 remains frozen and correct, but every fixed local volume exceeded the explicit 75 percent preflight threshold. Memory recovered to 68.046 percent; disk is decisive. Q: needs at least 31.117 GiB additional free space for the hard gate. No formal run started and v2 remains explicit."
     },
     {
       "priority": "P2",

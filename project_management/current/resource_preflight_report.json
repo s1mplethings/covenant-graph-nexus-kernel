@@ -1,0 +1,48 @@
+{
+  "kind": "CGKNResourcePreflightReport",
+  "schema_version": "1.0",
+  "iteration": "ITER-CGNK-V2-RESOURCE-SAFE-SCALE-QUALIFICATION-047",
+  "captured_at": "2026-10-23T22:25:46.5170607+08:00",
+  "repository_path": "D:/CGKN/.service_worktree/segmented-persistence-productionization",
+  "evidence_path": "D:/CGKN/.service_evidence/knowledge-persistence-retrieval-scaling-v1",
+  "benchmark_output_path": "D:/CGKN/.service_worktree/segmented-persistence-productionization/evidence/knowledge_persistence_productionization",
+  "benchmark_scratch_path": null,
+  "benchmark_scratch_volume": null,
+  "thresholds": {
+    "pre_run_used_percent_exclusive_max": 75,
+    "peak_used_percent_max": 80,
+    "preferred_pre_run_used_percent_max": 70,
+    "ten_k_estimated_peak_bytes": 536870912
+  },
+  "volumes": [
+    {"drive": "C:", "filesystem": "NTFS", "total_bytes": 484665790464, "free_bytes": 30038900736, "used_percent": 93.802, "additional_free_bytes_for_under_75_percent": 91127546881, "additional_free_gib_for_under_75_percent": 84.869},
+    {"drive": "D:", "filesystem": "NTFS", "total_bytes": 512107737088, "free_bytes": 7858737152, "used_percent": 98.465, "additional_free_bytes_for_under_75_percent": 120168197121, "additional_free_gib_for_under_75_percent": 111.915},
+    {"drive": "E:", "filesystem": "NTFS", "total_bytes": 2000363188224, "free_bytes": 106629500928, "used_percent": 94.669, "additional_free_bytes_for_under_75_percent": 393461296129, "additional_free_gib_for_under_75_percent": 366.439},
+    {"drive": "F:", "filesystem": "NTFS", "total_bytes": 2000381014016, "free_bytes": 348088717312, "used_percent": 82.599, "additional_free_bytes_for_under_75_percent": 152006536193, "additional_free_gib_for_under_75_percent": 141.567},
+    {"drive": "Q:", "filesystem": "NTFS", "total_bytes": 256059109376, "free_bytes": 30603575296, "used_percent": 88.048, "additional_free_bytes_for_under_75_percent": 33411202049, "additional_free_gib_for_under_75_percent": 31.117, "additional_free_gib_for_preferred_70_percent": 43.04}
+  ],
+  "memory": {
+    "total_physical_bytes": 33968779264,
+    "initial_free_physical_bytes": 7280504832,
+    "initial_used_percent": 78.57,
+    "recheck_free_physical_bytes": 10854289408,
+    "recheck_used_percent": 68.046,
+    "audit_process_rss_bytes": 120307712
+  },
+  "pagefile": {"path": "C:/pagefile.sys", "allocated_mib": 15982, "current_usage_mib": 1088, "peak_usage_mib": 2106},
+  "scratch_audit": {
+    "known_v2_scale_scratch_directories": 0,
+    "known_v2_scale_scratch_bytes": 0,
+    "historical_formal_evidence_bytes": 1503861,
+    "historical_formal_evidence_preserved": true,
+    "generic_python_and_pytest_cache_bytes_identified": 131964248,
+    "generic_cache_action": "NOT_REMOVED_MATERIALLY_INSUFFICIENT",
+    "bytes_reclaimed": 0
+  },
+  "production_source": {"commit": "3439370f3e0a5ba118199dce10d429e77b77e24f", "tree": "7de7e2a25b54fd6924f9e623253b7d6524f374e0", "modified": false},
+  "benchmark_harness": {"hash": "sha256:327d8da27bd313af42cd839acdea87a52f9318c1c67536157a2ed795862da7ec", "modified": false, "existing_strategy": "SEQUENTIAL_TEMPORARY_DIRECTORY_PER_SCALE"},
+  "formal_runs_started": 0,
+  "max_validated_scale": 0,
+  "decision": "RESOURCE_CAPACITY_NEEDS_USER",
+  "minimum_environment_change": {"recommended_volume": "Q:", "minimum_additional_free_gib_for_hard_gate": 31.117, "preferred_additional_free_gib_for_70_percent_target": 43.04, "memory_action": "RECHECK_BEFORE_RUN"}
+}
