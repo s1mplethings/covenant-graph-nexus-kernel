@@ -25,7 +25,7 @@
   ],
   "quality_activities": {
     "prevention": ["single authority", "explicit migration", "v1 default retained", "single-writer lock", "75 percent resource preflight"],
-    "assurance": ["56 persistence cases", "3 benchmark harness cases", "10-shape migration gate", "580 application/Knowledge/Conversation targeted tests", "full repository regression"],
+    "assurance": ["57 persistence cases", "3 benchmark harness cases", "1 profile-marker contract case", "10-shape migration gate", "580 application/Knowledge/Conversation targeted tests", "full repository regression"],
     "control": ["checksums", "sequence and chain validation", "CAS writer identity", "fail-closed unknown version", "checkpoint fallback", "orphan classification"],
     "improvement": ["rerun frozen production benchmark when a workspace and memory are both below 75 percent utilization"]
   },

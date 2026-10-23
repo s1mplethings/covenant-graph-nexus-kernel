@@ -104,8 +104,8 @@ All requested A–AJ behaviors are covered, including 100 sequential mutations,
 duplicate/supersession/contradiction/correction/retraction, stale derived
 state, checkpoint fallback/tail replay, corruption/gap/partial/orphan cases,
 compaction equivalence, raw CRLF/UTF-8/NUL bytes, history/as-of, legacy load,
-rollback, Conversation/retrieval equality and locking. Persistence-focused
-suite: 60 passed. Application + Knowledge + Conversation: 580 passed, 39
+rollback, Conversation/retrieval equality and locking. Focused suite: 61
+passed. Application + Knowledge + Conversation: 580 passed, 39
 skipped, 0 failed/errors. Migration shapes: 10/10 PASS.
 
 ## 15. Full Regression
