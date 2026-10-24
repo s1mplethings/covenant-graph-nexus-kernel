@@ -1,20 +1,20 @@
 {
   "kind": "CGKNKernelCoverageReport",
   "schema_version": "2.0",
-  "source_commit": "5acb52b0d1036808f3b4eb1e06ccd5007ddf6ea7",
-  "source_tree_sha": "c7ee90a9f4ddaf43e1b81ee4ae2422e556e93f16",
+  "source_commit": "160e72c18dabd2943f3d08061fa0e7c0671549ef",
+  "source_tree_sha": "8beaa4ee31129d823cbd20189c278b3a9094140e",
   "core_source_hash": "sha256:43040d52a1d416212e0189173b8b54a2b25e22fdab107aba29fd2b35fd822904",
-  "command": "python -m coverage run --branch --source=cgkn -m pytest -q -k not_freshness_self_reference",
+  "command": "python -m coverage run --append --branch --source=cgkn -m pytest -q tests/application/self_growth/test_governance_v1.py tests/experiments/self_growth_v1",
   "pytest_result": {
     "exit_code": 0
   },
   "overall": {
-    "statements": 17356,
-    "covered_statements": 15781,
+    "statements": 17361,
+    "covered_statements": 15792,
     "branches": 4688,
-    "covered_branches": 3621,
-    "statement_percent": 90.93,
-    "branch_percent": 77.24
+    "covered_branches": 3625,
+    "statement_percent": 90.96,
+    "branch_percent": 77.33
   },
   "files": {
     "cgkn/__init__.py": {
@@ -4433,58 +4433,36 @@
       ]
     },
     "cgkn/application/self_growth/governance_v1.py": {
-      "statements": 199,
-      "covered_statements": 191,
-      "statement_percent": 95.98,
+      "statements": 204,
+      "covered_statements": 202,
+      "statement_percent": 99.02,
       "branches": 62,
-      "covered_branches": 53,
-      "branch_percent": 85.48,
+      "covered_branches": 57,
+      "branch_percent": 91.94,
       "missing_lines": [
         43,
-        79,
-        88,
-        97,
-        102,
-        162,
-        275,
-        291
+        89
       ],
       "missing_branches": [
         [
-          74,
-          76
+          84,
+          86
         ],
         [
-          78,
-          79
+          88,
+          89
         ],
         [
-          96,
-          97
+          281,
+          286
         ],
         [
-          101,
-          102
+          302,
+          303
         ],
         [
-          161,
-          162
-        ],
-        [
-          269,
-          274
-        ],
-        [
-          274,
-          275
-        ],
-        [
-          290,
-          291
-        ],
-        [
-          324,
-          326
+          336,
+          338
         ]
       ]
     },
@@ -8007,12 +7985,12 @@
       "branch_percent": 100.0
     },
     "application": {
-      "statements": 12261,
-      "covered_statements": 10924,
+      "statements": 12266,
+      "covered_statements": 10935,
       "branches": 3280,
-      "covered_branches": 2371,
-      "statement_percent": 89.1,
-      "branch_percent": 72.29
+      "covered_branches": 2375,
+      "statement_percent": 89.15,
+      "branch_percent": 72.41
     },
     "artifacts": {
       "statements": 420,
@@ -8177,13 +8155,13 @@
       "branch_percent": 84.33
     },
     "L6": {
-      "statements": 12261,
-      "covered_statements": 10924,
+      "statements": 12266,
+      "covered_statements": 10935,
       "branches": 3280,
-      "covered_branches": 2371,
-      "statement_percent": 89.1,
-      "branch_percent": 72.29
+      "covered_branches": 2375,
+      "statement_percent": 89.15,
+      "branch_percent": 72.41
     }
   },
-  "raw_coverage_hash": "sha256:2ca72f9ebb81095882305515ca992abd905c096f212293e8150798ffe62a4f18"
+  "raw_coverage_hash": "sha256:09d73363027661cee7f3ee728ff76c92754f949cd8974c3bbfc78943dbdcb597"
 }
