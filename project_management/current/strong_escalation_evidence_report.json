@@ -1,0 +1,136 @@
+{
+  "kind": "CGKNStrongEscalationEvidenceReport",
+  "schema_version": "1.0",
+  "iteration": "ITER-CGNK-STRONG-ESCALATION-EVIDENCE-CLOSURE-051",
+  "backlog_item": "PB-027",
+  "status": "PASS_EVIDENCE_CLOSED_NOT_QUALIFIED",
+  "product_source_commit": "a14b309ff5fcc9a27dabd2acff824e8919298884",
+  "product_source_tree": "1b7825ab106df56234c790eb1ec23803803d5bf8",
+  "live_replacement_harness_commit": "04596e3e924ef216af2ab3fa4339814798dec75a",
+  "accounting_harness_commit": "40edcbf67bba6faa79f7665ad893d0f3be9e11c0",
+  "evidence_closure_commit": "SELF",
+  "production_semantics_byte_identical": true,
+  "threshold_tuning": "NOT_PERFORMED",
+  "previous_evidence": {
+    "formal_source_commit": "c3de7effcbd4baa18938b258c04644b80820bd72",
+    "formal_receipt_hash": "sha256:3d5ba76ae7666363d6517de9387fe5dd6bd6975b4506792a885810d3cbc45760",
+    "formal_file_sha256": "sha256:73b2e777ee9f2588886827c5859d9fced9253e7aecb805c1429011311387ea89",
+    "budget_file_sha256": "sha256:6f9a9ea30f35bba2ad69ba824fb600cd727c3adad280283bd9a2bbe3f52e6cf3",
+    "source_compatibility": {
+      "routing_policy_hash_equal": true,
+      "route_config_hash_equal": true,
+      "case_manifest_complete": true,
+      "relevant_source_paths_byte_identical": true
+    }
+  },
+  "usage_recovery": {
+    "historical_usage": "UNRECOVERABLE",
+    "reason": "The original Qwen strong-6 request timed out before response headers, provider request ID, or usage arrived; no matching persistent API Lab/provider log was available.",
+    "original_failure": {
+      "case": "strong-6",
+      "route": "strong",
+      "status": "CALL_FAILED",
+      "error_class": "outcome_unknown",
+      "latency_ms": 90076.565,
+      "usage": "UNKNOWN"
+    },
+    "replacement": {
+      "attempts": 1,
+      "receipt_hash": "sha256:1ff1198526212ab19aec69b9f9ecdd8880a2d3fa9d5a5eb3f49ef9b665acf524",
+      "file_sha256": "sha256:45225c37d61742c191ab99bb353b67e9768568fa98d4cf103f6d89170134c267",
+      "status": "CALL_FAILED",
+      "error_class": "provider_error",
+      "http_status": 502,
+      "latency_ms": 21943.465,
+      "usage": "UNKNOWN",
+      "semantic_substitution": false,
+      "further_retry": "FORBIDDEN_BY_PREDEFINED_REPLACEMENT_LIMIT"
+    }
+  },
+  "usage_completeness": {
+    "all_original_transports": {"known": 27, "total": 28, "rate": 0.9642857142857143},
+    "D0": {"all": 0.9285714285714286, "strong": 0.9285714285714286},
+    "D1": {"all": 1.0, "strong": 1.0},
+    "D2": {"all": 1.0, "strong": 1.0},
+    "D3": {"all": 0.9285714285714286, "strong": 0.8333333333333334}
+  },
+  "pricing": {
+    "snapshot_hash": "sha256:ac471d8c4f9aa49e1e56ccf0d04414482b5c4864991a7e66e9b77aa3049e0c64",
+    "comparison_currency": "CNY",
+    "qwen3.8-max": {"input_per_million": 12.0, "cached_input_per_million": 1.5, "output_per_million": 36.0, "currency": "CNY"},
+    "deepseek-flash": {"input_per_million": 0.15, "cached_input_per_million": 0.003, "output_per_million": 0.6, "currency": "USD"},
+    "usd_cny": 6.72,
+    "historical_cost_rewritten": false
+  },
+  "groups": {
+    "D0": {"success": 22, "cases": 24, "strong_calls": 14, "cheap_calls": 0, "strong_total_tokens_lower_bound": 9705, "total_tokens_lower_bound": 9705, "cost_cny_lower_bound": 0.215772, "latency_ms": 215378.851, "false_escalations": 8, "missed_escalations": 0, "critical_stop": 1.0},
+    "D1": {"success": 23, "cases": 24, "strong_calls": 0, "cheap_calls": 14, "total_tokens": 9144, "cost_cny": 0.012510288, "latency_ms": 17921.663, "false_escalations": 0, "missed_escalations": 6, "critical_stop": 1.0},
+    "D2": {"success": 23, "cases": 24, "strong_calls": 8, "cheap_calls": 6, "strong_input_tokens": 3395, "strong_total_tokens": 6130, "total_tokens": 10330, "cost_cny": 0.145317552, "cost_per_success_cny": 0.006318154434782608, "latency_ms": 91963.149, "false_escalations": 4, "missed_escalations": 2, "critical_stop": 1.0},
+    "D3": {"success": 22, "cases": 24, "strong_calls": 6, "cheap_calls": 8, "strong_input_tokens_lower_bound": 2342, "strong_total_tokens_lower_bound": 5598, "total_tokens_lower_bound": 10387, "cost_cny_lower_bound": 0.15162, "cost_per_success_cny_lower_bound": 0.006891818181818182, "latency_ms": 188891.898, "false_escalations": 0, "missed_escalations": 0, "critical_stop": 1.0}
+  },
+  "comparisons": {
+    "D3_vs_D0": {
+      "success_gap_pp": 0.0,
+      "strong_call_reduction": 0.5714285714285714,
+      "maximum_strong_input_token_reduction_at_zero_unknown": 0.5793066283456081,
+      "maximum_strong_total_token_reduction_at_zero_unknown": 0.4231839258114374,
+      "strong_total_token_gate_50_percent": false,
+      "total_tokens_per_success": "D3_HIGHER_BY_AT_LEAST_31",
+      "cost_per_success": "D3_LOWER_ROBUST_TO_SHARED_UNKNOWN_CALL",
+      "known_cost_per_success_delta_cny": -0.0029159999999999993
+    },
+    "D3_vs_D1": {"success_gap_pp": -4.166666666666674, "missed_escalations_removed": 6, "cost_per_success": "D3_HIGHER_PROVEN_BY_LOWER_BOUND"},
+    "D3_vs_D2": {"success_gap_pp": -4.166666666666674, "strong_call_reduction": 0.25, "cost_per_success": "D3_HIGHER_PROVEN_BY_LOWER_BOUND"}
+  },
+  "routing_quality": {
+    "D0_strong_call_precision": 0.42857142857142855,
+    "D0_strong_escalation_recall": 1.0,
+    "D2_strong_call_precision": 0.5,
+    "D2_strong_escalation_recall": 0.6666666666666666,
+    "D3_strong_call_precision": 1.0,
+    "D3_strong_escalation_recall": 1.0,
+    "D3_strong_decision_share": 0.25,
+    "D3_strong_model_call_share": 0.42857142857142855
+  },
+  "sensitivity": {
+    "unknown_usage_is_zero": false,
+    "maximum_unknown_input_tokens_for_50_percent_input_gate": 883,
+    "maximum_unknown_total_tokens_for_50_percent_total_gate": -1491,
+    "total_gate_possible_for_nonnegative_unknown": false,
+    "configured_ceiling_input_tokens": 86378,
+    "configured_ceiling_output_tokens": 256,
+    "strong_total_reduction_at_configured_ceiling": 0.04263071030423837
+  },
+  "break_even": {
+    "population": "MODEL_ROUTED_CASES_WITHIN_FROZEN_PHASE_MIX",
+    "strong_required_share": 0.2662199202951688,
+    "frozen_share": 0.42857142857142855,
+    "frozen_position": "ABOVE_BREAK_EVEN_D2_CHEAPER"
+  },
+  "router_complexity": {"production_loc": 145, "policy_rule_surfaces": 11, "test_cases": 32, "maximum_model_runtime_hops": 2, "maintenance_surfaces": 4},
+  "classification": {
+    "STRONG_ESCALATION_BENEFIT": "DIRECTIONAL",
+    "ADAPTIVE_DECISION_HIERARCHY_BENEFIT": "NEUTRAL",
+    "FULL_ECONOMIC_QUALIFICATION": "NOT_AVAILABLE_FROM_PROVIDER_TELEMETRY_AND_50_PERCENT_STRONG_TOTAL_GATE_FAILS",
+    "adaptive_routing_default": "NOT_YET",
+    "strong_role_separation_collapse": "NOT_YET",
+    "recommended_current_policy": "KEEP_FIXED_ROUTING_AND_RETAIN_ADAPTIVE_CAPABILITY_AS_NONDEFAULT"
+  },
+  "verification": {
+    "targeted_tests": "PASS_12",
+    "compileall": "PASS",
+    "product_direction_gate": "PASS",
+    "kernel_architecture_gate": "PASS",
+    "test_architecture_gate": "PASS",
+    "kernel_test_receipt_freshness": "PASS_SOURCE_a14b309ff5fcc9a27dabd2acff824e8919298884",
+    "full_regression": "NOT_RERUN_EVIDENCE_HARNESS_ONLY_PRODUCT_SOURCE_UNCHANGED"
+  },
+  "evidence": {
+    "formal_closure_path": "D:/CGKN/.service_evidence/strong-escalation-evidence-051/strong-escalation-closure-final.json",
+    "formal_closure_file_sha256": "sha256:c7620a9dd4df48699eff88cedf14811926769e62e686c16c55821a7430b46008",
+    "formal_closure_receipt_hash": "sha256:59a3d4e9bd9fa4d9f7b75ad7fdedd410f61951a1fe1845c9c84491b43de3cc4c",
+    "replacement_path": "D:/CGKN/.service_evidence/strong-escalation-evidence-051/strong-6-qwen-replacement.json",
+    "replacement_budget_path": "D:/CGKN/.service_evidence/strong-escalation-evidence-051/replacement-provider-budget.json"
+  },
+  "security": {"contains_credentials": false, "raw_provider_text_stored": false, "hidden_source_exposed": false, "hidden_assertion_exposed": false, "scope_security_violations": 0, "force_push": false, "pull_request": "NOT_CREATED"}
+}

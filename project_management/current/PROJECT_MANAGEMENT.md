@@ -1,67 +1,36 @@
 # CGKN current project management
 
-Current project management follows the product authority in `PRODUCT_GOAL.md`, `MVP_SCOPE.md`, `governance/product_invariants.json`, and `governance/current_architecture.json`.
+Current project management follows `PRODUCT_GOAL.md`, `MVP_SCOPE.md`, `governance/product_invariants.json`, and `governance/current_architecture.json`.
 
 ## Current status
 
-The repository-reset cleanup is closed. Obsolete pre-MVP copies and
-orphaned experiment families have been physically deleted from the working tree;
-Git history is the archive.
+`ITER-CGNK-STRONG-ESCALATION-EVIDENCE-CLOSURE-051` is complete. Product source remains `a14b309ff5fcc9a27dabd2acff824e8919298884`; this iteration added only a bounded benchmark/evidence harness, tests, and evidence records.
 
-This does not mean the new runtime is operational, and it does not establish
-functional readiness.
+The 28-call frozen routing receipt has 27 known usages and one unknown Qwen timeout. Historical recovery failed because the request produced no response headers or provider request ID. The single permitted replacement returned HTTP 502 without usage, so the original semantic result remains in place and both failures remain operational evidence.
 
-The remaining compatibility runtime is intentionally retained:
+## Decision
 
-- `scripts/codex_conversation.py`
-- `scripts/run_codex_conversation_generation.py`
-- `scripts/run_local_pipeline.py`
-- `scripts/run_local_pipeline_impl.py`
+- `STRONG_ESCALATION_BENEFIT = DIRECTIONAL`
+- `ADAPTIVE_DECISION_HIERARCHY_BENEFIT = NEUTRAL`
+- Adaptive default: `NOT_YET`
+- Strong role separation collapse: `NOT_YET`
 
-Further cleanup inside that cluster now requires a working replacement path.
+D3 preserves D0 reliability, has 100% strong-call precision/recall, and lowers cost/success versus D0 under a shared-unknown proof. It cannot meet the 50% strong-total-token gate: even zero unknown usage yields only 42.32%. It also uses at least 31 more total model tokens per success than D0 and its cost lower bound per success exceeds D2's exact cost.
 
-## Current feature increment
+## Current recommendation
 
-`ITER-CGNK-V2-RESOURCE-GATE-CALIBRATION-AND-SCALE-QUALIFICATION-048` replaced
-the fixed 75 percent disk gate with a frozen empirical peak-and-reserve policy.
-Real production-v2 probes at 1k and 5k calibrated the estimator, after which F:
-passed on absolute disk and memory headroom despite being 82.904 percent used.
-
-The frozen production v2 source passed formal 10k, 50k, 100k, and 250k scale,
-checkpoint, compaction, semantic, mixed-workload, crash-recovery, and
-restart-update-Conversation checks. However, the adoption gate remains closed:
-250k checkpoint cold start took 45.472 seconds versus the 37.430-second S0
-baseline, a 21.485 percent regression. No adoption commit was created; v1
-remains the new-pack default and v2 remains explicit opt-in.
-
-## Roadmap after the active increment
-
-1. complete CapabilityTree edit semantics;
-2. complete Tree-to-DAG execution semantics;
-3. add more bounded executor adapters;
-4. persist project-level state and safe resume;
-5. prove one real vertical slice;
-6. add affected-subgraph repair;
-7. add capability registry and validated self-growth;
-8. add optional project-team views and later promotion capabilities.
+Keep fixed routing for the evaluated workload and retain adaptive routing as a non-default capability. Revisit only with naturally collected production workload composition and provider-side failure billing telemetry. Do not spend further calls trying to qualify the already-impossible frozen token gate.
 
 ## Management surfaces
 
 - `backlog.json` — active and future MVP work;
-- `risks.json` — current architecture and migration risks;
-- `active_iteration.json` — the single active feature increment;
-- `enterprise_experience.json` — reviewed reusable lessons;
-- `governance/mvp_cleanup_boundary.json` — cleanup completion and migration boundary.
+- `active_iteration.json` — latest reviewed iteration;
+- `strong_escalation_evidence_report.json` — PB-027 machine summary;
+- `risks.json` — architecture and migration risks;
+- `enterprise_experience.json` — reviewed reusable lessons.
 
-Management records cannot authorize functional success, formal evidence, packaging, or delivery.
+Management records do not authorize functional success, formal evidence, packaging, or delivery.
 
 ## Verification
 
-The frozen product source retains the ITER-046 source-bound full regression:
-compileall, all deterministic Kernel profiles, 3112-test collection, and full
-pytest (`2755 passed`, `357 skipped`, `0 failed`, `0 errors`). ITER-048 changed
-only benchmark harness/tests and evidence. Its targeted verification is 70/70,
-and product direction, kernel architecture, test architecture, kernel
-completeness, and kernel test receipt gates all pass. Adoption-specific full
-regression is not applicable because the failed cold-start gate prevented any
-default change.
+PB-027 targeted tests pass 12/12. Compileall, product direction, kernel architecture, test architecture, and kernel receipt freshness pass. The product full regression remains the source-bound ITER-050 result (`2828 passed`, `357 skipped`, `0 failed`, `0 errors`) because PB-027 did not change production code.

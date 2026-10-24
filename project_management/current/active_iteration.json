@@ -1,71 +1,55 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-050",
+  "iteration_id": "ITER-CGNK-STRONG-ESCALATION-EVIDENCE-CLOSURE-051",
   "project_id": "cgkn",
-  "goal": "Converge safe architecture slimming, capability retrieval and decision routing, and v2 checkpoint cold-start optimization without creating a second runtime or authority.",
-  "backlog_item_ids": ["PB-026"],
+  "goal": "Close PB-027 strong-token and cost evidence without changing production routing, authorities, models, budgets, or acceptance.",
+  "backlog_item_ids": ["PB-027"],
   "workflow_state": "complete",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "evidence_status": "PASS_EVIDENCE_CLOSED_NOT_QUALIFIED",
   "acceptance_criteria": [
-    "integrate the independently frozen A, B, and C workstreams by semantic merge with no authority duplication",
-    "run capability search and D0/D1/D2/D3 formal evaluation on one frozen integrated source",
-    "use the routing evidence to evaluate Blueprint simplification and fixed role-separation collapse without weakening reliability or safety",
-    "preserve Conversation, Knowledge, CapabilityRegistry, ProjectBlueprint, Provider, persistence, and delivery authority boundaries",
-    "finish with zero failed and zero errored integrated regression plus the required real product smokes"
+    "audit all 28 frozen transports with explicit KNOWN, PARTIAL, or UNKNOWN usage",
+    "recover historical usage before any rerun and never coerce unknown usage to zero",
+    "permit at most one frozen replacement for the one provider-infrastructure failure",
+    "compare D0, D1, D2, and D3 tokens, cost, reliability, latency, precision, recall, and critical stops",
+    "leave production semantics byte-identical and publish only through the canonical repository authority"
   ],
   "quality_metrics": [
-    {"id": "QM-SAFE-SLIMMING", "measure": "public surface and product behavior after safe slimming", "target": "zero public or semantic regression", "method": "surface hashes, targeted suites, and integrated full regression"},
-    {"id": "QM-DECISION-HIERARCHY", "measure": "routing reliability, strong-model share, false escalation, and missed escalation", "target": "preserve acceptance and critical-stop correctness while reducing unnecessary strong work", "method": "same-case D0/D1/D2/D3 comparison on the integrated source"},
-    {"id": "QM-CAPABILITY-RETRIEVAL", "measure": "Top1, Top3, latency, candidate count, and bounded context", "target": "no selection regression and bounded context through 1000 synthetic capabilities", "method": "real-registry and deterministic 100/500/1000 fixtures"},
-    {"id": "QM-CHECKPOINT-COLD-START", "measure": "250k v2 checkpoint cold start against the fixed S0 baseline", "target": "strictly faster than 37.430 seconds with correctness and fallback preserved", "method": "quiet-window fresh-process staged requalification"}
+    {"id": "QM-USAGE-COMPLETENESS", "measure": "known usage by group and strong-route subset", "target": "100% or explicit sensitivity downgrade", "result": "D1_D2_100_PERCENT_D0_D3_INCOMPLETE"},
+    {"id": "QM-STRONG-TOKEN", "measure": "D3 strong tokens per success versus D0", "target": "at least 50% reduction", "result": "FAIL_MAXIMUM_42_318_PERCENT"},
+    {"id": "QM-COST", "measure": "D3 total cost per success", "target": "lower than D0 and competitive with D2", "result": "LOWER_THAN_D0_DIRECTIONALLY_HIGHER_THAN_D2_BY_LOWER_BOUND"},
+    {"id": "QM-ROUTING-QUALITY", "measure": "precision, recall, false/missed escalation, and critical stop", "target": "no safety regression", "result": "PASS_D3_PRECISION_1_RECALL_1_CRITICAL_STOP_1"}
   ],
   "quality_activities": {
-    "prevention": ["independent worktrees and subsystem ownership", "shared authority freeze", "source closure before formal evidence"],
-    "assurance": ["semantic integration review", "source-bound benchmark receipts", "public-surface and authority snapshots"],
-    "control": ["canonical repository publication", "no force push or automatic PR", "zero manual candidate edits"],
-    "improvement": ["evidence-driven A2 simplification only after D0/D1/D2/D3", "retain abstractions that materially protect reliability or authority"]
+    "prevention": ["frozen policy and model config", "single predefined replacement limit", "unknown usage remains null"],
+    "assurance": ["source compatibility hashes", "28-row transport audit", "official pricing snapshot", "targeted tests and kernel receipt freshness"],
+    "control": ["canonical repository publication", "no threshold tuning", "no force push, PR, or merge"],
+    "improvement": ["shared-unknown cancellation analysis", "configured-ceiling sensitivity", "D2 break-even analysis"]
   },
   "interface_expectations": [
-    "CapabilityRegistry remains the sole capability authority and its search index is derived and rebuildable",
-    "ProjectKnowledgePack and authoritative segments remain the sole knowledge and persistence authorities",
-    "ProjectBlueprint remains unchanged until a controlled A/B proves an equivalent minimal representation",
-    "Decision routing does not become a second Agent, planner, DAG, state store, or runtime",
-    "existing v1 packs remain readable and never auto-migrate"
+    "DecisionRouter remains derived and non-default",
+    "the high-capability Agent remains the project decision authority",
+    "fixed role separation remains intact",
+    "API Lab remains transport-only and CGKN remains selection authority"
   ],
   "evidence_refs": [
-    "project_management/current/architecture_diet_safe_report.json",
-    "evidence/capability-routing-decision-hierarchy/discovery.json",
-    "project_management/current/v2_scale_qualification_report.json",
-    "project_management/current/architecture_convergence_report.json",
-    "project_management/summaries/architecture_diet_safe_20261024.md",
-    "project_management/summaries/capability_routing_decision_hierarchy_discovery_20261024.md",
-    "project_management/summaries/v2_checkpoint_cold_start_optimization_20261024.md"
+    "project_management/current/strong_escalation_evidence_report.json",
+    "project_management/summaries/strong_escalation_evidence_closure_20261024.md",
+    "D:/CGKN/.service_evidence/strong-escalation-evidence-051/strong-escalation-closure-final.json"
   ],
   "review": {
     "outcome": "accepted_with_limits",
     "feedback": [
-      "Safe slimming and checkpoint optimization are accepted.",
-      "Capability search is retained as a derived service, but its current production registry is too small for a claimed runtime benefit.",
-      "Adaptive routing and Blueprint simplification remain evaluation-only because their qualification gates were not met.",
-      "Fixed role separation is not collapsed and Multi-Agent Runtime remains deferred."
+      "Strong escalation is directional but does not meet the 50 percent strong-total-token gate.",
+      "Adaptive hierarchy is neutral and remains non-default because D3 is not superior to D2 on frozen success/cost.",
+      "The original timeout and failed replacement remain operational reliability evidence.",
+      "No role collapse, Multi-Agent work, threshold tuning, or production source change is authorized."
     ],
-    "accepted_backlog_item_ids": ["PB-026"]
+    "accepted_backlog_item_ids": ["PB-027"]
   },
   "retrospective": {
-    "worked": [
-      "independent worktrees prevented subsystem overlap",
-      "source-bound receipts exposed the exact regression closure",
-      "formal provider evidence distinguished routing quality from transport failures"
-    ],
-    "did_not_work": [
-      "D3 did not meet the strong-token reduction gate",
-      "minimal Blueprint representation did not reduce runtime prompt characters or calls"
-    ],
-    "experiments": [
-      "D0/D1/D2/D3 formal routing comparison",
-      "B0/B1 Blueprint representation A/B",
-      "250k checkpoint cold-start qualification"
-    ]
+    "worked": ["shared-unknown algebra closed cost ordering without inventing usage", "the one-call replacement policy prevented benchmark chasing", "frozen source comparison preserved prior evidence"],
+    "did_not_work": ["Qwen returned no usage for either the original timeout or the HTTP 502 replacement", "D3 cheap substitution increased total model tokens and did not beat D2 cost"],
+    "experiments": ["historical transport audit", "one frozen strong-6 replacement", "D0/D1/D2/D3 economic sensitivity", "D3-vs-D2 break-even"]
   }
 }
