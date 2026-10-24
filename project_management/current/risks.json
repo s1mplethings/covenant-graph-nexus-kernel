@@ -145,6 +145,15 @@
       "signal": "Exact query P50 stays near constant, but ambiguous candidate maxima reach 5,000 and P95 reaches 199.71 ms at 250k; 10k long-tail skew reaches 2,312 candidates.",
       "response": "Preserve recall and retrieval authority; profile branch/term selectivity and add only semantics-preserving derived acceleration after the persistence authority is made crash-safe.",
       "owner": "knowledge retrieval"
+    },
+    {
+      "id": "R-MVP-017",
+      "title": "Experimental capability growth may create registry debt instead of reusable value",
+      "probability": "medium",
+      "impact": "high",
+      "signal": "New capabilities have zero or single reuse, repeat existing semantic signatures, or fail hidden generalization while task completion appears high.",
+      "response": "Keep production admission disabled; require search, bounded composition, semantic duplicate checks, hidden qualification, independent group registries, and explicit saturation/debt metrics before recommending productionization.",
+      "owner": "capability registry"
     }
   ]
 }

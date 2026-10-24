@@ -22,17 +22,17 @@ Further cleanup inside that cluster now requires a working replacement path.
 
 ## Current feature increment
 
-`ITER-CGNK-V2-RESOURCE-GATE-CALIBRATION-AND-SCALE-QUALIFICATION-048` replaced
-the fixed 75 percent disk gate with a frozen empirical peak-and-reserve policy.
-Real production-v2 probes at 1k and 5k calibrated the estimator, after which F:
-passed on absolute disk and memory headroom despite being 82.904 percent used.
+`ITER-CGNK-SELF-GROWTH-CAPABILITY-INTERNALIZATION-052` evaluates bounded
+Self-Growth V1. It adds no production authority: every run starts from an
+isolated deterministic registry clone, uses the existing capability builder and
+Runtime boundaries, and leaves the production registry unchanged.
 
-The frozen production v2 source passed formal 10k, 50k, 100k, and 250k scale,
-checkpoint, compaction, semantic, mixed-workload, crash-recovery, and
-restart-update-Conversation checks. However, the adoption gate remains closed:
-250k checkpoint cold start took 45.472 seconds versus the 37.430-second S0
-baseline, a 21.485 percent regression. No adoption commit was created; v1
-remains the new-pack default and v2 remains explicit opt-in.
+The increment first proves gap classification, search, reuse, parameterization,
+ephemeral composition, proposal validation, sandbox implementation, hidden
+qualification, and derived experience accounting offline. After full regression
+and canonical Source Closure, G0/G1/G2/G3 will process the same frozen 100-task
+stream. Production adoption remains proposal-only until the formal evidence
+shows internalization rather than registry growth debt.
 
 ## Roadmap after the active increment
 
@@ -57,11 +57,7 @@ Management records cannot authorize functional success, formal evidence, packagi
 
 ## Verification
 
-The frozen product source retains the ITER-046 source-bound full regression:
-compileall, all deterministic Kernel profiles, 3112-test collection, and full
-pytest (`2755 passed`, `357 skipped`, `0 failed`, `0 errors`). ITER-048 changed
-only benchmark harness/tests and evidence. Its targeted verification is 70/70,
-and product direction, kernel architecture, test architecture, kernel
-completeness, and kernel test receipt gates all pass. Adoption-specific full
-regression is not applicable because the failed cold-start gate prevented any
-default change.
+Source validation is in progress. Formal Self-Growth evidence is not valid
+until one clean canonical Source Closure passes compileall, all Kernel gates and
+profiles, collection, and full pytest. Discovery evidence cannot authorize
+production admission.

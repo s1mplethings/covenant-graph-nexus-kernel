@@ -1,71 +1,53 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-050",
+  "iteration_id": "ITER-052",
   "project_id": "cgkn",
-  "goal": "Converge safe architecture slimming, capability retrieval and decision routing, and v2 checkpoint cold-start optimization without creating a second runtime or authority.",
-  "backlog_item_ids": ["PB-026"],
-  "workflow_state": "complete",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "goal": "Determine whether bounded search, reuse, composition, qualified candidate creation, and later reuse produce real capability internalization without changing production authority.",
+  "backlog_item_ids": ["PB-028"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "integrate the independently frozen A, B, and C workstreams by semantic merge with no authority duplication",
-    "run capability search and D0/D1/D2/D3 formal evaluation on one frozen integrated source",
-    "use the routing evidence to evaluate Blueprint simplification and fixed role-separation collapse without weakening reliability or safety",
-    "preserve Conversation, Knowledge, CapabilityRegistry, ProjectBlueprint, Provider, persistence, and delivery authority boundaries",
-    "finish with zero failed and zero errored integrated regression plus the required real product smokes"
+    "classify capability and non-capability gaps before proposing growth",
+    "enforce reuse before bounded composition before creation",
+    "implement candidates through the existing sandboxed capability builder and hidden qualification",
+    "admit only qualified candidates to independent experimental registry clones",
+    "freeze one 100-task stream and run G0, G1, G2, and G3 on one clean Source Closure",
+    "measure internalization, saturation, debt, strong context compression, usage, cost, and latency without changing production routing"
   ],
   "quality_metrics": [
-    {"id": "QM-SAFE-SLIMMING", "measure": "public surface and product behavior after safe slimming", "target": "zero public or semantic regression", "method": "surface hashes, targeted suites, and integrated full regression"},
-    {"id": "QM-DECISION-HIERARCHY", "measure": "routing reliability, strong-model share, false escalation, and missed escalation", "target": "preserve acceptance and critical-stop correctness while reducing unnecessary strong work", "method": "same-case D0/D1/D2/D3 comparison on the integrated source"},
-    {"id": "QM-CAPABILITY-RETRIEVAL", "measure": "Top1, Top3, latency, candidate count, and bounded context", "target": "no selection regression and bounded context through 1000 synthetic capabilities", "method": "real-registry and deterministic 100/500/1000 fixtures"},
-    {"id": "QM-CHECKPOINT-COLD-START", "measure": "250k v2 checkpoint cold start against the fixed S0 baseline", "target": "strictly faster than 37.430 seconds with correctness and fallback preserved", "method": "quiet-window fresh-process staged requalification"}
+    {"id": "QM-GAP", "measure": "true-gap precision/recall and non-capability classification", "target": "high precision/recall and 100% critical-stop correctness", "method": "hidden expected labels over the frozen stream"},
+    {"id": "QM-INTERNALIZATION", "measure": "later tasks using previously admitted capabilities", "target": "reuse and composition grow while creation declines", "method": "derived per-task experience ledger and 20-task windows"},
+    {"id": "QM-DEBT", "measure": "duplicate, rejected, zero-use, and single-use capabilities", "target": "G2/G3 materially below naive growth", "method": "independent registry snapshots"},
+    {"id": "QM-EFFICIENCY", "measure": "strong/cheap calls, tokens, cost, latency, and compressed context", "target": "no hidden unknown-as-zero accounting", "method": "source-bound Provider receipts and official pricing snapshot"}
   ],
   "quality_activities": {
-    "prevention": ["independent worktrees and subsystem ownership", "shared authority freeze", "source closure before formal evidence"],
-    "assurance": ["semantic integration review", "source-bound benchmark receipts", "public-surface and authority snapshots"],
-    "control": ["canonical repository publication", "no force push or automatic PR", "zero manual candidate edits"],
-    "improvement": ["evidence-driven A2 simplification only after D0/D1/D2/D3", "retain abstractions that materially protect reliability or authority"]
+    "prevention": ["production registry isolation", "semantic duplicate gate", "hidden fixtures excluded from Provider context"],
+    "assurance": ["targeted fake validation", "full regression", "same-stream four-group formal comparison"],
+    "control": ["canonical repository publication", "clean source identity gate", "no force push or automatic PR"],
+    "improvement": ["compare G1 debt with G2 composition-first behavior", "retain Strong abstraction decisions only if G3 improves outcomes"]
   },
   "interface_expectations": [
-    "CapabilityRegistry remains the sole capability authority and its search index is derived and rebuildable",
-    "ProjectKnowledgePack and authoritative segments remain the sole knowledge and persistence authorities",
-    "ProjectBlueprint remains unchanged until a controlled A/B proves an equivalent minimal representation",
-    "Decision routing does not become a second Agent, planner, DAG, state store, or runtime",
-    "existing v1 packs remain readable and never auto-migrate"
+    "CapabilityRegistry remains the sole capability authority",
+    "experimental registries are isolated deterministic clones",
+    "experience is derived and rebuildable",
+    "composition plans are ephemeral and use the existing Runtime boundary",
+    "production routing, Knowledge, persistence, validation, and delivery authorities remain unchanged"
   ],
   "evidence_refs": [
-    "project_management/current/architecture_diet_safe_report.json",
-    "evidence/capability-routing-decision-hierarchy/discovery.json",
-    "project_management/current/v2_scale_qualification_report.json",
-    "project_management/current/architecture_convergence_report.json",
-    "project_management/summaries/architecture_diet_safe_20261024.md",
-    "project_management/summaries/capability_routing_decision_hierarchy_discovery_20261024.md",
-    "project_management/summaries/v2_checkpoint_cold_start_optimization_20261024.md"
+    "experiments/self_growth_v1/README.md",
+    "experiments/self_growth_v1/cases.py",
+    "experiments/self_growth_v1/runner.py",
+    "scripts/run_self_growth_benchmarks.py"
   ],
   "review": {
-    "outcome": "accepted_with_limits",
-    "feedback": [
-      "Safe slimming and checkpoint optimization are accepted.",
-      "Capability search is retained as a derived service, but its current production registry is too small for a claimed runtime benefit.",
-      "Adaptive routing and Blueprint simplification remain evaluation-only because their qualification gates were not met.",
-      "Fixed role separation is not collapsed and Multi-Agent Runtime remains deferred."
-    ],
-    "accepted_backlog_item_ids": ["PB-026"]
+    "outcome": "pending",
+    "feedback": [],
+    "accepted_backlog_item_ids": []
   },
   "retrospective": {
-    "worked": [
-      "independent worktrees prevented subsystem overlap",
-      "source-bound receipts exposed the exact regression closure",
-      "formal provider evidence distinguished routing quality from transport failures"
-    ],
-    "did_not_work": [
-      "D3 did not meet the strong-token reduction gate",
-      "minimal Blueprint representation did not reduce runtime prompt characters or calls"
-    ],
-    "experiments": [
-      "D0/D1/D2/D3 formal routing comparison",
-      "B0/B1 Blueprint representation A/B",
-      "250k checkpoint cold-start qualification"
-    ]
+    "worked": ["20-task deterministic discovery passed without production registry mutation"],
+    "did_not_work": [],
+    "experiments": ["G0/G1/G2/G3 frozen-stream comparison pending Source Closure"]
   }
 }

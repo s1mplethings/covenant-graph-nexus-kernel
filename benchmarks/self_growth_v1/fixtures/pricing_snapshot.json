@@ -1,0 +1,30 @@
+{
+  "kind": "CGNKSelfGrowthPricingSnapshot",
+  "schema_version": "1.0",
+  "captured_at": "2026-10-24T06:38:24Z",
+  "rate_basis": "Qwen qwen3.8-max China Beijing pricing and DeepSeek Flash Saturday off-peak pricing",
+  "usd_cny": 6.72,
+  "fx_source": "https://www.chinamoney.com.cn/english/",
+  "models": {
+    "qwen": {
+      "model": "qwen3.8-max",
+      "input_price_per_million": 12.0,
+      "cached_input_price_per_million": 1.5,
+      "output_price_per_million": 36.0,
+      "reasoning_price_per_million": 36.0,
+      "currency": "CNY",
+      "unit": "million_tokens",
+      "source": "https://help.aliyun.com/en/model-studio/qwen3-8-max"
+    },
+    "deepseek": {
+      "model": "deepseek-flash",
+      "input_price_per_million": 0.15,
+      "cached_input_price_per_million": 0.003,
+      "output_price_per_million": 0.6,
+      "reasoning_price_per_million": 0.6,
+      "currency": "USD",
+      "unit": "million_tokens",
+      "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+    }
+  }
+}
