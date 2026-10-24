@@ -53,6 +53,29 @@ def _load_json(path: pathlib.Path) -> dict[str, Any]:
     return value
 
 
+def _strong_growth_benefit(g2: dict[str, Any], g3: dict[str, Any]) -> str:
+    success_preserved = g3["success_rate"] >= g2["success_rate"] - 0.05
+    abstraction_improved = (
+        g3["new_capabilities_admitted"] < g2["new_capabilities_admitted"]
+        and g3["zero_reuse_capability_rate"] <= g2["zero_reuse_capability_rate"]
+        and g3["capability_internalization_rate"] >= g2["capability_internalization_rate"]
+    )
+    added_cost_without_abstraction_gain = (
+        g3["known_cost_cny"] > g2["known_cost_cny"]
+        and (
+            g3["new_capabilities_admitted"] > g2["new_capabilities_admitted"]
+            or g3["zero_reuse_capability_rate"] > g2["zero_reuse_capability_rate"]
+        )
+    )
+    return (
+        "PROVEN_DIRECTIONALLY"
+        if success_preserved and abstraction_improved
+        else "HARMFUL"
+        if not success_preserved or added_cost_without_abstraction_gain
+        else "NEUTRAL"
+    )
+
+
 def _formal_group(profile: str, output_root: pathlib.Path, expected_commit: str) -> dict[str, Any]:
     group = PROFILES[profile]
     commit, tree = _source_identity(expected_commit=expected_commit, require_clean=True)
@@ -145,11 +168,7 @@ def _final(output_root: pathlib.Path, paths: list[pathlib.Path], expected_commit
     }
     g2 = by_group[GrowthGroup.G2.value]["metrics"]
     g3 = by_group[GrowthGroup.G3.value]["metrics"]
-    strong_benefit = (
-        "PROVEN_DIRECTIONALLY"
-        if g3["success_rate"] > g2["success_rate"] or g3["zero_reuse_capability_rate"] < g2["zero_reuse_capability_rate"]
-        else "NEUTRAL" if g3["success_rate"] >= g2["success_rate"] - 0.05 else "HARMFUL"
-    )
+    strong_benefit = _strong_growth_benefit(g2, g3)
     status = "PROVEN_DIRECTIONALLY" if (
         g3["true_gap_precision"] >= 0.95
         and g3["true_gap_recall"] >= 0.95
