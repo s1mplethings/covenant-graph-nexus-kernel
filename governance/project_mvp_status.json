@@ -123,6 +123,7 @@
     "composition_before_creation_benefit": "PROVEN",
     "capability_internalization_benefit": "PROVEN_DIRECTIONALLY",
     "strong_growth_decision_benefit": "HARMFUL",
+    "cost_evaluation": "PARTIAL_G3_HAS_ONE_UNKNOWN_COST_CALL",
     "growth_saturation_status": "PROVEN_DIRECTIONALLY",
     "growth_debt_status": "G2_CONTROLLED_G1_AND_G3_REGRESS",
     "production_adoption_readiness": "NOT_READY",

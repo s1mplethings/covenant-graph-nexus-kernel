@@ -92,6 +92,7 @@
     "composition_before_creation_benefit": "PROVEN",
     "capability_internalization_benefit": "PROVEN_DIRECTIONALLY",
     "strong_growth_decision_benefit": "HARMFUL",
+    "cost_evaluation": "PARTIAL_G3_HAS_ONE_UNKNOWN_COST_CALL",
     "production_adoption_readiness": "NOT_READY",
     "production_registry_modified": false,
     "g2_success_rate": 0.99,
