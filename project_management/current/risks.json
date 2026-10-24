@@ -3,6 +3,15 @@
   "schema_version": "3.0",
   "risks": [
     {
+      "id": "R-MVP-018",
+      "title": "Promotion publishing could leak private evidence or bypass human authorization",
+      "probability": "medium",
+      "impact": "high",
+      "signal": "Drafts contain local paths, unsupported claims, secrets, or an external adapter executes without an approval that binds exact content, media, and platform hashes.",
+      "response": "Project only explicit public-safe evidence, validate every draft against the claim ledger, keep DRAFT_ONLY default, resolve credentials locally, require exact-hash publish approval, and make EXTERNAL_WRITE proposal-only for Self-Growth.",
+      "owner": "promotion capability"
+    },
+    {
       "id": "R-MVP-001",
       "title": "Compatibility runtime remains much larger than the new MVP substrate",
       "probability": "high",

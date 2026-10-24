@@ -1,64 +1,54 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-052",
+  "iteration_id": "ITER-053",
   "project_id": "cgkn",
-  "goal": "Determine whether bounded search, reuse, composition, qualified candidate creation, and later reuse produce real capability internalization without changing production authority.",
-  "backlog_item_ids": ["PB-028"],
-  "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "goal": "Build a local-first evidence-grounded Promotion Studio capability branch with approval-bound publishing and reusable receipts without changing kernel authority.",
+  "backlog_item_ids": ["PB-029"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "classify capability and non-capability gaps before proposing growth",
-    "enforce reuse before bounded composition before creation",
-    "implement candidates through the existing sandboxed capability builder and hidden qualification",
-    "admit only qualified candidates to independent experimental registry clones",
-    "freeze one 100-task stream and run G0, G1, G2, and G3 on one clean Source Closure",
-    "measure internalization, saturation, debt, strong context compression, usage, cost, and latency without changing production routing"
+    "project evidence is projected into public-safe claims before any campaign drafting",
+    "promotion signals suppress duplicates and changes without public value",
+    "campaign, content, media, approval, publication, and analytics contracts are canonical and source-bound",
+    "external publication requires an exact-hash human approval and opaque local credentials",
+    "dry-run, restart-safe scheduling, fake publication, and at least two native adapters are qualified",
+    "one Self-Growth V1 campaign produces validated text, image, and video drafts with no public write",
+    "formal evaluation runs from one clean Source Closure and full repository regression passes"
   ],
   "quality_metrics": [
-    {"id": "QM-GAP", "measure": "true-gap precision/recall and non-capability classification", "target": "high precision/recall and 100% critical-stop correctness", "method": "hidden expected labels over the frozen stream"},
-    {"id": "QM-INTERNALIZATION", "measure": "later tasks using previously admitted capabilities", "target": "reuse and composition grow while creation declines", "method": "derived per-task experience ledger and 20-task windows"},
-    {"id": "QM-DEBT", "measure": "duplicate, rejected, zero-use, and single-use capabilities", "target": "G2/G3 materially below naive growth", "method": "independent registry snapshots"},
-    {"id": "QM-EFFICIENCY", "measure": "strong/cheap calls, tokens, cost, latency, and compressed context", "target": "no hidden unknown-as-zero accounting", "method": "source-bound Provider receipts and official pricing snapshot"}
+    {"id": "QM-PROMOTION-SIGNAL", "measure": "promotion signal decision correctness", "target": "20/20", "method": "frozen deterministic cases"},
+    {"id": "QM-PROMOTION-CAMPAIGN", "measure": "claim-grounded campaign generation", "target": "10/10", "method": "schema and claim-ledger validation"},
+    {"id": "QM-PROMOTION-ASSET", "measure": "media acceptance", "target": "6/6", "method": "Pillow image inspection and FFmpeg/ffprobe validation"},
+    {"id": "QM-PROMOTION-PUBLISH", "measure": "approval, idempotency, retry, and restart safety", "target": "all fake/native contract cases pass", "method": "injected transport and local atomic state"}
   ],
   "quality_activities": {
-    "prevention": ["production registry isolation", "semantic duplicate gate", "hidden fixtures excluded from Provider context"],
-    "assurance": ["targeted fake validation", "full regression", "same-stream four-group formal comparison"],
-    "control": ["canonical repository publication", "clean source identity gate", "no force push or automatic PR"],
-    "improvement": ["compare G1 debt with G2 composition-first behavior", "retain Strong abstraction decisions only if G3 improves outcomes"]
+    "prevention": ["public-safe evidence projection", "exact-hash approval", "opaque credential references", "EXTERNAL_WRITE proposal-only admission"],
+    "assurance": ["20 signal cases", "10 campaign cases", "6 media assets", "native adapter contract qualification", "full regression"],
+    "control": ["DRAFT_ONLY default", "bounded retry", "idempotency key", "canonical repository publication"],
+    "improvement": ["retain platform bridge isolation", "feed only aggregate analytics into future experience"]
   },
   "interface_expectations": [
     "CapabilityRegistry remains the sole capability authority",
-    "experimental registries are isolated deterministic clones",
-    "experience is derived and rebuildable",
-    "composition plans are ephemeral and use the existing Runtime boundary",
-    "production routing, Knowledge, persistence, validation, and delivery authorities remain unchanged"
+    "Promotion Studio is an application capability branch, not a new runtime or planner",
+    "PublicationPlan and PublicationReceipt are restart-safe local authority",
+    "Postiz remains an optional separately deployed service boundary",
+    "production Registry, routing, Knowledge, validation, and delivery authorities remain unchanged"
   ],
   "evidence_refs": [
-    "experiments/self_growth_v1/README.md",
-    "experiments/self_growth_v1/cases.py",
-    "experiments/self_growth_v1/runner.py",
-    "scripts/run_self_growth_benchmarks.py"
+    "experiments/promotion_studio/README.md",
+    "experiments/promotion_studio/runner.py",
+    "scripts/run_promotion_studio.py",
+    "benchmarks/promotion_v1/fixtures/platform_connectivity_matrix.json"
   ],
   "review": {
-    "outcome": "accepted_with_limits",
-    "feedback": [
-      "G2 search-compose-create reached 99 percent success with 15 admitted capabilities and zero zero-use debt.",
-      "G3 matched success but increased cost and debt; the strong growth decision layer is harmful on this frozen stream.",
-      "Keep production capability authority and fixed routing unchanged until precision and repeated external validation improve."
-    ],
-    "accepted_backlog_item_ids": ["PB-028"]
+    "outcome": "pending",
+    "feedback": [],
+    "accepted_backlog_item_ids": []
   },
   "retrospective": {
-    "worked": [
-      "reuse before composition before creation reduced admissions from 55 to 15",
-      "hidden qualification and isolated registries prevented production mutation",
-      "later windows saturated with no new capability creation"
-    ],
-    "did_not_work": [
-      "naive growth admitted one zero-use capability per admission",
-      "strong abstraction decisions increased cost and growth debt without improving success"
-    ],
-    "experiments": ["G0/G1/G2/G3 completed on one frozen 100-task stream at source 42d26944b775f0a18ef348758750f18ad09eb4d4"]
+    "worked": [],
+    "did_not_work": [],
+    "experiments": []
   }
 }

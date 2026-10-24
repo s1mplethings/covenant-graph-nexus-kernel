@@ -2,7 +2,7 @@
   "kind": "CGKNCurrentBacklog",
   "schemaVersion": "3",
   "project": "CGKN",
-  "current_item_id": "PB-028",
+  "current_item_id": "PB-029",
   "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
   "verification_status": "PASS_WITH_LIMITS",
   "product_authority": [
@@ -12,6 +12,22 @@
     "governance/current_architecture.json"
   ],
   "items": [
+    {
+      "id": "PB-029",
+      "title": "Build local-first Promotion Studio capability branch",
+      "priority": 29,
+      "state": "in_progress",
+      "value": "Turn validated project evidence into grounded campaign drafts, local media, approval-bound publication plans, receipts, and aggregate feedback without adding a second runtime or authority.",
+      "acceptance": [
+        "20/20 signal decisions and 10/10 campaign cases pass",
+        "public content cites only approved evidence claims and leaks no local paths or credentials",
+        "project cards and short videos are generated and locally validated",
+        "publishing is DRAFT_ONLY by default and exact-hash approval is mandatory",
+        "fake publication and at least two native adapter contracts pass with idempotent restart-safe receipts",
+        "production Registry and fixed routing remain unchanged"
+      ],
+      "evidence_status": "NOT_EVALUATED"
+    },
     {
       "id": "PB-023",
       "title": "Normalize Provider connections and decouple code growth readiness",

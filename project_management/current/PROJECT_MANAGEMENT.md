@@ -22,17 +22,17 @@ Further cleanup inside that cluster now requires a working replacement path.
 
 ## Current feature increment
 
-`ITER-CGNK-SELF-GROWTH-CAPABILITY-INTERNALIZATION-052` evaluates bounded
-Self-Growth V1. It adds no production authority: every run starts from an
-isolated deterministic registry clone, uses the existing capability builder and
-Runtime boundaries, and leaves the production registry unchanged.
+`ITER-053` builds a local-first promotion capability
+branch over the existing Component, Registry, Runtime, validation, and evidence
+boundaries. It does not add a Promotion runtime or grant Provider/connector
+planning authority.
 
-The increment first proves gap classification, search, reuse, parameterization,
-ephemeral composition, proposal validation, sandbox implementation, hidden
-qualification, and derived experience accounting offline. After full regression
-and canonical Source Closure, G0/G1/G2/G3 will process the same frozen 100-task
-stream. Production adoption remains proposal-only until the formal evidence
-shows internalization rather than registry growth debt.
+The active increment projects explicit public-safe evidence into claims, detects
+promotion signals, builds campaigns and platform variants, renders local image
+and video assets, and creates approval-bound publication plans and receipts.
+External publication is disabled by default. Native adapters are qualified with
+injected transports; a real public post remains optional and requires local test
+credentials plus exact explicit approval.
 
 ## Roadmap after the active increment
 
@@ -57,7 +57,7 @@ Management records cannot authorize functional success, formal evidence, packagi
 
 ## Verification
 
-Source validation is in progress. Formal Self-Growth evidence is not valid
+Source validation is in progress. Formal Promotion Studio evidence is not valid
 until one clean canonical Source Closure passes compileall, all Kernel gates and
-profiles, collection, and full pytest. Discovery evidence cannot authorize
-production admission.
+profiles, collection, and full pytest. Offline publisher qualification cannot
+authorize a real public write.

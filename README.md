@@ -91,6 +91,15 @@ on demand or in a batch rather than rebuilding globally on every write. See
 `docs/KNOWLEDGE_GROWTH_INTERNALIZATION.md` and run the 100/1000/5000-entry
 comparison with `python scripts/run_knowledge_growth_evaluation.py --profile final --json`.
 
+Promotion Studio in `cgkn/application/promotion/` is a local-first capability
+branch over the same kernel authorities. It projects explicit public-safe
+evidence into approved claims, detects material signals, produces bounded
+platform drafts and deterministic PNG/FFmpeg media, and records exact-hash
+approval-bound publication plans and receipts. Publication is `DRAFT_ONLY` by
+default; credentials remain opaque local references and browser click
+automation is unsupported. Run the offline qualification with `python
+scripts/run_promotion_studio.py --profile promotion-evaluate --json`.
+
 Cleanup status and the exact migration boundary are recorded in:
 
 - `docs/MVP_RUNTIME_MIGRATION_BOUNDARY.md`
@@ -98,10 +107,10 @@ Cleanup status and the exact migration boundary are recorded in:
 
 ## Current feature increment
 
-`MVP-013` is complete in the isolated runtime. The next minimal increment is a
-real-Provider controlled repair run plus aggregate budget/context telemetry;
-migration into the large compatibility runtime remains a separate, later
-decision.
+`ITER-053` is the active isolated increment. It
+qualifies evidence-bound campaign creation, local media, exact-hash approval,
+restart-safe scheduling, fake publication, and native adapter contracts without
+modifying production routing or Registry authority.
 
 ## Current reusable substrate
 
@@ -116,6 +125,7 @@ decision.
 - `cgkn/growth/` — local gap, discovery, sandbox trial, admission, and reuse loop
 - `cgkn/application/conversation/` — evidence-grounded read-only Conversation surface
 - `cgkn/application/knowledge_growth/` — local-lazy ProjectKnowledgePack update capability
+- `cgkn/application/promotion/` — evidence-grounded promotion, media, approval, and publishing capabilities
 - `scripts/local_agent_actions.py` — bounded deterministic action compatibility adapter
 - `scripts/provider_jobs.py` — Provider execution/PatchSet compatibility adapter
 - `scripts/real_test_execution.py` — real test/runtime support
