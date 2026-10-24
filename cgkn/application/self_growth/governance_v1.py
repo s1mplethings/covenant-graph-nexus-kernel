@@ -60,11 +60,21 @@ def _component_semantics(component: ComponentSpec) -> tuple[str, str, str]:
     return input_semantics, output_semantics, family
 
 
+def _stable_descriptor_identity(descriptor: CapabilityDescriptor) -> dict[str, Any]:
+    """Exclude instance timestamps from the frozen capability authority."""
+    value = descriptor.as_dict()
+    value.pop("created_at", None)
+    value.pop("updated_at", None)
+    return value
+
+
 class ExperimentalRegistryClone:
     """An isolated CapabilityRegistry instance; never a second production authority."""
 
     def __init__(self, production: CapabilityRegistry) -> None:
-        self.production_authority_hash = canonical_hash({"capabilities": [item.as_dict() for item in production.query()]})
+        self.production_authority_hash = canonical_hash(
+            {"capabilities": [_stable_descriptor_identity(item) for item in production.query()]}
+        )
         self.production_size = len(production.query())
         self.registry = CapabilityRegistry(dict(production.components))
         self._signatures: dict[str, str] = {}
@@ -85,7 +95,9 @@ class ExperimentalRegistryClone:
 
     @property
     def authority_hash(self) -> str:
-        return canonical_hash({"capabilities": [item.as_dict() for item in self.registry.query()]})
+        return canonical_hash(
+            {"capabilities": [_stable_descriptor_identity(item) for item in self.registry.query()]}
+        )
 
     def semantic_duplicate(self, signature: str) -> str | None:
         return self._signatures.get(signature)

@@ -74,6 +74,13 @@ def test_experimental_registry_clone_preserves_production_authority() -> None:
     assert clone.registry is not production
 
 
+def test_production_authority_hash_is_stable_across_fresh_registry_instances() -> None:
+    first = ExperimentalRegistryClone(real_product_registry())
+    second = ExperimentalRegistryClone(real_product_registry())
+
+    assert first.production_authority_hash == second.production_authority_hash
+
+
 def test_exact_reuse_is_resolved_before_growth() -> None:
     clone = ExperimentalRegistryClone(real_product_registry())
     result = GrowthGovernance().classify(

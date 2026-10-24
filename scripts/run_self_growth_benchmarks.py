@@ -123,6 +123,15 @@ def _final(output_root: pathlib.Path, paths: list[pathlib.Path], expected_commit
     stream_ids = {item["benchmark_hashes"]["task_stream_hash"] for item in receipts}
     if len(stream_ids) != 1:
         raise ValueError("formal groups did not use the same frozen task stream")
+    required_freeze_keys = {
+        "base_registry_hash", "task_stream_hash", "expected_class_hash",
+        "qualification_set_hash", "growth_policy_hash", "composition_policy_hash",
+        "admission_policy_hash", "model_config_hash", "pricing_hash", "rubric_hash",
+    }
+    for key in sorted(required_freeze_keys):
+        values = {str(item.get("freeze", {}).get(key, "")) for item in receipts}
+        if "" in values or len(values) != 1:
+            raise ValueError(f"formal group freeze mismatch: {key}")
     comparison = {
         group: {
             key: receipt["metrics"].get(key)
