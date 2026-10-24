@@ -2,7 +2,7 @@
   "kind": "CGKNV2ScaleQualificationReport",
   "schema_version": "1.0",
   "iteration": "ITER-CGNK-V2-RESOURCE-GATE-CALIBRATION-AND-SCALE-QUALIFICATION-048",
-  "status": "PASS_WITH_ADOPTION_BLOCKED_COLD_START",
+  "status": "PASS_ADOPTED_FOR_NEW_PACKS",
   "production_source": {
     "commit": "3439370f3e0a5ba118199dce10d429e77b77e24f",
     "tree": "7de7e2a25b54fd6924f9e623253b7d6524f374e0",
@@ -62,13 +62,44 @@
     "s2_full_replay_ms": 73293.641,
     "full_replay_vs_s0_percent": 95.814
   },
+  "checkpoint_cold_start_optimization": {
+    "source_commit": "859919f3555a1fff985377da41bbf8bece08b18a",
+    "source_tree": "6531bcb92af29193c30a2c3495e4b22a48a6f4b4",
+    "checkpoint_layout_version": "2.1",
+    "checkpoint_schema_hash": "sha256:95567ed9d3755309ccf0a5757283575acfe06bf0c5c348fb956eed2f0c0dec78",
+    "checkpoint_implementation_hash": "sha256:080364a7cfcaa720d7f6ba2ee61f2627436239d032a22b7861e71e84ee645a51",
+    "index_policy_hash": "sha256:bf2ccb3df31d5088bc43ae63ecced336648a5ff208db170979f131076deefcde",
+    "formal_scales": [
+      {"scale": 10000, "status": "PASS", "checkpoint_build_ms": 988.411, "checkpoint_load_ms": 201.792, "full_replay_ms": 611.789, "recall": 1.0},
+      {"scale": 50000, "status": "PASS", "checkpoint_build_ms": 6078.685, "checkpoint_load_ms": 1058.376, "full_replay_ms": 3519.542, "recall": 1.0},
+      {"scale": 100000, "status": "PASS", "checkpoint_build_ms": 12220.243, "checkpoint_load_ms": 2222.414, "full_replay_ms": 7319.985, "recall": 1.0},
+      {"scale": 250000, "status": "PASS", "checkpoint_build_ms": 31468.845, "checkpoint_load_ms": 8063.769, "full_replay_ms": 20257.322, "corrupt_fallback_ms": 20125.27, "first_retrieval_ms": 0.113, "first_conversation_ms": 1279.72, "query_p95_ms": 79.023, "recall": 1.0, "peak_rss_bytes": 1479794688, "checkpoint_bytes": 276694723, "storage_bytes": 479379636, "storage_amplification": 2.3652896903551808}
+    ],
+    "comparison_250k": {
+      "s0_cold_load_ms": 37430.23,
+      "old_v2_checkpoint_load_ms": 45472.051,
+      "optimized_checkpoint_load_ms": 8063.769,
+      "improvement_vs_s0_percent": 78.457,
+      "improvement_vs_old_v2_percent": 82.267,
+      "old_v2_checkpoint_build_ms": 151341.903,
+      "optimized_checkpoint_build_ms": 31468.845,
+      "build_improvement_percent": 79.207
+    },
+    "authority": "DERIVED_REBUILDABLE_NON_AUTHORITATIVE",
+    "corruption_fallback": "PASS_AUTHORITATIVE_REPLAY",
+    "semantic_equivalence": "PASS",
+    "retrieval_regression": "NONE",
+    "evidence": "D:/CGKN/.service_evidence/workstream-c/formal-250k-859919f3.json"
+  },
   "adoption_gate": {
-    "decision": "NO",
-    "blocking_class": "COLD_START",
-    "reason": "250k checkpoint cold start is 21.485 percent slower than the S0 baseline; the required cold-start improvement did not pass.",
-    "new_pack_default": "V1_RETAINED",
-    "adoption_commit": null,
-    "adoption_regression": "NOT_RUN_NOT_APPLICABLE"
+    "decision": "YES",
+    "blocking_class": null,
+    "reason": "250k checkpoint cold start is 78.457 percent faster than the unchanged S0 baseline with semantic equivalence, recall, and authoritative replay fallback preserved.",
+    "new_pack_default": "V2",
+    "adoption_commit": "THIS_COMMIT",
+    "adoption_regression": "PASS_2773_SKIP_357_0_FAILED_0_ERRORS",
+    "existing_v1_auto_migration": false,
+    "explicit_v1_write_supported": true
   },
   "retrieval_scaling_p2": "RETAINED_AMBIGUOUS_P95_199_71_MS_AT_250K",
   "formal_evidence": {
@@ -86,6 +117,6 @@
     "kernel_completeness_gate": "PASS",
     "kernel_test_receipt": "PASS",
     "prior_frozen_product_full_regression": "PASS_2755_SKIP_357_0_FAILED_0_ERRORS",
-    "adoption_full_regression": "NOT_RUN_NOT_APPLICABLE"
+    "adoption_full_regression": "PASS_2773_SKIP_357_0_FAILED_0_ERRORS"
   }
 }

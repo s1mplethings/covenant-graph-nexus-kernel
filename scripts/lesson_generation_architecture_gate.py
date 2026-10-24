@@ -12,6 +12,7 @@ PRODUCTION_ROOTS = ("cgkn/application", "cgkn/agent", "cgkn/executors")
 DIRECT_COMPLETE_ALLOWLIST = {
     "cgkn/application/learning/integration.py",
     "cgkn/application/requirements/comparison.py",  # recording-only benchmark delegate
+    "cgkn/application/capability_routing/formal.py",  # bounded decision benchmark; never project generation
     "cgkn/application/project_campaign/provider.py",  # transparent route guard and usage ledger
     "cgkn/application/conversation/service.py",  # read-only grounded answer, not project/capability generation
 }

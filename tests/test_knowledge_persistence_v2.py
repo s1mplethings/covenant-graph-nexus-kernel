@@ -90,15 +90,32 @@ def test_new_v2_empty_pack_is_explicit_and_round_trips(tmp_path: pathlib.Path) -
     assert SegmentedKnowledgeStore(path).verify()["status"] == "PASS"
 
 
-def test_new_pack_retains_legacy_default_until_adoption_gate(tmp_path: pathlib.Path) -> None:
-    path = tmp_path / "knowledge.json"
-    pack = new_project_knowledge_pack("fixture", "pkp_legacy_default")
+def test_new_pack_defaults_to_v2_after_adoption_gate(tmp_path: pathlib.Path) -> None:
+    path = tmp_path / "knowledge"
+    pack = new_project_knowledge_pack("fixture", "pkp_v2_default")
 
     result = save_project_knowledge(path, pack)
 
+    assert path.is_dir()
+    assert manifest_payload(path)["format_version"] == "2.0"
+    assert result["kind"] == "KnowledgeStoreWriteResult"
+    assert load_project_knowledge(path)["id"] == "pkp_v2_default"
+
+
+def test_explicit_v1_new_pack_remains_readable_without_auto_migration(tmp_path: pathlib.Path) -> None:
+    path = tmp_path / "knowledge.json"
+    pack = new_project_knowledge_pack("fixture", "pkp_explicit_v1")
+
+    result = save_project_knowledge(path, pack, format_version="1")
+
     assert path.is_file()
     assert result["kind"] == "KnowledgeStoreWriteResult"
-    assert load_project_knowledge(path)["id"] == "pkp_legacy_default"
+    assert load_project_knowledge(path)["id"] == "pkp_explicit_v1"
+    updated = load_project_knowledge(path)
+    updated["project"] = "still-v1"
+    save_project_knowledge(path, updated)
+    assert path.is_file()
+    assert load_project_knowledge(path)["project"] == "still-v1"
 
 
 def test_single_append_is_bounded_and_visible(tmp_path: pathlib.Path) -> None:
@@ -181,8 +198,56 @@ def test_checkpoint_creation_and_valid_load(tmp_path: pathlib.Path) -> None:
     receipt = SegmentedKnowledgeStore(path).create_checkpoint()
     loaded = load_project_knowledge(path)
     assert receipt["status"] == "PASS"
+    assert receipt["checkpoint_layout_version"] == "2.1"
+    assert receipt["index_policy_hash"].startswith("sha256:")
+    assert {
+        "state_traversal_ms",
+        "authority_encoding_hash_ms",
+        "index_encoding_hash_ms",
+        "write_fsync_ms",
+        "persisted_validation_ms",
+        "manifest_integration_ms",
+    } <= set(receipt["phase_profile"])
     assert loaded._load_receipt["checkpoint_status"] == "VALID_USED"
+    assert {
+        "manifest_read_ms",
+        "checkpoint_read_ms",
+        "checkpoint_authority_decode_ms",
+        "checkpoint_index_decode_ms",
+        "relationship_reconstruction_ms",
+        "semantic_validation_ms",
+    } <= set(loaded._load_receipt["phase_profile"])
     assert project_knowledge_semantic_hash(pack) == project_knowledge_semantic_hash(loaded)
+
+
+def test_embedded_v2_checkpoint_layout_remains_readable(tmp_path: pathlib.Path) -> None:
+    path, pack = create_store(tmp_path)
+    store = SegmentedKnowledgeStore(path)
+    store.create_checkpoint()
+    manifest = manifest_payload(path)
+    checkpoint_path = path / manifest["current_checkpoint"]["path"]
+    split, _ = _read_document(checkpoint_path, 1024 * 1024 * 1024)
+    authority = json.loads((path / split["authority_component"]["path"]).read_text(encoding="utf-8"))
+    index = json.loads((path / split["index_component"]["path"]).read_text(encoding="utf-8"))
+    embedded = {
+        key: split[key]
+        for key in (
+            "kind", "format_version", "checkpoint_id", "pack_id", "covered_sequence",
+            "authority_root_hash", "logical_state_hash", "schema_version", "created_at",
+        )
+    }
+    embedded.update({"authority": authority, "knowledge_index": index, "index_hash": _sha256(_json_bytes(index))})
+    raw = _document_bytes(embedded)
+    checkpoint_path.write_bytes(raw)
+    manifest["current_checkpoint"]["file_hash"] = _sha256(raw)
+    manifest["current_checkpoint"]["file_bytes"] = len(raw)
+    manifest["current_checkpoint"]["index_hash"] = embedded["index_hash"]
+    write_manifest(path, manifest)
+
+    loaded = store.load()
+
+    assert loaded._load_receipt["checkpoint_status"] == "VALID_USED"
+    assert project_knowledge_semantic_hash(loaded) == project_knowledge_semantic_hash(pack)
 
 
 @pytest.mark.parametrize("mode", ["corrupt", "missing", "authority_mismatch", "index_missing"])
@@ -202,7 +267,7 @@ def test_invalid_checkpoint_is_rejected_and_authority_replayed(tmp_path: pathlib
         if mode == "authority_mismatch":
             payload["authority_root_hash"] = "sha256:" + "f" * 64
         else:
-            payload.pop("knowledge_index")
+            payload.pop("index_component")
         raw = _document_bytes(payload)
         checkpoint.write_bytes(raw)
         manifest["current_checkpoint"]["file_hash"] = _sha256(raw)
@@ -210,6 +275,53 @@ def test_invalid_checkpoint_is_rejected_and_authority_replayed(tmp_path: pathlib
         write_manifest(path, manifest)
     loaded = store.load()
     assert loaded._load_receipt["checkpoint_status"].startswith("REJECTED_REPLAYED")
+    assert project_knowledge_semantic_hash(loaded) == project_knowledge_semantic_hash(pack)
+
+
+@pytest.mark.parametrize("component", ["authority", "index"])
+def test_split_checkpoint_component_damage_falls_back_to_authority_replay(
+    tmp_path: pathlib.Path, component: str,
+) -> None:
+    path, pack = create_store(tmp_path)
+    pack, _ = append(pack, path, evidence("Port is 8000."))
+    store = SegmentedKnowledgeStore(path)
+    store.create_checkpoint()
+    manifest = manifest_payload(path)
+    checkpoint, _ = _read_document(path / manifest["current_checkpoint"]["path"], 1024 * 1024 * 1024)
+    component_path = path / checkpoint[f"{component}_component"]["path"]
+    raw = bytearray(component_path.read_bytes())
+    raw[len(raw) // 2] ^= 1
+    component_path.write_bytes(bytes(raw))
+
+    loaded = store.load()
+
+    assert loaded._load_receipt["checkpoint_status"].startswith(
+        "REJECTED_REPLAYED:CHECKPOINT_COMPONENT_HASH_MISMATCH"
+    )
+    assert project_knowledge_semantic_hash(loaded) == project_knowledge_semantic_hash(pack)
+
+
+def test_split_checkpoint_index_policy_mismatch_falls_back_to_authority_replay(
+    tmp_path: pathlib.Path,
+) -> None:
+    path, pack = create_store(tmp_path)
+    store = SegmentedKnowledgeStore(path)
+    store.create_checkpoint()
+    manifest = manifest_payload(path)
+    checkpoint_path = path / manifest["current_checkpoint"]["path"]
+    checkpoint, _ = _read_document(checkpoint_path, 1024 * 1024 * 1024)
+    checkpoint["index_component"]["policy_hash"] = "sha256:" + "f" * 64
+    raw = _document_bytes(checkpoint)
+    checkpoint_path.write_bytes(raw)
+    manifest["current_checkpoint"]["file_hash"] = _sha256(raw)
+    manifest["current_checkpoint"]["file_bytes"] = len(raw)
+    write_manifest(path, manifest)
+
+    loaded = store.load()
+
+    assert loaded._load_receipt["checkpoint_status"].startswith(
+        "REJECTED_REPLAYED:CHECKPOINT_INDEX_POLICY_MISMATCH"
+    )
     assert project_knowledge_semantic_hash(loaded) == project_knowledge_semantic_hash(pack)
 
 
@@ -301,6 +413,30 @@ def test_checkpoint_interruption_never_changes_authority(tmp_path: pathlib.Path)
         SegmentedKnowledgeStore(path).create_checkpoint(injector=fail_at("C7_DURING_CHECKPOINT_WRITE"))
     assert project_knowledge_semantic_hash(load_project_knowledge(path)) == before
     assert manifest_payload(path)["current_checkpoint"] is None
+
+
+@pytest.mark.parametrize("completed_component_writes", [1, 2, 3])
+def test_split_checkpoint_interruption_before_manifest_stays_rebuildable(
+    tmp_path: pathlib.Path, completed_component_writes: int,
+) -> None:
+    path, pack = create_store(tmp_path)
+    before = project_knowledge_semantic_hash(pack)
+    seen = 0
+
+    def fail_after_component(actual: str) -> None:
+        nonlocal seen
+        if actual == "C7_AFTER_CHECKPOINT_REPLACE":
+            seen += 1
+            if seen == completed_component_writes:
+                raise RuntimeError(f"checkpoint component {seen}")
+
+    with pytest.raises(RuntimeError, match="checkpoint component"):
+        SegmentedKnowledgeStore(path).create_checkpoint(injector=fail_after_component)
+
+    assert manifest_payload(path)["current_checkpoint"] is None
+    loaded = load_project_knowledge(path)
+    assert loaded._load_receipt["checkpoint_status"] == "NOT_USED"
+    assert project_knowledge_semantic_hash(loaded) == before
 
 
 def test_compaction_preserves_records_semantics_and_as_of_history(tmp_path: pathlib.Path) -> None:

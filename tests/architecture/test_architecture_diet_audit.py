@@ -26,12 +26,34 @@ def test_inventory_is_deterministic_and_complete() -> None:
     assert all(required <= set(record) for record in first["module_inventory"])
 
 
-def test_safe_slimming_preserves_public_contract_surfaces() -> None:
+def test_safe_slimming_preserves_or_compatibly_extends_public_contract_surfaces() -> None:
     baseline = audit_module.audit(audit_module.BASELINE)
     current = audit_module.audit()
-    assert current["public_surface_hash"] == baseline["public_surface_hash"]
     assert current["registry_hash"] == baseline["registry_hash"]
-    assert current["schema_hash"] == baseline["schema_hash"]
+    baseline_api = baseline["surface"]["public_api"]
+    current_api = current["surface"]["public_api"]
+    assert set(baseline_api) <= set(current_api)
+    for module, contract in baseline_api.items():
+        current_contract = current_api[module]
+        assert set(contract["symbols"]) <= set(current_contract["symbols"])
+        assert set(contract["project_imports"]) <= set(current_contract["project_imports"])
+        assert set(contract["exports"]) <= set(current_contract["exports"])
+
+    # The convergence branch intentionally evolves only the v2 checkpoint
+    # schema.  Every other persisted knowledge contract must remain byte-for-
+    # byte identical to the production baseline.
+    baseline_formats = baseline["surface"]["knowledge_formats"]
+    current_formats = current["surface"]["knowledge_formats"]
+    assert set(baseline_formats) == set(current_formats)
+    approved_schema_delta = "schemas/project_knowledge_checkpoint_v2.schema.json"
+    assert {
+        name: digest for name, digest in current_formats.items()
+        if name != approved_schema_delta
+    } == {
+        name: digest for name, digest in baseline_formats.items()
+        if name != approved_schema_delta
+    }
+    assert current_formats[approved_schema_delta] != baseline_formats[approved_schema_delta]
     learning_contracts = current["surface"]["public_api"]["cgkn.application.learning.contracts"]
     assert "GenerationRequest" in learning_contracts["project_imports"]
     assert "GenerationResult" in learning_contracts["project_imports"]

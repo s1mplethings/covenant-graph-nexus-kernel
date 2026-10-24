@@ -131,10 +131,10 @@
     {
       "id": "R-MVP-015",
       "title": "Monolithic ProjectKnowledgePack persistence may dominate large write cost",
-      "probability": "high",
+      "probability": "low",
       "impact": "high",
-      "signal": "Production v2 local updates passed through 250k at 105.886 ms P50 and 15.472x write amplification, but 250k checkpoint cold start remains 21.485 percent slower than S0.",
-      "response": "Keep v2 explicit and v1 as the new-pack default until checkpoint deserialization and index materialization beat the 37.430 s S0 cold-start baseline without weakening correctness or crash safety.",
+      "signal": "Production v2 local updates passed through 250k, and the optimized derived checkpoint cold-start is 8.064 seconds versus the 37.430 second S0 baseline.",
+      "response": "Use v2 for new packs while retaining v1 readability, explicit migration, hash and policy validation, and authoritative replay fallback for missing or corrupt derived checkpoint data.",
       "owner": "knowledge storage"
     },
     {

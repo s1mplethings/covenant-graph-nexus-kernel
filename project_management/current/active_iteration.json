@@ -1,60 +1,46 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-CGNK-V2-RESOURCE-GATE-CALIBRATION-AND-SCALE-QUALIFICATION-048",
+  "iteration_id": "ITER-050",
   "project_id": "cgkn",
-  "goal": "Replace the fixed 75 percent disk gate with an empirical peak-and-reserve policy, qualify frozen production persistence v2 through 250k, and adopt it only if every gate including S0 cold-start improvement passes.",
+  "goal": "Converge safe architecture slimming, capability retrieval and decision routing, and v2 checkpoint cold-start optimization without creating a second runtime or authority.",
   "backlog_item_ids": ["PB-026"],
-  "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
-  "production_source_commit": "3439370f3e0a5ba118199dce10d429e77b77e24f",
-  "production_source_tree": "7de7e2a25b54fd6924f9e623253b7d6524f374e0",
-  "harness_commit": "e602f54adc620e5c91c94cf5f457ef808a71a48e",
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "calibrate the resource gate with real production-v2 1k and 5k probes",
-    "freeze the resource policy before formal 10k, 50k, 100k, and 250k runs",
-    "validate locality, checkpoint, compaction, crash recovery, mixed workloads, and restart-update-Conversation",
-    "retain v1 as the new-pack default unless every adoption gate including S0 cold-start improvement passes"
+    "integrate the independently frozen A, B, and C workstreams by semantic merge with no authority duplication",
+    "run capability search and D0/D1/D2/D3 formal evaluation on one frozen integrated source",
+    "use the routing evidence to evaluate Blueprint simplification and fixed role-separation collapse without weakening reliability or safety",
+    "preserve Conversation, Knowledge, CapabilityRegistry, ProjectBlueprint, Provider, persistence, and delivery authority boundaries",
+    "finish with zero failed and zero errored integrated regression plus the required real product smokes"
   ],
   "quality_metrics": [
-    {"id": "QM-RESOURCE-CALIBRATION", "measure": "empirical absolute peak and explicit reserves", "result": "PASS_OLD_75_PERCENT_GATE_CONFIRMED_OVER_CONSERVATIVE"},
-    {"id": "QM-SEQUENTIAL-SCALE", "measure": "10k then 50k then 100k then 250k production qualification", "result": "PASS_4_OF_4"},
-    {"id": "QM-COLD-START", "measure": "250k checkpoint cold start improves on 37.430 s S0", "result": "FAIL_45_472_S_21_485_PERCENT_SLOWER"},
-    {"id": "QM-SOURCE-FREEZE", "measure": "production source remains unchanged", "result": "PASS"}
+    {"id": "QM-SAFE-SLIMMING", "measure": "public surface and product behavior after safe slimming", "target": "zero public or semantic regression", "method": "surface hashes, targeted suites, and integrated full regression"},
+    {"id": "QM-DECISION-HIERARCHY", "measure": "routing reliability, strong-model share, false escalation, and missed escalation", "target": "preserve acceptance and critical-stop correctness while reducing unnecessary strong work", "method": "same-case D0/D1/D2/D3 comparison on the integrated source"},
+    {"id": "QM-CAPABILITY-RETRIEVAL", "measure": "Top1, Top3, latency, candidate count, and bounded context", "target": "no selection regression and bounded context through 1000 synthetic capabilities", "method": "real-registry and deterministic 100/500/1000 fixtures"},
+    {"id": "QM-CHECKPOINT-COLD-START", "measure": "250k v2 checkpoint cold start against the fixed S0 baseline", "target": "strictly faster than 37.430 seconds with correctness and fallback preserved", "method": "quiet-window fresh-process staged requalification"}
   ],
   "quality_activities": {
-    "prevention": ["empirical calibration", "frozen conservative estimator", "transaction and OS reserves", "memory gate", "98 percent predicted-use secondary guard"],
-    "assurance": ["per-scale preflight", "actual-versus-predicted peak monitoring", "semantic equivalence", "crash recovery", "restart-update-Conversation"],
-    "control": ["sequential scratch lifecycle", "post-run cleanup", "no user or authoritative data deletion", "v1 default retained after cold-start failure"],
-    "improvement": ["optimize v2 checkpoint deserialization/index materialization before reconsidering default adoption"]
+    "prevention": ["independent worktrees and subsystem ownership", "shared authority freeze", "source closure before formal evidence"],
+    "assurance": ["semantic integration review", "source-bound benchmark receipts", "public-surface and authority snapshots"],
+    "control": ["canonical repository publication", "no force push or automatic PR", "zero manual candidate edits"],
+    "improvement": ["evidence-driven A2 simplification only after D0/D1/D2/D3", "retain abstractions that materially protect reliability or authority"]
   },
   "interface_expectations": [
-    "ProjectKnowledgePack remains the sole logical authority",
-    "production v2 source stays frozen at 3439370f3e0a5ba118199dce10d429e77b77e24f",
-    "existing v1 packs remain readable and never auto-migrate",
-    "retrieval P2 remains unchanged"
+    "CapabilityRegistry remains the sole capability authority and its search index is derived and rebuildable",
+    "ProjectKnowledgePack and authoritative segments remain the sole knowledge and persistence authorities",
+    "ProjectBlueprint remains unchanged until a controlled A/B proves an equivalent minimal representation",
+    "Decision routing does not become a second Agent, planner, DAG, state store, or runtime",
+    "existing v1 packs remain readable and never auto-migrate"
   ],
   "evidence_refs": [
-    "project_management/current/resource_preflight_report.json",
+    "project_management/current/architecture_diet_safe_report.json",
+    "evidence/capability-routing-decision-hierarchy/discovery.json",
     "project_management/current/v2_scale_qualification_report.json",
-    "project_management/summaries/v2_resource_gate_scale_qualification_20261024.md",
-    "governance/role_model_efficiency_receipt.json",
-    "D:/CGKN/.service_evidence/v2-resource-gate-scale-qualification-048/formal-final/productionization-report.json"
+    "project_management/summaries/architecture_diet_safe_20261024.md",
+    "project_management/summaries/capability_routing_decision_hierarchy_discovery_20261024.md",
+    "project_management/summaries/v2_checkpoint_cold_start_optimization_20261024.md"
   ],
-  "review": {
-    "outcome": "scale_pass_adoption_blocked_cold_start",
-    "feedback": [
-      "F: safely passed the empirical absolute-headroom gate despite 82.904 percent pre-run use.",
-      "All formal scales and correctness checks passed within the frozen conservative bounds.",
-      "250k checkpoint cold start was 45.472 s versus the 37.430 s S0 baseline, so the adoption gate did not pass.",
-      "No adoption commit was created and v1 remains the new-pack default."
-    ],
-    "accepted_backlog_item_ids": ["PB-026"],
-    "blocked_backlog_item_ids": []
-  },
-  "retrospective": {
-    "worked": ["empirical resource calibration", "absolute-headroom volume selection", "sequential disposable scratch", "formal 250k semantic and crash validation"],
-    "did_not_work": ["fixed 75 percent used as a standalone hard gate", "v2 checkpoint cold start did not beat S0 at 250k"],
-    "experiments": ["1k and 5k calibration", "10k/50k/100k/250k scale", "100k crash", "100k and 250k mixed workloads"]
-  }
+  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
+  "retrospective": {"worked": [], "did_not_work": [], "experiments": []}
 }
