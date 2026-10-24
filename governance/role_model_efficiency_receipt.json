@@ -1,7 +1,30 @@
 {
   "kind": "CGKNRoleModelEfficiencyReceipt",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-PARALLEL-ARCHITECTURE-CONVERGENCE-050",
+  "iteration": "ITER-CGNK-SELF-GROWTH-CAPABILITY-INTERNALIZATION-052",
+  "self_growth_v1": {
+    "source_commit": "42d26944b775f0a18ef348758750f18ad09eb4d4",
+    "source_tree": "34245a5e25b796f2941d5d3b6dd9454ff904d78b",
+    "task_count": 100,
+    "task_stream_hash": "sha256:e35b7c0ebbb99ecdc3102759f4367c945838706ad24fb43de29546d92d7a2517",
+    "base_registry_hash": "sha256:2492ea64fe861856941b5f4f0720e9e8f195d3719b28befd0315a7aeeae4f18d",
+    "formal_receipt_hash": "sha256:f225a5f95e64430c8278d3be638160a524f5d73492acbc6cdbad72d4b524de85",
+    "formal_evidence": "D:/CGKN/.service_evidence/self-growth-052-formal-v4/growth-final-f64951924d/final_receipt.json",
+    "groups": {
+      "G0": {"success_rate": 0.25, "admitted": 0, "registry_size": 10, "strong_calls": 0, "cheap_calls": 0, "known_tokens": null, "known_cost_cny": 0, "latency_ms": 142.7105, "receipt_hash": "sha256:d26da81c19aae7f2fb9182d3bf260419d35b83269c4a54ded17bd391c629558d"},
+      "G1": {"success_rate": 0.8, "gap_precision": 0.2, "admitted": 55, "registry_size": 65, "internalization_rate": 0.0, "zero_reuse_rate": 1.0, "strong_calls": 0, "cheap_calls": 56, "known_tokens": 88667, "known_cost_cny": 0.07055314559999999, "latency_ms": 255644.3291, "receipt_hash": "sha256:56494658dd74da603ba55519ac558e45770e4a69cab60e0c2f593bc089680137"},
+      "G2": {"success_rate": 0.99, "gap_precision": 0.9375, "gap_recall": 1.0, "composition_rate": 0.25, "admitted": 15, "registry_size": 25, "internalization_rate": 0.9833333333333333, "zero_reuse_rate": 0.0, "strong_calls": 0, "cheap_calls": 16, "known_tokens": 27460, "known_cost_cny": 0.022782392639999996, "latency_ms": 83260.6005, "receipt_hash": "sha256:d502967feca736731d826cf8afd9a17f61f93ebf543eb306aecceb667d44d6aa"},
+      "G3": {"success_rate": 0.99, "gap_precision": 0.6818181818181818, "gap_recall": 1.0, "composition_rate": 0.25, "admitted": 21, "registry_size": 31, "internalization_rate": 0.8833333333333333, "zero_reuse_rate": 0.2857142857142857, "strong_calls": 8, "cheap_calls": 21, "known_tokens": 39306, "known_cost_cny": 0.10197654048, "latency_ms": 180908.68219999998, "receipt_hash": "sha256:194ad28dcebb23bb3841ef0d56025aec75306946edc027d000d258f5d4f82f71"}
+    },
+    "strong_growth_decision_benefit": "HARMFUL",
+    "production_adoption_readiness": "NOT_READY",
+    "production_registry_modified": false,
+    "fixed_production_routing_retained": true,
+    "statistical_significance_claimed": false,
+    "targeted_tests": "PASS_47",
+    "full_regression": "PASS_2870_SKIP_357_0_FAILED_0_ERRORS",
+    "collection": 3227
+  },
   "architecture_convergence": {
     "source_commit": "a14b309ff5fcc9a27dabd2acff824e8919298884",
     "source_tree": "1b7825ab106df56234c790eb1ec23803803d5bf8",
@@ -532,5 +555,5 @@
   "model_capability_evaluation": "COMPLETE",
   "multi_agent_status": "NOT_RECOMMENDED_CURRENT_EVIDENCE",
   "contains_credentials": false,
-  "receipt_hash": "sha256:35fcabfb1fe1d27daac10d3de5d1e6c72bdf4bc4df342c6529572281787236e1"
+  "receipt_hash": "sha256:a92d4c38510930db9b3eaeec62dc0a0460567a1e169124c99dc14d240b6955d6"
 }

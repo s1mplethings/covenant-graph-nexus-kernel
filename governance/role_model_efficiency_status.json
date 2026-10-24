@@ -1,8 +1,8 @@
 {
   "kind": "CGKNRoleModelEfficiencyStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-PARALLEL-ARCHITECTURE-CONVERGENCE-050",
-  "source_commit": "a14b309ff5fcc9a27dabd2acff824e8919298884",
+  "iteration": "ITER-CGNK-SELF-GROWTH-CAPABILITY-INTERNALIZATION-052",
+  "source_commit": "42d26944b775f0a18ef348758750f18ad09eb4d4",
   "product_source_commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
   "experiment_harness_commit": "e602f54adc620e5c91c94cf5f457ef808a71a48e",
   "model_eval_source_commit": "e04f260c3ed4381dfeb3729c6c0790f413de7be4",
@@ -67,7 +67,7 @@
   "max_validated_persistence_scale": 250000,
   "should_v2_become_default_for_new_packs": "YES",
   "retrieval_scaling_p2": "RETAINED_AMBIGUOUS_P95_199_71_MS_AT_250K",
-  "full_regression": {"collected": 3185, "passed": 2828, "skipped": 357, "failed": 0, "errors": 0},
+  "full_regression": {"collected": 3227, "passed": 2870, "skipped": 357, "failed": 0, "errors": 0},
   "scaling_harness_commit": "e602f54adc620e5c91c94cf5f457ef808a71a48e",
   "resource_gate_status": "OVER_CONSERVATIVE_OLD_GATE_CONFIRMED",
   "multi_agent_status": "NOT_RECOMMENDED_CURRENT_EVIDENCE",
@@ -86,6 +86,21 @@
   "blueprint_simplification_status": "EVALUATED_NOT_ADOPTED",
   "strong_role_separation_status": "RETAIN_CURRENT_PATH_COLLAPSE_NOT_QUALIFIED",
   "integration_status": "PASS",
+  "self_growth_v1": {
+    "status": "NOT_READY",
+    "gap_detection_benefit": "PROVEN_DIRECTIONALLY",
+    "composition_before_creation_benefit": "PROVEN",
+    "capability_internalization_benefit": "PROVEN_DIRECTIONALLY",
+    "strong_growth_decision_benefit": "HARMFUL",
+    "production_adoption_readiness": "NOT_READY",
+    "production_registry_modified": false,
+    "g2_success_rate": 0.99,
+    "g2_new_capabilities_admitted": 15,
+    "g2_internalization_rate": 0.9833333333333333,
+    "g2_known_tokens": 27460,
+    "g2_known_cost_cny": 0.022782392639999996,
+    "formal_receipt_hash": "sha256:f225a5f95e64430c8278d3be638160a524f5d73492acbc6cdbad72d4b524de85"
+  },
   "api_lab_dependency": {
     "commit": "7c15f2546ec007cc7e601fa62ae4d88b9ba12f80",
     "contract_version": "1.1",
@@ -94,6 +109,11 @@
     "modified_this_iteration": false
   },
   "blockers": [
+    {
+      "priority": "P1",
+      "code": "STRONG_GROWTH_DECISION_HARMFUL",
+      "detail": "G3 matched G2 success but admitted 21 versus 15 capabilities, cost CNY 0.10197654048 versus 0.02278239264, and introduced a 0.2857 zero-reuse rate."
+    },
     {
       "priority": "P2",
       "code": "EFFICIENCY_COMPLEXITY_NOT_UNIFORMLY_JUSTIFIED",

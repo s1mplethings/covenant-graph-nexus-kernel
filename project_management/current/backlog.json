@@ -366,7 +366,7 @@
       "id": "PB-028",
       "title": "Validate bounded capability internalization",
       "priority": 25,
-      "state": "in_progress",
+      "state": "done_with_limits",
       "value": "Test whether CGKN can accumulate qualified reusable capabilities through search, composition, sandboxed creation, and later reuse without changing production authority.",
       "acceptance": [
         "reuse, parameterization, and bounded composition precede creation",
@@ -375,7 +375,7 @@
         "G0/G1/G2/G3 use the same frozen 100-task stream and independent registries",
         "production registry and fixed production routing remain unchanged"
       ],
-      "evidence_status": "SOURCE_VALIDATION_PENDING"
+      "evidence_status": "PASS_WITH_LIMITS_PRODUCTION_NOT_READY"
     }
   ]
 }

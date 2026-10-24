@@ -5,8 +5,8 @@
   "project_id": "cgkn",
   "goal": "Determine whether bounded search, reuse, composition, qualified candidate creation, and later reuse produce real capability internalization without changing production authority.",
   "backlog_item_ids": ["PB-028"],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
     "classify capability and non-capability gaps before proposing growth",
     "enforce reuse before bounded composition before creation",
@@ -41,13 +41,24 @@
     "scripts/run_self_growth_benchmarks.py"
   ],
   "review": {
-    "outcome": "pending",
-    "feedback": [],
-    "accepted_backlog_item_ids": []
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "G2 search-compose-create reached 99 percent success with 15 admitted capabilities and zero zero-use debt.",
+      "G3 matched success but increased cost and debt; the strong growth decision layer is harmful on this frozen stream.",
+      "Keep production capability authority and fixed routing unchanged until precision and repeated external validation improve."
+    ],
+    "accepted_backlog_item_ids": ["PB-028"]
   },
   "retrospective": {
-    "worked": ["20-task deterministic discovery passed without production registry mutation"],
-    "did_not_work": [],
-    "experiments": ["G0/G1/G2/G3 frozen-stream comparison pending Source Closure"]
+    "worked": [
+      "reuse before composition before creation reduced admissions from 55 to 15",
+      "hidden qualification and isolated registries prevented production mutation",
+      "later windows saturated with no new capability creation"
+    ],
+    "did_not_work": [
+      "naive growth admitted one zero-use capability per admission",
+      "strong abstraction decisions increased cost and growth debt without improving success"
+    ],
+    "experiments": ["G0/G1/G2/G3 completed on one frozen 100-task stream at source 42d26944b775f0a18ef348758750f18ad09eb4d4"]
   }
 }

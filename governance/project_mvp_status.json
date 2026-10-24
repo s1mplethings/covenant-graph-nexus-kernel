@@ -1,9 +1,9 @@
 {
   "kind": "CGKNProjectMVPStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-PARALLEL-ARCHITECTURE-CONVERGENCE-050",
-  "source_commit": "a14b309ff5fcc9a27dabd2acff824e8919298884",
-  "source_tree_sha": "6531bcb92af29193c30a2c3495e4b22a48a6f4b4",
+  "iteration": "ITER-CGNK-SELF-GROWTH-CAPABILITY-INTERNALIZATION-052",
+  "source_commit": "42d26944b775f0a18ef348758750f18ad09eb4d4",
+  "source_tree_sha": "34245a5e25b796f2941d5d3b6dd9454ff904d78b",
   "product_source_commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
   "product_source_tree": "66056cf6432227681a117b1f5df9c3e6999475cd",
   "experiment_harness_commit": "e602f54adc620e5c91c94cf5f457ef808a71a48e",
@@ -95,7 +95,7 @@
     "formal_runs_started": 4,
     "resource_report": "project_management/current/v2_scale_qualification_report.json"
   },
-  "full_regression": {"collected": 3185, "passed": 2828, "skipped": 357, "failed": 0, "errors": 0},
+  "full_regression": {"collected": 3227, "passed": 2870, "skipped": 357, "failed": 0, "errors": 0},
   "scaling_harness_commit": "e602f54adc620e5c91c94cf5f457ef808a71a48e",
   "model_capability_evaluation": "COMPLETE",
   "cgnk_structure_benefit": "PROVEN_DIRECTIONALLY",
@@ -116,6 +116,22 @@
   "blueprint_simplification_status": "EVALUATED_NOT_ADOPTED",
   "strong_role_separation_status": "RETAIN_CURRENT_PATH_COLLAPSE_NOT_QUALIFIED",
   "integration_status": "PASS",
+  "self_growth_v1": {
+    "status": "NOT_READY",
+    "correctness": "PASS_BOUNDED",
+    "gap_detection_benefit": "PROVEN_DIRECTIONALLY",
+    "composition_before_creation_benefit": "PROVEN",
+    "capability_internalization_benefit": "PROVEN_DIRECTIONALLY",
+    "strong_growth_decision_benefit": "HARMFUL",
+    "growth_saturation_status": "PROVEN_DIRECTIONALLY",
+    "growth_debt_status": "G2_CONTROLLED_G1_AND_G3_REGRESS",
+    "production_adoption_readiness": "NOT_READY",
+    "production_registry_modified": false,
+    "fixed_production_routing_retained": true,
+    "task_count": 100,
+    "task_stream_hash": "sha256:e35b7c0ebbb99ecdc3102759f4367c945838706ad24fb43de29546d92d7a2517",
+    "formal_receipt_hash": "sha256:f225a5f95e64430c8278d3be638160a524f5d73492acbc6cdbad72d4b524de85"
+  },
   "api_lab_dependency": {
     "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
     "branch": "codex/qwen-thinking-control-20261021",
@@ -127,6 +143,11 @@
     "modified_this_iteration": false
   },
   "blockers": [
+    {
+      "priority": "P1",
+      "code": "SELF_GROWTH_PRODUCTION_ADOPTION_NOT_READY",
+      "detail": "G2 was the best bounded policy, but true-gap precision was 0.9375 and the G3 strong decision layer increased cost and growth debt without improving success."
+    },
     {
       "priority": "P2",
       "code": "GENERAL_MODEL_GENERATION_REPAIR_CAPABILITY_MIXED",
