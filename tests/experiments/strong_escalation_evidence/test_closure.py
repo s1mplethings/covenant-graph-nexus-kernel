@@ -61,7 +61,10 @@ def _fixture(tmp_path):
     receipt = tmp_path / "formal.json"
     receipt.write_text(json.dumps(document), encoding="utf-8")
     budget = tmp_path / "budget.json"
-    budget.write_text(json.dumps({"calls": []}), encoding="utf-8")
+    budget.write_text(json.dumps({
+        "limits": {"max_total_input_tokens": 100000, "max_total_output_tokens": 30000},
+        "calls": [],
+    }), encoding="utf-8")
     return document, receipt, budget, pricing_path, pricing, product_commit, product_tree
 
 
@@ -110,6 +113,8 @@ def test_unknown_usage_stays_unknown_and_sensitivity_never_invents_zero(tmp_path
     assert audited["total_tokens"] is None
     assert result["original_operational_groups"]["D0"]["strong_usage"]["total_tokens"] is None
     assert result["sensitivity"]["unknown_is_zero_assumed"] is False
+    assert result["sensitivity"]["configured_run_ceiling"]["total_tokens"] > 0
+    assert result["qualification"]["usage_complete"] is False
 
 
 def test_replacement_requires_transport_failure_and_preserves_prompt_identity(tmp_path) -> None:

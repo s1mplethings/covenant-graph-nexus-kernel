@@ -298,6 +298,11 @@ def _usage_metrics(group: Mapping[str, Any], outcomes: Mapping[tuple[str, str], 
             "partial_calls": sum(state == "PARTIAL" for state in states),
             "unknown_calls": sum(state == "UNKNOWN" for state in states),
             "usage_completeness_rate": (sum(state == "KNOWN" for state in states) / len(states)) if states else 1.0,
+            "unknown_call_keys": [
+                f"{row.get('case_id')}/{row.get('role')}"
+                for row, state in zip(selected, states)
+                if state != "KNOWN"
+            ],
         }
         for field in _TOKEN_FIELDS:
             result[field] = _exact_sum(selected, field)
@@ -311,6 +316,7 @@ def _usage_metrics(group: Mapping[str, Any], outcomes: Mapping[tuple[str, str], 
     costs = [row.get("cost") for row in rows]
     cost_complete = all(isinstance(value, (int, float)) for value in costs)
     exact_cost = sum(float(value) for value in costs) if cost_complete else None
+    known_cost = sum(float(value) for value in costs if isinstance(value, (int, float)))
     latencies = [float(row.get("latency_ms") or 0.0) for row in rows]
     strong_latencies = [float(row.get("latency_ms") or 0.0) for row in strong]
     cheap_latencies = [float(row.get("latency_ms") or 0.0) for row in cheap]
@@ -323,6 +329,7 @@ def _usage_metrics(group: Mapping[str, Any], outcomes: Mapping[tuple[str, str], 
         "strong_input_tokens_per_success": exact_strong_input / successes if exact_strong_input is not None and successes else None,
         "strong_calls_per_success": len(strong) / successes if successes else None,
         "cost": exact_cost,
+        "cost_observed_lower_bound": known_cost,
         "cost_currency": next((row.get("cost_currency") for row in rows if row.get("cost_currency")), None),
         "cost_per_success": exact_cost / successes if exact_cost is not None and successes else None,
         "cost_completeness_rate": (sum(isinstance(value, (int, float)) for value in costs) / len(costs)) if costs else 1.0,
@@ -565,15 +572,60 @@ def analyze_closure(
         "gate_possible_for_any_nonnegative_unknown_usage": input_break_even >= 0 and total_break_even >= 0,
     }
 
+    budget_limits = dict(budget.get("limits") or {})
+    known_original_input = _known_sum(original_calls, "input_tokens")
+    known_original_output = _known_sum(original_calls, "output_tokens")
+    configured_input_ceiling = max(
+        0,
+        int(budget_limits.get("max_total_input_tokens") or 0) - known_original_input,
+    )
+    configured_output_ceiling = min(
+        int(next(row for row in original_calls if row["case_id"] == "strong-6" and row["role"] == "strong")["max_output_tokens"]),
+        max(0, int(budget_limits.get("max_total_output_tokens") or 0) - known_original_output),
+    )
+    sensitivity["configured_run_ceiling"] = {
+        "basis": "ORIGINAL_RUN_REMAINING_TOKEN_BUDGET_AND_PER_CALL_OUTPUT_LIMIT",
+        "input_tokens": configured_input_ceiling,
+        "output_tokens": configured_output_ceiling,
+        "total_tokens": configured_input_ceiling + configured_output_ceiling,
+    }
+    sensitivity["strong_total_tokens_per_success_reduction_at_configured_ceiling"] = _reduction(
+        (original_d0["total_tokens_observed_lower_bound"] + configured_input_ceiling + configured_output_ceiling) / int(decision["groups"]["D0"]["success"]),
+        (original_d3["total_tokens_observed_lower_bound"] + configured_input_ceiling + configured_output_ceiling) / int(decision["groups"]["D3"]["success"]),
+    )
+    sensitivity["strong_input_tokens_per_success_reduction_at_configured_ceiling"] = _reduction(
+        (original_d0["input_tokens_observed_lower_bound"] + configured_input_ceiling) / int(decision["groups"]["D0"]["success"]),
+        (original_d3["input_tokens_observed_lower_bound"] + configured_input_ceiling) / int(decision["groups"]["D3"]["success"]),
+    )
+
     reliability_gate = d3["success_rate"] >= d0["success_rate"] - 0.05
     token_gate = (
         comparisons["D3_vs_D0"]["strong_total_tokens_per_success_reduction"] is not None
         and comparisons["D3_vs_D0"]["strong_total_tokens_per_success_reduction"] >= 0.5
     )
-    cost_gate = (
+    exact_cost_gate = (
         d3["cost_per_success"] is not None
         and d0["cost_per_success"] is not None
         and d3["cost_per_success"] < d0["cost_per_success"]
+    )
+    common_unknown_cost_basis = (
+        d3["usage"]["unknown_call_keys"] == d0["usage"]["unknown_call_keys"]
+        and d3["success"] == d0["success"]
+    )
+    robust_shared_unknown_cost_gate = (
+        common_unknown_cost_basis
+        and d3["cost_observed_lower_bound"] < d0["cost_observed_lower_bound"]
+    )
+    cost_gate = exact_cost_gate or robust_shared_unknown_cost_gate
+    comparisons["D3_vs_D0"]["cost_per_success_ordering"] = (
+        "D3_LOWER_ROBUST_TO_SHARED_UNKNOWN_CALL"
+        if robust_shared_unknown_cost_gate and not exact_cost_gate
+        else "D3_LOWER_EXACT" if exact_cost_gate
+        else "NOT_PROVEN"
+    )
+    comparisons["D3_vs_D0"]["known_cost_per_success_delta"] = (
+        d3["cost_observed_lower_bound"] / d3["success"]
+        - d0["cost_observed_lower_bound"] / d0["success"]
     )
     complete_usage = all(group["usage"]["usage_completeness_rate"] == 1.0 for group in extended_groups.values())
     base_gates = (
@@ -629,6 +681,13 @@ def analyze_closure(
         },
         "usage_recovery": {
             "historical_result": "UNRECOVERABLE_NO_RESPONSE_NO_REQUEST_ID_NO_PERSISTED_API_LAB_LOG",
+            "historical_attempts": [
+                {"source": "provider raw response / headers", "result": "UNAVAILABLE_TIMEOUT_BEFORE_RESPONSE"},
+                {"source": "API Lab receipt", "result": "UNAVAILABLE_NO_PERSISTED_RECEIPT_FOR_REQUEST"},
+                {"source": "provider request log", "result": "UNAVAILABLE_NO_LOCAL_LOG_MATCH"},
+                {"source": "formal billing / usage endpoint", "result": "NOT_AVAILABLE_UNDER_EXISTING_AUTHORITY"},
+                {"source": "provider billing record", "result": "UNMATCHABLE_WITHOUT_PROVIDER_REQUEST_ID"},
+            ],
             "replacement_attempted": replacement_doc is not None,
             "replacement_applied_to_semantic_view": replacement_applied,
             "original_operational_failure_preserved": True,
@@ -649,6 +708,7 @@ def analyze_closure(
                 "expected_failures": (24 - group["success"]) / 24 * 100,
                 "critical_misses": 4 * (1 - group["critical_stop_correctness"]),
                 "estimated_cost": (group["cost"] / 24 * 100) if group["cost"] is not None else None,
+                "observed_cost_lower_bound": group["cost_observed_lower_bound"] / 24 * 100,
                 "currency": group["cost_currency"],
             }
             for name, group in extended_groups.items()
@@ -670,6 +730,11 @@ def analyze_closure(
             "reliability_gate": reliability_gate,
             "strong_token_reduction_gate": token_gate,
             "cost_per_success_gate": cost_gate,
+            "cost_per_success_gate_basis": (
+                "EXACT" if exact_cost_gate else
+                "ROBUST_ORDERING_SHARED_UNKNOWN_CALL_CANCELS" if robust_shared_unknown_cost_gate else
+                "NOT_PROVEN"
+            ),
             "critical_stop_gate": d3["critical_stop_correctness"] >= d0["critical_stop_correctness"],
             "missed_escalation_gate": d3["missed_escalations"] == 0,
             "scope_security_gate": d3["scope_security_violations"] <= d0["scope_security_violations"],
@@ -684,4 +749,27 @@ def analyze_closure(
         "contains_credentials": False,
         "raw_provider_text_stored": False,
     }
+    if replacement_doc:
+        replacement_call = dict(replacement_doc["replacement_call"])
+        body["provider_reliability"] = {
+            "original_live_calls": len(original_calls),
+            "original_call_failures": sum(row.get("status") == "CALL_FAILED" for row in original_calls),
+            "original_validator_rejections": sum(row.get("status") == "VALIDATOR_REJECTED" for row in original_calls),
+            "replacement_calls": 1,
+            "replacement_call_failures": int(replacement_call.get("status") == "CALL_FAILED"),
+            "original_missing_usage_failure": {
+                "case_id": "strong-6",
+                "route": "strong",
+                "error_class": next(row for row in original_calls if row["case_id"] == "strong-6" and row["role"] == "strong").get("error_class"),
+                "latency_ms": next(row for row in original_calls if row["case_id"] == "strong-6" and row["role"] == "strong").get("latency_ms"),
+                "effect": "D0_AND_D3_OPERATIONAL_FAILURE_AND_UNKNOWN_USAGE",
+            },
+            "replacement_failure": {
+                "case_id": replacement_call.get("case_id"),
+                "route": replacement_call.get("role"),
+                "error_class": replacement_call.get("error_class"),
+                "latency_ms": replacement_call.get("latency_ms"),
+                "effect": "NO_SEMANTIC_SUBSTITUTION_USAGE_REMAINS_UNKNOWN",
+            },
+        }
     return body | {"receipt_hash": stable_hash(body)}
