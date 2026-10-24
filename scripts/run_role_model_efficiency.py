@@ -30,7 +30,7 @@ from cgkn.providers import (
 )
 
 
-PROFILES = ("ingress", "coordinator", "generation", "worker-strength", "materialization-benchmark", "tier1-efficiency", "tier1", "tier2", "tier3", "analyze", "final")
+PROFILES = ("ingress", "coordinator", "generation", "worker-strength", "materialization-benchmark", "blueprint-ab", "tier1-efficiency", "tier1", "tier2", "tier3", "analyze", "final")
 
 
 def _source_commit() -> str:
@@ -855,6 +855,13 @@ def main(argv: list[str] | None = None) -> int:
         result = _materialization_benchmark(
             args.repeat, args.artifact_root.resolve(), args.provider,
             args.pricing_snapshot.resolve() if args.pricing_snapshot else None,
+        )
+    elif args.profile == "blueprint-ab":
+        from experiments.architecture_diet.blueprint_ab import run_offline_blueprint_ab
+
+        result = run_offline_blueprint_ab(
+            ROOT,
+            args.artifact_root.resolve() / _source_commit() / "blueprint-ab",
         )
     elif args.profile == "tier1-efficiency":
         if not args.variant:
