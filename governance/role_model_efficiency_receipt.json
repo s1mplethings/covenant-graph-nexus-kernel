@@ -1,7 +1,77 @@
 {
   "kind": "CGKNRoleModelEfficiencyReceipt",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-V2-RESOURCE-GATE-CALIBRATION-AND-SCALE-QUALIFICATION-048",
+  "iteration": "ITER-CGNK-PARALLEL-ARCHITECTURE-CONVERGENCE-050",
+  "architecture_convergence": {
+    "source_commit": "a14b309ff5fcc9a27dabd2acff824e8919298884",
+    "source_tree": "1b7825ab106df56234c790eb1ec23803803d5bf8",
+    "safe_slimming": {
+      "status": "PASS",
+      "source_commit": "6692ebba0698d6e969e51633b4b95fde0451af04",
+      "production_loc_delta": -23,
+      "unused_imports_or_bindings_removed": 21,
+      "duplicate_helpers_removed": 2,
+      "public_surface_changes": 0
+    },
+    "capability_retrieval": {
+      "real_registry_count": 10,
+      "real_top1_accuracy": 1.0,
+      "real_top3_recall": 1.0,
+      "current_scale_benefit": "NOT_YET_NEEDED_AT_CURRENT_SCALE",
+      "synthetic_scales": [100, 500, 1000],
+      "synthetic_top1_accuracy": 1.0,
+      "synthetic_top3_recall": 1.0,
+      "synthetic_context_reduction_percent": [97.9442, 99.5902, 99.7953],
+      "synthetic_benefit": "PROVEN_FOR_SYNTHETIC_SCALING_ONLY"
+    },
+    "formal_decision_evaluation": {
+      "receipt_hash": "sha256:3d5ba76ae7666363d6517de9387fe5dd6bd6975b4506792a885810d3cbc45760",
+      "transport_completed": 28,
+      "accepted": 25,
+      "validator_rejected": 1,
+      "provider_call_failed": 2,
+      "schema_failures": 0,
+      "D0": {"passed": 22, "cases": 24, "strong_calls": 14, "false_escalations": 8, "missed_escalations": 0},
+      "D1": {"passed": 23, "cases": 24, "cheap_calls": 14, "false_escalations": 0, "missed_escalations": 6},
+      "D2": {"passed": 23, "cases": 24, "strong_calls": 8, "cheap_calls": 6, "false_escalations": 4, "missed_escalations": 2},
+      "D3": {"passed": 22, "cases": 24, "strong_calls": 6, "cheap_calls": 8, "false_escalations": 0, "missed_escalations": 0, "critical_stop_correctness": 1.0},
+      "D3_decision_share": {"deterministic": 0.25, "cheap": 0.3333333333333333, "strong": 0.25, "human_stop": 0.16666666666666666},
+      "D3_strong_model_call_share": 0.42857142857142855,
+      "D3_strong_token_share": "UNKNOWN_EXACT_LOWER_BOUND_53_89_PERCENT",
+      "adaptive_benefit": "PARTIAL_DIRECTIONAL_NOT_QUALIFIED",
+      "strong_escalation_benefit": "NOT_PROVEN",
+      "role_pipeline_collapse": "DO_NOT_PROCEED"
+    },
+    "checkpoint": {
+      "status": "PASS_GATE_CLOSED",
+      "source_commit": "859919f3555a1fff985377da41bbf8bece08b18a",
+      "default_adoption_commit": "34f1b1f937c90ad698d1e7f9d4d04c3c48bb801a",
+      "scale": 250000,
+      "checkpoint_build_ms": 31468.845,
+      "checkpoint_load_ms": 8063.769,
+      "full_replay_ms": 20257.322,
+      "recall": 1.0,
+      "v2_new_pack_default": true
+    },
+    "blueprint_ab": {
+      "receipt_hash": "sha256:4dc13ec42eb339f885fc95a24437d9e0628bbbab1c1f34872f29380e2672b14b",
+      "csv_size_reduction_percent": 66.39,
+      "repair_size_reduction_percent": 73.85,
+      "reliability_equivalence": "PROVEN_OFFLINE",
+      "runtime_token_call_benefit": "NOT_PROVEN_PROMPT_CHARS_AND_CALLS_IDENTICAL",
+      "production_adoption": "NOT_ADOPTED"
+    },
+    "regression": {
+      "collection": 3185,
+      "active_repository_passed": 2828,
+      "active_repository_skipped": 357,
+      "failed": 0,
+      "errors": 0,
+      "statement_coverage_percent": 90.77,
+      "branch_coverage_percent": 77.12,
+      "kernel_receipt_hash": "sha256:7dc5f932c121651224c7545f3945b07f5672c62231c9d6afe3039795cbea7253"
+    }
+  },
   "product_source": {
     "commit": "3439370f3e0a5ba118199dce10d429e77b77e24f",
     "tree": "7de7e2a25b54fd6924f9e623253b7d6524f374e0",
@@ -462,5 +532,5 @@
   "model_capability_evaluation": "COMPLETE",
   "multi_agent_status": "NOT_RECOMMENDED_CURRENT_EVIDENCE",
   "contains_credentials": false,
-  "receipt_hash": "sha256:a04323632c53fa5ee5d88f4e9e1388c8cfa8e45f99d58faac872791e982e8ab6"
+  "receipt_hash": "sha256:35fcabfb1fe1d27daac10d3de5d1e6c72bdf4bc4df342c6529572281787236e1"
 }

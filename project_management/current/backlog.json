@@ -2,7 +2,7 @@
   "kind": "CGKNCurrentBacklog",
   "schemaVersion": "3",
   "project": "CGKN",
-  "current_item_id": "MVP-015",
+  "current_item_id": "PB-027",
   "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
   "verification_status": "PASS_WITH_LIMITS",
   "product_authority": [
@@ -346,6 +346,21 @@
         "any production redesign remains backward-compatible and starts in a separate follow-up"
       ],
       "evidence_status": "PASS_PRODUCTION_V2_QUALIFIED_AT_250K_ADOPTION_FOLLOW_UP_COLD_START"
+    },
+    {
+      "id": "PB-027",
+      "title": "Improve evidence-backed strong escalation without new authority",
+      "priority": 24,
+      "state": "ready",
+      "value": "Close strong-token and pricing uncertainty on bounded decision workloads before considering adaptive routing as a default or collapsing the retained coordinator/worker boundary.",
+      "acceptance": [
+        "all compared routes return complete usage and pricing evidence or are explicitly excluded from percentage claims",
+        "adaptive routing preserves critical-stop correctness and reliability against strong-all",
+        "strong tokens per successful decision fall by at least the declared gate without increasing false or missed escalation",
+        "no new Agent, planner, runtime, DAG, state, Knowledge, or Capability authority is introduced",
+        "Blueprint or role-boundary changes require a separate source closure and new real generation/repair evidence"
+      ],
+      "evidence_status": "NOT_EVALUATED"
     }
   ]
 }

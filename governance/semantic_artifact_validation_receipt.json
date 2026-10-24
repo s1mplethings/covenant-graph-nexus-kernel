@@ -1,8 +1,9 @@
 {
   "kind": "CGKNSemanticArtifactValidationReceipt",
   "schema_version": "1.0",
-  "source_commit": "5f909d3026ad134c98f7a98354df25cc2b8d4206",
-  "source_tree": "e849294f5f3f76c6b6f97b9455e350a5aec35b47",
+  "source_commit": "a14b309ff5fcc9a27dabd2acff824e8919298884",
+  "source_tree": "1b7825ab106df56234c790eb1ec23803803d5bf8",
+  "experiment_boundary_hash": "sha256:66d58f030f4423a3f316579de5254f4cc800c40784c41a07201918da627dee82",
   "evidence_status": "NEEDS_REWORK",
   "semantic_artifact_interface": "PARTIAL",
   "winner": "NONE",
@@ -16,12 +17,20 @@
     "failure_attribution": "PASS"
   },
   "source_boundary_validation": {
-    "command": "python -m pytest -q tests/experiments/semantic_artifact_design",
-    "passed": 27,
+    "command": "python -m pytest -q tests/experiments",
+    "passed": 32,
     "failed": 0,
     "errors": 0,
     "skipped": 0,
     "historical_live_evidence_retained": true
+  },
+  "blueprint_a2_validation": {
+    "status": "PASS_EVALUATION_ONLY",
+    "receipt_hash": "sha256:4dc13ec42eb339f885fc95a24437d9e0628bbbab1c1f34872f29380e2672b14b",
+    "representation_equivalence": "PROVEN_OFFLINE",
+    "representation_size_benefit": "PROVEN_OFFLINE",
+    "runtime_token_call_benefit": "NOT_PROVEN_PROMPT_CHARS_AND_CALLS_IDENTICAL",
+    "production_adoption": "NOT_ADOPTED"
   },
   "real_provider_validation": {
     "live_single": {"A": "FAIL", "B": "FAIL", "C": "FAIL"},
@@ -43,11 +52,13 @@
     "kernel_architecture_gate": "PASS",
     "test_architecture_gate": "PASS",
     "kernel_test_receipt_verification": "PASS",
-    "kernel_completeness_gate": "NEEDS_REWORK",
-    "unit_profile": "NEEDS_REWORK",
-    "unit_profile_detail": "326 passed, 1 skipped, 1 failed; the only failure was test_current_kernel_governance_passes_all_gates delegating to the same source-bound completeness check",
-    "remaining_profiles": "NOT_EVALUATED",
-    "note": "The old kernel receipt remains valid for the unchanged L0-L5 core hash, but the completeness gate intentionally rejects source files added after its c607705 source boundary. Production integration did not occur, so a new kernel source/evidence closure was not created; the combined profile command stopped after the unit profile failed."
+    "kernel_completeness_gate": "PASS",
+    "receipt_freshness": "PASS",
+    "unit_profile": "PASS_482_SKIP_1",
+    "remaining_profiles": "PASS_STATIC_BOUNDARY_FAULT_SECURITY_LOCAL_FUNCTIONAL_FULL_CORE_ACTIVE_REPOSITORY",
+    "active_repository": "PASS_2828_SKIP_357_0_FAILED_0_ERRORS",
+    "collection": "PASS_3185",
+    "note": "The architecture-convergence source closure regenerated source-bound Kernel, application, and experiment receipts; all receipt-cycle tests and active-repository regression pass."
   },
   "stop_condition": "B"
 }

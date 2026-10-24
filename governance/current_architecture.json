@@ -22,8 +22,11 @@
     "runtime_wiring": "ISOLATED_VERTICAL_SLICE_OPERATIONAL",
     "compatibility_mainline_replacement": "NOT_IMPLEMENTED",
     "agent_cheap_executor_mvp": "REAL_PROVIDER_VALIDATED",
-    "software_project_generation_bundle": "TARGETED_PASS_MINI_CAMPAIGN_NEEDS_REWORK",
-    "minimal_project_blueprint": "PARTIAL_PROVIDER_BLOCKED",
+    "software_project_generation_bundle": "PASS_REAL_GENERATION_REPAIR_AND_CSV_3_OF_3",
+    "minimal_project_blueprint": "COMPLETE_CURRENT_PRODUCTION_RETAINED_AFTER_A2",
+    "capability_retrieval": "PASS_DERIVED_REBUILDABLE_REAL_10_SYNTHETIC_TO_1000",
+    "decision_hierarchy": "EVALUATED_NOT_ADOPTED_PARTIAL_DIRECTIONAL",
+    "knowledge_persistence_v2": "DEFAULT_FOR_NEW_PACKS_CHECKPOINT_QUALIFIED_AT_250K",
     "functional_readiness": "LEVEL_4"
   },
   "product_authority": ["PRODUCT_GOAL.md", "MVP_SCOPE.md", "governance/product_invariants.json"],
@@ -60,12 +63,29 @@
     "isolated_execution": ["ComponentSpec/PortSpec", "ExecutorRegistry", "DAGRunner", "BlockExecutionResult", "FileRunStore", "Agent checkpoint"],
     "failure_recovery": ["failed node", "downstream_closure", "explicit retry", "unaffected PASS reuse"]
   },
+  "derived_services": {
+    "capability_search": "cgkn/application/capability_routing/search.py:CapabilitySearchIndex",
+    "decision_routing": "cgkn/application/capability_routing/decision.py:DecisionRouter",
+    "knowledge_checkpoint": "derived rebuildable segmented-v2 checkpoint; authoritative segments remain the source of truth"
+  },
+  "architecture_convergence": {
+    "iteration": "ITER-CGNK-PARALLEL-ARCHITECTURE-CONVERGENCE-050",
+    "integrated_source": "a14b309ff5fcc9a27dabd2acff824e8919298884",
+    "safe_slimming": "PASS_0_PUBLIC_CHANGES",
+    "capability_retrieval": "KEEP_DERIVED_REAL_SCALE_BENEFIT_NOT_YET_NEEDED",
+    "decision_router": "KEEP_EVALUATED_NONDEFAULT",
+    "adaptive_hierarchy": "PARTIAL_DIRECTIONAL_NOT_QUALIFIED",
+    "blueprint_simplification": "EVALUATED_NOT_ADOPTED",
+    "strong_role_separation_collapse": "DO_NOT_PROCEED",
+    "checkpoint_cold_start": "PASS_GATE_CLOSED",
+    "multi_agent_runtime": "NOT_RECOMMENDED_CURRENT_EVIDENCE"
+  },
   "scope_invariants": {
     "BLUEPRINT_SCOPE_CONSISTENCY": "A WorkerScope may add runtime safety checks but cannot reject an unchanged ProjectBlueprint unit with a stricter duplicate business-level write-file ceiling; owned paths are writable, declared read paths are visible only, and both contracts share the canonical cohesive write-file limit."
   },
   "compatibility_entrypoints": ["scripts/codex_conversation.py", "scripts/run_codex_conversation_generation.py", "scripts/run_local_pipeline.py", "scripts/run_local_pipeline_impl.py"],
   "compatibility_rule": "Compatibility entrypoints remain callable and are not the MVP planning or composition authority. The isolated MVP runtime has not replaced them.",
-  "next_feature_increment": {"id": "MVP-017", "name": "Close minimal ProjectBlueprint generation and repair", "migration_target": "Prove one frozen blueprint, cohesive units, minimal Provider payloads, interface guarding, and affected-only repair through the existing CapabilityTree, DAGRunner, and FileRunStore."},
+  "next_feature_increment": {"id": "PB-027", "name": "Improve evidence-backed strong escalation without new authority", "migration_target": "Reduce incomplete-usage uncertainty and test stronger escalation thresholds on bounded workloads before considering any default routing or role collapse."},
   "forbidden_parallel_authorities": true,
-  "verification": {"github_actions": "NOT_EVALUATED", "product_direction_gate": "PASS", "focused_tests": "PASS", "deterministic_vertical_slice": "PASS", "resume_and_local_repair": "PASS", "self_growth_v0": "PASS", "agent_cheap_executor_fake_integration": "PASS", "agent_cheap_executor_real_provider": "PASS", "decision_efficiency_benchmark": "PASS_WITH_LIMITS", "self_growth_v1": "NOT_EVALUATED", "full_pytest": "NOT_EVALUATED"}
+  "verification": {"github_actions": "NOT_EVALUATED", "product_direction_gate": "PASS", "focused_tests": "PASS", "deterministic_vertical_slice": "PASS", "resume_and_local_repair": "PASS", "self_growth_v0": "PASS", "agent_cheap_executor_fake_integration": "PASS", "agent_cheap_executor_real_provider": "PASS", "decision_efficiency_benchmark": "PASS_WITH_LIMITS", "architecture_convergence": "PASS_WITH_LIMITS", "self_growth_v1": "NOT_EVALUATED", "full_pytest": "PASS_2828_SKIP_357_0_FAILED_0_ERRORS"}
 }

@@ -1,0 +1,36 @@
+{
+  "kind": "CGKNArchitectureConvergenceEvidenceIndex",
+  "schema_version": "1.0",
+  "iteration": "ITER-CGNK-PARALLEL-ARCHITECTURE-CONVERGENCE-050",
+  "source_commit": "a14b309ff5fcc9a27dabd2acff824e8919298884",
+  "source_tree": "1b7825ab106df56234c790eb1ec23803803d5bf8",
+  "status": "PASS_WITH_LIMITS",
+  "in_repository": {
+    "closure": "project_management/current/architecture_convergence_report.json",
+    "summary": "project_management/summaries/architecture_convergence_20261024.md",
+    "safe_slimming": "project_management/current/architecture_diet_safe_report.json",
+    "capability_discovery": "evidence/capability-routing-decision-hierarchy/discovery.json",
+    "checkpoint": "project_management/current/v2_scale_qualification_report.json",
+    "kernel_receipt": "governance/kernel_test_receipt.json",
+    "application_receipt": "governance/software_project_generation_receipt.json",
+    "experiment_receipt": "governance/semantic_artifact_validation_receipt.json"
+  },
+  "external": {
+    "formal_decision_and_search": {
+      "path": "D:/CGKN/.service_evidence/architecture-convergence-050/formal/formal-c3de7ef-r1.json",
+      "sha256": "73B2E777EE9F2588886827C5859D9FCED9253E7AECB805C1429011311387EA89",
+      "receipt_hash": "sha256:3d5ba76ae7666363d6517de9387fe5dd6bd6975b4506792a885810d3cbc45760"
+    },
+    "blueprint_ab": {
+      "path": "D:/CGKN/.service_evidence/architecture-convergence-050/a2/a14b309ff5fcc9a27dabd2acff824e8919298884/blueprint-ab/blueprint-ab.json",
+      "receipt_hash": "sha256:4dc13ec42eb339f885fc95a24437d9e0628bbbab1c1f34872f29380e2672b14b"
+    },
+    "checkpoint_250k": {
+      "path": "D:/CGKN/.service_evidence/workstream-c/formal-250k-859919f3.json"
+    },
+    "pricing": {
+      "path": "D:/CGKN/.service_evidence/architecture-convergence-050/pricing/pricing.json"
+    }
+  },
+  "contains_credentials": false
+}
