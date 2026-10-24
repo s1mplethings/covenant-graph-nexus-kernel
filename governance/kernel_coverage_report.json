@@ -1,10 +1,10 @@
 {
   "kind": "CGKNKernelCoverageReport",
   "schema_version": "2.0",
-  "source_commit": "160e72c18dabd2943f3d08061fa0e7c0671549ef",
-  "source_tree_sha": "8beaa4ee31129d823cbd20189c278b3a9094140e",
+  "source_commit": "83619e75224c226aa68ea446db7dcee26128974b",
+  "source_tree_sha": "0a11a89f0114766f6eec4ad0b4e343bd97e26f6b",
   "core_source_hash": "sha256:43040d52a1d416212e0189173b8b54a2b25e22fdab107aba29fd2b35fd822904",
-  "command": "python -m coverage run --append --branch --source=cgkn -m pytest -q tests/application/self_growth/test_governance_v1.py tests/experiments/self_growth_v1",
+  "command": "source-identical cgkn coverage carried forward; final-classification script-only change targeted 42/42",
   "pytest_result": {
     "exit_code": 0
   },

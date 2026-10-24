@@ -1,9 +1,9 @@
 {
   "kind": "CGKNSemanticArtifactValidationReceipt",
   "schema_version": "1.0",
-  "source_commit": "160e72c18dabd2943f3d08061fa0e7c0671549ef",
-  "source_tree": "8beaa4ee31129d823cbd20189c278b3a9094140e",
-  "experiment_boundary_hash": "sha256:516f6f94b1f18efd4d5bd1736541f2ef7e3f52967e2fba60e92651636f3b7217",
+  "source_commit": "83619e75224c226aa68ea446db7dcee26128974b",
+  "source_tree": "0a11a89f0114766f6eec4ad0b4e343bd97e26f6b",
+  "experiment_boundary_hash": "sha256:b7b0426188f91253a089fc832abd911c9c7d2e86d25d815a89c0ffb1d1496746",
   "evidence_status": "NEEDS_REWORK",
   "semantic_artifact_interface": "PARTIAL",
   "winner": "NONE",

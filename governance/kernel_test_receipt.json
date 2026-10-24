@@ -1,8 +1,8 @@
 {
   "kind": "CGKNKernelTestReceipt",
   "schema_version": "1.0",
-  "source_commit": "160e72c18dabd2943f3d08061fa0e7c0671549ef",
-  "source_tree_sha": "8beaa4ee31129d823cbd20189c278b3a9094140e",
+  "source_commit": "83619e75224c226aa68ea446db7dcee26128974b",
+  "source_tree_sha": "0a11a89f0114766f6eec4ad0b4e343bd97e26f6b",
   "core_source_hash": "sha256:43040d52a1d416212e0189173b8b54a2b25e22fdab107aba29fd2b35fd822904",
   "commands": [
     {
@@ -8304,8 +8304,8 @@
       }
     }
   ],
-  "coverage_file_hash": "sha256:c25f60b9426558b37e1a3d3b100f913bdd40ac0592f537a7fc76ec874d4632e2",
-  "generated_at": "2026-10-24T16:02:08.125202+00:00",
+  "coverage_file_hash": "sha256:fe2ce67aefed5ab1d16b0df14a3242a117cd4f4d26c23868db475a567bd1a404",
+  "generated_at": "2026-10-24T16:15:35.502236+00:00",
   "environment": {
     "python": "3.12.3",
     "platform": "Windows-11-10.0.26200-SP0"
@@ -8315,5 +8315,5 @@
     "secret_persisted": false
   },
   "final_verdict": "PASS",
-  "receipt_hash": "sha256:70211d46364b99792ddd56a0f7b0ce59c6aa27debe1cc6913b8787383dbc0626"
+  "receipt_hash": "sha256:e333d20d1be5ae871d11cbc7f35063f4601e91666c2c93693281a99109b1107b"
 }
