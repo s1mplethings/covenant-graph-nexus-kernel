@@ -90,15 +90,32 @@ def test_new_v2_empty_pack_is_explicit_and_round_trips(tmp_path: pathlib.Path) -
     assert SegmentedKnowledgeStore(path).verify()["status"] == "PASS"
 
 
-def test_new_pack_retains_legacy_default_until_adoption_gate(tmp_path: pathlib.Path) -> None:
-    path = tmp_path / "knowledge.json"
-    pack = new_project_knowledge_pack("fixture", "pkp_legacy_default")
+def test_new_pack_defaults_to_v2_after_adoption_gate(tmp_path: pathlib.Path) -> None:
+    path = tmp_path / "knowledge"
+    pack = new_project_knowledge_pack("fixture", "pkp_v2_default")
 
     result = save_project_knowledge(path, pack)
 
+    assert path.is_dir()
+    assert manifest_payload(path)["format_version"] == "2.0"
+    assert result["kind"] == "KnowledgeStoreWriteResult"
+    assert load_project_knowledge(path)["id"] == "pkp_v2_default"
+
+
+def test_explicit_v1_new_pack_remains_readable_without_auto_migration(tmp_path: pathlib.Path) -> None:
+    path = tmp_path / "knowledge.json"
+    pack = new_project_knowledge_pack("fixture", "pkp_explicit_v1")
+
+    result = save_project_knowledge(path, pack, format_version="1")
+
     assert path.is_file()
     assert result["kind"] == "KnowledgeStoreWriteResult"
-    assert load_project_knowledge(path)["id"] == "pkp_legacy_default"
+    assert load_project_knowledge(path)["id"] == "pkp_explicit_v1"
+    updated = load_project_knowledge(path)
+    updated["project"] = "still-v1"
+    save_project_knowledge(path, updated)
+    assert path.is_file()
+    assert load_project_knowledge(path)["project"] == "still-v1"
 
 
 def test_single_append_is_bounded_and_visible(tmp_path: pathlib.Path) -> None:

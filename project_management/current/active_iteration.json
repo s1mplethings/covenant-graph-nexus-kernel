@@ -1,36 +1,33 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-CGNK-V2-RESOURCE-GATE-CALIBRATION-AND-SCALE-QUALIFICATION-048",
+  "iteration_id": "ITER-050",
   "project_id": "cgkn",
-  "goal": "Replace the fixed 75 percent disk gate with an empirical peak-and-reserve policy, qualify frozen production persistence v2 through 250k, and adopt it only if every gate including S0 cold-start improvement passes.",
+  "goal": "Converge the architecture through independent safe-slimming, capability-routing, and checkpoint cold-start workstreams before integration.",
   "backlog_item_ids": ["PB-026"],
   "workflow_state": "closed",
   "evidence_status": "PASS_WITH_LIMITS",
-  "production_source_commit": "3439370f3e0a5ba118199dce10d429e77b77e24f",
-  "production_source_tree": "7de7e2a25b54fd6924f9e623253b7d6524f374e0",
-  "harness_commit": "e602f54adc620e5c91c94cf5f457ef808a71a48e",
   "acceptance_criteria": [
     "calibrate the resource gate with real production-v2 1k and 5k probes",
     "freeze the resource policy before formal 10k, 50k, 100k, and 250k runs",
     "validate locality, checkpoint, compaction, crash recovery, mixed workloads, and restart-update-Conversation",
-    "retain v1 as the new-pack default unless every adoption gate including S0 cold-start improvement passes"
+    "adopt v2 for new packs only after every unchanged gate including S0 cold-start improvement passes"
   ],
   "quality_metrics": [
-    {"id": "QM-RESOURCE-CALIBRATION", "measure": "empirical absolute peak and explicit reserves", "result": "PASS_OLD_75_PERCENT_GATE_CONFIRMED_OVER_CONSERVATIVE"},
-    {"id": "QM-SEQUENTIAL-SCALE", "measure": "10k then 50k then 100k then 250k production qualification", "result": "PASS_4_OF_4"},
-    {"id": "QM-COLD-START", "measure": "250k checkpoint cold start improves on 37.430 s S0", "result": "FAIL_45_472_S_21_485_PERCENT_SLOWER"},
-    {"id": "QM-SOURCE-FREEZE", "measure": "production source remains unchanged", "result": "PASS"}
+    {"id": "QM-RESOURCE-CALIBRATION", "measure": "empirical absolute peak and explicit reserves", "target": "bounded resource use", "method": "calibration probes and peak measurement"},
+    {"id": "QM-SEQUENTIAL-SCALE", "measure": "10k then 50k then 100k then 250k production qualification", "target": "PASS_4_OF_4", "method": "fixed-configuration fresh-process probes"},
+    {"id": "QM-COLD-START", "measure": "250k checkpoint cold start improves on 37.430 s S0", "target": "strict improvement", "method": "frozen-source quiet-window requalification"},
+    {"id": "QM-SOURCE-FREEZE", "measure": "production source remains unchanged during formal probes", "target": "exact source identity", "method": "commit and source-hash binding"}
   ],
   "quality_activities": {
     "prevention": ["empirical calibration", "frozen conservative estimator", "transaction and OS reserves", "memory gate", "98 percent predicted-use secondary guard"],
     "assurance": ["per-scale preflight", "actual-versus-predicted peak monitoring", "semantic equivalence", "crash recovery", "restart-update-Conversation"],
-    "control": ["sequential scratch lifecycle", "post-run cleanup", "no user or authoritative data deletion", "v1 default retained after cold-start failure"],
-    "improvement": ["optimize v2 checkpoint deserialization/index materialization before reconsidering default adoption"]
+    "control": ["sequential scratch lifecycle", "post-run cleanup", "no user or authoritative data deletion", "separate source and adoption commits"],
+    "improvement": ["profile-backed split checkpoint components", "copy-eliding cold materialization", "policy-bound derived index sidecar"]
   },
   "interface_expectations": [
     "ProjectKnowledgePack remains the sole logical authority",
-    "production v2 source stays frozen at 3439370f3e0a5ba118199dce10d429e77b77e24f",
+    "checkpoint optimization source stays frozen at 859919f3555a1fff985377da41bbf8bece08b18a",
     "existing v1 packs remain readable and never auto-migrate",
     "retrieval P2 remains unchanged"
   ],
@@ -42,19 +39,19 @@
     "D:/CGKN/.service_evidence/v2-resource-gate-scale-qualification-048/formal-final/productionization-report.json"
   ],
   "review": {
-    "outcome": "scale_pass_adoption_blocked_cold_start",
+    "outcome": "pending",
     "feedback": [
       "F: safely passed the empirical absolute-headroom gate despite 82.904 percent pre-run use.",
       "All formal scales and correctness checks passed within the frozen conservative bounds.",
-      "250k checkpoint cold start was 45.472 s versus the 37.430 s S0 baseline, so the adoption gate did not pass.",
-      "No adoption commit was created and v1 remains the new-pack default."
+      "The optimized 250k checkpoint cold start was 8.064 s versus the 37.430 s S0 baseline, so Workstream C passed the unchanged adoption gate.",
+      "V2 is adopted only for new packs; existing v1 remains readable with no automatic migration.",
+      "The overall convergence iteration remains active until independent workstreams are integrated."
     ],
-    "accepted_backlog_item_ids": ["PB-026"],
-    "blocked_backlog_item_ids": []
+    "accepted_backlog_item_ids": ["PB-026"]
   },
   "retrospective": {
     "worked": ["empirical resource calibration", "absolute-headroom volume selection", "sequential disposable scratch", "formal 250k semantic and crash validation"],
-    "did_not_work": ["fixed 75 percent used as a standalone hard gate", "v2 checkpoint cold start did not beat S0 at 250k"],
-    "experiments": ["1k and 5k calibration", "10k/50k/100k/250k scale", "100k crash", "100k and 250k mixed workloads"]
+    "did_not_work": ["fixed 75 percent used as a standalone hard gate", "using contended timing as formal performance evidence"],
+    "experiments": ["1k and 5k calibration", "10k/50k/100k/250k checkpoint requalification", "100k crash", "250k corruption fallback"]
   }
 }

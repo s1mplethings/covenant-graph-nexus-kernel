@@ -1,9 +1,9 @@
 {
   "kind": "CGKNProjectMVPStatus",
   "schema_version": "1.0",
-  "iteration": "ITER-CGNK-V2-RESOURCE-GATE-CALIBRATION-AND-SCALE-QUALIFICATION-048",
-  "source_commit": "3439370f3e0a5ba118199dce10d429e77b77e24f",
-  "source_tree_sha": "7de7e2a25b54fd6924f9e623253b7d6524f374e0",
+  "iteration": "ITER-CGNK-PARALLEL-ARCHITECTURE-CONVERGENCE-050",
+  "source_commit": "859919f3555a1fff985377da41bbf8bece08b18a",
+  "source_tree_sha": "6531bcb92af29193c30a2c3495e4b22a48a6f4b4",
   "product_source_commit": "dc640cd9426616663a613f540a6d4e1e5a7898e7",
   "product_source_tree": "66056cf6432227681a117b1f5df9c3e6999475cd",
   "experiment_harness_commit": "e602f54adc620e5c91c94cf5f457ef808a71a48e",
@@ -53,12 +53,14 @@
   "persistence_update_locality": "PASS_AT_10K_50K_100K_250K",
   "production_v2_scale_qualification": "PASS_AT_10K_50K_100K_250K",
   "retrieval_scalability": "DEGRADED_AMBIGUOUS_CANDIDATES_LINEAR_CORRECTNESS_PASS_AT_250K",
-  "cold_start_scalability": "FAIL_S0_REGRESSION_AT_250K_CHECKPOINT_21_485_PERCENT_SLOWER",
+  "cold_start_scalability": "PASS_AT_250K_CHECKPOINT_8_064_S_78_457_PERCENT_FASTER_THAN_S0",
+  "checkpoint_cold_start_status": "PASS_GATE_CLOSED",
+  "v2_default_adoption_readiness": "PASS",
   "memory_scalability": "PASS_AT_250K_5_276_GB_PEAK_WITHIN_BOUND",
   "maximum_evaluated_knowledge_items": 250000,
   "storage_redesign_recommended": true,
-  "storage_redesign_production_status": "IMPLEMENTED_EXPLICIT_NOT_ADOPTED",
-  "persistence_format_v2_status": "PASS_PRODUCTION_SCALE_NOT_ADOPTED_COLD_START",
+  "storage_redesign_production_status": "IMPLEMENTED_AND_ADOPTED_FOR_NEW_PACKS",
+  "persistence_format_v2_status": "PASS_PRODUCTION_SCALE_DEFAULT_FOR_NEW_PACKS",
   "segmented_authority_status": "PASS_TARGETED",
   "checkpoint_status": "PASS_TARGETED",
   "checkpoint_scale_status": "PASS_AT_250K",
@@ -74,8 +76,8 @@
   "amortized_persistence_cost": "PASS_BOUNDED_CHECKPOINT_AND_COMPACTION",
   "end_to_end_internalization_benefit": "PASS_PERSISTENCE_LOCALITY_761_36X_S0_LATENCY_SPEEDUP_AT_250K",
   "max_validated_persistence_scale": 250000,
-  "v2_new_pack_default": false,
-  "should_v2_become_default_for_new_packs": "NO",
+  "v2_new_pack_default": true,
+  "should_v2_become_default_for_new_packs": "YES",
   "retrieval_scaling_p2": "RETAINED_AMBIGUOUS_P95_199_71_MS_AT_250K",
   "benchmark_freeze": {
     "source_commit": "3439370f3e0a5ba118199dce10d429e77b77e24f",
@@ -93,12 +95,12 @@
     "formal_runs_started": 4,
     "resource_report": "project_management/current/v2_scale_qualification_report.json"
   },
-  "full_regression": {"collected": 3112, "passed": 2755, "skipped": 357, "failed": 0, "errors": 0},
+  "full_regression": {"collected": 3130, "passed": 2773, "skipped": 357, "failed": 0, "errors": 0},
   "scaling_harness_commit": "e602f54adc620e5c91c94cf5f457ef808a71a48e",
   "model_capability_evaluation": "COMPLETE",
   "cgnk_structure_benefit": "PROVEN_DIRECTIONALLY",
   "efficiency_experiment_ready": true,
-  "multi_agent_status": "NOT_RECOMMENDED_UNTIL_V2_COLD_START_GATE_PASSES",
+  "multi_agent_status": "NOT_RECOMMENDED_CURRENT_EVIDENCE",
   "api_lab_dependency": {
     "repository": "https://github.com/s1mplethings/cgkn-provider-api-lab.git",
     "branch": "codex/qwen-thinking-control-20261021",
@@ -114,11 +116,6 @@
       "priority": "P2",
       "code": "GENERAL_MODEL_GENERATION_REPAIR_CAPABILITY_MIXED",
       "detail": "The 28-case benchmark completed, but per-model generation, repair, and abstention results remain mixed; the structural result is directional rather than statistically significant."
-    },
-    {
-      "priority": "P1",
-      "code": "V2_COLD_START_REGRESSION",
-      "detail": "Production v2 passed formal 10k through 250k scale, locality, crash, and semantic checks, but 250k checkpoint cold start took 45.472 s versus the 37.430 s S0 baseline (21.485 percent slower). The adoption gate therefore keeps v1 as the new-pack default."
     },
     {
       "priority": "P2",
