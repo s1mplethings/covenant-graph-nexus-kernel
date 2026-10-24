@@ -217,7 +217,30 @@ class ProviderCandidateBackend:
     def build(self, proposal: CapabilityProposal, case: GrowthTaskCase, candidate_root: pathlib.Path) -> CandidateBuildResult:
         before = len(self.recorder.records)
         spec = self._spec(proposal, case)
-        receipt = self.builder.build(candidate_root, spec)
+        try:
+            receipt = self.builder.build(candidate_root, spec)
+        except Exception as exc:
+            # The builder may fail after one or more Provider calls (for example,
+            # after a generated candidate or bounded repair is rejected).  Those
+            # calls remain real cost and must survive into the group receipt.
+            calls = tuple(model_call_evidence(item) for item in self.recorder.records[before:])
+            qualification = qualification_receipt(
+                proposal,
+                source_hash="sha256:" + "0" * 64,
+                hidden_results=(),
+                builder_passed=False,
+                scope_passed=False,
+                security_passed=False,
+            )
+            return CandidateBuildResult(
+                "FAIL",
+                "",
+                f"generated.{proposal.capability_id}@{proposal.version}",
+                qualification,
+                calls,
+                0,
+                f"CANDIDATE_BUILD_EXCEPTION:{type(exc).__name__}",
+            )
         calls = tuple(model_call_evidence(item) for item in self.recorder.records[before:])
         hidden_results: list[bool] = []
         if receipt.status == "PASS" and self.store.contains(spec.ref):

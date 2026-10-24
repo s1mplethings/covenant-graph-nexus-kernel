@@ -249,6 +249,7 @@ def test_policy_hashes_cover_every_frozen_policy_surface() -> None:
     hashes = policy_hashes()
     assert set(hashes) == {
         "growth_policy_hash",
+        "composition_policy_hash",
         "candidate_contract_schema_hash",
         "experience_schema_hash",
         "admission_policy_hash",

@@ -397,7 +397,13 @@ def policy_hashes() -> dict[str, str]:
             "version": GROWTH_POLICY_VERSION,
             "reuse_before_compose_before_create": True,
             "gap_classes": [item.value for item in GapClass],
+        }),
+        "composition_policy_hash": canonical_hash({
+            "version": GROWTH_POLICY_VERSION,
             "max_composition_depth": MAX_COMPOSITION_DEPTH,
+            "plans_are_ephemeral": True,
+            "reuse_before_composition": True,
+            "creation_after_composition_failure": True,
         }),
         "candidate_contract_schema_hash": canonical_hash({"fields": list(CapabilityProposal.__dataclass_fields__)}),
         "experience_schema_hash": canonical_hash({"kind": "CGKNCapabilityExperienceLedger", "schema_version": "1.0"}),
