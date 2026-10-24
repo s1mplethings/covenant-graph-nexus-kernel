@@ -4,7 +4,7 @@ import json
 import math
 import pathlib
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from .contracts import canonical_hash
 

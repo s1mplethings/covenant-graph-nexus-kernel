@@ -26,15 +26,8 @@ from cgkn.application.learning import GenerationRequest, ProductionGenerationCli
 from .contracts import CapabilityBuildReceipt, CapabilityPackage, CapabilityRisk, CapabilitySpec
 from .lifecycle_contracts import ActionDecision, FailureDomain, ProviderAttemptReceipt, RecommendedAction
 from .public_network import PublicNetworkClient
-
-
-def _slug(ref: str) -> str:
-    return ref.replace("@", "-").replace(".", "-")
-
-
-def _canonical_hash(value: Any) -> str:
-    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    return "sha256:" + hashlib.sha256(payload).hexdigest()
+from .revision_store import canonical_hash as _canonical_hash
+from .revision_store import capability_slug as _capability_slug
 
 
 class CapabilityStore:
@@ -46,7 +39,7 @@ class CapabilityStore:
         admission = json.loads((source / "admission.json").read_text(encoding="utf-8"))
         if admission.get("status") != "ADMITTED" or admission.get("source_hash") != package.source_hash:
             raise ValueError("only an admitted, hash-matched capability package may enter the store")
-        target = self.root / _slug(package.spec.ref)
+        target = self.root / _capability_slug(package.spec.ref)
         if target.exists():
             raise FileExistsError(f"capability package already stored: {package.spec.ref}")
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -54,7 +47,7 @@ class CapabilityStore:
         return target
 
     def path_for(self, capability_ref: str) -> pathlib.Path:
-        return self.root / _slug(capability_ref)
+        return self.root / _capability_slug(capability_ref)
 
     def contains(self, capability_ref: str) -> bool:
         path = self.path_for(capability_ref)
@@ -185,7 +178,7 @@ class GeneratedCapabilityExecutor:
         self.runtime_context = runtime_context
         self.descriptor = ExecutorDescriptor(package.executor_ref, "generated_python", (package.component_ref,), (), True, False, "candidate_sandbox")
         module_path = pathlib.Path(package.candidate_path) / "executor.py"
-        module_spec = importlib.util.spec_from_file_location("cgkn_candidate_" + _slug(package.spec.ref), module_path)
+        module_spec = importlib.util.spec_from_file_location("cgkn_candidate_" + _capability_slug(package.spec.ref), module_path)
         if module_spec is None or module_spec.loader is None:
             raise ImportError(f"cannot load candidate executor: {module_path}")
         self.module = importlib.util.module_from_spec(module_spec)

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
-import json
 
 from cgkn.application.requirements.obligation import canonical_hash, thaw
 from cgkn.application.requirements.policy import DependencyPolicy

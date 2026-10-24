@@ -493,7 +493,7 @@ class GovernanceEngine:
                     details.append({"commit": sha, "status": "UNKNOWN", "reason": "HISTORY_WORKTREE_FAILED"})
                     continue
                 try:
-                    dependency_link = attach_dependencies(worktree, self.project)
+                    attach_dependencies(worktree, self.project)
                     target_status_cache: dict[str, str] = {}
                     for invariant in self.invariants.values():
                         invariant_id = invariant["id"]

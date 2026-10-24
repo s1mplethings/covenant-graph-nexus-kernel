@@ -4,8 +4,6 @@ import ast
 import hashlib
 import pathlib
 from collections import Counter
-from typing import Iterable
-
 from .contracts import ChangeContract, ChangeRequest, ImpactSet, RepositorySnapshot
 
 

@@ -4,7 +4,7 @@ import json
 import os
 import pathlib
 import tempfile
-from typing import Any, Iterable
+from typing import Any
 
 from .models import ArtifactInstance, ArtifactRef
 from .types import ArtifactTypeRegistry, ArtifactValidationError

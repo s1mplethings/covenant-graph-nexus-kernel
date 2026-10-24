@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import ast
-import json
 import pathlib
 import shutil
 import tempfile

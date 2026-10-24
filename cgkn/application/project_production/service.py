@@ -4,14 +4,12 @@ import hashlib
 import json
 import os
 import pathlib
-import shutil
 import subprocess
 import sys
 import tempfile
 import time
 import uuid
 import zipfile
-from dataclasses import dataclass
 from typing import Any, Callable, Mapping
 
 from scripts import canonical_evidence_hash, customer_runtime_runner, local_packager, real_test_execution

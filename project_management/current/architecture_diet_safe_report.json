@@ -1,0 +1,228 @@
+{
+  "kind": "CGKNArchitectureDietSafeReport",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-CGNK-PARALLEL-ARCHITECTURE-CONVERGENCE-050-A",
+  "base_branch": "codex/v2-resource-gate-scale-qualification-20261024",
+  "base_sha": "7fafb7471ebfda9a931fc1b8fb8fb3e40185a1e4",
+  "work_branch": "codex/architecture-diet-safe-20261024",
+  "scope": "semantics-preserving architecture and code diet",
+  "status": "PASS_TARGETED_SOURCE_READY",
+  "evidence_root": ".cgkn/publish",
+  "benchmark_index": {
+    "kind": "READ_ONLY_ARCHITECTURE_AUDIT",
+    "baseline_command": "python scripts/architecture_diet_audit.py --revision 7fafb7471ebfda9a931fc1b8fb8fb3e40185a1e4 --output .cgkn/publish/a_baseline_inventory.json",
+    "current_command": "python scripts/architecture_diet_audit.py --output .cgkn/publish/a_current_inventory.json",
+    "formal_benchmark": "NOT_APPLICABLE_NO_RUNTIME_SEMANTICS_CHANGED"
+  },
+  "module_inventory": {
+    "generator": "scripts/architecture_diet_audit.py",
+    "records": 222,
+    "required_fields": [
+      "purpose",
+      "authority",
+      "public_symbols",
+      "incoming_dependencies",
+      "outgoing_dependencies",
+      "runtime_usage",
+      "test_usage",
+      "benchmark_only_usage",
+      "candidate_status",
+      "classification"
+    ],
+    "candidate_counts": {
+      "KEEP": 177,
+      "UNCERTAIN": 45
+    },
+    "uncertain_policy": "No deletion: static non-reference is insufficient for dynamic registry, MCP, serialization, compatibility, or plugin paths."
+  },
+  "complexity": {
+    "before": {
+      "production_loc": 76461,
+      "production_python_files": 222,
+      "production_module_count": 222,
+      "public_classes": 416,
+      "public_functions": 829,
+      "dataclass_schema_classes": 200,
+      "runtime_dependency_edges": 511,
+      "maximum_import_depth": 9,
+      "cyclic_scc_count": 1,
+      "benchmark_imports_reachable_from_runtime": 0
+    },
+    "after": {
+      "production_loc": 76438,
+      "production_python_files": 222,
+      "production_module_count": 222,
+      "public_classes": 416,
+      "public_functions": 829,
+      "dataclass_schema_classes": 200,
+      "runtime_dependency_edges": 512,
+      "maximum_import_depth": 9,
+      "cyclic_scc_count": 1,
+      "benchmark_imports_reachable_from_runtime": 0
+    },
+    "delta": {
+      "production_loc": -23,
+      "modules_removed": 0,
+      "modules_merged": 0,
+      "wrappers_removed": 0,
+      "duplicate_helpers_removed": 2,
+      "unused_imports_or_bindings_removed": 21,
+      "runtime_dependency_edges": 1,
+      "maximum_import_depth": 0,
+      "public_surface_changes": 0
+    }
+  },
+  "runtime_wrapper_depth": {
+    "conversation": {
+      "hops": 4,
+      "path": ["MCPServer.conversation", "ConversationExecutor.execute", "ConversationService.answer", "knowledge retrieval or CompletionClient"]
+    },
+    "knowledge_update": {
+      "hops": 3,
+      "path": ["KnowledgeGrowthService", "internalize_evidence", "ProjectKnowledgePack persistence"]
+    },
+    "capability_invocation": {
+      "hops": 4,
+      "path": ["CapabilityTree", "compile_tree", "DAGRunner", "Executor.execute"]
+    },
+    "project_generation": {
+      "hops": 6,
+      "path": ["MinimalProjectLoop", "ProjectBlueprint", "compile_blueprint", "DAGRunner", "bounded Worker", "deterministic checks"]
+    },
+    "repair": {
+      "hops": 6,
+      "path": ["FailureReport", "owner mapping", "affected invalidation", "PatchBundle", "interface guard", "downstream checks"]
+    },
+    "persistence": {
+      "hops": 3,
+      "path": ["ProjectKnowledgePack", "KnowledgePersistence", "v1 or segmented-v2 backend"]
+    },
+    "before_after": "UNCHANGED_NO_FORWARDING_LAYER_REMOVED_WITHOUT_SEMANTIC_EVIDENCE"
+  },
+  "public_surface": {
+    "public_surface_hash": "sha256:81a0eab4f713ffc8f52ad7c74beb3601d7af3820ed6bfa19749348b9bced2658",
+    "registry_hash": "sha256:725ce7dcda0088029e091b71ae4fbf931249a84236c6bbd9a7b5bb2de7ff4f4f",
+    "schema_hash": "sha256:37bd1dd2dc394f6711018abf289894e42ef29b42a345a5fe08609bec5307053d",
+    "baseline_equals_after": true,
+    "covered": [
+      "Python public symbols and signatures",
+      "Capability/Component and Artifact specs",
+      "MCP tool names",
+      "CLI profiles",
+      "Knowledge formats",
+      "Conversation contract"
+    ]
+  },
+  "safe_slimming": {
+    "changes": [
+      "Removed 21 unused imports/bindings without changing control flow.",
+      "Consolidated capability-builder slug and canonical-hash helpers through the existing revision-store implementations.",
+      "Retained package __init__ re-exports as deliberate public API.",
+      "Retained all modules lacking conclusive dead-code evidence."
+    ],
+    "product_behavior_changed": false,
+    "authority_changed": false,
+    "public_semantics_changed": false
+  },
+  "blueprint_static_audit": {
+    "status": "AUDIT_ONLY_NO_SOURCE_CHANGE",
+    "AUTHORITATIVE_SEMANTIC": [
+      "MinimalBlueprintUnitDesign.kind",
+      "MinimalBlueprintUnitDesign.purpose",
+      "MinimalBlueprintUnitDesign.owns",
+      "MinimalBlueprintUnitDesign.requirement_ids",
+      "BlueprintUnit.required_interfaces",
+      "ProjectBlueprint.goal",
+      "ProjectBlueprint.constraints"
+    ],
+    "DETERMINISTIC_DERIVED": [
+      "BlueprintUnit.unit_id",
+      "BlueprintUnit.reads",
+      "BlueprintUnit.depends_on",
+      "BlueprintUnit.instruction",
+      "BlueprintUnit.acceptance",
+      "ProjectBlueprint.checks",
+      "ProjectBlueprint.blueprint_hash"
+    ],
+    "EXECUTION_METADATA": [
+      "BlueprintUnit.executor_ref",
+      "BlueprintUnit.allowed_effects",
+      "BlueprintUnit.max_actions",
+      "BlueprintUnit.max_files",
+      "BlueprintUnit.max_output_bytes",
+      "BlueprintUnit.status",
+      "BlueprintUnit.protected_paths",
+      "BlueprintUnit.timeout_seconds",
+      "ProjectBlueprint.status"
+    ],
+    "REDUNDANT": [
+      "BlueprintUnit.instruction repeats purpose, ownership, and acceptance in assembled form"
+    ],
+    "LEGACY": [
+      "LEGACY_MINIMAL_BLUEPRINT_DESIGN_SCHEMA"
+    ],
+    "A2_gate": "Do not simplify until integrated D0/D1/D2/D3 evidence exists."
+  },
+  "retained_for_reliability": [
+    "Component/Block boundary",
+    "CapabilityTree and ExecutionDAG authorities",
+    "StructuredAnswerSelector",
+    "ProjectBlueprint current semantic contract",
+    "v1 persistence and explicit migration",
+    "raw evidence and provenance",
+    "public delivery route"
+  ],
+  "slimming_candidates": [
+    {
+      "id": "SLIMMING-CANDIDATE-A-001",
+      "area": "project materialization policy",
+      "finding": "FULL_RETRY remains selectable in production code for M0/M1 evaluation while INCREMENTAL is the default.",
+      "disposition": "DEFER_TO_INTEGRATION_EVIDENCE",
+      "reason": "Removing the selectable path would change behavior and invalidate comparison evidence."
+    },
+    {
+      "id": "COLLAPSE-CANDIDATE-A-001",
+      "area": "strong coordinator/worker separation",
+      "finding": "Fixed role boundaries repeat public contract and blueprint-derived context.",
+      "disposition": "DEFER_TO_D0_D3",
+      "reason": "Collapse is allowed only if adaptive routing preserves critical decisions."
+    },
+    {
+      "id": "SLIMMING-CANDIDATE-A-002",
+      "area": "evaluation application packages",
+      "finding": "project_campaign and provider_evaluation are imported as application modules but are evaluation-oriented.",
+      "disposition": "MOVE_OUT_OF_RUNTIME_CANDIDATE",
+      "reason": "Existing CLIs and tests make relocation non-safe in A."
+    }
+  ],
+  "cross_workstream_dependencies": [
+    {
+      "id": "CROSS_WORKSTREAM_DEPENDENCY-A-B-001",
+      "owner": "B",
+      "finding": "Provider/capability routing retains localized canonical-hash and projection helpers.",
+      "action": "No A modification; review after B policy/hash freeze."
+    },
+    {
+      "id": "CROSS_WORKSTREAM_DEPENDENCY-A-C-001",
+      "owner": "C",
+      "finding": "cgnk_knowledge internalization, persistence, and store form the only detected production import SCC.",
+      "action": "No A modification; checkpoint/persistence workstream owns any safe restructuring."
+    }
+  ],
+  "legacy_compatibility": {
+    "status": "RETAINED",
+    "entrypoints": [
+      "scripts/codex_conversation.py",
+      "scripts/run_codex_conversation_generation.py",
+      "scripts/run_local_pipeline.py",
+      "scripts/run_local_pipeline_impl.py"
+    ],
+    "reason": "Current architecture explicitly keeps these callable until an authorized migration replaces them."
+  },
+  "security": {
+    "hidden_source_exposed": false,
+    "raw_evidence_deleted": false,
+    "authority_duplication_added": false,
+    "scope_or_acceptance_weakened": false
+  }
+}

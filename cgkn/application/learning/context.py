@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from dataclasses import replace
-from types import MappingProxyType
 from typing import Any, Mapping
 
 from .contracts import GenerationContext, LessonContext, LessonQuery, LessonReader, canonical_hash

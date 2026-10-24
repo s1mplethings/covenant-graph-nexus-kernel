@@ -10,7 +10,6 @@ import tempfile
 import time
 import tomllib
 import uuid
-import zipfile
 from dataclasses import replace
 from typing import Any, Callable, Mapping, Sequence
 

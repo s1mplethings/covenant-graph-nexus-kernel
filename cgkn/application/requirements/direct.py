@@ -68,7 +68,7 @@ class DirectAgentService:
         compilation = compile_csv_cleaner()
         from cgkn.application.verification import (
             ContractTestCompiler, ContractTestRenderer, ContractTestValidator,
-            EvidenceComparator, OracleEvidence, OracleExecutor, OraclePlanCompiler,
+            EvidenceComparator, OracleExecutor, OraclePlanCompiler,
             OracleStatus, PublicTestEvidence, PublicTestStatus,
         )
         if compilation.preflight.as_dict()["status"] != "COMPLETE":

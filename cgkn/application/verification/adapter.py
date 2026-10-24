@@ -3,8 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import time
-from typing import Mapping
-
 from cgkn.application.requirements.obligation import ObligationSet
 from cgkn.application.requirements.policy import DependencyPolicy
 from cgkn.execution import BlockExecutionRequest, BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import pathlib
-from dataclasses import replace
 from typing import Any, Mapping, Sequence
 
 from .contracts import ProviderCapabilityProfile, canonical_hash
