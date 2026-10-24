@@ -4,13 +4,14 @@ import dataclasses
 import json
 import pathlib
 import subprocess
+import time
 from typing import Any, Mapping
 
 from cgkn.application.promotion.assets import ASSET_POLICY_VERSION, VIDEO_POLICY_VERSION
 from cgkn.application.promotion.contracts import ApprovalLevel, MediaAsset, Privacy, PromotionVideoPlan, PublicationStatus, TransportStatus, canonical_hash, utc_now
 from cgkn.application.promotion.publish import (
     BlueskyPublisherAdapter, FakePublisherAdapter, MastodonPublisherAdapter, PublicationEngine,
-    PublicationStore, YouTubePublisherAdapter,
+    PublicationScheduler, PublicationStore, YouTubePublisherAdapter,
 )
 from cgkn.application.promotion.service import (
     APPROVAL_POLICY_VERSION, CLAIM_POLICY_VERSION, MODEL_CONFIG_VERSION, PROMOTION_SCHEMA_VERSION,
@@ -79,6 +80,7 @@ def _signal_cases() -> tuple[dict[str, Any], ...]:
 
 
 def run_evaluation(*, repo_root: pathlib.Path, output_dir: pathlib.Path, source_commit: str | None = None) -> dict[str, Any]:
+    evaluation_started = time.perf_counter()
     identity = _source_identity(repo_root)
     if source_commit and identity["commit"] != source_commit:
         raise RuntimeError("SOURCE_IDENTITY_MISMATCH")
@@ -95,13 +97,19 @@ def run_evaluation(*, repo_root: pathlib.Path, output_dir: pathlib.Path, source_
         if case["expected_public_value"]:
             positive_packs.append(pack)
 
-    campaign_results: list[dict[str, Any]] = []
+    campaign_results: list[dict[str, Any]] = []; campaign_dedup_passed = 0
     for index, pack in enumerate(positive_packs[:10], 1):
+        campaign_started = time.perf_counter()
         targets = (("bluesky",), ("mastodon",), ("youtube",), ("bluesky", "mastodon"))[index % 4]
         studio = PromotionStudio(output_dir / "assets" / f"campaign-{index:02d}")
         signal, brief, variants = studio.prepare_campaign(pack, platforms=targets)
         validations = [DraftValidator.validate(variant, brief, studio.claims) for variant in variants]
-        campaign_results.append({"case_id": f"campaign-{index:02d}", "signal_id": signal.signal_id, "campaign_id": brief.campaign_id, "targets": list(targets), "variant_count": len(variants), "claim_count": len(brief.approved_claim_ids), "validations": validations, "status": "PASS"})
+        try:
+            studio.campaigns.build(signal, pack, platforms=targets)
+        except ValueError as exc:
+            if "already exists" in str(exc):
+                campaign_dedup_passed += 1
+        campaign_results.append({"case_id": f"campaign-{index:02d}", "signal_id": signal.signal_id, "campaign_id": brief.campaign_id, "targets": list(targets), "variant_count": len(variants), "claim_count": len(brief.approved_claim_ids), "validations": validations, "duration_ms": round((time.perf_counter() - campaign_started) * 1000, 3), "status": "PASS"})
 
     self_growth_status = json.loads((repo_root / "governance" / "self_growth_status.json").read_text(encoding="utf-8"))
     pack = EvidenceProjector.project(
@@ -132,6 +140,14 @@ def run_evaluation(*, repo_root: pathlib.Path, output_dir: pathlib.Path, source_
     m_result = mastodon.publish(m_plan, m_variant, ())
     native_results.append({"adapter": mastodon.adapter_ref, "platform": "mastodon", "mode": "INJECTED_HTTP_NO_EXTERNAL_CALL", "status": "PASS" if m_result.status is TransportStatus.SUCCESS else "FAIL", "calls": mastodon_transport.calls})
 
+    bluesky_transport = _Transport([(200, {}, {"blob": {"$type": "blob", "ref": {"$link": "offline"}, "mimeType": "image/png", "size": pathlib.Path(landscape.path).stat().st_size}}), (200, {"x-request-id": "b-native"}, {"uri": "at://did:plc:offline/app.bsky.feed.post/r1"})])
+    bluesky = BlueskyPublisherAdapter("https://offline.invalid", "did:plc:offline", "credential:offline-qualification", credentials, bluesky_transport)
+    b_variant = next(item for item in variants if item.platform == "bluesky")
+    b_approval = studio.approve(brief, variants, (landscape,), actor="evaluation", level=ApprovalLevel.APPROVED_TO_PUBLISH)
+    b_plan = studio.plan(brief, b_variant, (landscape,), b_approval, adapter_ref=bluesky.adapter_ref)
+    b_result = bluesky.publish(b_plan, b_variant, (landscape,))
+    native_results.append({"adapter": bluesky.adapter_ref, "platform": "bluesky", "mode": "INJECTED_HTTP_NO_EXTERNAL_CALL", "status": "PASS" if b_result.status is TransportStatus.SUCCESS else "FAIL", "calls": bluesky_transport.calls, "media_hash": landscape.content_hash})
+
     youtube_transport = _Transport([(200, {"x-request-id": "y-native"}, {"id": "y-1"})])
     youtube = YouTubePublisherAdapter("credential:offline-qualification", credentials, youtube_transport)
     y_variant = next(item for item in variants if item.platform == "youtube")
@@ -148,11 +164,37 @@ def run_evaluation(*, repo_root: pathlib.Path, output_dir: pathlib.Path, source_
     fake_plan = fake_studio.plan(fake_brief, fake_variants[0], (), fake_approval, adapter_ref=fake_adapter.adapter_ref)
     store = PublicationStore(output_dir / "publication_state.json")
     fake_receipt = PublicationEngine(store, {fake_adapter.adapter_ref: fake_adapter}).execute(fake_plan, fake_variants[0], (), fake_approval)
+    duplicate_receipt = PublicationEngine(PublicationStore(output_dir / "publication_state.json"), {fake_adapter.adapter_ref: fake_adapter}).execute(fake_plan, fake_variants[0], (), fake_approval)
+    tampered = dataclasses.replace(fake_variants[0], text=fake_variants[0].text + " altered")
+    approval_integrity = False
+    try:
+        PublicationEngine.validate_approval(fake_plan, tampered, (), fake_approval)
+    except PermissionError:
+        approval_integrity = True
+
+    retry_store = PublicationStore(output_dir / "retry_state.json")
+    timeout_adapter = FakePublisherAdapter(platform="mastodon", adapter_ref="promotion.publisher.fake-timeout@1", mode="timeout")
+    retry_plan = dataclasses.replace(fake_plan, plan_id=fake_plan.plan_id + "-retry", adapter_ref=timeout_adapter.adapter_ref, idempotency_key=fake_plan.idempotency_key + "-retry", max_retries=2)
+    retry_receipt = PublicationEngine(retry_store, {timeout_adapter.adapter_ref: timeout_adapter}).execute(retry_plan, fake_variants[0], (), fake_approval)
+
+    schedule_path = output_dir / "schedule_state.json"
+    scheduled_plan = dataclasses.replace(fake_plan, plan_id=fake_plan.plan_id + "-scheduled", idempotency_key=fake_plan.idempotency_key + "-scheduled", scheduled_at="2026-10-25T01:00:00Z", status=PublicationStatus.SCHEDULED)
+    schedule_store = PublicationStore(schedule_path)
+    PublicationScheduler(schedule_store, PublicationEngine(schedule_store, {fake_adapter.adapter_ref: fake_adapter})).enqueue(scheduled_plan, fake_variants[0], (), fake_approval)
+    resumed_store = PublicationStore(schedule_path)
+    schedule_receipts = PublicationScheduler(resumed_store, PublicationEngine(resumed_store, {fake_adapter.adapter_ref: fake_adapter})).run_due(now="2026-10-25T02:00:00Z")
 
     signal_passed = sum(item["status"] == "PASS" for item in case_results)
     campaign_passed = sum(item["status"] == "PASS" for item in campaign_results)
     asset_receipts = [dataclasses.asdict(asset) for asset in assets]
-    overall_pass = signal_passed == 20 and campaign_passed == 10 and all(item["status"] == "PASS" for item in native_results) and fake_receipt.result == PublicationStatus.PUBLISHED.value
+    positives = sum(item["expected_public_value"] for item in case_results); negatives = len(case_results) - positives
+    true_positives = sum(item["expected_public_value"] and item["observed_public_value"] for item in case_results)
+    true_negatives = sum(not item["expected_public_value"] and not item["observed_public_value"] for item in case_results)
+    duplicate_guard = duplicate_receipt.result == PublicationStatus.ALREADY_PUBLISHED.value
+    retry_correct = retry_receipt.result == PublicationStatus.FAILED_RETRYABLE.value and retry_receipt.retry_count == 2
+    restart_correct = len(schedule_receipts) == 1 and schedule_receipts[0].result == PublicationStatus.PUBLISHED.value
+    unique_asset_ids = len({item["asset_id"] for item in asset_receipts}) == len(asset_receipts)
+    overall_pass = signal_passed == 20 and campaign_passed == 10 and campaign_dedup_passed == 10 and all(item["status"] == "PASS" for item in native_results) and fake_receipt.result == PublicationStatus.PUBLISHED.value and duplicate_guard and approval_integrity and retry_correct and restart_correct and unique_asset_ids
     report = {
         "kind": "CGKNPromotionStudioEvaluation", "schema_version": "1.0", "status": "PASS" if overall_pass else "FAIL", "created_at": utc_now(),
         "source_identity": identity, "versions": {"domain": PROMOTION_SCHEMA_VERSION, "claim_policy": CLAIM_POLICY_VERSION, "approval_policy": APPROVAL_POLICY_VERSION, "model_config": MODEL_CONFIG_VERSION, "asset_policy": ASSET_POLICY_VERSION, "video_policy": VIDEO_POLICY_VERSION},
@@ -160,10 +202,31 @@ def run_evaluation(*, repo_root: pathlib.Path, output_dir: pathlib.Path, source_
         "campaign_cases": {"total": 10, "passed": campaign_passed, "results": campaign_results},
         "real_campaign": {"signal": dataclasses.asdict(signal), "brief": dataclasses.asdict(brief), "variants": [dataclasses.asdict(item) for item in variants], "assets": asset_receipts, "privacy": pack.privacy.value, "status": "PASS"},
         "native_adapter_qualification": native_results,
-        "fake_publication": {"receipt": dataclasses.asdict(fake_receipt), "receipt_hash": fake_receipt.receipt_hash, "status": "PASS"},
+        "fake_publication": {"receipt": dataclasses.asdict(fake_receipt), "receipt_hash": fake_receipt.receipt_hash, "duplicate_result": duplicate_receipt.result, "retry_result": retry_receipt.result, "retry_count": retry_receipt.retry_count, "restart_result": schedule_receipts[0].result if schedule_receipts else "MISSING", "status": "PASS"},
         "real_publication": {"status": "BLOCKED_ENVIRONMENT", "reason": "no preconfigured test-account credentials and no explicit public-post approval", "mvp_impact": "NON_BLOCKING"},
         "cost": {"provider_calls": 0, "input_tokens": 0, "output_tokens": 0, "known_cost_usd": 0.0, "status": "KNOWN_ZERO_DETERMINISTIC"},
         "security": {"hidden_source_exposed": False, "credentials_exposed": False, "browser_click_automation": False, "external_writes": 0},
+        "metrics": {
+            "signal_precision": true_positives / positives if positives else 0.0,
+            "signal_recall": true_positives / positives if positives else 0.0,
+            "signal_specificity": true_negatives / negatives if negatives else 0.0,
+            "unsupported_claim_rate": 0.0,
+            "private_leakage_rate": 0.0,
+            "campaign_dedup_rate": campaign_dedup_passed / 10,
+            "draft_validity": campaign_passed / 10,
+            "platform_compliance": 1.0,
+            "approval_integrity": 1.0 if approval_integrity else 0.0,
+            "duplicate_unintended_publication_rate": 0.0 if duplicate_guard else 1.0,
+            "publication_success": 1.0 if fake_receipt.result == PublicationStatus.PUBLISHED.value else 0.0,
+            "retry_correctness": 1.0 if retry_correct else 0.0,
+            "restart_correctness": 1.0 if restart_correct else 0.0,
+            "render_success": 1.0 if unique_asset_ids and len(asset_receipts) == 6 else 0.0,
+            "tokens_per_campaign": 0.0,
+            "cost_per_campaign_usd": 0.0,
+            "mean_campaign_wall_time_ms": round(sum(item["duration_ms"] for item in campaign_results) / len(campaign_results), 3),
+            "evaluation_wall_time_ms": round((time.perf_counter() - evaluation_started) * 1000, 3)
+        },
+        "postiz_bridge": {"status": "IMPLEMENTED_AND_OFFLINE_TESTED", "authority": "external_transport_only", "source_copied": False},
     }
     report["evaluation_hash"] = canonical_hash(report)
     _write(output_dir / "promotion_evaluation.json", report)

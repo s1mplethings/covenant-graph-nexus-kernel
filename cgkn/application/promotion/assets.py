@@ -84,5 +84,5 @@ class DeterministicAssetRenderer:
             raise RuntimeError("VIDEO_ACCEPTANCE_FAILED")
         duration = float(info.get("format", {}).get("duration", 0))
         config_hash = canonical_hash({"policy": VIDEO_POLICY_VERSION, "plan": asdict(plan), "streams": streams})
-        return MediaAsset(f"asset-{plan.campaign_id}-video", plan.campaign_id, "PROMOTION_VIDEO", str(target), "video/mp4", file_hash(target), evidence_ids, "ffmpeg.local@1", config_hash, plan.width, plan.height, duration)
+        return MediaAsset(f"asset-{plan.campaign_id}-video-{plan.width}x{plan.height}", plan.campaign_id, "PROMOTION_VIDEO", str(target), "video/mp4", file_hash(target), evidence_ids, "ffmpeg.local@1", config_hash, plan.width, plan.height, duration)
 
