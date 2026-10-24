@@ -145,8 +145,10 @@ def _active(item: dict[str, Any]) -> bool:
     )
 
 
-def rebuild_pack_buckets(pack: dict[str, Any], *, sort_all_items: bool = True) -> dict[str, Any]:
-    all_items = [dict(row) for row in pack.get("all_items", [])]
+def rebuild_pack_buckets(
+    pack: dict[str, Any], *, sort_all_items: bool = True, copy_items: bool = True,
+) -> dict[str, Any]:
+    all_items = [dict(row) for row in pack.get("all_items", [])] if copy_items else list(pack.get("all_items", []))
     if sort_all_items:
         all_items = _sorted_items(all_items)
     pack["all_items"] = all_items
@@ -167,8 +169,8 @@ def rebuild_pack_buckets(pack: dict[str, Any], *, sort_all_items: bool = True) -
     return pack
 
 
-def rebuild_pack_indexes(pack: dict[str, Any]) -> dict[str, Any]:
-    rebuild_pack_buckets(pack)
+def rebuild_pack_indexes(pack: dict[str, Any], *, copy_items: bool = True) -> dict[str, Any]:
+    rebuild_pack_buckets(pack, copy_items=copy_items)
     pack["knowledge_index"] = build_knowledge_index(pack)
     return pack
 

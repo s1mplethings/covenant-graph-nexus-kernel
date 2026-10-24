@@ -4,7 +4,17 @@
   "title": "ProjectKnowledgeCheckpointV2",
   "type": "object",
   "additionalProperties": false,
-  "required": ["kind", "format_version", "checkpoint_id", "pack_id", "covered_sequence", "authority_root_hash", "logical_state_hash", "schema_version", "created_at", "authority", "knowledge_index", "index_hash"],
+  "required": ["kind", "format_version", "checkpoint_id", "pack_id", "covered_sequence", "authority_root_hash", "logical_state_hash", "schema_version", "created_at", "index_hash"],
+  "oneOf": [
+    {
+      "required": ["authority", "knowledge_index"],
+      "not": {"anyOf": [{"required": ["authority_component"]}, {"required": ["index_component"]}, {"required": ["checkpoint_layout_version"]}]}
+    },
+    {
+      "required": ["checkpoint_layout_version", "authority_component", "index_component"],
+      "not": {"anyOf": [{"required": ["authority"]}, {"required": ["knowledge_index"]}]}
+    }
+  ],
   "properties": {
     "kind": {"const": "ProjectKnowledgeCheckpoint"},
     "format_version": {"const": "2.0"},
@@ -15,8 +25,29 @@
     "logical_state_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
     "schema_version": {"type": "string"},
     "created_at": {"type": "string"},
+    "checkpoint_layout_version": {"const": "2.1"},
     "authority": {"type": "object"},
     "knowledge_index": {"type": "object"},
+    "authority_component": {"$ref": "#/$defs/component"},
+    "index_component": {
+      "allOf": [
+        {"$ref": "#/$defs/component"},
+        {"required": ["policy_hash"]}
+      ]
+    },
     "index_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  },
+  "$defs": {
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "file_hash", "file_bytes"],
+      "properties": {
+        "path": {"type": "string", "pattern": "^checkpoints/checkpoint-[0-9]{20}-[0-9a-f]{16}\\.(authority|index)\\.json$"},
+        "file_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "file_bytes": {"type": "integer", "minimum": 1},
+        "policy_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    }
   }
 }

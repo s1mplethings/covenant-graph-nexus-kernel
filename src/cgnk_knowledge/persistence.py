@@ -23,6 +23,11 @@ ZERO_ROOT = "sha256:" + "0" * 64
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,159}$")
 _SEGMENT_PATH = re.compile(r"^segments/seg-[0-9]{20}-[0-9]{20}-[0-9a-f]{16}\.json$")
 _CHECKPOINT_PATH = re.compile(r"^checkpoints/checkpoint-[0-9]{20}-[0-9a-f]{16}\.json$")
+_CHECKPOINT_COMPONENT_PATH = re.compile(
+    r"^checkpoints/checkpoint-[0-9]{20}-[0-9a-f]{16}\.(?:authority|index)\.json$"
+)
+CHECKPOINT_LAYOUT_VERSION = "2.1"
+KNOWLEDGE_INDEX_POLICY_VERSION = "1.0"
 
 
 class KnowledgePersistenceError(ValueError):
@@ -155,13 +160,28 @@ def _parse_json(raw: bytes, *, label: str) -> Any:
         raise KnowledgePersistenceError("MALFORMED_PERSISTENCE_DOCUMENT", label) from exc
 
 
-def _read_document(path: pathlib.Path, maximum: int) -> tuple[dict[str, Any], bytes]:
+def _read_document(
+    path: pathlib.Path,
+    maximum: int,
+    *,
+    phases: dict[str, float] | None = None,
+    phase_prefix: str = "document",
+) -> tuple[dict[str, Any], bytes]:
+    phase = time.perf_counter()
     raw = _read_bytes(path, maximum, "PERSISTENCE_DOCUMENT_TOO_LARGE")
+    if phases is not None:
+        phases[f"{phase_prefix}_read_ms"] = (time.perf_counter() - phase) * 1000
+    phase = time.perf_counter()
     document = _parse_json(raw, label=str(path))
+    if phases is not None:
+        phases[f"{phase_prefix}_decode_ms"] = (time.perf_counter() - phase) * 1000
     if not isinstance(document, dict) or set(document) != {"payload", "checksum"} or not isinstance(document["payload"], dict):
         raise KnowledgePersistenceError("INVALID_PERSISTENCE_DOCUMENT", str(path))
+    phase = time.perf_counter()
     if document["checksum"] != _value_hash(document["payload"]):
         raise KnowledgePersistenceError("PERSISTENCE_CHECKSUM_MISMATCH", str(path))
+    if phases is not None:
+        phases[f"{phase_prefix}_checksum_ms"] = (time.perf_counter() - phase) * 1000
     return dict(document["payload"]), raw
 
 
@@ -264,14 +284,48 @@ def authoritative_projection(pack: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
+def _authority_projection_view(pack: Mapping[str, Any]) -> dict[str, Any]:
+    """Return the authoritative shape without copying values for immediate serialization."""
+    return {
+        "kind": str(pack.get("kind", "ProjectKnowledgePack")),
+        "id": str(pack.get("id", "")),
+        "project": str(pack.get("project", "")),
+        "version": str(pack.get("version", "1")),
+        "knowledge_revision": int(pack.get("knowledge_revision", 0)),
+        "diagnostics": list(pack.get("diagnostics", ())),
+        # Preserve materialized ordering because cached index positions refer to
+        # this exact list order. Semantic hashing canonicalizes separately.
+        "all_items": list(pack.get("all_items", ())),
+    }
+
+
 def _semantic_projection(pack: Mapping[str, Any]) -> dict[str, Any]:
-    projection = authoritative_projection(pack)
-    projection["all_items"] = sorted(projection["all_items"], key=lambda row: str(row.get("id", "")))
-    return projection
+    # Hashing never mutates values. Building a second deep copy of a large
+    # pack solely to serialize it made checkpoint validation scale with several
+    # redundant full-state object traversals.
+    return {
+        "kind": str(pack.get("kind", "ProjectKnowledgePack")),
+        "id": str(pack.get("id", "")),
+        "project": str(pack.get("project", "")),
+        "version": str(pack.get("version", "1")),
+        "knowledge_revision": int(pack.get("knowledge_revision", 0)),
+        "diagnostics": list(pack.get("diagnostics", ())),
+        "all_items": sorted(pack.get("all_items", ()), key=lambda row: str(row.get("id", ""))),
+    }
 
 
 def project_knowledge_semantic_hash(pack: Mapping[str, Any]) -> str:
     return _value_hash(_semantic_projection(pack))
+
+
+def knowledge_index_policy_hash() -> str:
+    """Identify the deterministic derived-index contract cached by checkpoints."""
+    return _value_hash({
+        "kind": "KnowledgeIndexPolicy",
+        "schema_version": KNOWLEDGE_INDEX_POLICY_VERSION,
+        "index_kind": "KnowledgeIndex",
+        "index_schema_version": "1.0",
+    })
 
 
 def build_pack_mutation(
@@ -330,7 +384,13 @@ def _next_root(previous: str, record_hash: str) -> str:
     return _sha256(f"{previous}|{record_hash}".encode("ascii"))
 
 
-def _build_segment(pack_id: str, records: Sequence[Mapping[str, Any]], previous_root: str) -> tuple[dict[str, Any], str]:
+def _build_segment(
+    pack_id: str,
+    records: Sequence[Mapping[str, Any]],
+    previous_root: str,
+    *,
+    copy_values: bool = True,
+) -> tuple[dict[str, Any], str]:
     if not records:
         raise KnowledgePersistenceError("EMPTY_AUTHORITY_SEGMENT", pack_id)
     sequences = [int(row["sequence"]) for row in records]
@@ -338,7 +398,11 @@ def _build_segment(pack_id: str, records: Sequence[Mapping[str, Any]], previous_
         raise KnowledgePersistenceError("AUTHORITY_SEQUENCE_GAP", str(sequences))
     root = previous_root
     for row in records:
-        core = {key: copy.deepcopy(value) for key, value in row.items() if key != "record_hash"}
+        core = {
+            key: copy.deepcopy(value) if copy_values else value
+            for key, value in row.items()
+            if key != "record_hash"
+        }
         if row.get("record_hash") != _sha256(_json_bytes(core)):
             raise KnowledgePersistenceError("MUTATION_CHECKSUM_MISMATCH", str(row.get("sequence")))
         root = _next_root(root, str(row["record_hash"]))
@@ -354,7 +418,14 @@ def _build_segment(pack_id: str, records: Sequence[Mapping[str, Any]], previous_
         "record_count": len(records),
         "previous_authority_root_hash": previous_root,
         "authority_root_hash": root,
-        "records": [copy.deepcopy(dict(row)) for row in records],
+        # Read-only validation can reuse parsed values. Production writes keep
+        # the historical defensive-copy behavior so write-path semantics stay
+        # unchanged.
+        "records": (
+            [copy.deepcopy(dict(row)) for row in records]
+            if copy_values
+            else [dict(row) for row in records]
+        ),
     }
     return {**core, "content_checksum": _value_hash(core)}, f"segments/{segment_id}.json"
 
@@ -429,14 +500,32 @@ def _validate_manifest(manifest: Mapping[str, Any]) -> None:
             raise KnowledgePersistenceError("CHECKPOINT_AUTHORITY_PREFIX_MISMATCH", str(covered))
 
 
-def _materialize(projection: Mapping[str, Any], cached_index: Mapping[str, Any] | None = None) -> dict[str, Any]:
+def _materialize(
+    projection: Mapping[str, Any],
+    cached_index: Mapping[str, Any] | None = None,
+    *,
+    phases: dict[str, float] | None = None,
+    take_ownership: bool = False,
+) -> dict[str, Any]:
     from .store import rebuild_pack_buckets, rebuild_pack_indexes
 
-    pack = dict(copy.deepcopy(projection))
-    pack["knowledge_index"] = copy.deepcopy(dict(cached_index or {}))
+    phase = time.perf_counter()
+    pack = dict(projection) if take_ownership else dict(copy.deepcopy(projection))
+    if phases is not None:
+        phases["state_materialization_ms"] = (time.perf_counter() - phase) * 1000
+    phase = time.perf_counter()
+    pack["knowledge_index"] = dict(cached_index or {}) if take_ownership else copy.deepcopy(dict(cached_index or {}))
+    if phases is not None:
+        phases["lookup_map_materialization_ms"] = (time.perf_counter() - phase) * 1000
+    phase = time.perf_counter()
     if cached_index:
-        return rebuild_pack_buckets(pack, sort_all_items=False)
-    return rebuild_pack_indexes(pack)
+        result = rebuild_pack_buckets(pack, sort_all_items=False, copy_items=not take_ownership)
+    else:
+        result = rebuild_pack_indexes(pack, copy_items=not take_ownership)
+    if phases is not None:
+        phases["relationship_reconstruction_ms"] = (time.perf_counter() - phase) * 1000
+        phases["retrieval_index_ms"] = 0.0 if cached_index else phases["relationship_reconstruction_ms"]
+    return result
 
 
 def _apply_record(projection: dict[str, Any] | None, record: Mapping[str, Any], pack_id: str) -> dict[str, Any]:
@@ -450,7 +539,10 @@ def _apply_record(projection: dict[str, Any] | None, record: Mapping[str, Any], 
         authority = payload.get("authority")
         if not isinstance(authority, dict) or authority.get("id") != pack_id:
             raise KnowledgePersistenceError("INVALID_INITIAL_AUTHORITY", pack_id)
-        return copy.deepcopy(dict(authority))
+        # Parsed segment values are exclusively owned by this replay. Transfer
+        # that ownership instead of cloning the entire initial pack before
+        # materialization; callers never retain or mutate the segment object.
+        return dict(authority)
     if projection is None:
         raise KnowledgePersistenceError("MISSING_INITIALIZE_RECORD", pack_id)
     metadata = payload.get("metadata")
@@ -464,11 +556,11 @@ def _apply_record(projection: dict[str, Any] | None, record: Mapping[str, Any], 
             raise KnowledgePersistenceError("INVALID_MUTATION_ITEM", str(record.get("sequence")))
         item_id = str(item["id"])
         if item_id in by_id:
-            all_items[by_id[item_id]] = copy.deepcopy(item)
+            all_items[by_id[item_id]] = item
         else:
             by_id[item_id] = len(all_items)
-            all_items.append(copy.deepcopy(item))
-    projection.update({key: copy.deepcopy(value) for key, value in metadata.items()})
+            all_items.append(item)
+    projection.update(metadata)
     projection["all_items"] = all_items
     return projection
 
@@ -515,9 +607,17 @@ class SegmentedKnowledgeStore:
         self.policy = policy
         self.manifest_path = self.root / "manifest.json"
 
-    def _manifest(self) -> dict[str, Any]:
-        payload, _ = _read_document(self.manifest_path, self.policy.max_manifest_bytes)
+    def _manifest(self, *, phases: dict[str, float] | None = None) -> dict[str, Any]:
+        payload, _ = _read_document(
+            self.manifest_path,
+            self.policy.max_manifest_bytes,
+            phases=phases,
+            phase_prefix="manifest",
+        )
+        phase = time.perf_counter()
         _validate_manifest(payload)
+        if phases is not None:
+            phases["manifest_semantic_validation_ms"] = (time.perf_counter() - phase) * 1000
         return payload
 
     def _write_manifest(self, manifest: Mapping[str, Any], injector: FailureInjector | None = None) -> int:
@@ -553,13 +653,20 @@ class SegmentedKnowledgeStore:
             raise KnowledgePersistenceError("INVALID_AUTHORITY_SEGMENT", str(segment.get("segment_id", "")))
         if segment.get("pack_id") != expected_pack_id:
             raise KnowledgePersistenceError("CROSS_PACK_SEGMENT", str(segment.get("pack_id", "")))
-        core = {key: copy.deepcopy(value) for key, value in segment.items() if key != "content_checksum"}
+        # Hash helpers only read their input. Keeping the nested parsed values
+        # by reference avoids a redundant full-segment clone during replay.
+        core = {key: value for key, value in segment.items() if key != "content_checksum"}
         if segment.get("content_checksum") != _value_hash(core):
             raise KnowledgePersistenceError("SEGMENT_CHECKSUM_MISMATCH", str(segment.get("segment_id", "")))
         records = list(segment.get("records", ()))
         if int(segment.get("record_count", -1)) != len(records) or not records:
             raise KnowledgePersistenceError("SEGMENT_RECORD_COUNT_MISMATCH", str(segment.get("segment_id", "")))
-        rebuilt, _ = _build_segment(expected_pack_id, records, str(segment.get("previous_authority_root_hash", "")))
+        rebuilt, _ = _build_segment(
+            expected_pack_id,
+            records,
+            str(segment.get("previous_authority_root_hash", "")),
+            copy_values=False,
+        )
         for key in ("segment_id", "sequence_start", "sequence_end", "authority_root_hash", "content_checksum"):
             if rebuilt[key] != segment.get(key):
                 raise KnowledgePersistenceError("SEGMENT_INTEGRITY_MISMATCH", f"{segment.get('segment_id')}:{key}")
@@ -701,16 +808,29 @@ class SegmentedKnowledgeStore:
             raise KnowledgePersistenceError("AUTHORITY_REPLAY_INCOMPLETE", f"expected through {target}, got {expected - 1}")
         return projection
 
-    def _read_checkpoint(self, manifest: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    def _read_checkpoint(
+        self,
+        manifest: Mapping[str, Any],
+        *,
+        phases: dict[str, float] | None = None,
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
         descriptor = manifest.get("current_checkpoint")
         if not isinstance(descriptor, dict):
             raise KnowledgePersistenceError("CHECKPOINT_MISSING", str(self.root))
         relative = str(descriptor.get("path", ""))
         if not _CHECKPOINT_PATH.fullmatch(relative):
             raise KnowledgePersistenceError("UNSAFE_CHECKPOINT_PATH", relative)
-        payload, raw = _read_document(self.root / relative, self.policy.max_checkpoint_bytes)
+        payload, raw = _read_document(
+            self.root / relative,
+            self.policy.max_checkpoint_bytes,
+            phases=phases,
+            phase_prefix="checkpoint",
+        )
+        phase = time.perf_counter()
         if _sha256(raw) != descriptor.get("file_hash"):
             raise KnowledgePersistenceError("CHECKPOINT_FILE_HASH_MISMATCH", relative)
+        if phases is not None:
+            phases["checkpoint_file_hash_ms"] = (time.perf_counter() - phase) * 1000
         if payload.get("kind") != CHECKPOINT_KIND or payload.get("format_version") != FORMAT_VERSION:
             raise KnowledgePersistenceError("INVALID_CHECKPOINT", relative)
         for key in ("checkpoint_id", "covered_sequence", "authority_root_hash", "logical_state_hash", "index_hash"):
@@ -718,20 +838,78 @@ class SegmentedKnowledgeStore:
                 raise KnowledgePersistenceError("CHECKPOINT_DESCRIPTOR_MISMATCH", f"{relative}:{key}")
         if payload.get("pack_id") != manifest.get("pack_id"):
             raise KnowledgePersistenceError("CROSS_PACK_CHECKPOINT", relative)
+        if payload.get("checkpoint_layout_version") == CHECKPOINT_LAYOUT_VERSION:
+            declared_total = len(raw)
+            for name in ("authority", "index"):
+                component = payload.get(f"{name}_component")
+                if not isinstance(component, dict) or not isinstance(component.get("file_bytes"), int):
+                    raise KnowledgePersistenceError("INVALID_CHECKPOINT", f"{relative}:{name}_component")
+                declared_total += int(component["file_bytes"])
+            if declared_total > self.policy.max_checkpoint_bytes:
+                raise KnowledgePersistenceError("CHECKPOINT_TOO_LARGE", str(declared_total))
+            components: dict[str, dict[str, Any]] = {}
+            for name in ("authority", "index"):
+                component = payload.get(f"{name}_component")
+                if not isinstance(component, dict):
+                    raise KnowledgePersistenceError("INVALID_CHECKPOINT", f"{relative}:{name}_component")
+                component_relative = str(component.get("path", ""))
+                expected_relative = f"checkpoints/{payload['checkpoint_id']}.{name}.json"
+                if component_relative != expected_relative or not _CHECKPOINT_COMPONENT_PATH.fullmatch(component_relative):
+                    raise KnowledgePersistenceError("UNSAFE_CHECKPOINT_COMPONENT_PATH", component_relative)
+                phase = time.perf_counter()
+                component_raw = _read_bytes(
+                    self.root / component_relative,
+                    self.policy.max_checkpoint_bytes,
+                    "CHECKPOINT_COMPONENT_TOO_LARGE",
+                )
+                if phases is not None:
+                    phases[f"checkpoint_{name}_read_ms"] = (time.perf_counter() - phase) * 1000
+                phase = time.perf_counter()
+                expected_hash = str(component.get("file_hash", ""))
+                if not re.fullmatch(r"sha256:[0-9a-f]{64}", expected_hash) or _sha256(component_raw) != expected_hash:
+                    raise KnowledgePersistenceError("CHECKPOINT_COMPONENT_HASH_MISMATCH", component_relative)
+                if name == "index" and component.get("policy_hash") != knowledge_index_policy_hash():
+                    raise KnowledgePersistenceError("CHECKPOINT_INDEX_POLICY_MISMATCH", component_relative)
+                if name == "index" and expected_hash != payload["index_hash"]:
+                    raise KnowledgePersistenceError("CHECKPOINT_INDEX_HASH_MISMATCH", component_relative)
+                if int(component.get("file_bytes", -1)) != len(component_raw):
+                    raise KnowledgePersistenceError("CHECKPOINT_COMPONENT_SIZE_MISMATCH", component_relative)
+                if phases is not None:
+                    phases[f"checkpoint_{name}_hash_ms"] = (time.perf_counter() - phase) * 1000
+                phase = time.perf_counter()
+                value = _parse_json(component_raw, label=component_relative)
+                if not isinstance(value, dict):
+                    raise KnowledgePersistenceError("INVALID_CHECKPOINT_COMPONENT", component_relative)
+                components[name] = value
+                if phases is not None:
+                    phases[f"checkpoint_{name}_decode_ms"] = (time.perf_counter() - phase) * 1000
+            authority = components["authority"]
+            index = components["index"]
+            if authority.get("id") != manifest.get("pack_id"):
+                raise KnowledgePersistenceError("CROSS_PACK_CHECKPOINT", relative)
+            return authority, index
         authority = payload.get("authority")
         index = payload.get("knowledge_index")
         if not isinstance(authority, dict) or not isinstance(index, dict):
             raise KnowledgePersistenceError("INVALID_CHECKPOINT", relative)
+        phase = time.perf_counter()
         if project_knowledge_semantic_hash(authority) != payload.get("logical_state_hash"):
             raise KnowledgePersistenceError("CHECKPOINT_STATE_HASH_MISMATCH", relative)
+        if phases is not None:
+            phases["checkpoint_state_validation_ms"] = (time.perf_counter() - phase) * 1000
+        phase = time.perf_counter()
         if _value_hash(index) != payload.get("index_hash"):
             raise KnowledgePersistenceError("CHECKPOINT_INDEX_HASH_MISMATCH", relative)
+        if phases is not None:
+            phases["checkpoint_index_validation_ms"] = (time.perf_counter() - phase) * 1000
         return dict(authority), dict(index)
 
     def load(self, *, use_checkpoint: bool = True, as_of_sequence: int | None = None) -> TrackedKnowledgePack:
         started = time.perf_counter()
+        cpu_started = time.process_time()
+        phases: dict[str, float] = {}
         phase = time.perf_counter()
-        manifest = self._manifest()
+        manifest = self._manifest(phases=phases)
         manifest_read_ms = (time.perf_counter() - phase) * 1000
         phase = time.perf_counter()
         self._validated_segment_descriptors(manifest)
@@ -750,11 +928,16 @@ class SegmentedKnowledgeStore:
         if use_checkpoint and manifest.get("current_checkpoint") and int(manifest.get("checkpoint_covered_sequence", 0)) <= target:
             phase = time.perf_counter()
             try:
-                projection, cached_index = self._read_checkpoint(manifest)
+                projection, cached_index = self._read_checkpoint(manifest, phases=phases)
                 start_after = int(manifest["checkpoint_covered_sequence"])
                 checkpoint_status = "VALID_USED"
                 materialize_started = time.perf_counter()
-                materialized = _materialize(projection, cached_index)
+                materialized = _materialize(
+                    projection,
+                    cached_index,
+                    phases=phases,
+                    take_ownership=True,
+                )
                 index_materialization_ms = (time.perf_counter() - materialize_started) * 1000
             except KnowledgePersistenceError as exc:
                 projection = {}
@@ -788,10 +971,12 @@ class SegmentedKnowledgeStore:
         tail_replay_ms = (time.perf_counter() - phase) * 1000
         if materialized is None:
             phase = time.perf_counter()
-            materialized = _materialize(projection, None)
+            materialized = _materialize(projection, None, phases=phases, take_ownership=True)
             index_materialization_ms = (time.perf_counter() - phase) * 1000
         pack = materialized
+        phase = time.perf_counter()
         semantic_hash = project_knowledge_semantic_hash(pack)
+        phases["semantic_validation_ms"] = (time.perf_counter() - phase) * 1000
         receipt = {
             "kind": "KnowledgeStoreLoadReceipt", "format_version": FORMAT_VERSION,
             "path": str(self.root), "sequence": target, "authority_root_hash": manifest["authority_root_hash"] if target == latest else None,
@@ -802,6 +987,8 @@ class SegmentedKnowledgeStore:
             "checkpoint_load_ms": round(checkpoint_load_ms, 3),
             "tail_replay_ms": round(tail_replay_ms, 3),
             "index_materialization_ms": round(index_materialization_ms, 3),
+            "phase_profile": {key: round(value, 3) for key, value in sorted(phases.items())},
+            "cpu_ms": round((time.process_time() - cpu_started) * 1000, 3),
             "elapsed_ms": round((time.perf_counter() - started) * 1000, 3),
         }
         return tracked_pack(pack, root=self.root, sequence=target,
@@ -810,51 +997,103 @@ class SegmentedKnowledgeStore:
 
     def create_checkpoint(self, *, injector: FailureInjector | None = None) -> dict[str, Any]:
         started = time.perf_counter()
+        cpu_started = time.process_time()
+        phases: dict[str, float] = {}
         with _WriteLock(self.root):
+            phase = time.perf_counter()
             manifest = self._manifest()
+            phases["manifest_ms"] = (time.perf_counter() - phase) * 1000
+            phase = time.perf_counter()
             pack = self.load(use_checkpoint=False)
+            phases["state_traversal_ms"] = (time.perf_counter() - phase) * 1000
+            phase = time.perf_counter()
+            authority = _authority_projection_view(pack)
+            authority_raw = _json_bytes(authority)
+            authority_file_hash = _sha256(authority_raw)
             semantic_hash = project_knowledge_semantic_hash(pack)
-            authority = authoritative_projection(pack)
-            replay_hash = project_knowledge_semantic_hash(authority)
-            if semantic_hash != replay_hash:
-                raise KnowledgePersistenceError("CHECKPOINT_FIDELITY_MISMATCH", semantic_hash)
-            index = copy.deepcopy(dict(pack.get("knowledge_index", {})))
+            phases["authority_encoding_hash_ms"] = (time.perf_counter() - phase) * 1000
+            phase = time.perf_counter()
+            index = dict(pack.get("knowledge_index", {}))
+            index_raw = _json_bytes(index)
+            index_hash = _sha256(index_raw)
+            phases["index_encoding_hash_ms"] = (time.perf_counter() - phase) * 1000
             covered = int(manifest["latest_sequence"])
             digest = semantic_hash.split(":", 1)[1][:16]
             checkpoint_id = f"checkpoint-{covered:020d}-{digest}"
             relative = f"checkpoints/{checkpoint_id}.json"
+            authority_relative = f"checkpoints/{checkpoint_id}.authority.json"
+            index_relative = f"checkpoints/{checkpoint_id}.index.json"
             payload = {
                 "kind": CHECKPOINT_KIND, "format_version": FORMAT_VERSION, "checkpoint_id": checkpoint_id,
+                "checkpoint_layout_version": CHECKPOINT_LAYOUT_VERSION,
                 "pack_id": manifest["pack_id"], "covered_sequence": covered,
                 "authority_root_hash": manifest["authority_root_hash"], "logical_state_hash": semantic_hash,
                 "schema_version": manifest["schema_version"], "created_at": _utc_now(),
-                "authority": authority, "knowledge_index": index, "index_hash": _value_hash(index),
+                "authority_component": {
+                    "path": authority_relative, "file_hash": authority_file_hash, "file_bytes": len(authority_raw),
+                },
+                "index_component": {
+                    "path": index_relative,
+                    "file_hash": index_hash,
+                    "file_bytes": len(index_raw),
+                    "policy_hash": knowledge_index_policy_hash(),
+                },
+                "index_hash": index_hash,
             }
+            phase = time.perf_counter()
             raw = _document_bytes(payload)
-            if len(raw) > self.policy.max_checkpoint_bytes:
-                raise KnowledgePersistenceError("CHECKPOINT_TOO_LARGE", str(len(raw)))
+            phases["metadata_encoding_ms"] = (time.perf_counter() - phase) * 1000
+            total_checkpoint_bytes = len(raw) + len(authority_raw) + len(index_raw)
+            if total_checkpoint_bytes > self.policy.max_checkpoint_bytes:
+                raise KnowledgePersistenceError("CHECKPOINT_TOO_LARGE", str(total_checkpoint_bytes))
             path = self.root / relative
-            checkpoint_bytes = _atomic_write(
-                path, raw, before="C7_BEFORE_CHECKPOINT_WRITE", during="C7_DURING_CHECKPOINT_WRITE",
+            phase = time.perf_counter()
+            authority_bytes = _atomic_write(
+                self.root / authority_relative,
+                authority_raw,
+                before="C7_BEFORE_CHECKPOINT_WRITE", during="C7_DURING_CHECKPOINT_WRITE",
                 before_replace="C7_BEFORE_CHECKPOINT_REPLACE", after_replace="C7_AFTER_CHECKPOINT_REPLACE", injector=injector,
             )
+            index_bytes = _atomic_write(
+                self.root / index_relative,
+                index_raw,
+                before="C7_BEFORE_CHECKPOINT_WRITE", during="C7_DURING_CHECKPOINT_WRITE",
+                before_replace="C7_BEFORE_CHECKPOINT_REPLACE", after_replace="C7_AFTER_CHECKPOINT_REPLACE", injector=injector,
+            )
+            metadata_bytes = _atomic_write(
+                path,
+                raw,
+                before="C7_BEFORE_CHECKPOINT_WRITE", during="C7_DURING_CHECKPOINT_WRITE",
+                before_replace="C7_BEFORE_CHECKPOINT_REPLACE", after_replace="C7_AFTER_CHECKPOINT_REPLACE", injector=injector,
+            )
+            phases["write_fsync_ms"] = (time.perf_counter() - phase) * 1000
+            checkpoint_bytes = authority_bytes + index_bytes + metadata_bytes
             descriptor = {
                 "checkpoint_id": checkpoint_id, "path": relative, "covered_sequence": covered,
                 "authority_root_hash": manifest["authority_root_hash"], "logical_state_hash": semantic_hash,
-                "index_hash": payload["index_hash"], "file_hash": _sha256(raw), "file_bytes": len(raw),
+                "index_hash": index_hash, "file_hash": _sha256(raw), "file_bytes": len(raw),
             }
             check_manifest = {**manifest, "current_checkpoint": descriptor, "checkpoint_covered_sequence": covered}
             # Validate the exact persisted document before it is made discoverable.
+            phase = time.perf_counter()
             self._read_checkpoint(_finalize_manifest(check_manifest))
+            phases["persisted_validation_ms"] = (time.perf_counter() - phase) * 1000
             updated = dict(manifest)
             updated.update({"generation": int(manifest["generation"]) + 1, "current_checkpoint": descriptor,
                             "checkpoint_covered_sequence": covered, "updated_at": _utc_now()})
+            phase = time.perf_counter()
             manifest_bytes = self._write_manifest(updated, injector)
+            phases["manifest_integration_ms"] = (time.perf_counter() - phase) * 1000
         return {
             "kind": "KnowledgeCheckpointResult", "status": "PASS", "path": str(path),
+            "checkpoint_layout_version": CHECKPOINT_LAYOUT_VERSION,
+            "index_policy_hash": knowledge_index_policy_hash(),
             "covered_sequence": covered, "authority_root_hash": manifest["authority_root_hash"],
             "logical_state_hash": semantic_hash, "checkpoint_bytes_written": checkpoint_bytes,
-            "manifest_bytes_written": manifest_bytes, "elapsed_ms": round((time.perf_counter() - started) * 1000, 3),
+            "manifest_bytes_written": manifest_bytes,
+            "phase_profile": {key: round(value, 3) for key, value in sorted(phases.items())},
+            "cpu_ms": round((time.process_time() - cpu_started) * 1000, 3),
+            "elapsed_ms": round((time.perf_counter() - started) * 1000, 3),
         }
 
     def compact(
