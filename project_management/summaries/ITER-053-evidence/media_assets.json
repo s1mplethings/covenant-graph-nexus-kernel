@@ -1,0 +1,116 @@
+[
+  {
+    "asset_id": "asset-campaign-fbb37de10adab103-card-1200x675",
+    "campaign_id": "campaign-fbb37de10adab103",
+    "config_hash": "sha256:433b21632dff3dbf6e72c83754ade2835e7e0e677d54759ac5ae1d8a5ec7ae03",
+    "content_hash": "sha256:6338a7283dacaffb61c4f42e496a25920464fb266024fa13980aa1a835508898",
+    "duration_seconds": null,
+    "generator": "cgkn.deterministic.png@1",
+    "height": 675,
+    "kind": "PROJECT_CARD",
+    "media_type": "image/png",
+    "path": "project_management/summaries/ITER-053-evidence/assets/self-growth-v1/campaign-fbb37de10adab103-card-1200x675.png",
+    "schema_version": "1.0",
+    "source_evidence_ids": [
+      "evidence:a08af02",
+      "governance:self_growth_status.json",
+      "source:42d2694"
+    ],
+    "width": 1200
+  },
+  {
+    "asset_id": "asset-campaign-fbb37de10adab103-card-1080x1080",
+    "campaign_id": "campaign-fbb37de10adab103",
+    "config_hash": "sha256:3d7471d1123dbd25524a5790ea9c433cdd5799c031dd3672c1fb0e0866350ab4",
+    "content_hash": "sha256:87406eac90a27de3d4f5160317ff4bddcca70e046b9d0120314f958a04c2075a",
+    "duration_seconds": null,
+    "generator": "cgkn.deterministic.png@1",
+    "height": 1080,
+    "kind": "PROJECT_CARD",
+    "media_type": "image/png",
+    "path": "project_management/summaries/ITER-053-evidence/assets/self-growth-v1/campaign-fbb37de10adab103-card-1080x1080.png",
+    "schema_version": "1.0",
+    "source_evidence_ids": [
+      "evidence:a08af02",
+      "governance:self_growth_status.json",
+      "source:42d2694"
+    ],
+    "width": 1080
+  },
+  {
+    "asset_id": "asset-campaign-fbb37de10adab103-card-764x400",
+    "campaign_id": "campaign-fbb37de10adab103",
+    "config_hash": "sha256:f6db03c359d2e50be69f1ec086040725bd9382446d2e412c20d8652f6ecb31e6",
+    "content_hash": "sha256:170e9fc865cd807f4c11bc17b4d510217f8a94137a6b1c668e1bfec9e5135511",
+    "duration_seconds": null,
+    "generator": "cgkn.deterministic.png@1",
+    "height": 400,
+    "kind": "PROJECT_CARD",
+    "media_type": "image/png",
+    "path": "project_management/summaries/ITER-053-evidence/assets/self-growth-v1/campaign-fbb37de10adab103-card-764x400.png",
+    "schema_version": "1.0",
+    "source_evidence_ids": [
+      "evidence:a08af02",
+      "governance:self_growth_status.json",
+      "source:42d2694"
+    ],
+    "width": 764
+  },
+  {
+    "asset_id": "asset-campaign-fbb37de10adab103-card-640x640",
+    "campaign_id": "campaign-fbb37de10adab103",
+    "config_hash": "sha256:2e19373597d09e3e13967ffe30a760bbf318e21fdb219e3ed9c3bd94ce3f99bc",
+    "content_hash": "sha256:c9b495698d6a752e0aedda3a847ded9b682fcc49bab29b5d25245d2a04606533",
+    "duration_seconds": null,
+    "generator": "cgkn.deterministic.png@1",
+    "height": 640,
+    "kind": "PROJECT_CARD",
+    "media_type": "image/png",
+    "path": "project_management/summaries/ITER-053-evidence/assets/self-growth-v1/campaign-fbb37de10adab103-card-640x640.png",
+    "schema_version": "1.0",
+    "source_evidence_ids": [
+      "evidence:a08af02",
+      "governance:self_growth_status.json",
+      "source:42d2694"
+    ],
+    "width": 640
+  },
+  {
+    "asset_id": "asset-campaign-fbb37de10adab103-video-720x1280",
+    "campaign_id": "campaign-fbb37de10adab103",
+    "config_hash": "sha256:64ad804aaccf175d4eeb6e9cb838186b99471a030c9648a39ed776680de20e42",
+    "content_hash": "sha256:df25da70ac47666e5f16d4ab4b66dfa321e249b6808bd8121669000efb3e0302",
+    "duration_seconds": 4.0,
+    "generator": "ffmpeg.local@1",
+    "height": 1280,
+    "kind": "PROMOTION_VIDEO",
+    "media_type": "video/mp4",
+    "path": "project_management/summaries/ITER-053-evidence/assets/self-growth-v1/campaign-fbb37de10adab103-720x1280.mp4",
+    "schema_version": "1.0",
+    "source_evidence_ids": [
+      "evidence:a08af02",
+      "governance:self_growth_status.json",
+      "source:42d2694"
+    ],
+    "width": 720
+  },
+  {
+    "asset_id": "asset-campaign-fbb37de10adab103-video-640x360",
+    "campaign_id": "campaign-fbb37de10adab103",
+    "config_hash": "sha256:f9ce9d3cc1c0c1965680c4cc6f72ed638d662f067940d9e9348658d06d2862a7",
+    "content_hash": "sha256:edfa029a9ace1736630287eb47bfd6b772c57c5ca9acd52db0457994901150b2",
+    "duration_seconds": 2.0,
+    "generator": "ffmpeg.local@1",
+    "height": 360,
+    "kind": "PROMOTION_VIDEO",
+    "media_type": "video/mp4",
+    "path": "project_management/summaries/ITER-053-evidence/assets/self-growth-v1/campaign-fbb37de10adab103-640x360.mp4",
+    "schema_version": "1.0",
+    "source_evidence_ids": [
+      "evidence:a08af02",
+      "governance:self_growth_status.json",
+      "source:42d2694"
+    ],
+    "width": 640
+  }
+]

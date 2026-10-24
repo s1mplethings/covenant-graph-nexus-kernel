@@ -1,0 +1,147 @@
+{
+  "approvals": {
+    "approval-29657788439573cd": {
+      "approval_id": "approval-29657788439573cd",
+      "approved_at": "2026-10-24T19:17:49.934571Z",
+      "approved_by": "formal-fake-evaluation",
+      "campaign_id": "campaign-1396504e82b2eefa",
+      "content_hashes": [
+        "sha256:bcf4e6d88463b5c18fa1ea6fdb3165528866234b510480b6fa52e31872c01bbf"
+      ],
+      "level": "APPROVED_TO_PUBLISH",
+      "media_hashes": [],
+      "platform_targets": [
+        "mastodon"
+      ],
+      "schema_version": "1.0"
+    }
+  },
+  "jobs": {
+    "plan-1fc9d562912e2347-scheduled": {
+      "approval": {
+        "approval_id": "approval-29657788439573cd",
+        "approved_at": "2026-10-24T19:17:49.934571Z",
+        "approved_by": "formal-fake-evaluation",
+        "campaign_id": "campaign-1396504e82b2eefa",
+        "content_hashes": [
+          "sha256:bcf4e6d88463b5c18fa1ea6fdb3165528866234b510480b6fa52e31872c01bbf"
+        ],
+        "level": "APPROVED_TO_PUBLISH",
+        "media_hashes": [],
+        "platform_targets": [
+          "mastodon"
+        ],
+        "schema_version": "1.0"
+      },
+      "assets": [],
+      "plan": {
+        "adapter_ref": "promotion.publisher.fake-mastodon@1",
+        "approval_binding_hash": "sha256:1c0703fe1dce5fc060cf0cbd777c909c44d36058e9fcd050ca90a29594909e00",
+        "approval_id": "approval-29657788439573cd",
+        "campaign_id": "campaign-1396504e82b2eefa",
+        "claim_ids": [
+          "claim-001",
+          "claim-002",
+          "metric-manual_edits",
+          "metric-qualified_capabilities"
+        ],
+        "content_hash": "sha256:bcf4e6d88463b5c18fa1ea6fdb3165528866234b510480b6fa52e31872c01bbf",
+        "idempotency_key": "sha256:1fc9d562912e2347645864c3dba9ddd7d66eee7d2a9f7d2e6fb12358078dbb0d-scheduled",
+        "max_retries": 2,
+        "media_hashes": [],
+        "plan_id": "plan-1fc9d562912e2347-scheduled",
+        "platform": "mastodon",
+        "privacy": "PUBLIC",
+        "scheduled_at": "2026-10-25T01:00:00Z",
+        "schema_version": "1.0",
+        "status": "SCHEDULED",
+        "timezone": "UTC",
+        "variant_id": "campaign-1396504e82b2eefa-mastodon-r1"
+      },
+      "state": "PUBLISHED",
+      "variant": {
+        "campaign_id": "campaign-1396504e82b2eefa",
+        "claim_ids": [
+          "claim-001",
+          "claim-002",
+          "metric-manual_edits",
+          "metric-qualified_capabilities"
+        ],
+        "description": "",
+        "hashtags": [
+          "CGKN",
+          "LocalFirst"
+        ],
+        "links": [],
+        "media_refs": [],
+        "metadata": {
+          "route": "deterministic"
+        },
+        "platform": "mastodon",
+        "revision": 1,
+        "scheduled_at": null,
+        "schema_version": "1.0",
+        "text": "Self-Growth V1 completed bounded capability acquisition and reuse qualification. Production Registry and fixed routing remain unchanged. Review the evidence and follow the project.",
+        "thumbnail_refs": [],
+        "title": "",
+        "variant_id": "campaign-1396504e82b2eefa-mastodon-r1",
+        "visibility": "public"
+      }
+    }
+  },
+  "plans": {
+    "plan-1fc9d562912e2347-scheduled": {
+      "adapter_ref": "promotion.publisher.fake-mastodon@1",
+      "approval_binding_hash": "sha256:1c0703fe1dce5fc060cf0cbd777c909c44d36058e9fcd050ca90a29594909e00",
+      "approval_id": "approval-29657788439573cd",
+      "campaign_id": "campaign-1396504e82b2eefa",
+      "claim_ids": [
+        "claim-001",
+        "claim-002",
+        "metric-manual_edits",
+        "metric-qualified_capabilities"
+      ],
+      "content_hash": "sha256:bcf4e6d88463b5c18fa1ea6fdb3165528866234b510480b6fa52e31872c01bbf",
+      "idempotency_key": "sha256:1fc9d562912e2347645864c3dba9ddd7d66eee7d2a9f7d2e6fb12358078dbb0d-scheduled",
+      "max_retries": 2,
+      "media_hashes": [],
+      "plan_id": "plan-1fc9d562912e2347-scheduled",
+      "platform": "mastodon",
+      "privacy": "PUBLIC",
+      "scheduled_at": "2026-10-25T01:00:00Z",
+      "schema_version": "1.0",
+      "status": "SCHEDULED",
+      "timezone": "UTC",
+      "variant_id": "campaign-1396504e82b2eefa-mastodon-r1"
+    }
+  },
+  "receipts": {
+    "sha256:1fc9d562912e2347645864c3dba9ddd7d66eee7d2a9f7d2e6fb12358078dbb0d-scheduled": {
+      "adapter_ref": "promotion.publisher.fake-mastodon@1",
+      "approval_binding_hash": "sha256:1c0703fe1dce5fc060cf0cbd777c909c44d36058e9fcd050ca90a29594909e00",
+      "approval_id": "approval-29657788439573cd",
+      "campaign_id": "campaign-1396504e82b2eefa",
+      "canonical_url": "dry-run://dry-408228a39d07",
+      "claim_ids": [
+        "claim-001",
+        "claim-002",
+        "metric-manual_edits",
+        "metric-qualified_capabilities"
+      ],
+      "content_hash": "sha256:bcf4e6d88463b5c18fa1ea6fdb3165528866234b510480b6fa52e31872c01bbf",
+      "idempotency_key": "sha256:1fc9d562912e2347645864c3dba9ddd7d66eee7d2a9f7d2e6fb12358078dbb0d-scheduled",
+      "media_hashes": [],
+      "platform": "mastodon",
+      "platform_post_id": "dry-408228a39d07",
+      "provider_request_ids": [
+        "dry-request-dry-408228a39d07"
+      ],
+      "receipt_id": "publication-408228a39d07f388",
+      "result": "PUBLISHED",
+      "retry_count": 0,
+      "schema_version": "1.0",
+      "timestamp": "2026-10-24T19:17:49.969898Z",
+      "variant_id": "campaign-1396504e82b2eefa-mastodon-r1"
+    }
+  }
+}

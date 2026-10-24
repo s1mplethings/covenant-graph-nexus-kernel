@@ -16,7 +16,7 @@
       "id": "PB-029",
       "title": "Build local-first Promotion Studio capability branch",
       "priority": 29,
-      "state": "in_progress",
+      "state": "done_with_limits",
       "value": "Turn validated project evidence into grounded campaign drafts, local media, approval-bound publication plans, receipts, and aggregate feedback without adding a second runtime or authority.",
       "acceptance": [
         "20/20 signal decisions and 10/10 campaign cases pass",
@@ -26,7 +26,7 @@
         "fake publication and at least two native adapter contracts pass with idempotent restart-safe receipts",
         "production Registry and fixed routing remain unchanged"
       ],
-      "evidence_status": "NOT_EVALUATED"
+      "evidence_status": "PASS_WITH_ENVIRONMENT_LIMIT"
     },
     {
       "id": "PB-023",

@@ -1,9 +1,9 @@
 {
   "kind": "CGKNSemanticArtifactValidationReceipt",
   "schema_version": "1.0",
-  "source_commit": "83619e75224c226aa68ea446db7dcee26128974b",
-  "source_tree": "0a11a89f0114766f6eec4ad0b4e343bd97e26f6b",
-  "experiment_boundary_hash": "sha256:b7b0426188f91253a089fc832abd911c9c7d2e86d25d815a89c0ffb1d1496746",
+  "source_commit": "3c5d2dc7d3eca4947ff319d0a98ac67c9436a1bd",
+  "source_tree": "34e2a20e833adc584b0c1fe2854f1317231f0fed",
+  "experiment_boundary_hash": "sha256:eeb0675383fad172ea019285cadd293e17ef890f6e2e13766c5ad506ffa68a34",
   "evidence_status": "NEEDS_REWORK",
   "semantic_artifact_interface": "PARTIAL",
   "winner": "NONE",
@@ -46,6 +46,14 @@
     "winner": "NONE"
   },
   "production_validation": "NOT_EVALUATED",
+  "promotion_studio_validation": {
+    "status": "PASS",
+    "signal_cases": "PASS_20_OF_20",
+    "campaign_cases": "PASS_10_OF_10",
+    "asset_cases": "PASS_6_OF_6",
+    "native_adapter_contracts": "PASS_3_OF_3_OFFLINE",
+    "evaluation_hash": "sha256:d13ba0f7773ba3c694ca79b5df8bbbea6e87291e5d21e3f1ceb0587749915ec1"
+  },
   "kernel_regression": {
     "compileall": "PASS",
     "product_direction_gate": "PASS",
@@ -56,9 +64,9 @@
     "receipt_freshness": "PASS",
     "unit_profile": "PASS_482_SKIP_1",
     "remaining_profiles": "PASS_STATIC_BOUNDARY_FAULT_SECURITY_LOCAL_FUNCTIONAL_FULL_CORE_ACTIVE_REPOSITORY",
-    "active_repository": "PASS_2828_SKIP_357_0_FAILED_0_ERRORS",
-    "collection": "PASS_3185",
-    "note": "The architecture-convergence source closure regenerated source-bound Kernel, application, and experiment receipts; all receipt-cycle tests and active-repository regression pass."
+    "active_repository": "PASS_2903_SKIP_357_0_FAILED_0_ERRORS",
+    "collection": "PASS_3260",
+    "note": "The Promotion Studio source closure refreshed application and experiment source-bound receipts; all receipt freshness, active-repository, and full-pytest checks pass."
   },
   "stop_condition": "B"
 }

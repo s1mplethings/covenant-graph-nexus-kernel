@@ -5,8 +5,8 @@
   "project_id": "cgkn",
   "goal": "Build a local-first evidence-grounded Promotion Studio capability branch with approval-bound publishing and reusable receipts without changing kernel authority.",
   "backlog_item_ids": ["PB-029"],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
     "project evidence is projected into public-safe claims before any campaign drafting",
     "promotion signals suppress duplicates and changes without public value",
@@ -40,15 +40,29 @@
     "experiments/promotion_studio/runner.py",
     "scripts/run_promotion_studio.py",
     "benchmarks/promotion_v1/fixtures/platform_connectivity_matrix.json"
+    ,"project_management/summaries/ITER-053-evidence/promotion_evaluation.json"
+    ,"governance/promotion_receipt.json"
   ],
   "review": {
-    "outcome": "pending",
-    "feedback": [],
-    "accepted_backlog_item_ids": []
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "Promotion MVP satisfies evidence, claim, media, approval, scheduling, fake-publication, restart, and offline native-adapter gates.",
+      "Real test-account publication remains blocked because no credentials or explicit public-post approval were available."
+    ],
+    "accepted_backlog_item_ids": ["PB-029"]
   },
   "retrospective": {
-    "worked": [],
-    "did_not_work": [],
-    "experiments": []
+    "worked": [
+      "Deterministic claim-ledger and media generation reached zero unsupported claims and zero private leakage.",
+      "Injected HTTP transports qualified three native adapters without external writes.",
+      "Exact-hash approval plus atomic local state made duplicate and restart behavior deterministic."
+    ],
+    "did_not_work": [
+      "The first evidence render exposed local absolute paths and was discarded before closure.",
+      "Evidence stored under experiments would have created a source-boundary freshness cycle, so durable evidence moved to project-management summaries."
+    ],
+    "experiments": [
+      "20 signal cases, 10 campaign cases, 6 media renders, fake publication lifecycle, and 3 native adapter contract probes all passed on one frozen source closure."
+    ]
   }
 }

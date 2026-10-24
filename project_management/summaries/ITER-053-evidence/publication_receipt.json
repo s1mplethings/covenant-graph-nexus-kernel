@@ -1,0 +1,27 @@
+{
+  "adapter_ref": "promotion.publisher.fake-mastodon@1",
+  "approval_binding_hash": "sha256:1c0703fe1dce5fc060cf0cbd777c909c44d36058e9fcd050ca90a29594909e00",
+  "approval_id": "approval-29657788439573cd",
+  "campaign_id": "campaign-1396504e82b2eefa",
+  "canonical_url": "dry-run://dry-1c006d7b5cb4",
+  "claim_ids": [
+    "claim-001",
+    "claim-002",
+    "metric-manual_edits",
+    "metric-qualified_capabilities"
+  ],
+  "content_hash": "sha256:bcf4e6d88463b5c18fa1ea6fdb3165528866234b510480b6fa52e31872c01bbf",
+  "idempotency_key": "sha256:1fc9d562912e2347645864c3dba9ddd7d66eee7d2a9f7d2e6fb12358078dbb0d",
+  "media_hashes": [],
+  "platform": "mastodon",
+  "platform_post_id": "dry-1c006d7b5cb4",
+  "provider_request_ids": [
+    "dry-request-dry-1c006d7b5cb4"
+  ],
+  "receipt_id": "publication-1c006d7b5cb4fa41",
+  "result": "PUBLISHED",
+  "retry_count": 0,
+  "schema_version": "1.0",
+  "timestamp": "2026-10-24T19:17:49.935157Z",
+  "variant_id": "campaign-1396504e82b2eefa-mastodon-r1"
+}

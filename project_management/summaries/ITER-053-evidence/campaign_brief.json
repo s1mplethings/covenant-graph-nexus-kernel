@@ -1,0 +1,31 @@
+{
+  "approved_claim_ids": [
+    "claim-001",
+    "claim-002",
+    "metric-manual_edits",
+    "metric-qualified_capabilities"
+  ],
+  "asset_plan": [
+    "project_card",
+    "short_video"
+  ],
+  "audience": "developers and local-first automation builders",
+  "campaign_id": "campaign-fbb37de10adab103",
+  "core_message": "Self-Growth V1 completed bounded capability acquisition and reuse qualification.",
+  "created_at": "2026-10-24T19:17:48.803888Z",
+  "cta": "Review the evidence and follow the project",
+  "objective": "Explain a verified CGKN project milestone",
+  "platform_targets": [
+    "bluesky",
+    "mastodon",
+    "youtube"
+  ],
+  "privacy": "PRIVATE_PREVIEW_ONLY",
+  "release_window": "manual approval window",
+  "revision": 1,
+  "risk_class": "MEDIUM",
+  "schema_version": "1.0",
+  "signal_id": "signal-bcb519514ea3763c",
+  "story_angle": "show the measured change and the authority boundary",
+  "tone": "technical, precise, non-promotional"
+}

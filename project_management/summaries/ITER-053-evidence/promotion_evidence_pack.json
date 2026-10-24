@@ -1,0 +1,87 @@
+{
+  "allowed_claims": [
+    {
+      "claim_id": "claim-001",
+      "evidence_ids": [
+        "evidence:a08af02",
+        "governance:self_growth_status.json",
+        "source:42d2694"
+      ],
+      "expires_at": null,
+      "public_safe": true,
+      "schema_version": "1.0",
+      "status": "APPROVED",
+      "text": "Self-Growth V1 completed bounded capability acquisition and reuse qualification."
+    },
+    {
+      "claim_id": "claim-002",
+      "evidence_ids": [
+        "evidence:a08af02",
+        "governance:self_growth_status.json",
+        "source:42d2694"
+      ],
+      "expires_at": null,
+      "public_safe": true,
+      "schema_version": "1.0",
+      "status": "APPROVED",
+      "text": "Production Registry and fixed routing remain unchanged."
+    },
+    {
+      "claim_id": "metric-manual_edits",
+      "evidence_ids": [
+        "evidence:a08af02",
+        "governance:self_growth_status.json",
+        "source:42d2694"
+      ],
+      "expires_at": null,
+      "public_safe": true,
+      "schema_version": "1.0",
+      "status": "APPROVED",
+      "text": "manual edits: 0"
+    },
+    {
+      "claim_id": "metric-qualified_capabilities",
+      "evidence_ids": [
+        "evidence:a08af02",
+        "governance:self_growth_status.json",
+        "source:42d2694"
+      ],
+      "expires_at": null,
+      "public_safe": true,
+      "schema_version": "1.0",
+      "status": "APPROVED",
+      "text": "qualified capabilities: 2"
+    }
+  ],
+  "before_after_metrics": {
+    "reuse": {
+      "first_run_provider_calls": 1,
+      "second_run_growth_calls": 0
+    }
+  },
+  "candidate_assets": [],
+  "captured_at": "2026-10-24T19:17:48.803888Z",
+  "changed_capabilities": [
+    "text.slugify@1",
+    "markdown.links.extract@1"
+  ],
+  "evidence_ids": [
+    "evidence:a08af02",
+    "governance:self_growth_status.json",
+    "source:42d2694"
+  ],
+  "forbidden_private_claims": [],
+  "privacy": "PRIVATE_PREVIEW_ONLY",
+  "project_id": "cgkn-self-growth-v1",
+  "public_facts": [
+    "Self-Growth V1 completed bounded capability acquisition and reuse qualification.",
+    "Production Registry and fixed routing remain unchanged."
+  ],
+  "public_safe": true,
+  "schema_version": "1.0",
+  "source_commit": "3c5d2dc7d3eca4947ff319d0a98ac67c9436a1bd",
+  "validated_metrics": {
+    "manual_edits": 0,
+    "qualified_capabilities": 2
+  }
+}

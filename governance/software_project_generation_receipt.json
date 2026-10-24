@@ -1,25 +1,25 @@
 {
   "kind": "CGKNSoftwareProjectGenerationReceipt",
   "schema_version": "1.0",
-  "source_commit": "160e72c18dabd2943f3d08061fa0e7c0671549ef",
-  "source_tree_sha": "8beaa4ee31129d823cbd20189c278b3a9094140e",
-  "application_boundary_hash": "sha256:d42151757c1cb36e66283c5373cf3caa5e6d9b37f8020dcf07380451f1679af2",
+  "source_commit": "3c5d2dc7d3eca4947ff319d0a98ac67c9436a1bd",
+  "source_tree_sha": "34e2a20e833adc584b0c1fe2854f1317231f0fed",
+  "application_boundary_hash": "sha256:e737eb568d57e4f38f2a959fcd863d192e3131f4b00be819324dd2286baf72ae",
   "suite_result": "PASS_ARCHITECTURE_CONVERGENCE",
   "formal_final_suite": "PASS_CURRENT_SOURCE",
   "generation_readiness": "GENERATION_LEVEL_3",
   "bundle_status": "COMPLETE",
   "application_validation": {
-    "targeted_command": "python -m pytest -q tests/application tests/test_knowledge_internalization.py tests/test_knowledge_growth_evaluation.py tests/test_knowledge_schemas.py tests/test_knowledge_store_retrieve.py tests/test_knowledge_dialogue_integration.py tests/test_knowledge_persistence_v2.py tests/test_knowledge_persistence_productionization.py tests/test_agent_conversation_mainline.py tests/test_codex_conversation.py",
-    "targeted_passed": 645,
+    "targeted_command": "python -m pytest -q tests/application tests/experiments/self_growth_v1 tests/experiments/promotion_studio tests/test_knowledge*.py tests/test_agent_conversation_mainline.py tests/test_codex_conversation.py tests/test_local_conversation_manager.py tests/test_capability_tree_mvp.py tests/test_capability_reuse_skill_learning.py tests/test_codex_capability_supervisor.py",
+    "targeted_passed": 761,
     "targeted_failed": 0,
     "targeted_errors": 0,
-    "targeted_skipped": 39,
+    "targeted_skipped": 58,
     "full_repository_status": "PASS",
-    "full_repository_passed": 2828,
+    "full_repository_passed": 2903,
     "full_repository_failed": 0,
     "full_repository_errors": 0,
     "full_repository_skipped": 357,
-    "collection_count": 3185,
+    "collection_count": 3260,
     "provider_network_usage_during_regression": false
   },
   "coordinator_qualification": "PASS_5_OF_5_RETAINED",
@@ -69,5 +69,11 @@
   "no_secret_assertion": true,
   "hidden_source_exposed": false,
   "manual_candidate_edits": 0,
-  "receipt_hash": "sha256:195cf542c7a1af3288f5c05d08bd1f5ad88046726aae13b552021bdefa4de8e4"
+  "promotion_studio_validation": {
+    "status": "PASS_WITH_ENVIRONMENT_LIMIT",
+    "evaluation_hash": "sha256:d13ba0f7773ba3c694ca79b5df8bbbea6e87291e5d21e3f1ceb0587749915ec1",
+    "evidence": "project_management/summaries/ITER-053-evidence/promotion_evaluation.json",
+    "real_publication": "BLOCKED_ENVIRONMENT"
+  },
+  "receipt_hash": "sha256:af68f1750192542d773dfbe18cb1b71840797ff228504d6240e823322ff7f462"
 }
