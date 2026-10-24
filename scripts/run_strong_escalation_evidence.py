@@ -73,6 +73,7 @@ def main(argv: list[str] | None = None) -> int:
             product_source_tree=args.product_source_tree,
             harness_commit=harness,
             run_id="pb027-strong-6-replacement",
+            repository_root=ROOT,
         )
     else:
         result = analyze_closure(

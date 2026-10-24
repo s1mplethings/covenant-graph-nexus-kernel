@@ -6,6 +6,7 @@ import json
 import math
 import pathlib
 import statistics
+import subprocess
 from collections import defaultdict
 from typing import Any, Iterable, Mapping
 
@@ -20,11 +21,17 @@ from cgkn.application.capability_routing.formal import (
     _task_for,
     _topk_context,
 )
+from cgkn.application.capability_routing.decision import policy_hashes
 from cgkn.application.capability_routing.search import CapabilitySearchIndex
-from cgkn.providers import CGKNModelRouting, CompletionClient
+from cgkn.providers import CGKNModelRouting, CompletionClient, ModelRoleConfig
 
 
 PB027_VERSION = "strong-escalation-evidence-v1"
+_FROZEN_RELEVANT_PATHS = (
+    "cgkn/application/capability_routing",
+    "cgkn/providers",
+    "config/provider_profiles/gateway_model_routing.json",
+)
 _TOKEN_FIELDS = (
     "input_tokens",
     "cached_tokens",
@@ -61,6 +68,72 @@ def load_document(path: pathlib.Path | str) -> dict[str, Any]:
     return value
 
 
+def _current_suite_identity(routing: CGKNModelRouting) -> dict[str, Any]:
+    return {
+        "route_config_hash": routing.config_hash,
+        "policy_hashes": policy_hashes(),
+    }
+
+
+def _require_semantic_compatibility(
+    decision: Mapping[str, Any],
+    routing: CGKNModelRouting,
+    *,
+    product_source_commit: str,
+    product_source_tree: str,
+    repository_root: pathlib.Path | None = None,
+) -> dict[str, Any]:
+    current = _current_suite_identity(routing)
+    exact_source = (
+        decision.get("source_commit") == product_source_commit
+        and decision.get("source_tree") == product_source_tree
+    )
+    checks = {
+        "source_identity_exact": exact_source,
+        "previous_suite_hash_preserved": bool(decision.get("suite_hash")),
+        "route_config_hash_equal": current["route_config_hash"] == decision.get("route_config_hash"),
+        "policy_hashes_equal": current["policy_hashes"] == decision.get("policy_hashes"),
+        "case_manifest_complete": len(decision.get("case_manifest") or ()) == len(decision_cases()),
+    }
+    relevant_diff: list[str] = []
+    if repository_root and decision.get("source_commit") != product_source_commit:
+        completed = subprocess.run(
+            [
+                "git", "diff", "--name-only", str(decision.get("source_commit")),
+                product_source_commit, "--", *_FROZEN_RELEVANT_PATHS,
+            ],
+            cwd=repository_root,
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        relevant_diff = [line for line in completed.stdout.splitlines() if line.strip()]
+        checks["relevant_source_paths_byte_identical"] = not relevant_diff
+    else:
+        checks["relevant_source_paths_byte_identical"] = True
+    required = (
+        checks["route_config_hash_equal"]
+        and checks["policy_hashes_equal"]
+        and checks["case_manifest_complete"]
+        and (exact_source or checks["relevant_source_paths_byte_identical"])
+    )
+    if not required:
+        raise ValueError("previous evidence is not semantically compatible with the frozen product source")
+    return {
+        "previous_source_commit": decision.get("source_commit"),
+        "previous_source_tree": decision.get("source_tree"),
+        "product_source_commit": product_source_commit,
+        "product_source_tree": product_source_tree,
+        "checks": checks,
+        "relevant_paths": list(_FROZEN_RELEVANT_PATHS),
+        "relevant_diff": relevant_diff,
+        "previous_suite_hash": decision.get("suite_hash"),
+        "suite_hash_reconstruction_note": "NOT_RECOMPUTED_REGISTRY_HASHES_INCLUDE_REBUILD_IDENTITY",
+        **current,
+    }
+
+
 def run_single_replacement(
     *,
     client: CompletionClient,
@@ -72,6 +145,7 @@ def run_single_replacement(
     run_id: str,
     case_id: str = "strong-6",
     role: str = "strong",
+    repository_root: pathlib.Path | str | None = None,
 ) -> dict[str, Any]:
     """Repeat one frozen transport failure without changing benchmark semantics."""
     decision = _decision_document(previous_receipt)
@@ -87,8 +161,13 @@ def run_single_replacement(
         raise ValueError("replacement is allowed only for one frozen provider call failure")
     if original.get("error_class") not in {"outcome_unknown", "gateway_unavailable", "timeout"}:
         raise ValueError("replacement is forbidden for semantic or validator failure")
-    if decision.get("source_commit") != product_source_commit or decision.get("source_tree") != product_source_tree:
-        raise ValueError("replacement product source identity differs from frozen evidence")
+    compatibility = _require_semantic_compatibility(
+        decision,
+        routing,
+        product_source_commit=product_source_commit,
+        product_source_tree=product_source_tree,
+        repository_root=pathlib.Path(repository_root) if repository_root else None,
+    )
     if role != "strong":
         raise ValueError("PB-027 replacement is scoped to the missing strong route")
 
@@ -120,6 +199,7 @@ def run_single_replacement(
         "harness_commit": harness_commit,
         "run_id": run_id,
         "replacement_policy": "ONE_PREDEFINED_REPLACEMENT_FOR_PROVIDER_INFRASTRUCTURE_FAILURE",
+        "source_compatibility": compatibility,
         "semantic_use": "REPLACE_ORIGINAL_CALL_ONLY_IF_COMPLETE_USAGE_IS_REPORTED",
         "operational_use": "COUNT_ORIGINAL_AND_REPLACEMENT",
         "original_call": original,
@@ -362,8 +442,19 @@ def analyze_closure(
     receipt_path = pathlib.Path(previous_receipt_path)
     budget_path = pathlib.Path(previous_budget_path)
     decision = _decision_document(load_document(receipt_path))
-    if (decision.get("source_commit"), decision.get("source_tree")) != (product_source_commit, product_source_tree):
-        raise ValueError("previous evidence is not bound to the frozen product source")
+    root = pathlib.Path(repository_root) if repository_root else None
+    routing = CGKNModelRouting.load(root / "config/provider_profiles/gateway_model_routing.json") if root else CGKNModelRouting(
+        ModelRoleConfig("agent", "qwen", timeout_seconds=90, max_output_tokens=7000),
+        ModelRoleConfig("worker", "deepseek", timeout_seconds=90, max_output_tokens=6000),
+        frozenset({"qwen", "deepseek", "grok"}),
+    )
+    compatibility = _require_semantic_compatibility(
+        decision,
+        routing,
+        product_source_commit=product_source_commit,
+        product_source_tree=product_source_tree,
+        repository_root=root,
+    )
 
     original_calls = [_augment_cost(row, pricing_catalog) for row in decision["calls"]]
     outcomes = {(str(row["case_id"]), str(row["role"])): row for row in original_calls}
@@ -503,7 +594,6 @@ def analyze_closure(
         adaptive = "NEUTRAL"
     strong_benefit = "QUALIFIED" if base_gates and complete_usage else "DIRECTIONAL" if reliability_gate and cost_gate else "NOT_PROVEN"
 
-    root = pathlib.Path(repository_root) if repository_root else None
     decision_file = root / "cgkn/application/capability_routing/decision.py" if root else None
     production_loc = None
     if decision_file and decision_file.is_file():
@@ -523,6 +613,7 @@ def analyze_closure(
         "product_source_commit": product_source_commit,
         "product_source_tree": product_source_tree,
         "harness_commit": harness_commit,
+        "source_compatibility": compatibility,
         "previous_receipt": {
             "path": str(receipt_path),
             "file_sha256": _sha256_file(receipt_path),
