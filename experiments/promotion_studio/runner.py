@@ -186,7 +186,15 @@ def run_evaluation(*, repo_root: pathlib.Path, output_dir: pathlib.Path, source_
 
     signal_passed = sum(item["status"] == "PASS" for item in case_results)
     campaign_passed = sum(item["status"] == "PASS" for item in campaign_results)
-    asset_receipts = [dataclasses.asdict(asset) for asset in assets]
+    asset_receipts = []
+    for asset in assets:
+        receipt = dataclasses.asdict(asset)
+        asset_path = pathlib.Path(str(receipt["path"])).resolve()
+        try:
+            receipt["path"] = asset_path.relative_to(repo_root.resolve()).as_posix()
+        except ValueError:
+            receipt["path"] = asset_path.name
+        asset_receipts.append(receipt)
     positives = sum(item["expected_public_value"] for item in case_results); negatives = len(case_results) - positives
     true_positives = sum(item["expected_public_value"] and item["observed_public_value"] for item in case_results)
     true_negatives = sum(not item["expected_public_value"] and not item["observed_public_value"] for item in case_results)

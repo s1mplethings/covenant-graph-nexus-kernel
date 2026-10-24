@@ -25,3 +25,4 @@ def test_promotion_evaluation_is_complete_and_secret_safe(tmp_path: pathlib.Path
     assert report["metrics"]["approval_integrity"] == 1.0
     assert report["metrics"]["restart_correctness"] == 1.0
     assert len({item["asset_id"] for item in report["real_campaign"]["assets"]}) == 6
+    assert all(not pathlib.Path(item["path"]).is_absolute() for item in report["real_campaign"]["assets"])
