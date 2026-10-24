@@ -5,11 +5,17 @@ import json
 from cgkn.application.capability_routing.formal import (
     FORMAL_MAX_OUTPUT_TOKENS,
     FORMAL_MAX_UNIQUE_LIVE_CALLS,
+    _failure_usage,
     load_pricing_catalog,
     run_formal_decision,
     run_formal_search,
 )
-from cgkn.providers import CGKNModelRouting, ModelRoleConfig, ProviderCompletion
+from cgkn.providers import (
+    CGKNModelRouting,
+    GatewayCompletionError,
+    ModelRoleConfig,
+    ProviderCompletion,
+)
 
 
 class FakePairedClient:
@@ -37,13 +43,52 @@ class FakePairedClient:
         })
         usage = {"input_tokens": 100, "output_tokens": 10, "total_tokens": 110} if self.report_usage else {}
         return ProviderCompletion(
-            json.dumps({"decision": selected, "rationale_code": "PUBLIC_EVIDENCE"}),
+            json.dumps({"decision": selected}),
             f"{config.model}-actual",
             f"request-{len(self.calls)}",
             usage,
             1,
             {"final_status": "ACCEPTED", "selected_candidate_index": 0},
             {"finish_reason": "stop"},
+        )
+
+
+class EvidenceFailureClient(FakePairedClient):
+    def complete(self, *, system, user, schema_name, schema, config):
+        payload = json.loads(user)
+        operation = payload["case"]["context"]["operation"]
+        if config.role == "worker" and operation == "PATCH_REVERSIBLE_FILE":
+            self.calls.append({
+                "system": system,
+                "payload": payload,
+                "schema_name": schema_name,
+                "schema": schema,
+                "config": config,
+            })
+            raise GatewayCompletionError(
+                "PROVIDER_SCHEMA_FAILURE",
+                "PROVIDER_SCHEMA_FAILURE",
+                evidence={
+                    "model": "deepseek-actual",
+                    "request_id": "failed-request-1",
+                    "finish_reason": "stop",
+                    "transport_attempts": 1,
+                    "transport_attempts_detail": [
+                        {"attempt_id": "attempt-1", "status": "COMPLETED", "elapsed_ms": 12}
+                    ],
+                    "usage_status": "REPORTED",
+                    "usage": {
+                        "input_tokens": 101,
+                        "output_tokens": 9,
+                        "total_tokens": 110,
+                    },
+                    "reasoning_tokens": 4,
+                    "cached_tokens": 3,
+                    "contains_credentials": False,
+                },
+            )
+        return super().complete(
+            system=system, user=user, schema_name=schema_name, schema=schema, config=config
         )
 
 
@@ -92,6 +137,9 @@ def test_formal_paired_execution_uses_28_real_calls_without_weakening_strategies
     assert all(row["critical_stop_correctness"] == 1.0 for row in (d0, d1, d2, d3))
     assert all(call["config"].max_output_tokens == FORMAL_MAX_OUTPUT_TOKENS for call in client.calls)
     assert all(call["payload"]["validator"]["hidden_answer_not_provided"] is True for call in client.calls)
+    assert all(call["schema"]["required"] == ["decision"] for call in client.calls)
+    assert all(set(call["schema"]["properties"]) == {"decision"} for call in client.calls)
+    assert all("exactly one field: decision" in call["system"] for call in client.calls)
 
 
 def test_d3_validator_contains_cheap_failure_and_escalates_once() -> None:
@@ -117,6 +165,62 @@ def test_unknown_usage_remains_null_and_cost_is_not_invented() -> None:
         assert group["cost"] is None
         assert group["cost_status"] == "NOT_EVALUATED_EXACT_PRICING_UNAVAILABLE"
     assert all(call["usage_status"] == "UNREPORTED" for call in receipt["calls"])
+    failed_usage = _failure_usage({})
+    assert failed_usage["usage_status"] == "UNKNOWN_AFTER_CALL_FAILURE"
+    assert failed_usage["input_tokens"] is None
+    assert failed_usage["output_tokens"] is None
+
+
+def test_failed_selection_preserves_receipt_metadata_and_is_priced_when_usage_is_known(tmp_path) -> None:
+    records = {
+        "strong.json": {
+            "provider": "qwen", "model": "qwen-actual",
+            "input_price_per_million": 10.0, "cached_input_price_per_million": 5.0,
+            "output_price_per_million": 20.0, "reasoning_price_per_million": 20.0,
+            "currency": "CNY", "unit": "million_tokens",
+            "captured_at": "2026-10-24T00:00:00Z", "source": "provider_billing_config:test",
+        },
+        "cheap.json": {
+            "provider": "deepseek", "model": "deepseek-actual",
+            "input_price_per_million": 1.0, "cached_input_price_per_million": 0.5,
+            "output_price_per_million": 2.0, "reasoning_price_per_million": 2.0,
+            "currency": "CNY", "unit": "million_tokens",
+            "captured_at": "2026-10-24T00:00:00Z", "source": "provider_billing_config:test",
+        },
+    }
+    for name, value in records.items():
+        (tmp_path / name).write_text(json.dumps(value), encoding="utf-8")
+    index = {
+        "kind": "CGNKOfficialModelPricingSnapshot",
+        "strong": "strong.json", "cheap": "cheap.json",
+        "captured_at": "2026-10-24T00:00:00Z",
+    }
+    path = tmp_path / "pricing.json"
+    path.write_text(json.dumps(index), encoding="utf-8")
+
+    receipt = run_formal_decision(
+        client=EvidenceFailureClient(), routing=_routing(),
+        source_commit="a" * 40, source_tree="b" * 40,
+        run_id="formal-failure-evidence-test",
+        pricing_catalog=load_pricing_catalog(path),
+    )
+    failed = next(
+        call for call in receipt["calls"]
+        if call["case_id"] == "cheap-5" and call["role"] == "cheap"
+    )
+    assert failed["status"] == "CALL_FAILED"
+    assert failed["model"] == "deepseek-actual"
+    assert failed["request_id"] == "failed-request-1"
+    assert failed["finish_reason"] == "stop"
+    assert failed["transport_attempts"] == 1
+    assert failed["transport_attempts_detail"] == [
+        {"attempt_id": "attempt-1", "status": "COMPLETED", "elapsed_ms": 12}
+    ]
+    assert (failed["input_tokens"], failed["output_tokens"], failed["total_tokens"]) == (101, 9, 110)
+    assert (failed["cached_tokens"], failed["reasoning_tokens"]) == (3, 4)
+    assert failed["usage_status"] == "REPORTED"
+    assert failed["cost_status"] == "EVALUATED"
+    assert failed["cost"] > 0
 
 
 def test_formal_search_binds_integrated_source_and_required_scales() -> None:

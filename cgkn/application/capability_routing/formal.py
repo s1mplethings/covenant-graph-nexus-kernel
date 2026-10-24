@@ -193,10 +193,9 @@ def _decision_schema(task: FormalTask) -> dict[str, Any]:
     return {
         "type": "object",
         "additionalProperties": False,
-        "required": ["decision", "rationale_code"],
+        "required": ["decision"],
         "properties": {
             "decision": {"type": "string", "enum": list(task.options)},
-            "rationale_code": {"type": "string", "minLength": 1, "maxLength": 80},
         },
     }
 
@@ -227,6 +226,31 @@ def _normalized_usage(usage: Mapping[str, Any]) -> dict[str, int | None | str]:
     }
 
 
+def _failure_usage(evidence: Mapping[str, Any]) -> dict[str, int | None | str]:
+    nested = evidence.get("usage")
+    source: dict[str, Any] = dict(nested) if isinstance(nested, Mapping) else {}
+    aliases = {
+        "prompt_tokens": "prompt_tokens",
+        "input_tokens": "input_tokens",
+        "completion_tokens": "completion_tokens",
+        "output_tokens": "output_tokens",
+        "total_tokens": "total_tokens",
+        "cached_tokens": "cached_tokens",
+        "cached_input_tokens": "cached_input_tokens",
+        "reasoning_tokens": "reasoning_tokens",
+    }
+    for evidence_name, usage_name in aliases.items():
+        if source.get(usage_name) is None and evidence.get(evidence_name) is not None:
+            source[usage_name] = evidence[evidence_name]
+    normalized = _normalized_usage(source)
+    explicit_status = str(evidence.get("usage_status") or "").strip()
+    if explicit_status:
+        normalized["usage_status"] = explicit_status
+    elif not source:
+        normalized["usage_status"] = "UNKNOWN_AFTER_CALL_FAILURE"
+    return normalized
+
+
 def _model_call(
     client: CompletionClient,
     *,
@@ -245,7 +269,7 @@ def _model_call(
     system = (
         "You are executing one bounded CGKN decision benchmark. Use only the public evidence and bounded "
         "capability context. Select exactly one allowed answer. Do not propose authority, budget, acceptance, "
-        "or security changes. Return only the requested structured object."
+        "or security changes. Return only the requested structured object with exactly one field: decision."
     )
     public_case = case.as_dict()
     public_case.pop("expected", None)
@@ -287,7 +311,7 @@ def _model_call(
             config=bounded,
         )
         value = parse_json_object(completion.text)
-        if set(value) != {"decision", "rationale_code"}:
+        if set(value) != {"decision"}:
             raise ValueError("formal decision output has unknown or missing fields")
         decision = str(value["decision"])
         accepted = decision == task.expected_answer
@@ -309,13 +333,18 @@ def _model_call(
     except Exception as exc:
         category = str(getattr(exc, "category", type(exc).__name__))
         evidence = dict(getattr(exc, "evidence", {}) or {})
-        return base | {
+        usage = _failure_usage(evidence)
+        attempt_details = evidence.get("transport_attempts_detail")
+        return base | usage | {
             "status": "CALL_FAILED",
             "accepted": False,
             "decision": None,
-            "model": None,
-            "request_id": None,
+            "model": str(evidence.get("model") or "") or None,
+            "request_id": str(evidence.get("request_id") or "") or None,
             "transport_attempts": evidence.get("transport_attempts"),
+            "transport_attempts_detail": (
+                list(attempt_details) if isinstance(attempt_details, list) else []
+            ),
             "finish_reason": evidence.get("finish_reason"),
             "latency_ms": round((time.perf_counter() - started) * 1000, 3),
             "response_hash": None,
@@ -323,12 +352,6 @@ def _model_call(
             "validation": "INVALID",
             "error_class": category,
             "error_hash": stable_hash({"category": category}),
-            "input_tokens": None,
-            "output_tokens": None,
-            "total_tokens": None,
-            "cached_tokens": None,
-            "reasoning_tokens": None,
-            "usage_status": "UNKNOWN_AFTER_CALL_FAILURE",
         }
 
 
@@ -725,7 +748,7 @@ def load_pricing_catalog(path: pathlib.Path | str) -> dict[str, Any]:
 
 
 def _call_cost(call: Mapping[str, Any], catalog: Mapping[str, Any] | None) -> dict[str, Any]:
-    if catalog is None or call.get("status") == "CALL_FAILED":
+    if catalog is None:
         return {"cost": None, "cost_currency": None, "cost_status": "NOT_EVALUATED_EXACT_PRICING_UNAVAILABLE"}
     record = dict(catalog.get("records", {}).get(str(call.get("provider"))) or {})
     if not record or str(record.get("model")) != str(call.get("model")):
