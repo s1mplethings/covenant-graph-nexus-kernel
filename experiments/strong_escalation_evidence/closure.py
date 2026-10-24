@@ -421,10 +421,17 @@ def _break_even(groups: Mapping[str, Mapping[str, Any]], outcomes: Mapping[tuple
     b = required["D3"][DecisionLevel.STRONG_MODEL.value] - required["D2"][DecisionLevel.STRONG_MODEL.value]
     denominator = b - a
     threshold = (-a / denominator) if denominator else None
+    frozen_share = 6 / 14
     return {
         "status": "EVALUATED",
         "population": "MODEL_ROUTED_CASES_WITHIN_FROZEN_PHASE_MIX",
         "strong_required_share_break_even": threshold,
+        "frozen_model_routed_strong_required_share": frozen_share,
+        "frozen_workload_position": (
+            "ABOVE_BREAK_EVEN_D2_CHEAPER" if threshold is not None and frozen_share > threshold and denominator > 0
+            else "BELOW_BREAK_EVEN_D3_CHEAPER" if threshold is not None and frozen_share < threshold and denominator > 0
+            else "AT_OR_NONSTANDARD_BREAK_EVEN"
+        ),
         "per_class_cost": required,
         "interpretation": (
             "D3_CHEAPER_BELOW_BREAK_EVEN" if threshold is not None and denominator > 0 else
@@ -627,6 +634,35 @@ def analyze_closure(
         d3["cost_observed_lower_bound"] / d3["success"]
         - d0["cost_observed_lower_bound"] / d0["success"]
     )
+    comparisons["D3_vs_D0"]["total_tokens_per_success_ordering"] = (
+        "D3_HIGHER_ROBUST_TO_SHARED_UNKNOWN_CALL"
+        if common_unknown_cost_basis
+        and d3["usage"]["total_tokens_observed_lower_bound"] > d0["usage"]["total_tokens_observed_lower_bound"]
+        else "NOT_PROVEN"
+    )
+    comparisons["D3_vs_D0"]["known_total_tokens_per_success_delta"] = (
+        d3["usage"]["total_tokens_observed_lower_bound"] / d3["success"]
+        - d0["usage"]["total_tokens_observed_lower_bound"] / d0["success"]
+    )
+    comparisons["D3_vs_D0"]["maximum_strong_input_reduction_at_zero_unknown"] = _reduction(
+        original_d0["input_tokens_observed_lower_bound"],
+        original_d3["input_tokens_observed_lower_bound"],
+    )
+    comparisons["D3_vs_D0"]["maximum_strong_total_reduction_at_zero_unknown"] = _reduction(
+        original_d0["total_tokens_observed_lower_bound"],
+        original_d3["total_tokens_observed_lower_bound"],
+    )
+    d3_known_cost_per_success = d3["cost_observed_lower_bound"] / d3["success"]
+    for baseline_name, baseline in (("D1", d1), ("D2", d2)):
+        baseline_exact = baseline["cost_per_success"]
+        comparisons[f"D3_vs_{baseline_name}"]["cost_per_success_ordering"] = (
+            "D3_LOWER_EXACT"
+            if d3["cost_per_success"] is not None and baseline_exact is not None and d3["cost_per_success"] < baseline_exact
+            else "D3_HIGHER_PROVEN_BY_LOWER_BOUND"
+            if baseline_exact is not None and d3_known_cost_per_success > baseline_exact
+            else "NOT_PROVEN"
+        )
+        comparisons[f"D3_vs_{baseline_name}"]["D3_cost_per_success_observed_lower_bound"] = d3_known_cost_per_success
     complete_usage = all(group["usage"]["usage_completeness_rate"] == 1.0 for group in extended_groups.values())
     base_gates = (
         reliability_gate
@@ -636,9 +672,17 @@ def analyze_closure(
         and d3["missed_escalations"] == 0
         and d3["scope_security_violations"] <= d0["scope_security_violations"]
     )
-    if base_gates and complete_usage and d3["cost_per_success"] < d2["cost_per_success"] and d3["success_rate"] >= d2["success_rate"] - 0.05:
+    d3_cost_better_than_d2 = comparisons["D3_vs_D2"]["cost_per_success_ordering"] not in {
+        "D3_HIGHER_PROVEN_BY_LOWER_BOUND", "NOT_PROVEN"
+    }
+    if base_gates and complete_usage and d3_cost_better_than_d2 and d3["success_rate"] >= d2["success_rate"] - 0.05:
         adaptive = "QUALIFIED"
-    elif reliability_gate and cost_gate and comparisons["D3_vs_D0"]["strong_call_reduction"] > 0:
+    elif (
+        reliability_gate
+        and cost_gate
+        and comparisons["D3_vs_D0"]["strong_call_reduction"] > 0
+        and d3_cost_better_than_d2
+    ):
         adaptive = "PROVEN_DIRECTIONALLY"
     elif d3["success_rate"] < d0["success_rate"] - 0.05 or (d3["cost_per_success"] is not None and d3["cost_per_success"] > d0["cost_per_success"]):
         adaptive = "HARMFUL"
