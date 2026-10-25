@@ -48,9 +48,13 @@ def _git(checkout: pathlib.Path, *args: str) -> str:
 def verify_checkout(checkout: pathlib.Path, expected_commit: str) -> dict[str, Any]:
     resolved = checkout.resolve(strict=True)
     actual = _git(resolved, "rev-parse", "HEAD")
+    try:
+        expected = _git(resolved, "rev-parse", f"{expected_commit}^{{commit}}")
+    except RuntimeError as exc:
+        raise ValueError(f"benchmark checkout commit mismatch: expected {expected_commit}, got {actual}") from exc
     dirty = _git(resolved, "status", "--porcelain=v1")
-    if actual != expected_commit:
-        raise ValueError(f"benchmark checkout commit mismatch: expected {expected_commit}, got {actual}")
+    if actual != expected:
+        raise ValueError(f"benchmark checkout commit mismatch: expected {expected}, got {actual}")
     if dirty:
         raise ValueError("official benchmark checkout must be clean")
     return {"commit": actual, "tree": _git(resolved, "show", "-s", "--format=%T", "HEAD"), "clean": True}

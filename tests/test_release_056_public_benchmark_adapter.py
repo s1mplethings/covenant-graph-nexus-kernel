@@ -68,6 +68,13 @@ def test_adapter_rejects_dirty_or_mismatched_checkout(tmp_path: pathlib.Path) ->
         MODULE.verify_checkout(checkout, "0" * 40)
 
 
+def test_adapter_accepts_unambiguous_short_pinned_revision(tmp_path: pathlib.Path) -> None:
+    checkout, commit = _checkout(tmp_path)
+    identity = MODULE.verify_checkout(checkout, commit[:12])
+    assert identity["commit"] == commit
+    assert identity["clean"] is True
+
+
 def test_adapter_rejects_secret_bearing_command_arguments() -> None:
     with pytest.raises(ValueError, match="secret-bearing"):
         MODULE.validate_command(["python", "runner.py", "--api-key", "do-not-store"])
