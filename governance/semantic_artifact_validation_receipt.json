@@ -1,9 +1,9 @@
 {
   "kind": "CGKNSemanticArtifactValidationReceipt",
   "schema_version": "1.0",
-  "source_commit": "a6825912cee716a7391a8b7750d8b8da6f603010",
-  "source_tree": "05217e431c55dd0f89e0f1457819eadb72c18e3b",
-  "experiment_boundary_hash": "sha256:17695b386963fc35661a6a57af71d6414dfab2561af5a186c9535d41e83d46c0",
+  "source_commit": "5b5f7dd38ad5e1ef7c3bdbdad3b95f196e6fc827",
+  "source_tree": "13333c1f6caa29134544bc1af8aab2e38a3c9759",
+  "experiment_boundary_hash": "sha256:ace02b8f8f464e37defa7cbe419d715b65912ccb1914ec225faf4546dac2b823",
   "evidence_status": "NEEDS_REWORK",
   "semantic_artifact_interface": "PARTIAL",
   "winner": "NONE",
@@ -77,14 +77,14 @@
     "test_architecture_gate": "PASS",
     "kernel_test_receipt_verification": "PASS",
     "kernel_completeness_gate": "PASS",
-    "receipt_freshness": "PASS_AFTER_PERSONA_BOUNDARY_REFRESH",
+    "receipt_freshness": "PASS_AFTER_RELEASE_056_RC6_BOUNDARY_REFRESH",
     "unit_profile": "PASS_482_SKIP_1",
     "remaining_profiles": "PASS_STATIC_BOUNDARY_FAULT_SECURITY_LOCAL_FUNCTIONAL_FULL_CORE_ACTIVE_REPOSITORY",
-    "active_repository": "PASS_2972_SKIP_357",
-    "collection": "PASS_3329",
+    "active_repository": "PASS_3000_SKIP_363",
+    "collection": "PASS_3363",
     "failed": 0,
     "errors": 0,
-    "note": "Persona source-bound application and experiment suites plus the final active-repository profile passed."
+    "note": "Application and experiment source boundaries passed 694 tests with one skip; RC6 active-repository regression passed 3,000 tests with 363 skips and zero failures or errors after release adapter and privacy hardening."
   },
   "stop_condition": "B"
 }
