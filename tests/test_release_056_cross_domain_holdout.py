@@ -6,6 +6,7 @@ from experiments.release_056.cross_domain_holdout import (
     frozen_cross_domain_holdout,
     holdout_manifest,
 )
+from scripts import run_cgnk_evaluation as evaluation
 
 
 def test_holdout_is_frozen_balanced_and_unique() -> None:
@@ -43,3 +44,17 @@ def test_conflict_and_missing_cases_require_abstention() -> None:
         if case.expect_abstention:
             answer = {"answer": "insufficient evidence", "abstained": True, "evidence_ids": []}
             assert evaluate_holdout_answer(case, answer)["success"] is True
+
+
+def test_duplicate_citations_are_rejected_by_the_deterministic_evaluator() -> None:
+    assert "uniqueItems" not in evaluation.CROSS_DOMAIN_SCHEMA["properties"]["evidence_ids"]
+    case = frozen_cross_domain_holdout()[0]
+    evidence_id = case.evidence[0][0]
+    answer = {
+        "answer": "three clean rows",
+        "abstained": False,
+        "evidence_ids": [evidence_id, evidence_id],
+    }
+    result = evaluate_holdout_answer(case, answer)
+    assert result["citation_scope_ok"] is False
+    assert result["success"] is False

@@ -84,7 +84,7 @@ CROSS_DOMAIN_SCHEMA: dict[str, Any] = {
     "properties": {
         "answer": {"type": "string"},
         "abstained": {"type": "boolean"},
-        "evidence_ids": {"type": "array", "uniqueItems": True, "items": {"type": "string"}},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}},
     },
 }
 
