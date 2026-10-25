@@ -17,6 +17,8 @@ assert SPEC and SPEC.loader
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
+pytestmark = pytest.mark.benchmark
+
 
 def _git(root: pathlib.Path, *args: str) -> str:
     value = subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, text=True)
