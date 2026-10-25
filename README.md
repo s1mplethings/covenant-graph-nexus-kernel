@@ -100,6 +100,16 @@ default; credentials remain opaque local references and browser click
 automation is unsupported. Run the offline qualification with `python
 scripts/run_promotion_studio.py --profile promotion-evaluate --json`.
 
+Community Operator in `cgkn/application/community/` adds bounded public
+discussion discovery, thread normalization, precision-first opportunity
+ranking, separate engage/project-mention decisions, evidence-grounded reply
+drafting, exact-hash `APPROVED_TO_REPLY`, idempotent official-API transport,
+follow-up tracking, and moderation suppression. Public thread text is always
+untrusted data. Unknown community rules fail closed to human review, and every
+external reply still requires explicit approval. Run the offline evaluation
+with `python scripts/run_community_operator.py --profile evaluate --json`; the
+`real-read` profile performs bounded public API reads and never posts.
+
 Cleanup status and the exact migration boundary are recorded in:
 
 - `docs/MVP_RUNTIME_MIGRATION_BOUNDARY.md`
@@ -107,10 +117,10 @@ Cleanup status and the exact migration boundary are recorded in:
 
 ## Current feature increment
 
-`ITER-053` is the active isolated increment. It
-qualifies evidence-bound campaign creation, local media, exact-hash approval,
-restart-safe scheduling, fake publication, and native adapter contracts without
-modifying production routing or Registry authority.
+`ITER-054` is the active isolated increment. It qualifies Community Operator
+contracts, policy/value/claim gates, approval-bound fake reply lifecycles,
+official adapter contracts, and real read-only dogfood without modifying
+production routing, Registry, Knowledge, Runtime, DAG, or scheduler authority.
 
 ## Current reusable substrate
 
@@ -126,6 +136,7 @@ modifying production routing or Registry authority.
 - `cgkn/application/conversation/` — evidence-grounded read-only Conversation surface
 - `cgkn/application/knowledge_growth/` — local-lazy ProjectKnowledgePack update capability
 - `cgkn/application/promotion/` — evidence-grounded promotion, media, approval, and publishing capabilities
+- `cgkn/application/community/` — policy-safe community discovery, ranking, reply, follow-up, and experience capabilities
 - `scripts/local_agent_actions.py` — bounded deterministic action compatibility adapter
 - `scripts/provider_jobs.py` — Provider execution/PatchSet compatibility adapter
 - `scripts/real_test_execution.py` — real test/runtime support

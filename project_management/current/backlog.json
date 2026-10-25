@@ -2,7 +2,7 @@
   "kind": "CGKNCurrentBacklog",
   "schemaVersion": "3",
   "project": "CGKN",
-  "current_item_id": "PB-029",
+  "current_item_id": "PB-030",
   "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
   "verification_status": "PASS_WITH_LIMITS",
   "product_authority": [
@@ -12,6 +12,22 @@
     "governance/current_architecture.json"
   ],
   "items": [
+    {
+      "id": "PB-030",
+      "title": "Build policy-safe Community Operator capability branch",
+      "priority": 30,
+      "state": "in_progress",
+      "value": "Find a small number of public technical discussions where CGKN can contribute real value, draft grounded non-spam replies, and preserve human authority over every external reply.",
+      "acceptance": [
+        "60 opportunity cases meet precision-first engagement and project-mention gates",
+        "community rules, standalone value, claim grounding, disclosure, and spam risk fail closed",
+        "reply approval binds exact target, content, links, persona, and revision",
+        "fake reply lifecycle is restart-safe, idempotent, moderation-aware, and follow-up capable",
+        "real read-only dogfood produces audited Top20 opportunities and Top10 drafts with zero external writes",
+        "Community capabilities use the existing Component and CapabilityRegistry boundary"
+      ],
+      "evidence_status": "NOT_EVALUATED"
+    },
     {
       "id": "PB-029",
       "title": "Build local-first Promotion Studio capability branch",

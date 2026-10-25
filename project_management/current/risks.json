@@ -3,6 +3,15 @@
   "schema_version": "3.0",
   "risks": [
     {
+      "id": "R-MVP-019",
+      "title": "Community engagement could become spam, violate platform rules, or publish without informed approval",
+      "probability": "medium",
+      "impact": "high",
+      "signal": "A reply has low standalone value, unsupported project claims, hidden affiliation, unknown community rules, duplicate targeting, or executes without APPROVED_TO_REPLY bound to its exact revision.",
+      "response": "Evaluate policy before relevance, prefer precision over recall, separate engage/mention/link decisions, require claim grounding and disclosure, keep EXTERNAL_WRITE candidate-only, bind exact-hash approval, enforce idempotency and low rate limits, and suppress communities after moderation events.",
+      "owner": "community capability"
+    },
+    {
       "id": "R-MVP-018",
       "title": "Promotion publishing could leak private evidence or bypass human authorization",
       "probability": "medium",

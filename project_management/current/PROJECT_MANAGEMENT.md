@@ -22,17 +22,18 @@ Further cleanup inside that cluster now requires a working replacement path.
 
 ## Current feature increment
 
-`ITER-053` builds a local-first promotion capability
-branch over the existing Component, Registry, Runtime, validation, and evidence
-boundaries. It does not add a Promotion runtime or grant Provider/connector
-planning authority.
+`ITER-054` adds a Community Operator application capability branch over the
+existing Component, Registry, Runtime, Knowledge, Promotion validation, and
+approval boundaries. It does not add a Community runtime, scheduler, planner,
+Knowledge authority, or public-delivery route.
 
-The active increment projects explicit public-safe evidence into claims, detects
-promotion signals, builds campaigns and platform variants, renders local image
-and video assets, and creates approval-bound publication plans and receipts.
-External publication is disabled by default. Native adapters are qualified with
-injected transports; a real public post remains optional and requires local test
-credentials plus exact explicit approval.
+The active increment discovers bounded public discussions, normalizes thread
+context, ranks opportunities with precision-first policy gates, drafts
+claim-grounded replies, and keeps every external reply behind an exact-hash
+`APPROVED_TO_REPLY` decision. Discovery and drafting may run automatically;
+unknown rules, high spam risk, and every public write fail closed to human
+review. Real dogfood is read-only unless a self-owned test target, official API,
+credentials, and explicit approval are all present.
 
 ## Roadmap after the active increment
 
@@ -57,7 +58,8 @@ Management records cannot authorize functional success, formal evidence, packagi
 
 ## Verification
 
-Source validation is in progress. Formal Promotion Studio evidence is not valid
-until one clean canonical Source Closure passes compileall, all Kernel gates and
-profiles, collection, and full pytest. Offline publisher qualification cannot
-authorize a real public write.
+Community Operator evidence is not yet evaluated. Formal evidence will require
+one clean canonical Source Closure, frozen policy/schema hashes, all benchmark
+gates, a real read-only scan, compileall, Kernel gates and profiles, collection,
+and full pytest. Offline reply-adapter qualification cannot authorize a real
+public reply.

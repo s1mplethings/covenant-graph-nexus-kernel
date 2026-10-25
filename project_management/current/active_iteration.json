@@ -1,68 +1,52 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-053",
+  "iteration_id": "ITER-054",
   "project_id": "cgkn",
-  "goal": "Build a local-first evidence-grounded Promotion Studio capability branch with approval-bound publishing and reusable receipts without changing kernel authority.",
-  "backlog_item_ids": ["PB-029"],
-  "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "goal": "Build a policy-safe Community Operator capability branch that discovers and ranks public discussions, drafts evidence-grounded replies, and permits external replies only through exact-hash human approval.",
+  "backlog_item_ids": ["PB-030"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "project evidence is projected into public-safe claims before any campaign drafting",
-    "promotion signals suppress duplicates and changes without public value",
-    "campaign, content, media, approval, publication, and analytics contracts are canonical and source-bound",
-    "external publication requires an exact-hash human approval and opaque local credentials",
-    "dry-run, restart-safe scheduling, fake publication, and at least two native adapters are qualified",
-    "one Self-Growth V1 campaign produces validated text, image, and video drafts with no public write",
+    "at least 60 frozen opportunity cases meet precision-first engagement, mention, policy, and direct-mention gates",
+    "reply drafts retain useful technical value without project names, links, or calls to action",
+    "project factual statements are backed by the existing Promotion claim ledger and private evidence is excluded",
+    "external replies require APPROVED_TO_REPLY bound to the exact thread, target, reply hash, links, persona, and revision",
+    "fake adapter lifecycle covers idempotency, restart, rate limits, moderation, and follow-up behavior",
+    "one real public read-only scan ranks 10-30 discussions and produces Top20 opportunities and Top10 drafts without external writes",
     "formal evaluation runs from one clean Source Closure and full repository regression passes"
   ],
   "quality_metrics": [
-    {"id": "QM-PROMOTION-SIGNAL", "measure": "promotion signal decision correctness", "target": "20/20", "method": "frozen deterministic cases"},
-    {"id": "QM-PROMOTION-CAMPAIGN", "measure": "claim-grounded campaign generation", "target": "10/10", "method": "schema and claim-ledger validation"},
-    {"id": "QM-PROMOTION-ASSET", "measure": "media acceptance", "target": "6/6", "method": "Pillow image inspection and FFmpeg/ffprobe validation"},
-    {"id": "QM-PROMOTION-PUBLISH", "measure": "approval, idempotency, retry, and restart safety", "target": "all fake/native contract cases pass", "method": "injected transport and local atomic state"}
+    {"id": "QM-COMMUNITY-OPPORTUNITY", "measure": "engagement and project-mention precision", "target": ">=95% each", "method": "60 frozen labeled cases"},
+    {"id": "QM-COMMUNITY-POLICY", "measure": "policy block and critical review correctness", "target": "100%", "method": "20 policy cases plus adversarial threads"},
+    {"id": "QM-COMMUNITY-VALUE", "measure": "standalone reply value after removing project promotion", "target": ">=90%", "method": "30 reply-drafting cases"},
+    {"id": "QM-COMMUNITY-WRITE", "measure": "unapproved, duplicate, or high-spam-risk external replies", "target": "0", "method": "approval-bound fake adapter and restart matrix"}
   ],
   "quality_activities": {
-    "prevention": ["public-safe evidence projection", "exact-hash approval", "opaque credential references", "EXTERNAL_WRITE proposal-only admission"],
-    "assurance": ["20 signal cases", "10 campaign cases", "6 media assets", "native adapter contract qualification", "full regression"],
-    "control": ["DRAFT_ONLY default", "bounded retry", "idempotency key", "canonical repository publication"],
-    "improvement": ["retain platform bridge isolation", "feed only aggregate analytics into future experience"]
+    "prevention": ["policy before relevance", "value-without-promotion gate", "claim-ledger grounding", "disclosed affiliation", "exact-hash reply approval"],
+    "assurance": ["60 opportunity cases", "30 reply cases", "20 policy cases", "10 follow-up cases", "fake adapter matrix", "real read-only dogfood", "full regression"],
+    "control": ["DRAFT_ONLY default", "bounded scans", "low reply rate", "idempotency key", "community suppression", "canonical repository publication"],
+    "improvement": ["store operational outcomes separately from Project Knowledge", "admit only READ/PURE capabilities automatically", "treat platform rule uncertainty as HUMAN_REVIEW"]
   },
   "interface_expectations": [
     "CapabilityRegistry remains the sole capability authority",
-    "Promotion Studio is an application capability branch, not a new runtime or planner",
-    "PublicationPlan and PublicationReceipt are restart-safe local authority",
-    "Postiz remains an optional separately deployed service boundary",
-    "production Registry, routing, Knowledge, validation, and delivery authorities remain unchanged"
+    "Community Operator is an application capability branch, not a new runtime, scheduler, planner, or Knowledge authority",
+    "Community discovery and reply transport remain separate adapter interfaces",
+    "Community operational state stays outside Project Knowledge",
+    "EXTERNAL_WRITE reply capabilities remain guarded candidates and cannot be self-growth admitted",
+    "production Registry, routing, Knowledge, validation, Promotion, and delivery authorities remain unchanged"
   ],
   "evidence_refs": [
-    "experiments/promotion_studio/README.md",
-    "experiments/promotion_studio/runner.py",
-    "scripts/run_promotion_studio.py",
-    "benchmarks/promotion_v1/fixtures/platform_connectivity_matrix.json"
-    ,"project_management/summaries/ITER-053-evidence/promotion_evaluation.json"
-    ,"governance/promotion_receipt.json"
+    "experiments/community_operator/README.md",
+    "experiments/community_operator/runner.py",
+    "scripts/run_community_operator.py",
+    "benchmarks/community_v1/fixtures/community_connectivity_matrix.json"
   ],
-  "review": {
-    "outcome": "accepted_with_limits",
-    "feedback": [
-      "Promotion MVP satisfies evidence, claim, media, approval, scheduling, fake-publication, restart, and offline native-adapter gates.",
-      "Real test-account publication remains blocked because no credentials or explicit public-post approval were available."
-    ],
-    "accepted_backlog_item_ids": ["PB-029"]
+  "experience_usage": {
+    "selected_ids": ["EXP-MVP-001", "EXP-MVP-003", "EXP-MVP-006", "EXP-MVP-007"],
+    "use": "Preserve one Component/Registry/Runtime authority, bound executor context to the target thread, restrict growth to READ/PURE helpers, and keep source publication evidence distinct from product qualification.",
+    "confidence_changed": false
   },
-  "retrospective": {
-    "worked": [
-      "Deterministic claim-ledger and media generation reached zero unsupported claims and zero private leakage.",
-      "Injected HTTP transports qualified three native adapters without external writes.",
-      "Exact-hash approval plus atomic local state made duplicate and restart behavior deterministic."
-    ],
-    "did_not_work": [
-      "The first evidence render exposed local absolute paths and was discarded before closure.",
-      "Evidence stored under experiments would have created a source-boundary freshness cycle, so durable evidence moved to project-management summaries."
-    ],
-    "experiments": [
-      "20 signal cases, 10 campaign cases, 6 media renders, fake publication lifecycle, and 3 native adapter contract probes all passed on one frozen source closure."
-    ]
-  }
+  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
+  "retrospective": {"worked": [], "did_not_work": [], "experiments": []}
 }
