@@ -8,7 +8,7 @@ import sys
 import pytest
 
 from cgkn.application.project_blueprint import BlueprintCheck, BlueprintUnit, FailureAction, FailureReport, FailureStage, ProjectBlueprint
-from cgkn.application.project_loop import AcceptanceAttributionDecision, BlueprintUnitExecutor, MinimalProjectLoop, compile_blueprint, coordinator_design_request
+from cgkn.application.project_loop import AcceptanceAttributionDecision, BlueprintUnitExecutor, MinimalProjectLoop, _dependency_prompt_projection, compile_blueprint, coordinator_design_request
 from cgkn.application.test_authority import PublicContractProjection
 from cgkn.application.software_project.catalog import get_case
 from cgkn.application.software_project.scope import CommitFailure
@@ -67,6 +67,44 @@ def _patch_files(unit_id, files):
 
 def _configs():
     return ModelRoleConfig("agent", "qwen3.8-max"), ModelRoleConfig("worker", "qwen3.7-flash")
+
+
+def test_dependency_prompt_projection_excludes_volatile_execution_metadata() -> None:
+    stable = {
+        "summary": "implemented add",
+        "modified_files": ["math_utils.py"],
+        "observed_interfaces": {"math_utils.py": {"functions": [{"name": "add"}]}},
+        "test_authority_receipt": None,
+        "unit_result": {
+            "unit_id": "implementation-1",
+            "status": "SUCCEEDED",
+            "changed_files": ["math_utils.py"],
+            "observed_interfaces": ["sha256:interface"],
+            "produced_artifact_refs": [],
+            "materialized_baseline": True,
+            "error": "",
+            "duration": 9,
+            "result_hash": "sha256:first",
+            "provider_usage": {"total_tokens": "30"},
+        },
+        "context_chars": 100,
+        "action_results": [{"action": "write_file", "bytes": 32}],
+    }
+    later = json.loads(json.dumps(stable))
+    later["unit_result"].update({
+        "duration": 1042,
+        "result_hash": "sha256:second",
+        "provider_usage": {"total_tokens": "31"},
+    })
+    later["context_chars"] = 101
+
+    first = _dependency_prompt_projection({"implementation-1": stable})
+    second = _dependency_prompt_projection({"implementation-1": later})
+
+    assert first == second
+    rendered = json.dumps(first, sort_keys=True)
+    for volatile in ("duration", "result_hash", "provider_usage", "context_chars", "action_results"):
+        assert volatile not in rendered
 
 
 def _csv_blueprint() -> ProjectBlueprint:

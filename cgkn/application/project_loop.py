@@ -98,6 +98,56 @@ DEFAULT_REPAIR_EVIDENCE_MODE = "FAILURE_SLICE_TRANSPORT_CONTRASTIVE"
 DEFAULT_REPAIR_SCOPE_MODE = "NORMAL"
 
 
+def _dependency_prompt_projection(
+    dependency_results: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Expose only stable, execution-relevant dependency facts to a worker.
+
+    A completed dependency result also contains receipt and timing metadata.
+    Those fields are useful in the run ledger but are neither semantic input to
+    a downstream Unit nor stable across equivalent executions.  Keeping them
+    out of the prompt makes the bounded context reproducible and avoids paying
+    for hashes, usage counters, and wall-clock durations that the worker cannot
+    act on.
+    """
+
+    projected: dict[str, Any] = {}
+    stable_output_fields = (
+        "summary",
+        "modified_files",
+        "observed_interfaces",
+        "test_authority_receipt",
+    )
+    stable_result_fields = (
+        "unit_id",
+        "status",
+        "changed_files",
+        "observed_interfaces",
+        "produced_artifact_refs",
+        "materialized_baseline",
+        "error",
+    )
+    for node_id, raw_value in sorted(dependency_results.items()):
+        value = materialize_json(raw_value)
+        if not isinstance(value, Mapping):
+            projected[str(node_id)] = value
+            continue
+        item = {
+            field: value[field]
+            for field in stable_output_fields
+            if field in value
+        }
+        unit_result = value.get("unit_result")
+        if isinstance(unit_result, Mapping):
+            item["unit_result"] = {
+                field: unit_result[field]
+                for field in stable_result_fields
+                if field in unit_result
+            }
+        projected[str(node_id)] = item
+    return projected
+
+
 def file_bundle_schema(requested_paths: tuple[str, ...]) -> dict[str, Any]:
     """Bind a generation response to the current materialization slice."""
     if not requested_paths:
@@ -937,7 +987,7 @@ class BlueprintUnitExecutor:
                         "allowed_files": list(allowed_repair_paths),
                         "target_symbol_hints": list(relevant_functions),
                     },
-                    "direct_dependency_results": materialize_json(request.task_context.dependency_results),
+                    "direct_dependency_results": _dependency_prompt_projection(request.task_context.dependency_results),
                     "output_contract": "PatchBundle v2 only in REPAIR",
                 }
                 if evidence_packet is None:
@@ -1215,7 +1265,7 @@ class BlueprintUnitExecutor:
                         **{path: item.as_dict() for path, item in manifests.items()},
                         **{path: item.as_dict() for path, item in staged_interfaces.items()},
                     },
-                    "direct_dependency_results": materialize_json(request.task_context.dependency_results),
+                    "direct_dependency_results": _dependency_prompt_projection(request.task_context.dependency_results),
                     "acceptance": list(unit.acceptance),
                     "public_contract_projection": materialize_json(request.task_context.node_config.get("public_contract_projection")),
                     "owned_public_requirement_ids": list(request.task_context.node_config.get("owned_public_requirement_ids", ())),
