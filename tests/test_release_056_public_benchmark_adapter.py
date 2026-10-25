@@ -93,3 +93,11 @@ def test_adapter_classifies_windows_docker_daemon_failure_as_environment_blocked
 def test_adapter_rejects_secret_bearing_command_arguments() -> None:
     with pytest.raises(ValueError, match="secret-bearing"):
         MODULE.validate_command(["python", "runner.py", "--api-key", "do-not-store"])
+
+
+def test_sanitize_output_redacts_generic_windows_absolute_paths(tmp_path: pathlib.Path) -> None:
+    checkout, _ = _checkout(tmp_path)
+    sanitized = MODULE.sanitize_output(
+        r"tool path: C:\Program Files\Docker\docker.exe", checkout=checkout,
+    )
+    assert sanitized == "tool path: [LOCAL_PATH]"

@@ -20,6 +20,7 @@ SECRET_VALUE = re.compile(
     r"(?i)(bearer\s+[A-Za-z0-9._~+/=-]{12,}|(?:sk|ghp|github_pat|xai)-[A-Za-z0-9_-]{12,}|"
     r"(?:api[-_]?key|authorization|password|secret)\s*[:=]\s*\S+)"
 )
+WINDOWS_ABSOLUTE_PATH = re.compile(r"(?i)\b[a-z]:\\[^\r\n\"']+")
 
 
 def canonical_hash(value: Any) -> str:
@@ -65,6 +66,7 @@ def sanitize_output(value: str, *, checkout: pathlib.Path) -> str:
     candidates = {str(checkout.resolve()), str(ROOT.resolve()), str(pathlib.Path.home().resolve())}
     for candidate in sorted(candidates, key=len, reverse=True):
         sanitized = sanitized.replace(candidate, "[LOCAL_PATH]").replace(candidate.replace("\\", "/"), "[LOCAL_PATH]")
+    sanitized = WINDOWS_ABSOLUTE_PATH.sub("[LOCAL_PATH]", sanitized)
     return sanitized[:20_000]
 
 
