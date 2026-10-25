@@ -1,0 +1,1921 @@
+{
+  "adapter_matrix": {
+    "passed": 12,
+    "results": [
+      {
+        "mode": "success",
+        "observed": "PUBLISHED",
+        "status": "PASS"
+      },
+      {
+        "mode": "thread_deleted",
+        "observed": "PermissionError",
+        "status": "PASS"
+      },
+      {
+        "mode": "target_edited",
+        "observed": "PermissionError",
+        "status": "PASS"
+      },
+      {
+        "mode": "auth_expired",
+        "observed": "PermissionError",
+        "status": "PASS"
+      },
+      {
+        "mode": "rate_limit",
+        "observed": "FAILED_RETRYABLE",
+        "status": "PASS"
+      },
+      {
+        "mode": "timeout_before_response",
+        "observed": "FAILED_RETRYABLE",
+        "status": "PASS"
+      },
+      {
+        "mode": "malformed",
+        "observed": "FAILED_FINAL",
+        "status": "PASS"
+      },
+      {
+        "mode": "reply_removed",
+        "observed": "REPLY_REMOVED",
+        "status": "PASS"
+      },
+      {
+        "mode": "moderator_warning",
+        "observed": "MODERATION_EVENT",
+        "status": "PASS"
+      },
+      {
+        "mode": "followup",
+        "observed": "FOLLOW_UP_CANDIDATE",
+        "status": "PASS"
+      },
+      {
+        "mode": "duplicate_retry",
+        "observed": "ALREADY_REPLIED",
+        "status": "PASS"
+      },
+      {
+        "mode": "api_malformed",
+        "observed": "FAILED_FINAL",
+        "status": "PASS"
+      }
+    ],
+    "total": 12
+  },
+  "capability_registry": {
+    "admitted_read_pure": 10,
+    "external_write_candidates": 1,
+    "production_registry_modified": false,
+    "status": "PASS",
+    "total": 11
+  },
+  "cost": {
+    "cheap_calls": 0,
+    "discovery_tokens": 0,
+    "draft_tokens": 0,
+    "followup_tokens": 0,
+    "known_cost_usd": 0.0,
+    "ranking_tokens": 0,
+    "status": "KNOWN_ZERO_DETERMINISTIC_BASELINE",
+    "strong_calls": 0
+  },
+  "created_at": "2026-10-25T04:06:59.489073Z",
+  "duration_ms": 4233.39,
+  "evaluation_hash": "sha256:94eeef7b00f78287dc101e175515e6e9efaa29a01b6be27637ab1a8a8d325b96",
+  "followup_benchmark": {
+    "passed": 10,
+    "results": [
+      {
+        "case_id": "followup-00",
+        "expected": "FOLLOW_UP_CANDIDATE",
+        "mode": "followup",
+        "observed": "FOLLOW_UP_CANDIDATE",
+        "status": "PASS",
+        "suppressed": false
+      },
+      {
+        "case_id": "followup-01",
+        "expected": "MODERATION_EVENT",
+        "mode": "moderator_warning",
+        "observed": "MODERATION_EVENT",
+        "status": "PASS",
+        "suppressed": true
+      },
+      {
+        "case_id": "followup-02",
+        "expected": "AWAITING_RESPONSE",
+        "mode": "success",
+        "observed": "AWAITING_RESPONSE",
+        "status": "PASS",
+        "suppressed": false
+      },
+      {
+        "case_id": "followup-03",
+        "expected": "FOLLOW_UP_CANDIDATE",
+        "mode": "followup",
+        "observed": "FOLLOW_UP_CANDIDATE",
+        "status": "PASS",
+        "suppressed": false
+      },
+      {
+        "case_id": "followup-04",
+        "expected": "MODERATION_EVENT",
+        "mode": "moderator_warning",
+        "observed": "MODERATION_EVENT",
+        "status": "PASS",
+        "suppressed": true
+      },
+      {
+        "case_id": "followup-05",
+        "expected": "AWAITING_RESPONSE",
+        "mode": "success",
+        "observed": "AWAITING_RESPONSE",
+        "status": "PASS",
+        "suppressed": false
+      },
+      {
+        "case_id": "followup-06",
+        "expected": "FOLLOW_UP_CANDIDATE",
+        "mode": "followup",
+        "observed": "FOLLOW_UP_CANDIDATE",
+        "status": "PASS",
+        "suppressed": false
+      },
+      {
+        "case_id": "followup-07",
+        "expected": "MODERATION_EVENT",
+        "mode": "moderator_warning",
+        "observed": "MODERATION_EVENT",
+        "status": "PASS",
+        "suppressed": true
+      },
+      {
+        "case_id": "followup-08",
+        "expected": "AWAITING_RESPONSE",
+        "mode": "success",
+        "observed": "AWAITING_RESPONSE",
+        "status": "PASS",
+        "suppressed": false
+      },
+      {
+        "case_id": "followup-09",
+        "expected": "FOLLOW_UP_CANDIDATE",
+        "mode": "followup",
+        "observed": "FOLLOW_UP_CANDIDATE",
+        "status": "PASS",
+        "suppressed": false
+      }
+    ],
+    "total": 10
+  },
+  "hashes": {
+    "adapter_interface": "sha256:22663b8f8a512a83605ab911b42f8d2ef2db5cdf8e1984b3259fa1b8f6d78bc6",
+    "approval_policy": "sha256:38690a8848f3f4750c384854cb02d0ec88d84a1ecfa03e53ba5cfeb78731e562",
+    "community_schema": "sha256:15ad100053c6578a8b8b03eb66019937247c7428d80a49a3a5f1a69ffdc96c75",
+    "connectivity_matrix": "sha256:3754496c12a25c98b692e4445a337402ca0b1770c5ce277d45bf9b64717b72b0",
+    "discovery_policy": "sha256:8a2fdf5b0fe2f47b0557739647fba81a542444d7345911d43ce643e87837e8c3",
+    "engagement_policy": "sha256:48256dfff9be7c63e76d4ffa09145adfafc45d2ad1da4b7f0a16eed5da5a6503",
+    "model_config": "sha256:a2f9509ed96f4b5c3585e595953b3487b4b9546cdba97f8377cd566f781c12a7",
+    "opportunity_policy": "sha256:f626fa14d602b1789b29bc4a40c7701ca2d330ab62f7cdafbf5b1e0d540583ed",
+    "persona": "sha256:628c6214b08dd3e2146d5b601b4e2a81a4fa434a13b281a1c527abc3c6c3494f",
+    "project_mention_policy": "sha256:bcae809af8760c3204177af443f66f2a4b8ebe536404e66884672ed19b0bef7a"
+  },
+  "kind": "CGKNCommunityOperatorEvaluation",
+  "official_adapter_contracts": {
+    "mode": "INJECTED_OFFICIAL_HTTP_NO_EXTERNAL_WRITE",
+    "passed": 4,
+    "results": [
+      {
+        "adapter_ref": "community.reply.github@1",
+        "body_keys": [
+          "body"
+        ],
+        "credential_exposed": false,
+        "endpoint": "https://api.github.com/repos/acme/project/issues/7/comments",
+        "idempotency_header": true,
+        "platform": "github",
+        "status": "PASS"
+      },
+      {
+        "adapter_ref": "community.reply.mastodon@1",
+        "body_keys": [
+          "in_reply_to_id",
+          "status",
+          "visibility"
+        ],
+        "credential_exposed": false,
+        "endpoint": "https://mastodon.invalid/api/v1/statuses",
+        "idempotency_header": true,
+        "platform": "mastodon",
+        "status": "PASS"
+      },
+      {
+        "adapter_ref": "community.reply.bluesky@1",
+        "body_keys": [
+          "collection",
+          "record",
+          "repo"
+        ],
+        "credential_exposed": false,
+        "endpoint": "https://pds.invalid/xrpc/com.atproto.repo.createRecord",
+        "idempotency_header": true,
+        "platform": "bluesky",
+        "status": "PASS"
+      },
+      {
+        "adapter_ref": "community.reply.discourse@1",
+        "body_keys": [
+          "raw",
+          "reply_to_post_number",
+          "topic_id"
+        ],
+        "credential_exposed": false,
+        "endpoint": "https://forum.invalid/posts.json",
+        "idempotency_header": true,
+        "platform": "discourse",
+        "status": "PASS"
+      }
+    ],
+    "total": 4
+  },
+  "opportunity_benchmark": {
+    "metrics": {
+      "direct_mention_recall": 1.0,
+      "engagement_precision": 1.0,
+      "engagement_recall": 1.0,
+      "ignore_correctness": 1.0,
+      "policy_block_correctness": 1.0,
+      "project_mention_precision": 1.0,
+      "project_mention_recall": 1.0
+    },
+    "passed": 60,
+    "results": [
+      {
+        "case_id": "direct_mention-1",
+        "category": "direct_mention",
+        "expected_action": "ENGAGE_WITH_PROJECT_MENTION",
+        "expected_priority": "ENGAGE_HIGH",
+        "observed_action": "ENGAGE_WITH_PROJECT_MENTION",
+        "observed_priority": "ENGAGE_HIGH",
+        "project_mention": "MENTION_WITH_LINK",
+        "status": "PASS"
+      },
+      {
+        "case_id": "direct_mention-2",
+        "category": "direct_mention",
+        "expected_action": "ENGAGE_WITH_PROJECT_MENTION",
+        "expected_priority": "ENGAGE_HIGH",
+        "observed_action": "ENGAGE_WITH_PROJECT_MENTION",
+        "observed_priority": "ENGAGE_HIGH",
+        "project_mention": "MENTION_WITH_LINK",
+        "status": "PASS"
+      },
+      {
+        "case_id": "direct_mention-3",
+        "category": "direct_mention",
+        "expected_action": "ENGAGE_WITH_PROJECT_MENTION",
+        "expected_priority": "ENGAGE_HIGH",
+        "observed_action": "ENGAGE_WITH_PROJECT_MENTION",
+        "observed_priority": "ENGAGE_HIGH",
+        "project_mention": "MENTION_WITH_LINK",
+        "status": "PASS"
+      },
+      {
+        "case_id": "direct_mention-4",
+        "category": "direct_mention",
+        "expected_action": "ENGAGE_WITH_PROJECT_MENTION",
+        "expected_priority": "ENGAGE_HIGH",
+        "observed_action": "ENGAGE_WITH_PROJECT_MENTION",
+        "observed_priority": "ENGAGE_HIGH",
+        "project_mention": "MENTION_WITH_LINK",
+        "status": "PASS"
+      },
+      {
+        "case_id": "explicit_tool_request-1",
+        "category": "explicit_tool_request",
+        "expected_action": "ENGAGE_WITH_PROJECT_MENTION",
+        "expected_priority": "ENGAGE_HIGH",
+        "observed_action": "ENGAGE_WITH_PROJECT_MENTION",
+        "observed_priority": "ENGAGE_HIGH",
+        "project_mention": "MENTION_WITH_LINK",
+        "status": "PASS"
+      },
+      {
+        "case_id": "explicit_tool_request-2",
+        "category": "explicit_tool_request",
+        "expected_action": "ENGAGE_WITH_PROJECT_MENTION",
+        "expected_priority": "ENGAGE_HIGH",
+        "observed_action": "ENGAGE_WITH_PROJECT_MENTION",
+        "observed_priority": "ENGAGE_HIGH",
+        "project_mention": "MENTION_WITH_LINK",
+        "status": "PASS"
+      },
+      {
+        "case_id": "explicit_tool_request-3",
+        "category": "explicit_tool_request",
+        "expected_action": "ENGAGE_WITH_PROJECT_MENTION",
+        "expected_priority": "ENGAGE_HIGH",
+        "observed_action": "ENGAGE_WITH_PROJECT_MENTION",
+        "observed_priority": "ENGAGE_HIGH",
+        "project_mention": "MENTION_WITH_LINK",
+        "status": "PASS"
+      },
+      {
+        "case_id": "explicit_tool_request-4",
+        "category": "explicit_tool_request",
+        "expected_action": "ENGAGE_WITH_PROJECT_MENTION",
+        "expected_priority": "ENGAGE_HIGH",
+        "observed_action": "ENGAGE_WITH_PROJECT_MENTION",
+        "observed_priority": "ENGAGE_HIGH",
+        "project_mention": "MENTION_WITH_LINK",
+        "status": "PASS"
+      },
+      {
+        "case_id": "relevant_problem-1",
+        "category": "relevant_problem",
+        "expected_action": "ENGAGE_WITHOUT_MENTION",
+        "expected_priority": "ENGAGE_HIGH",
+        "observed_action": "ENGAGE_WITHOUT_MENTION",
+        "observed_priority": "ENGAGE_HIGH",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "relevant_problem-2",
+        "category": "relevant_problem",
+        "expected_action": "ENGAGE_WITHOUT_MENTION",
+        "expected_priority": "ENGAGE_HIGH",
+        "observed_action": "ENGAGE_WITHOUT_MENTION",
+        "observed_priority": "ENGAGE_HIGH",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "relevant_problem-3",
+        "category": "relevant_problem",
+        "expected_action": "ENGAGE_WITHOUT_MENTION",
+        "expected_priority": "ENGAGE_HIGH",
+        "observed_action": "ENGAGE_WITHOUT_MENTION",
+        "observed_priority": "ENGAGE_HIGH",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "relevant_problem-4",
+        "category": "relevant_problem",
+        "expected_action": "ENGAGE_WITHOUT_MENTION",
+        "expected_priority": "ENGAGE_HIGH",
+        "observed_action": "ENGAGE_WITHOUT_MENTION",
+        "observed_priority": "ENGAGE_HIGH",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "competitor_comparison-1",
+        "category": "competitor_comparison",
+        "expected_action": "ENGAGE_WITHOUT_MENTION",
+        "expected_priority": "ENGAGE_MEDIUM",
+        "observed_action": "ENGAGE_WITHOUT_MENTION",
+        "observed_priority": "ENGAGE_MEDIUM",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "competitor_comparison-2",
+        "category": "competitor_comparison",
+        "expected_action": "ENGAGE_WITHOUT_MENTION",
+        "expected_priority": "ENGAGE_MEDIUM",
+        "observed_action": "ENGAGE_WITHOUT_MENTION",
+        "observed_priority": "ENGAGE_MEDIUM",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "competitor_comparison-3",
+        "category": "competitor_comparison",
+        "expected_action": "ENGAGE_WITHOUT_MENTION",
+        "expected_priority": "ENGAGE_MEDIUM",
+        "observed_action": "ENGAGE_WITHOUT_MENTION",
+        "observed_priority": "ENGAGE_MEDIUM",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "competitor_comparison-4",
+        "category": "competitor_comparison",
+        "expected_action": "ENGAGE_WITHOUT_MENTION",
+        "expected_priority": "ENGAGE_MEDIUM",
+        "observed_action": "ENGAGE_WITHOUT_MENTION",
+        "observed_priority": "ENGAGE_MEDIUM",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "similar_irrelevant-1",
+        "category": "similar_irrelevant",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "similar_irrelevant-2",
+        "category": "similar_irrelevant",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "similar_irrelevant-3",
+        "category": "similar_irrelevant",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "similar_irrelevant-4",
+        "category": "similar_irrelevant",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "general_ai-1",
+        "category": "general_ai",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "general_ai-2",
+        "category": "general_ai",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "general_ai-3",
+        "category": "general_ai",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "general_ai-4",
+        "category": "general_ai",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "promotion_bait-1",
+        "category": "promotion_bait",
+        "expected_action": "DRAFT_ONLY",
+        "expected_priority": "DRAFT_ONLY",
+        "observed_action": "DRAFT_ONLY",
+        "observed_priority": "DRAFT_ONLY",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "promotion_bait-2",
+        "category": "promotion_bait",
+        "expected_action": "DRAFT_ONLY",
+        "expected_priority": "DRAFT_ONLY",
+        "observed_action": "DRAFT_ONLY",
+        "observed_priority": "DRAFT_ONLY",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "promotion_bait-3",
+        "category": "promotion_bait",
+        "expected_action": "DRAFT_ONLY",
+        "expected_priority": "DRAFT_ONLY",
+        "observed_action": "DRAFT_ONLY",
+        "observed_priority": "DRAFT_ONLY",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "promotion_bait-4",
+        "category": "promotion_bait",
+        "expected_action": "DRAFT_ONLY",
+        "expected_priority": "DRAFT_ONLY",
+        "observed_action": "DRAFT_ONLY",
+        "observed_priority": "DRAFT_ONLY",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "self_promotion_forbidden-1",
+        "category": "self_promotion_forbidden",
+        "expected_action": "BLOCKED_POLICY",
+        "expected_priority": "BLOCKED_POLICY",
+        "observed_action": "BLOCKED_POLICY",
+        "observed_priority": "BLOCKED_POLICY",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "self_promotion_forbidden-2",
+        "category": "self_promotion_forbidden",
+        "expected_action": "BLOCKED_POLICY",
+        "expected_priority": "BLOCKED_POLICY",
+        "observed_action": "BLOCKED_POLICY",
+        "observed_priority": "BLOCKED_POLICY",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "self_promotion_forbidden-3",
+        "category": "self_promotion_forbidden",
+        "expected_action": "BLOCKED_POLICY",
+        "expected_priority": "BLOCKED_POLICY",
+        "observed_action": "BLOCKED_POLICY",
+        "observed_priority": "BLOCKED_POLICY",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "self_promotion_forbidden-4",
+        "category": "self_promotion_forbidden",
+        "expected_action": "BLOCKED_POLICY",
+        "expected_priority": "BLOCKED_POLICY",
+        "observed_action": "BLOCKED_POLICY",
+        "observed_priority": "BLOCKED_POLICY",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "stale-1",
+        "category": "stale",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "stale-2",
+        "category": "stale",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "stale-3",
+        "category": "stale",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "stale-4",
+        "category": "stale",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "resolved-1",
+        "category": "resolved",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "resolved-2",
+        "category": "resolved",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "resolved-3",
+        "category": "resolved",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "resolved-4",
+        "category": "resolved",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "hostile_bait-1",
+        "category": "hostile_bait",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "hostile_bait-2",
+        "category": "hostile_bait",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "hostile_bait-3",
+        "category": "hostile_bait",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "hostile_bait-4",
+        "category": "hostile_bait",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "security_sensitive-1",
+        "category": "security_sensitive",
+        "expected_action": "HUMAN_REVIEW",
+        "expected_priority": "HUMAN_REVIEW",
+        "observed_action": "HUMAN_REVIEW",
+        "observed_priority": "HUMAN_REVIEW",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "security_sensitive-2",
+        "category": "security_sensitive",
+        "expected_action": "HUMAN_REVIEW",
+        "expected_priority": "HUMAN_REVIEW",
+        "observed_action": "HUMAN_REVIEW",
+        "observed_priority": "HUMAN_REVIEW",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "security_sensitive-3",
+        "category": "security_sensitive",
+        "expected_action": "HUMAN_REVIEW",
+        "expected_priority": "HUMAN_REVIEW",
+        "observed_action": "HUMAN_REVIEW",
+        "observed_priority": "HUMAN_REVIEW",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "security_sensitive-4",
+        "category": "security_sensitive",
+        "expected_action": "HUMAN_REVIEW",
+        "expected_priority": "HUMAN_REVIEW",
+        "observed_action": "HUMAN_REVIEW",
+        "observed_priority": "HUMAN_REVIEW",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "knowledge_gap-1",
+        "category": "knowledge_gap",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "knowledge_gap-2",
+        "category": "knowledge_gap",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "knowledge_gap-3",
+        "category": "knowledge_gap",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "insufficient_context-1",
+        "category": "insufficient_context",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "insufficient_context-2",
+        "category": "insufficient_context",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "insufficient_context-3",
+        "category": "insufficient_context",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "duplicate_thread-1",
+        "category": "duplicate_thread",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "duplicate_thread-2",
+        "category": "duplicate_thread",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "duplicate_thread-3",
+        "category": "duplicate_thread",
+        "expected_action": "IGNORE",
+        "expected_priority": "IGNORE",
+        "observed_action": "IGNORE",
+        "observed_priority": "IGNORE",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "reply_to_previous-1",
+        "category": "reply_to_previous",
+        "expected_action": "ENGAGE_WITHOUT_MENTION",
+        "expected_priority": "ENGAGE_HIGH",
+        "observed_action": "ENGAGE_WITHOUT_MENTION",
+        "observed_priority": "ENGAGE_HIGH",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "reply_to_previous-2",
+        "category": "reply_to_previous",
+        "expected_action": "ENGAGE_WITHOUT_MENTION",
+        "expected_priority": "ENGAGE_HIGH",
+        "observed_action": "ENGAGE_WITHOUT_MENTION",
+        "observed_priority": "ENGAGE_HIGH",
+        "project_mention": "NONE",
+        "status": "PASS"
+      },
+      {
+        "case_id": "reply_to_previous-3",
+        "category": "reply_to_previous",
+        "expected_action": "ENGAGE_WITHOUT_MENTION",
+        "expected_priority": "ENGAGE_HIGH",
+        "observed_action": "ENGAGE_WITHOUT_MENTION",
+        "observed_priority": "ENGAGE_HIGH",
+        "project_mention": "NONE",
+        "status": "PASS"
+      }
+    ],
+    "total": 60
+  },
+  "policy_benchmark": {
+    "passed": 20,
+    "results": [
+      {
+        "action": "HUMAN_REVIEW",
+        "case_id": "policy-00",
+        "expected": "HUMAN_REVIEW",
+        "observed": "HUMAN_REVIEW",
+        "status": "PASS"
+      },
+      {
+        "action": "BLOCKED_POLICY",
+        "case_id": "policy-01",
+        "expected": "BLOCKED_POLICY",
+        "observed": "BLOCKED_POLICY",
+        "status": "PASS"
+      },
+      {
+        "action": "HUMAN_REVIEW",
+        "case_id": "policy-02",
+        "expected": "HUMAN_REVIEW",
+        "observed": "HUMAN_REVIEW",
+        "status": "PASS"
+      },
+      {
+        "action": "IGNORE",
+        "case_id": "policy-03",
+        "expected": "IGNORE",
+        "observed": "IGNORE",
+        "status": "PASS"
+      },
+      {
+        "action": "HUMAN_REVIEW",
+        "case_id": "policy-04",
+        "expected": "HUMAN_REVIEW",
+        "observed": "HUMAN_REVIEW",
+        "status": "PASS"
+      },
+      {
+        "action": "BLOCKED_POLICY",
+        "case_id": "policy-05",
+        "expected": "BLOCKED_POLICY",
+        "observed": "BLOCKED_POLICY",
+        "status": "PASS"
+      },
+      {
+        "action": "HUMAN_REVIEW",
+        "case_id": "policy-06",
+        "expected": "HUMAN_REVIEW",
+        "observed": "HUMAN_REVIEW",
+        "status": "PASS"
+      },
+      {
+        "action": "IGNORE",
+        "case_id": "policy-07",
+        "expected": "IGNORE",
+        "observed": "IGNORE",
+        "status": "PASS"
+      },
+      {
+        "action": "HUMAN_REVIEW",
+        "case_id": "policy-08",
+        "expected": "HUMAN_REVIEW",
+        "observed": "HUMAN_REVIEW",
+        "status": "PASS"
+      },
+      {
+        "action": "BLOCKED_POLICY",
+        "case_id": "policy-09",
+        "expected": "BLOCKED_POLICY",
+        "observed": "BLOCKED_POLICY",
+        "status": "PASS"
+      },
+      {
+        "action": "HUMAN_REVIEW",
+        "case_id": "policy-10",
+        "expected": "HUMAN_REVIEW",
+        "observed": "HUMAN_REVIEW",
+        "status": "PASS"
+      },
+      {
+        "action": "IGNORE",
+        "case_id": "policy-11",
+        "expected": "IGNORE",
+        "observed": "IGNORE",
+        "status": "PASS"
+      },
+      {
+        "action": "HUMAN_REVIEW",
+        "case_id": "policy-12",
+        "expected": "HUMAN_REVIEW",
+        "observed": "HUMAN_REVIEW",
+        "status": "PASS"
+      },
+      {
+        "action": "BLOCKED_POLICY",
+        "case_id": "policy-13",
+        "expected": "BLOCKED_POLICY",
+        "observed": "BLOCKED_POLICY",
+        "status": "PASS"
+      },
+      {
+        "action": "HUMAN_REVIEW",
+        "case_id": "policy-14",
+        "expected": "HUMAN_REVIEW",
+        "observed": "HUMAN_REVIEW",
+        "status": "PASS"
+      },
+      {
+        "action": "IGNORE",
+        "case_id": "policy-15",
+        "expected": "IGNORE",
+        "observed": "IGNORE",
+        "status": "PASS"
+      },
+      {
+        "action": "HUMAN_REVIEW",
+        "case_id": "policy-16",
+        "expected": "HUMAN_REVIEW",
+        "observed": "HUMAN_REVIEW",
+        "status": "PASS"
+      },
+      {
+        "action": "BLOCKED_POLICY",
+        "case_id": "policy-17",
+        "expected": "BLOCKED_POLICY",
+        "observed": "BLOCKED_POLICY",
+        "status": "PASS"
+      },
+      {
+        "action": "HUMAN_REVIEW",
+        "case_id": "policy-18",
+        "expected": "HUMAN_REVIEW",
+        "observed": "HUMAN_REVIEW",
+        "status": "PASS"
+      },
+      {
+        "action": "IGNORE",
+        "case_id": "policy-19",
+        "expected": "IGNORE",
+        "observed": "IGNORE",
+        "status": "PASS"
+      }
+    ],
+    "total": 20
+  },
+  "real_read_dogfood": {
+    "duration_ms": 3382.717,
+    "errors": [],
+    "external_writes": 0,
+    "status": "PASS",
+    "threads_found": 30,
+    "top10_drafts": [
+      {
+        "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+        "project_mention": "NONE",
+        "reply": "A practical way to make retrieval reliable is to keep source observations separate from derived summaries, store explicit dependency links, and invalidate only summaries affected by changed evidence. Evaluate retrieval with frozen questions and inspect both missed evidence and unsupported answer claims.",
+        "spam_risk": 0.3125,
+        "standalone_value": true,
+        "thread_id": "github-0e8de21d4288e812",
+        "url": "https://github.com/Akshay1018/trove/issues/45",
+        "validation_errors": [
+          "RULES_UNKNOWN_HUMAN_REVIEW"
+        ]
+      },
+      {
+        "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+        "project_mention": "NONE",
+        "reply": "A practical way to make retrieval reliable is to keep source observations separate from derived summaries, store explicit dependency links, and invalidate only summaries affected by changed evidence. Evaluate retrieval with frozen questions and inspect both missed evidence and unsupported answer claims.",
+        "spam_risk": 0.3125,
+        "standalone_value": true,
+        "thread_id": "github-e6867a694e89725a",
+        "url": "https://github.com/Capstone-FA26SE186-Fire3D/AI/issues/21",
+        "validation_errors": [
+          "RULES_UNKNOWN_HUMAN_REVIEW"
+        ]
+      },
+      {
+        "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+        "project_mention": "NONE",
+        "reply": "A practical way to make retrieval reliable is to keep source observations separate from derived summaries, store explicit dependency links, and invalidate only summaries affected by changed evidence. Evaluate retrieval with frozen questions and inspect both missed evidence and unsupported answer claims.",
+        "spam_risk": 0.3125,
+        "standalone_value": true,
+        "thread_id": "github-09cd7c2db5e08d14",
+        "url": "https://github.com/Fledge-Software/Syrinx-app/issues/27",
+        "validation_errors": [
+          "RULES_UNKNOWN_HUMAN_REVIEW"
+        ]
+      },
+      {
+        "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+        "project_mention": "NONE",
+        "reply": "A practical way to make retrieval reliable is to keep source observations separate from derived summaries, store explicit dependency links, and invalidate only summaries affected by changed evidence. Evaluate retrieval with frozen questions and inspect both missed evidence and unsupported answer claims.",
+        "spam_risk": 0.3125,
+        "standalone_value": true,
+        "thread_id": "github-ac5c9f37616a9b69",
+        "url": "https://github.com/Fledge-Software/Syrinx-app/issues/98",
+        "validation_errors": [
+          "RULES_UNKNOWN_HUMAN_REVIEW"
+        ]
+      },
+      {
+        "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+        "project_mention": "NONE",
+        "reply": "A practical way to make retrieval reliable is to keep source observations separate from derived summaries, store explicit dependency links, and invalidate only summaries affected by changed evidence. Evaluate retrieval with frozen questions and inspect both missed evidence and unsupported answer claims.",
+        "spam_risk": 0.3125,
+        "standalone_value": true,
+        "thread_id": "github-5c97f197f3408275",
+        "url": "https://github.com/GizClaw/gizclaw/issues/368",
+        "validation_errors": [
+          "RULES_UNKNOWN_HUMAN_REVIEW"
+        ]
+      },
+      {
+        "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+        "project_mention": "NONE",
+        "reply": "A practical way to make retrieval reliable is to keep source observations separate from derived summaries, store explicit dependency links, and invalidate only summaries affected by changed evidence. Evaluate retrieval with frozen questions and inspect both missed evidence and unsupported answer claims.",
+        "spam_risk": 0.3125,
+        "standalone_value": true,
+        "thread_id": "github-ef8ab8a91fea05e3",
+        "url": "https://github.com/HKUDS/RAG-Anything/issues/424",
+        "validation_errors": [
+          "RULES_UNKNOWN_HUMAN_REVIEW"
+        ]
+      },
+      {
+        "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+        "project_mention": "NONE",
+        "reply": "A practical way to make retrieval reliable is to keep source observations separate from derived summaries, store explicit dependency links, and invalidate only summaries affected by changed evidence. Evaluate retrieval with frozen questions and inspect both missed evidence and unsupported answer claims.",
+        "spam_risk": 0.3125,
+        "standalone_value": true,
+        "thread_id": "github-b54560778f816ec6",
+        "url": "https://github.com/Jolls/Siftstr/issues/63",
+        "validation_errors": [
+          "RULES_UNKNOWN_HUMAN_REVIEW"
+        ]
+      },
+      {
+        "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+        "project_mention": "NONE",
+        "reply": "Treat repair as a bounded state transition: preserve the accepted interface, identify the smallest owning unit, apply a typed patch, and rerun that unit plus its dependents. A schema-valid response is not enough; verify the result against an external test or observable runtime behavior.",
+        "spam_risk": 0.3125,
+        "standalone_value": true,
+        "thread_id": "github-16f08b6c466e2b41",
+        "url": "https://github.com/Lee-Dongwook/E2E-Self-Heal/issues/265",
+        "validation_errors": [
+          "RULES_UNKNOWN_HUMAN_REVIEW"
+        ]
+      },
+      {
+        "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+        "project_mention": "NONE",
+        "reply": "A practical way to make retrieval reliable is to keep source observations separate from derived summaries, store explicit dependency links, and invalidate only summaries affected by changed evidence. Evaluate retrieval with frozen questions and inspect both missed evidence and unsupported answer claims.",
+        "spam_risk": 0.3125,
+        "standalone_value": true,
+        "thread_id": "github-8e0d675eba44fde2",
+        "url": "https://github.com/No-Country-simulation/S10_26_EQUIPO_29/issues/21",
+        "validation_errors": [
+          "RULES_UNKNOWN_HUMAN_REVIEW"
+        ]
+      },
+      {
+        "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+        "project_mention": "NONE",
+        "reply": "A practical way to make retrieval reliable is to keep source observations separate from derived summaries, store explicit dependency links, and invalidate only summaries affected by changed evidence. Evaluate retrieval with frozen questions and inspect both missed evidence and unsupported answer claims.",
+        "spam_risk": 0.3125,
+        "standalone_value": true,
+        "thread_id": "github-fe06e5f017617dda",
+        "url": "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/127",
+        "validation_errors": [
+          "RULES_UNKNOWN_HUMAN_REVIEW"
+        ]
+      }
+    ],
+    "top20": [
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-0e8de21d4288e812",
+        "title": "feat(mcp): Add a native Model Context Protocol server for Trove",
+        "url": "https://github.com/Akshay1018/trove/issues/45"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-e6867a694e89725a",
+        "title": "[Completion A2] Chốt model/embedding và nghiệm thu triển khai Azure",
+        "url": "https://github.com/Capstone-FA26SE186-Fire3D/AI/issues/21"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-09cd7c2db5e08d14",
+        "title": "Plugins: rewrite the Plan 2–4 slice breakdowns and AGENTS.md guardrails for WASM plugins",
+        "url": "https://github.com/Fledge-Software/Syrinx-app/issues/27"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-ac5c9f37616a9b69",
+        "title": "Notes: prerequisites before the first slice",
+        "url": "https://github.com/Fledge-Software/Syrinx-app/issues/98"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-5c97f197f3408275",
+        "title": "bug: Flowcraft async extraction can complete with zero facts",
+        "url": "https://github.com/GizClaw/gizclaw/issues/368"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-ef8ab8a91fea05e3",
+        "title": "[Question]:Multi-page tables",
+        "url": "https://github.com/HKUDS/RAG-Anything/issues/424"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-b54560778f816ec6",
+        "title": "Decide whether to remove the Deep stage (light-only triage)",
+        "url": "https://github.com/Jolls/Siftstr/issues/63"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-16f08b6c466e2b41",
+        "title": "Product direction: position e2e-healer as a trustworthy Git-native Playwright repair gate",
+        "url": "https://github.com/Lee-Dongwook/E2E-Self-Heal/issues/265"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-8e0d675eba44fde2",
+        "title": "Frontend / Acordar la respuesta del asistente y las relaciones del stack",
+        "url": "https://github.com/No-Country-simulation/S10_26_EQUIPO_29/issues/21"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "EXPLICIT_TOOL_REQUEST",
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-fe06e5f017617dda",
+        "title": "Android 13.01: Knowledge and retrieval configuration",
+        "url": "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/127"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-bd3cb0e89f2553d8",
+        "title": "Feature entitlements are never enforced: guards and hook are unused",
+        "url": "https://github.com/SimonLoir/vectorix/issues/21"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-a5f3a5abc2949741",
+        "title": "[Feature Request] Is workflow orchestration (Dify/MaxKB-style) planned for the Agent module in upcoming releases?",
+        "url": "https://github.com/Tencent/WeKnora/issues/4611"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-65ec6afd3d297049",
+        "title": "[확인요청] 검색 품질 평가를 위한 개발 환경 및 설정 확인 요청",
+        "url": "https://github.com/aideveloperno1/yeardreamwp/issues/4"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-d7fcc8514717251f",
+        "title": "[Question] Status and intended integration for Codex CLI RL training",
+        "url": "https://github.com/areal-project/AReaL/issues/1776"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-73303894073737ad",
+        "title": "LeRobot Community Roadmap 0.7.0 Release",
+        "url": "https://github.com/huggingface/lerobot/issues/3832"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-8b67ad5d069fbfad",
+        "title": "Interoperability question: signed snapshot of observed RSL state for downstream AI clients",
+        "url": "https://github.com/jeffpaul/rsl-wp/issues/10"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-dac836e9bd19e1a6",
+        "title": "RFC: canon entity adjudication decides identity blind for every entity type — add an adverse-only source-grounded skeptic pass, evidence-bound verdicts, and fix caseless-script extraction",
+        "url": "https://github.com/lazyants/claude-plugins/issues/215"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-5e078d61aea8b158",
+        "title": "Feedback request: IaC-Guard-V verification semantics and real-world use",
+        "url": "https://github.com/lokesh0186/iac-guard-v/issues/1"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-a0d0eb03294f0596",
+        "title": "Release-process ownership is split across Ateles and Neotoma along the wrong boundary",
+        "url": "https://github.com/markmhendrickson/ateles/issues/522"
+      },
+      {
+        "platform": "github",
+        "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+        "rank_score": 0.64,
+        "reason_codes": [
+          "SUPPORTED_ABILITY_TO_HELP",
+          "RULES_UNKNOWN"
+        ],
+        "should_engage": "HUMAN_REVIEW",
+        "should_mention": "NONE",
+        "spam_risk": 0.3125,
+        "standalone_value_candidate": true,
+        "thread_id": "github-dcb00125839f018f",
+        "title": "Research question: can tool-call parsers reverse an agent benchmark result?",
+        "url": "https://github.com/mbabby/agent-research-commons/issues/36"
+      }
+    ]
+  },
+  "real_reply": {
+    "mvp_impact": "NON_BLOCKING",
+    "reason": "No self-owned test thread, official write credentials, and explicit public reply approval were provided together.",
+    "status": "BLOCKED_ENVIRONMENT_REAL_REPLY"
+  },
+  "reply_benchmark": {
+    "passed": 30,
+    "results": [
+      {
+        "case_id": "reply-00",
+        "claim_ids": [
+          "claim-community-1"
+        ],
+        "mention": "MENTION_WITH_LINK",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:114fcc619d932a5e1d563bb5acdaa50d6371be679f1692a4b7e6053d021271f0",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-01",
+        "claim_ids": [],
+        "mention": "NONE",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:69de0b88d737a6594888f46c33f9d54ef33e8358c67e5c1d55551b362b9f7ae5",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-02",
+        "claim_ids": [
+          "claim-community-1"
+        ],
+        "mention": "MENTION_WITH_LINK",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:81588498a9b3319cf057e3c30bbc99169228d6641c848bb8bcd6f40cc66e76b2",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-03",
+        "claim_ids": [],
+        "mention": "NONE",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:52e5506b5de8cb80b8d9410031ad1e44e9b31cbb161aae1212ed9672c1cc24be",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-04",
+        "claim_ids": [
+          "claim-community-1"
+        ],
+        "mention": "MENTION_WITH_LINK",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:53332f307d8db2549370fb313b4a0d3a8f991aed5905e222c42f35a4781907c6",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-05",
+        "claim_ids": [],
+        "mention": "NONE",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:7b1e6c1235768337aff2f8b18bece2d7d138fa452be24163c3e81e1e28210a01",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-06",
+        "claim_ids": [
+          "claim-community-1"
+        ],
+        "mention": "MENTION_WITH_LINK",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:8dead6b0c3831aac7842821751d367f01e81186c740396dc06588f58c0e371fd",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-07",
+        "claim_ids": [],
+        "mention": "NONE",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:77e80ca8f2b707e22f27332af269ab5f351d1bab557afab93062ef19dc7ad299",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-08",
+        "claim_ids": [
+          "claim-community-1"
+        ],
+        "mention": "MENTION_WITH_LINK",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:3bbdf25a9e842b444a74ad629809fd87f09374f29ea7ab90e41a79c2996259bf",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-09",
+        "claim_ids": [],
+        "mention": "NONE",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:1c991d8590a55bccd4e9d2e5eb6c13d2b535a80c6a586bdd76e7ca3114e50b56",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-10",
+        "claim_ids": [
+          "claim-community-1"
+        ],
+        "mention": "MENTION_WITH_LINK",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:a9c1ef242b2bcb8d975953f103db0cd2bd8185ef5035384f1a0555c1da58ae2f",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-11",
+        "claim_ids": [],
+        "mention": "NONE",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:3bef2308a69f8449a39bf6eddf4d91355ec33a71a4bc62c1ca579d652365bb63",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-12",
+        "claim_ids": [
+          "claim-community-1"
+        ],
+        "mention": "MENTION_WITH_LINK",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:d8510cd9533bf0ada161b1180b00df0755415cd67646f3341b262ccf655a5396",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-13",
+        "claim_ids": [],
+        "mention": "NONE",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:1ec27d2e5e1d3269b821b7fbdd43ca7a1eca15d0015308d63a5256c74c4c28a6",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-14",
+        "claim_ids": [
+          "claim-community-1"
+        ],
+        "mention": "MENTION_WITH_LINK",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:4eac7252e8f912a1726a82bddc1e06ff700fb9aef89f30b5b51e55e281b6519c",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-15",
+        "claim_ids": [],
+        "mention": "NONE",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:485a3c4ef778a05ddc9f66f8f2cc616ac2c98eba22d73eaf92412c6ded2d9053",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-16",
+        "claim_ids": [
+          "claim-community-1"
+        ],
+        "mention": "MENTION_WITH_LINK",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:1613295c1d869cb07ddd7230c7bb378c5e38be18e38ed54c708ddfcaeea2de13",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-17",
+        "claim_ids": [],
+        "mention": "NONE",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:e9808cadd4e9f8c89ac755091a3293b9c970266ff14443ed5862f85907c982a7",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-18",
+        "claim_ids": [
+          "claim-community-1"
+        ],
+        "mention": "MENTION_WITH_LINK",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:ae3b1281a1c041367fbd2b51d39b423acace5b411e6b13b8b405bd850cc33c36",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-19",
+        "claim_ids": [],
+        "mention": "NONE",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:99f4db8fdae04851dd13eafcb604bec9c4aa769fa8499abf2e97913f5e93ee73",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-20",
+        "claim_ids": [
+          "claim-community-1"
+        ],
+        "mention": "MENTION_WITH_LINK",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:3e282427815f18bf2a23a39a0e74b5b778fab8919f7e59caa593c19e28cdaba3",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-21",
+        "claim_ids": [],
+        "mention": "NONE",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:677c1f5cc191ac9d5246c22dc9c54ad01e6e64ad96c21ccc2df59bdc3b7bf5b0",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-22",
+        "claim_ids": [
+          "claim-community-1"
+        ],
+        "mention": "MENTION_WITH_LINK",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:8e1001828f027e4a08418b96a5411c3cca5e69d93b792f5a02032b0530e5a416",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-23",
+        "claim_ids": [],
+        "mention": "NONE",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:5b4821bca777d2bd3a3680c96ae831d461ecd3a5156feef23e3fabbd807d03bc",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-24",
+        "claim_ids": [
+          "claim-community-1"
+        ],
+        "mention": "MENTION_WITH_LINK",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:eaf87fab7cdd9f3268bb1a0b6b66264d9358a11579de956de15f5b42e41b3d3d",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-25",
+        "claim_ids": [],
+        "mention": "NONE",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:eea1108e73d166aae739ab3553b922f4b4012f64c2c1493ee7318bca916f2f60",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-26",
+        "claim_ids": [
+          "claim-community-1"
+        ],
+        "mention": "MENTION_WITH_LINK",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:d3f36482b964fb46359a252403745808568de7f965ea88d545855ccc643a1b7e",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-27",
+        "claim_ids": [],
+        "mention": "NONE",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:1b602bf5054f325270f4d599fe805a86eec95c4443965c360d58b0c51efed20e",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-28",
+        "claim_ids": [
+          "claim-community-1"
+        ],
+        "mention": "MENTION_WITH_LINK",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:b8d400cca712bebaec4ed7da813dfe049c81461be69b16f14f916bdb46e18700",
+          "warnings": []
+        }
+      },
+      {
+        "case_id": "reply-29",
+        "claim_ids": [],
+        "mention": "NONE",
+        "standalone_value": true,
+        "status": "PASS",
+        "validation": {
+          "errors": [],
+          "status": "PASS",
+          "validation_hash": "sha256:2d76963fe8b33f7db5fcae66c9788b0c174d3d13d4afd9cf7db988b9850146b4",
+          "warnings": []
+        }
+      }
+    ],
+    "standalone_value_rate": 1.0,
+    "total": 30,
+    "unsupported_project_claims": 0
+  },
+  "schema_version": "1.0",
+  "security": {
+    "credential_exposure": 0,
+    "external_writes": 0,
+    "hidden_affiliation": 0,
+    "impersonation": 0,
+    "policy_bypassing_replies": 0,
+    "private_leakage": 0,
+    "unapproved_external_replies": 0,
+    "unintended_duplicate_replies": 0,
+    "unsupported_project_claims": 0
+  },
+  "source_identity": {
+    "branch": "codex/community-operator-20261025",
+    "clean": true,
+    "commit": "0bc46cafb875c3f5da6baa2f7fe99b4e99dd38e1",
+    "status_lines": [],
+    "tree": "0f4b103fc304c42ed65ef383bedf130a83ac2544"
+  },
+  "status": "PASS",
+  "versions": {
+    "adapter_interface": "community-reply-adapter-v1.0",
+    "approval_policy": "community-reply-approval-v1.0",
+    "community_schema": "community-domain-v1.0",
+    "discovery_policy": "community-discovery-v1.0",
+    "engagement_policy": "community-engagement-v1.0",
+    "model_config": "community-deterministic-cheap-ready-v1.0",
+    "opportunity_policy": "community-opportunity-precision-v1.0",
+    "persona": "community-persona-transparent-technical-v1.0",
+    "project_mention_policy": "community-project-mention-v1.0"
+  }
+}

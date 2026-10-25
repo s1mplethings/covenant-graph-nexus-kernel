@@ -1,0 +1,83 @@
+{
+  "kind": "CGKNCommunityReceipt",
+  "schema_version": "1.0",
+  "iteration": "ITER-054",
+  "source_identity": {
+    "commit": "0bc46cafb875c3f5da6baa2f7fe99b4e99dd38e1",
+    "tree": "0f4b103fc304c42ed65ef383bedf130a83ac2544",
+    "branch": "codex/community-operator-20261025",
+    "remote_verified": true
+  },
+  "evaluation": {
+    "status": "PASS",
+    "evaluation_hash": "sha256:94eeef7b00f78287dc101e175515e6e9efaa29a01b6be27637ab1a8a8d325b96",
+    "opportunity": "PASS_60_OF_60",
+    "reply": "PASS_30_OF_30",
+    "policy": "PASS_20_OF_20",
+    "followup": "PASS_10_OF_10",
+    "fake_adapter": "PASS_12_OF_12",
+    "official_adapter_contract": "PASS_4_OF_4_OFFLINE",
+    "unsupported_project_claims": 0,
+    "standalone_value_rate": 1.0
+  },
+  "real_read": {
+    "status": "PASS",
+    "threads": 30,
+    "top20": 20,
+    "top10_drafts": 10,
+    "manual_review_worth_reply": 5,
+    "manual_review_worth_project_mention": 0,
+    "external_writes": 0
+  },
+  "real_reply": {
+    "status": "BLOCKED_ENVIRONMENT_REAL_REPLY",
+    "mvp_impact": "NON_BLOCKING"
+  },
+  "security": {
+    "unsupported_project_claims": 0,
+    "private_leakage": 0,
+    "policy_bypassing_replies": 0,
+    "unapproved_external_replies": 0,
+    "unintended_duplicate_replies": 0,
+    "credential_exposure": 0,
+    "impersonation": 0,
+    "hidden_affiliation": 0
+  },
+  "cost": {
+    "status": "KNOWN_ZERO_DETERMINISTIC_BASELINE",
+    "strong_calls": 0,
+    "cheap_calls": 0,
+    "tokens": 0,
+    "known_cost_usd": 0.0,
+    "provider_quality_conclusion": "NOT_EVALUATED"
+  },
+  "kernel_regression": {
+    "compileall": "PASS",
+    "product_direction_gate": "PASS",
+    "kernel_architecture_gate": "PASS",
+    "test_architecture_gate": "PASS",
+    "kernel_completeness_gate": "PASS",
+    "kernel_test_receipt": "PASS",
+    "receipt_freshness": "PASS",
+    "profiles": {
+      "static": "PASS",
+      "unit": "PASS_482_SKIP_1",
+      "boundary": "PASS_325_SKIP_1",
+      "fault": "PASS_80",
+      "security": "PASS_119_SKIP_1",
+      "local-functional": "PASS_6",
+      "full-core": "PASS_482_SKIP_1",
+      "active-repository": "PASS_2933_SKIP_357"
+    },
+    "collection": "PASS_3290",
+    "failed": 0,
+    "errors": 0,
+    "initial_nonfinal_run": "3 failures: two stale source-bound receipts plus one PMP schema error; an independent Knowledge workload rerun passed. Receipts and PMP evidence were corrected before the final profile group."
+  },
+  "evidence": [
+    "project_management/summaries/ITER-054-evidence/community_evaluation.json",
+    "project_management/summaries/ITER-054-evidence/real_read_dogfood.json",
+    "project_management/summaries/ITER-054-evidence/real_read_review.json"
+  ],
+  "verdict": "COMPLETE_WITH_ENVIRONMENT_LIMIT"
+}

@@ -1,9 +1,9 @@
 {
   "kind": "CGKNSemanticArtifactValidationReceipt",
   "schema_version": "1.0",
-  "source_commit": "3c5d2dc7d3eca4947ff319d0a98ac67c9436a1bd",
-  "source_tree": "34e2a20e833adc584b0c1fe2854f1317231f0fed",
-  "experiment_boundary_hash": "sha256:eeb0675383fad172ea019285cadd293e17ef890f6e2e13766c5ad506ffa68a34",
+  "source_commit": "0bc46cafb875c3f5da6baa2f7fe99b4e99dd38e1",
+  "source_tree": "0f4b103fc304c42ed65ef383bedf130a83ac2544",
+  "experiment_boundary_hash": "sha256:e299029eae6d4c94ec88c4de4c99ebe7ade69173b0c2f6e2fdec3a42bb5ca927",
   "evidence_status": "NEEDS_REWORK",
   "semantic_artifact_interface": "PARTIAL",
   "winner": "NONE",
@@ -54,6 +54,14 @@
     "native_adapter_contracts": "PASS_3_OF_3_OFFLINE",
     "evaluation_hash": "sha256:d13ba0f7773ba3c694ca79b5df8bbbea6e87291e5d21e3f1ceb0587749915ec1"
   },
+  "community_operator_validation": {
+    "status": "PASS_WITH_ENVIRONMENT_LIMIT",
+    "offline_cases": "PASS_60_OPPORTUNITY_30_REPLY_20_POLICY_10_FOLLOWUP",
+    "fake_adapters": "PASS_12_OF_12",
+    "official_adapter_contracts": "PASS_4_OF_4_OFFLINE",
+    "real_read": "PASS_30_TOP20_TOP10",
+    "evaluation_hash": "sha256:94eeef7b00f78287dc101e175515e6e9efaa29a01b6be27637ab1a8a8d325b96"
+  },
   "kernel_regression": {
     "compileall": "PASS",
     "product_direction_gate": "PASS",
@@ -64,9 +72,9 @@
     "receipt_freshness": "PASS",
     "unit_profile": "PASS_482_SKIP_1",
     "remaining_profiles": "PASS_STATIC_BOUNDARY_FAULT_SECURITY_LOCAL_FUNCTIONAL_FULL_CORE_ACTIVE_REPOSITORY",
-    "active_repository": "PASS_2903_SKIP_357_0_FAILED_0_ERRORS",
-    "collection": "PASS_3260",
-    "note": "The Promotion Studio source closure refreshed application and experiment source-bound receipts; all receipt freshness, active-repository, and full-pytest checks pass."
+    "active_repository": "PASS_2933_SKIP_357_0_FAILED_0_ERRORS",
+    "collection": "PASS_3290",
+    "note": "The Community Operator source closure refreshed application and experiment source-bound receipts after source-bound formal evaluation."
   },
   "stop_condition": "B"
 }

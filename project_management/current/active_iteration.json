@@ -5,8 +5,8 @@
   "project_id": "cgkn",
   "goal": "Build a policy-safe Community Operator capability branch that discovers and ranks public discussions, drafts evidence-grounded replies, and permits external replies only through exact-hash human approval.",
   "backlog_item_ids": ["PB-030"],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
     "at least 60 frozen opportunity cases meet precision-first engagement, mention, policy, and direct-mention gates",
     "reply drafts retain useful technical value without project names, links, or calls to action",
@@ -42,11 +42,17 @@
     "scripts/run_community_operator.py",
     "benchmarks/community_v1/fixtures/community_connectivity_matrix.json"
   ],
-  "experience_usage": {
-    "selected_ids": ["EXP-MVP-001", "EXP-MVP-003", "EXP-MVP-006", "EXP-MVP-007"],
-    "use": "Preserve one Component/Registry/Runtime authority, bound executor context to the target thread, restrict growth to READ/PURE helpers, and keep source publication evidence distinct from product qualification.",
-    "confidence_changed": false
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "Community local MVP and real read-only discovery passed; real reply remains blocked until a controlled self-owned target, official credentials, and exact approval coexist.",
+      "Human review accepted only 5 of the real Top20 as potentially worth replying to and accepted no project mentions."
+    ],
+    "accepted_backlog_item_ids": ["PB-030"]
   },
-  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
-  "retrospective": {"worked": [], "did_not_work": [], "experiments": []}
+  "retrospective": {
+    "worked": ["strict approval binding", "value-without-promotion gate", "question-labeled discovery", "separate engage and project-mention decisions"],
+    "did_not_work": ["treating unknown community rules before relevance initially promoted irrelevant issues into review"],
+    "experiments": ["moving the relevance and ability gate before unknown-rule review removed irrelevant drafts without weakening policy review"]
+  }
 }

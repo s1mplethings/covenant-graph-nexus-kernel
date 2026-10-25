@@ -1,9 +1,9 @@
 {
   "kind": "CGKNSoftwareProjectGenerationReceipt",
   "schema_version": "1.0",
-  "source_commit": "3c5d2dc7d3eca4947ff319d0a98ac67c9436a1bd",
-  "source_tree_sha": "34e2a20e833adc584b0c1fe2854f1317231f0fed",
-  "application_boundary_hash": "sha256:e737eb568d57e4f38f2a959fcd863d192e3131f4b00be819324dd2286baf72ae",
+  "source_commit": "0bc46cafb875c3f5da6baa2f7fe99b4e99dd38e1",
+  "source_tree_sha": "0f4b103fc304c42ed65ef383bedf130a83ac2544",
+  "application_boundary_hash": "sha256:21b198fad3aa4b7537961dfade9ec8eb2a3e1f74fc1536e1008c9e169990ae44",
   "suite_result": "PASS_ARCHITECTURE_CONVERGENCE",
   "formal_final_suite": "PASS_CURRENT_SOURCE",
   "generation_readiness": "GENERATION_LEVEL_3",
@@ -15,11 +15,11 @@
     "targeted_errors": 0,
     "targeted_skipped": 58,
     "full_repository_status": "PASS",
-    "full_repository_passed": 2903,
+    "full_repository_passed": 2933,
     "full_repository_failed": 0,
     "full_repository_errors": 0,
     "full_repository_skipped": 357,
-    "collection_count": 3260,
+    "collection_count": 3290,
     "provider_network_usage_during_regression": false
   },
   "coordinator_qualification": "PASS_5_OF_5_RETAINED",
@@ -74,6 +74,14 @@
     "evaluation_hash": "sha256:d13ba0f7773ba3c694ca79b5df8bbbea6e87291e5d21e3f1ceb0587749915ec1",
     "evidence": "project_management/summaries/ITER-053-evidence/promotion_evaluation.json",
     "real_publication": "BLOCKED_ENVIRONMENT"
+  },
+  "community_operator_validation": {
+    "status": "PASS_WITH_ENVIRONMENT_LIMIT",
+    "evaluation_hash": "sha256:94eeef7b00f78287dc101e175515e6e9efaa29a01b6be27637ab1a8a8d325b96",
+    "evidence": "project_management/summaries/ITER-054-evidence/community_evaluation.json",
+    "real_read": "PASS_30",
+    "real_reply": "BLOCKED_ENVIRONMENT_REAL_REPLY",
+    "external_writes": 0
   },
   "receipt_hash": "sha256:af68f1750192542d773dfbe18cb1b71840797ff228504d6240e823322ff7f462"
 }

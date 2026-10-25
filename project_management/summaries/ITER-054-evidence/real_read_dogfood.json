@@ -1,0 +1,452 @@
+{
+  "duration_ms": 3382.717,
+  "errors": [],
+  "external_writes": 0,
+  "status": "PASS",
+  "threads_found": 30,
+  "top10_drafts": [
+    {
+      "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+      "project_mention": "NONE",
+      "reply": "A practical way to make retrieval reliable is to keep source observations separate from derived summaries, store explicit dependency links, and invalidate only summaries affected by changed evidence. Evaluate retrieval with frozen questions and inspect both missed evidence and unsupported answer claims.",
+      "spam_risk": 0.3125,
+      "standalone_value": true,
+      "thread_id": "github-0e8de21d4288e812",
+      "url": "https://github.com/Akshay1018/trove/issues/45",
+      "validation_errors": [
+        "RULES_UNKNOWN_HUMAN_REVIEW"
+      ]
+    },
+    {
+      "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+      "project_mention": "NONE",
+      "reply": "A practical way to make retrieval reliable is to keep source observations separate from derived summaries, store explicit dependency links, and invalidate only summaries affected by changed evidence. Evaluate retrieval with frozen questions and inspect both missed evidence and unsupported answer claims.",
+      "spam_risk": 0.3125,
+      "standalone_value": true,
+      "thread_id": "github-e6867a694e89725a",
+      "url": "https://github.com/Capstone-FA26SE186-Fire3D/AI/issues/21",
+      "validation_errors": [
+        "RULES_UNKNOWN_HUMAN_REVIEW"
+      ]
+    },
+    {
+      "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+      "project_mention": "NONE",
+      "reply": "A practical way to make retrieval reliable is to keep source observations separate from derived summaries, store explicit dependency links, and invalidate only summaries affected by changed evidence. Evaluate retrieval with frozen questions and inspect both missed evidence and unsupported answer claims.",
+      "spam_risk": 0.3125,
+      "standalone_value": true,
+      "thread_id": "github-09cd7c2db5e08d14",
+      "url": "https://github.com/Fledge-Software/Syrinx-app/issues/27",
+      "validation_errors": [
+        "RULES_UNKNOWN_HUMAN_REVIEW"
+      ]
+    },
+    {
+      "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+      "project_mention": "NONE",
+      "reply": "A practical way to make retrieval reliable is to keep source observations separate from derived summaries, store explicit dependency links, and invalidate only summaries affected by changed evidence. Evaluate retrieval with frozen questions and inspect both missed evidence and unsupported answer claims.",
+      "spam_risk": 0.3125,
+      "standalone_value": true,
+      "thread_id": "github-ac5c9f37616a9b69",
+      "url": "https://github.com/Fledge-Software/Syrinx-app/issues/98",
+      "validation_errors": [
+        "RULES_UNKNOWN_HUMAN_REVIEW"
+      ]
+    },
+    {
+      "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+      "project_mention": "NONE",
+      "reply": "A practical way to make retrieval reliable is to keep source observations separate from derived summaries, store explicit dependency links, and invalidate only summaries affected by changed evidence. Evaluate retrieval with frozen questions and inspect both missed evidence and unsupported answer claims.",
+      "spam_risk": 0.3125,
+      "standalone_value": true,
+      "thread_id": "github-5c97f197f3408275",
+      "url": "https://github.com/GizClaw/gizclaw/issues/368",
+      "validation_errors": [
+        "RULES_UNKNOWN_HUMAN_REVIEW"
+      ]
+    },
+    {
+      "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+      "project_mention": "NONE",
+      "reply": "A practical way to make retrieval reliable is to keep source observations separate from derived summaries, store explicit dependency links, and invalidate only summaries affected by changed evidence. Evaluate retrieval with frozen questions and inspect both missed evidence and unsupported answer claims.",
+      "spam_risk": 0.3125,
+      "standalone_value": true,
+      "thread_id": "github-ef8ab8a91fea05e3",
+      "url": "https://github.com/HKUDS/RAG-Anything/issues/424",
+      "validation_errors": [
+        "RULES_UNKNOWN_HUMAN_REVIEW"
+      ]
+    },
+    {
+      "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+      "project_mention": "NONE",
+      "reply": "A practical way to make retrieval reliable is to keep source observations separate from derived summaries, store explicit dependency links, and invalidate only summaries affected by changed evidence. Evaluate retrieval with frozen questions and inspect both missed evidence and unsupported answer claims.",
+      "spam_risk": 0.3125,
+      "standalone_value": true,
+      "thread_id": "github-b54560778f816ec6",
+      "url": "https://github.com/Jolls/Siftstr/issues/63",
+      "validation_errors": [
+        "RULES_UNKNOWN_HUMAN_REVIEW"
+      ]
+    },
+    {
+      "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+      "project_mention": "NONE",
+      "reply": "Treat repair as a bounded state transition: preserve the accepted interface, identify the smallest owning unit, apply a typed patch, and rerun that unit plus its dependents. A schema-valid response is not enough; verify the result against an external test or observable runtime behavior.",
+      "spam_risk": 0.3125,
+      "standalone_value": true,
+      "thread_id": "github-16f08b6c466e2b41",
+      "url": "https://github.com/Lee-Dongwook/E2E-Self-Heal/issues/265",
+      "validation_errors": [
+        "RULES_UNKNOWN_HUMAN_REVIEW"
+      ]
+    },
+    {
+      "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+      "project_mention": "NONE",
+      "reply": "A practical way to make retrieval reliable is to keep source observations separate from derived summaries, store explicit dependency links, and invalidate only summaries affected by changed evidence. Evaluate retrieval with frozen questions and inspect both missed evidence and unsupported answer claims.",
+      "spam_risk": 0.3125,
+      "standalone_value": true,
+      "thread_id": "github-8e0d675eba44fde2",
+      "url": "https://github.com/No-Country-simulation/S10_26_EQUIPO_29/issues/21",
+      "validation_errors": [
+        "RULES_UNKNOWN_HUMAN_REVIEW"
+      ]
+    },
+    {
+      "policy_status": "DRAFT_ONLY_HUMAN_REVIEW",
+      "project_mention": "NONE",
+      "reply": "A practical way to make retrieval reliable is to keep source observations separate from derived summaries, store explicit dependency links, and invalidate only summaries affected by changed evidence. Evaluate retrieval with frozen questions and inspect both missed evidence and unsupported answer claims.",
+      "spam_risk": 0.3125,
+      "standalone_value": true,
+      "thread_id": "github-fe06e5f017617dda",
+      "url": "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/127",
+      "validation_errors": [
+        "RULES_UNKNOWN_HUMAN_REVIEW"
+      ]
+    }
+  ],
+  "top20": [
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-0e8de21d4288e812",
+      "title": "feat(mcp): Add a native Model Context Protocol server for Trove",
+      "url": "https://github.com/Akshay1018/trove/issues/45"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-e6867a694e89725a",
+      "title": "[Completion A2] Chốt model/embedding và nghiệm thu triển khai Azure",
+      "url": "https://github.com/Capstone-FA26SE186-Fire3D/AI/issues/21"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-09cd7c2db5e08d14",
+      "title": "Plugins: rewrite the Plan 2–4 slice breakdowns and AGENTS.md guardrails for WASM plugins",
+      "url": "https://github.com/Fledge-Software/Syrinx-app/issues/27"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-ac5c9f37616a9b69",
+      "title": "Notes: prerequisites before the first slice",
+      "url": "https://github.com/Fledge-Software/Syrinx-app/issues/98"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-5c97f197f3408275",
+      "title": "bug: Flowcraft async extraction can complete with zero facts",
+      "url": "https://github.com/GizClaw/gizclaw/issues/368"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-ef8ab8a91fea05e3",
+      "title": "[Question]:Multi-page tables",
+      "url": "https://github.com/HKUDS/RAG-Anything/issues/424"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-b54560778f816ec6",
+      "title": "Decide whether to remove the Deep stage (light-only triage)",
+      "url": "https://github.com/Jolls/Siftstr/issues/63"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-16f08b6c466e2b41",
+      "title": "Product direction: position e2e-healer as a trustworthy Git-native Playwright repair gate",
+      "url": "https://github.com/Lee-Dongwook/E2E-Self-Heal/issues/265"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-8e0d675eba44fde2",
+      "title": "Frontend / Acordar la respuesta del asistente y las relaciones del stack",
+      "url": "https://github.com/No-Country-simulation/S10_26_EQUIPO_29/issues/21"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "EXPLICIT_TOOL_REQUEST",
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-fe06e5f017617dda",
+      "title": "Android 13.01: Knowledge and retrieval configuration",
+      "url": "https://github.com/Pick-Your-AI/pick-your-ai-android/issues/127"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-bd3cb0e89f2553d8",
+      "title": "Feature entitlements are never enforced: guards and hook are unused",
+      "url": "https://github.com/SimonLoir/vectorix/issues/21"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-a5f3a5abc2949741",
+      "title": "[Feature Request] Is workflow orchestration (Dify/MaxKB-style) planned for the Agent module in upcoming releases?",
+      "url": "https://github.com/Tencent/WeKnora/issues/4611"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-65ec6afd3d297049",
+      "title": "[확인요청] 검색 품질 평가를 위한 개발 환경 및 설정 확인 요청",
+      "url": "https://github.com/aideveloperno1/yeardreamwp/issues/4"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-d7fcc8514717251f",
+      "title": "[Question] Status and intended integration for Codex CLI RL training",
+      "url": "https://github.com/areal-project/AReaL/issues/1776"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-73303894073737ad",
+      "title": "LeRobot Community Roadmap 0.7.0 Release",
+      "url": "https://github.com/huggingface/lerobot/issues/3832"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-8b67ad5d069fbfad",
+      "title": "Interoperability question: signed snapshot of observed RSL state for downstream AI clients",
+      "url": "https://github.com/jeffpaul/rsl-wp/issues/10"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-dac836e9bd19e1a6",
+      "title": "RFC: canon entity adjudication decides identity blind for every entity type — add an adverse-only source-grounded skeptic pass, evidence-bound verdicts, and fix caseless-script extraction",
+      "url": "https://github.com/lazyants/claude-plugins/issues/215"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-5e078d61aea8b158",
+      "title": "Feedback request: IaC-Guard-V verification semantics and real-world use",
+      "url": "https://github.com/lokesh0186/iac-guard-v/issues/1"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-a0d0eb03294f0596",
+      "title": "Release-process ownership is split across Ateles and Neotoma along the wrong boundary",
+      "url": "https://github.com/markmhendrickson/ateles/issues/522"
+    },
+    {
+      "platform": "github",
+      "policy": "HUMAN_REVIEW_RULES_UNKNOWN",
+      "rank_score": 0.64,
+      "reason_codes": [
+        "SUPPORTED_ABILITY_TO_HELP",
+        "RULES_UNKNOWN"
+      ],
+      "should_engage": "HUMAN_REVIEW",
+      "should_mention": "NONE",
+      "spam_risk": 0.3125,
+      "standalone_value_candidate": true,
+      "thread_id": "github-dcb00125839f018f",
+      "title": "Research question: can tool-call parsers reverse an agent benchmark result?",
+      "url": "https://github.com/mbabby/agent-research-commons/issues/36"
+    }
+  ]
+}

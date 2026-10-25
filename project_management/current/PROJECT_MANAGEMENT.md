@@ -20,9 +20,9 @@ The remaining compatibility runtime is intentionally retained:
 
 Further cleanup inside that cluster now requires a working replacement path.
 
-## Current feature increment
+## Latest feature increment
 
-`ITER-054` adds a Community Operator application capability branch over the
+`ITER-054` closed with limits after adding a Community Operator application capability branch over the
 existing Component, Registry, Runtime, Knowledge, Promotion validation, and
 approval boundaries. It does not add a Community runtime, scheduler, planner,
 Knowledge authority, or public-delivery route.
@@ -58,8 +58,11 @@ Management records cannot authorize functional success, formal evidence, packagi
 
 ## Verification
 
-Community Operator evidence is not yet evaluated. Formal evidence will require
-one clean canonical Source Closure, frozen policy/schema hashes, all benchmark
-gates, a real read-only scan, compileall, Kernel gates and profiles, collection,
-and full pytest. Offline reply-adapter qualification cannot authorize a real
-public reply.
+Community Operator is `COMPLETE_WITH_ENVIRONMENT_LIMIT` on Source Closure
+`0bc46cafb875c3f5da6baa2f7fe99b4e99dd38e1`: all frozen benchmarks, a 30-thread
+real read-only scan, Top20 human review, Top10 draft review, compileall, Kernel
+gates and profiles, 3,290-test collection, and the 2,933-pass full repository
+run completed with zero failures or errors. No external write occurred. Offline
+reply-adapter qualification does not authorize a real public reply; that remains
+`BLOCKED_ENVIRONMENT_REAL_REPLY` until a controlled self-owned target, official
+credentials, and exact approval are available together.
