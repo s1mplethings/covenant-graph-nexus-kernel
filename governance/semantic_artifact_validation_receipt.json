@@ -1,8 +1,8 @@
 {
   "kind": "CGKNSemanticArtifactValidationReceipt",
   "schema_version": "1.0",
-  "source_commit": "5b5f7dd38ad5e1ef7c3bdbdad3b95f196e6fc827",
-  "source_tree": "13333c1f6caa29134544bc1af8aab2e38a3c9759",
+  "source_commit": "c495738556ac1ee288df232a2b372a8294968051",
+  "source_tree": "e76a64286a260fbd1ea13c0117b765c98526634d",
   "experiment_boundary_hash": "sha256:ace02b8f8f464e37defa7cbe419d715b65912ccb1914ec225faf4546dac2b823",
   "evidence_status": "NEEDS_REWORK",
   "semantic_artifact_interface": "PARTIAL",
@@ -18,7 +18,7 @@
   },
   "source_boundary_validation": {
     "command": "python -m pytest tests/application tests/experiments -q",
-    "passed": 694,
+    "passed": 695,
     "failed": 0,
     "errors": 0,
     "skipped": 1,
@@ -80,11 +80,11 @@
     "receipt_freshness": "PASS_AFTER_RELEASE_056_RC6_BOUNDARY_REFRESH",
     "unit_profile": "PASS_482_SKIP_1",
     "remaining_profiles": "PASS_STATIC_BOUNDARY_FAULT_SECURITY_LOCAL_FUNCTIONAL_FULL_CORE_ACTIVE_REPOSITORY",
-    "active_repository": "PASS_3000_SKIP_363",
-    "collection": "PASS_3363",
+    "active_repository": "PASS_3001_SKIP_363",
+    "collection": "PASS_3364",
     "failed": 0,
     "errors": 0,
-    "note": "Application and experiment source boundaries passed 694 tests with one skip; RC6 active-repository regression passed 3,000 tests with 363 skips and zero failures or errors after release adapter and privacy hardening."
+    "note": "Application and experiment source boundaries passed 695 tests with one skip; RC7 active-repository regression passed 3,001 tests with 363 skips and zero failures or errors after stable dependency prompt projection."
   },
   "stop_condition": "B"
 }
