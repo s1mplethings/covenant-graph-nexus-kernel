@@ -79,7 +79,7 @@
     "reason": "Static reachability alone cannot prove public, CLI, plugin, or reflection-based code is obsolete. Compatibility surfaces remain classified rather than silently deleted."
   },
   "evidence_locations": {
-    "external_root": "D:/CGKN/.service_evidence/release-056",
+    "external_root": "<external-evidence-root>/release-056",
     "baseline": [
       "baseline/profile-100k.json",
       "baseline/profile-250k.json"

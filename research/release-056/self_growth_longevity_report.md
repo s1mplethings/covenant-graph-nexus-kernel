@@ -29,4 +29,4 @@ The experimental registry saturates after the seeded gap-acquisition period inst
 - No production registry entry is added, changed, deprecated, or removed.
 - No pruning action is performed; the run only emits consolidation proposals when evidence exists.
 - Repeated task semantics are deterministic distribution-shift fixtures, not 500 independently authored user tasks.
-- The receipt is stored outside the source tree under `D:/CGKN/.service_evidence/release-056/longevity/` and is referenced by hash during release evidence closure.
+- The receipt is stored outside the source tree under `<external-evidence-root>/release-056/longevity/` and is referenced by hash during release evidence closure.
