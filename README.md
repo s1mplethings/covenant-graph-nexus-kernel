@@ -2,6 +2,24 @@
 
 CGKN is a composable autonomous project-team kernel.
 
+CGKN-owned source and documentation are available under the
+[Apache License 2.0](LICENSE). Third-party dependencies, benchmark datasets,
+and separately deployed services retain their own licenses; see
+[Third-party licenses and provenance](docs/THIRD_PARTY_LICENSES.md).
+
+## Install the Research Preview
+
+Create an isolated Python 3.10+ environment, then install the checkout:
+
+```bash
+python -m pip install -e .
+python scripts/product_direction_gate.py
+```
+
+Optional media, YAML, browser, and test dependencies are kept in separate
+extras, for example `python -m pip install -e ".[test]"`. No package registry
+publication is implied by this repository release.
+
 ## MVP target
 
 ```text

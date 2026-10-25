@@ -19,8 +19,10 @@ from cgkn.providers import CompletionClient, ModelRoleConfig, parse_json_object
 try:
     from cgnk_knowledge import load_project_knowledge, retrieve_relevant_knowledge
     from cgnk_knowledge.retrieve import item_relevance
+    from cgnk_knowledge.store import knowledge_index_is_current
 except ImportError:  # pragma: no cover - caller must expose the repository src directory
     load_project_knowledge = None  # type: ignore[assignment]
+    knowledge_index_is_current = None  # type: ignore[assignment]
     retrieve_relevant_knowledge = None  # type: ignore[assignment]
     item_relevance = None  # type: ignore[assignment]
 
@@ -229,14 +231,29 @@ class ConversationService:
         }
         result = retrieve_relevant_knowledge(dict(pack), query)
         selected = [dict(item) for item in result["selected_items"]]
-        by_id = {str(item.get("id")): dict(item) for item in pack.get("all_items", ())}
+        all_items = pack.get("all_items", ())
+        indexed_positions: Mapping[str, Any] = {}
+        if knowledge_index_is_current is not None and knowledge_index_is_current(pack):
+            indexed_positions = pack["knowledge_index"].get("by_id", {})
+        fallback_by_id: dict[str, dict[str, Any]] | None = None
+
+        def item_by_id(item_id: str) -> dict[str, Any] | None:
+            nonlocal fallback_by_id
+            if indexed_positions:
+                position = indexed_positions.get(item_id)
+                if isinstance(position, int) and 0 <= position < len(all_items):
+                    return dict(all_items[position])
+                return None
+            if fallback_by_id is None:
+                fallback_by_id = {str(item.get("id")): dict(item) for item in all_items}
+            return fallback_by_id.get(item_id)
         # Summaries are retrieval indexes. When both an index and one of its raw
         # children rank in the initial window, keep the child behind the same
         # explicit fidelity gate as a child that was outside that window.
         summary_child_ids = {
             str(ref)
             for item in selected if _is_summary(item)
-            for ref in item.get("source_refs", ()) if str(ref) in by_id
+            for ref in item.get("source_refs", ()) if item_by_id(str(ref)) is not None
         }
         if retrieval_mode != "flat_complete":
             selected = [item for item in selected if str(item.get("id")) not in summary_child_ids]
@@ -248,12 +265,16 @@ class ConversationService:
             for item in tuple(selected):
                 if not _is_summary(item):
                     continue
-                child_ids = [str(ref) for ref in item.get("source_refs", ()) if str(ref) in by_id]
+                child_ids = [
+                    str(ref) for ref in item.get("source_refs", ())
+                    if item_by_id(str(ref)) is not None
+                ]
                 if _is_lossy(item) and not child_ids:
                     malformed = True
                 for child_id in child_ids:
                     if child_id not in visited and len(selected) < max_nodes:
-                        child = by_id[child_id]
+                        child = item_by_id(child_id)
+                        assert child is not None
                         if child.get("status", "active") == "active" and child.get("review_state") != "rejected":
                             selected.append(child)
                             visited.add(child_id)

@@ -190,7 +190,14 @@ def classify_path(path: str, root: pathlib.Path | None = None) -> tuple[str, str
         return "DURABLE_EVIDENCE", "bounded experiment receipt requires review"
     if lower.startswith("experiments/") and pure.suffix.lower() == ".md":
         return "CURRENT_DOC", "current experiment documentation"
-    if lower.startswith("docs/") or lower in {".gitignore", "readme.md", "agents.md", "version", "edition.md", "product_goal.md", "mvp_scope.md"} or lower.startswith("project_management/summaries/"):
+    if lower.startswith("research/"):
+        return "DURABLE_EVIDENCE", "bounded research source or evidence requires explicit review"
+    if lower == "pyproject.toml":
+        return "SOURCE", "root package and build metadata"
+    if lower.startswith("docs/") or lower in {
+        ".gitignore", "readme.md", "agents.md", "version", "edition.md", "product_goal.md", "mvp_scope.md",
+        "license", "notice", "citation.cff", "contributing.md", "security.md", "changelog.md",
+    } or lower.startswith("project_management/summaries/"):
         return "CURRENT_DOC", "current documentation or version truth"
     if lower.startswith("legacy/"):
         return "SOURCE", "tracked legacy source or historical material"

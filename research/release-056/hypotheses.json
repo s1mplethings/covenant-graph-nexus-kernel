@@ -1,0 +1,42 @@
+{
+  "schema_version": "1.0",
+  "kind": "CGKNRelease056Hypotheses",
+  "frozen_seed": 56025,
+  "hypotheses": [
+    {
+      "id": "H1_INDEXED_RETRIEVAL",
+      "comparison": "B4_vs_B3",
+      "quality_gate": "paired_success_delta >= -0.05 and exact_selected_result_hash_equal",
+      "efficiency_gate": "retrieval_p95_improvement >= 0.20",
+      "claim_class": "confirmatory_internal"
+    },
+    {
+      "id": "H2_LOCALIZED_CONTEXT",
+      "comparison": "B4_vs_B2",
+      "quality_gate": "paired_success_delta >= -0.05",
+      "efficiency_gate": "median_context_chars_reduction >= 0.30",
+      "claim_class": "confirmatory_internal"
+    },
+    {
+      "id": "H3_CAPABILITY_SHORTLIST",
+      "comparison": "top_k_vs_full_registry",
+      "quality_gate": "top3_recall >= 0.95",
+      "efficiency_gate": "context_token_reduction >= 0.50",
+      "claim_class": "confirmatory_internal"
+    },
+    {
+      "id": "H4_GROWTH_SATURATION",
+      "comparison": "late_vs_early_windows",
+      "quality_gate": "final_100_success_rate >= first_100_success_rate - 0.05",
+      "efficiency_gate": "final_100_new_capability_rate <= 0.05 and duplicate_rate <= 0.01",
+      "claim_class": "confirmatory_deterministic"
+    },
+    {
+      "id": "H5_STRONG_MODEL_REFERENCE",
+      "comparison": "B1_vs_B0",
+      "quality_gate": "report paired success delta",
+      "efficiency_gate": "report cost and tokens without superiority requirement",
+      "claim_class": "exploratory"
+    }
+  ]
+}

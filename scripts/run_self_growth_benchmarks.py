@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import pathlib
 import subprocess
@@ -14,7 +15,7 @@ if str(ROOT) not in sys.path:
 
 from cgkn.application.self_growth import GrowthGroup, canonical_hash, policy_hashes  # noqa: E402
 from cgkn.providers import CGKNModelRouting, GatewayCompletionClient, ModelRoleConfig, completion_client_from_environment  # noqa: E402
-from experiments.self_growth_v1.cases import ordered_task_stream, stream_hashes  # noqa: E402
+from experiments.self_growth_v1.cases import GrowthTaskCase, ordered_task_stream, stream_hashes  # noqa: E402
 from experiments.self_growth_v1.providers import ProviderCandidateBackend, ProviderStrongDecider  # noqa: E402
 from experiments.self_growth_v1.runner import GrowthBenchmarkRunner, StaticCandidateBackend, StaticStrongDecider  # noqa: E402
 
@@ -134,6 +135,74 @@ def _discovery(output_root: pathlib.Path, count: int) -> dict[str, Any]:
     return receipt | {"receipt_path": str(path)}
 
 
+def longevity_task_stream(count: int = 500) -> tuple[GrowthTaskCase, ...]:
+    """Freeze a long stream whose later windows exercise reuse, composition, and non-capability routing."""
+    if not 500 <= count <= 1000:
+        raise ValueError("longevity count must be between 500 and 1000")
+    seed = ordered_task_stream()
+    reusable = tuple(case for case in seed if case.expected_class != "TRUE_GAP")
+    rows = list(seed)
+    for index in range(len(seed), count):
+        source = reusable[(index - len(seed)) % len(reusable)]
+        need = dataclasses.replace(source.need, task_id=f"longevity-{index + 1:04d}")
+        rows.append(dataclasses.replace(source, need=need))
+    return tuple(rows)
+
+
+def _longevity(output_root: pathlib.Path, count: int) -> dict[str, Any]:
+    commit, tree = _source_identity(expected_commit=None, require_clean=False)
+    destination = output_root / f"growth-longevity-{uuid.uuid4().hex[:10]}"
+    tasks = longevity_task_stream(count)
+    receipt = GrowthBenchmarkRunner(
+        GrowthGroup.G3, StaticCandidateBackend(), destination,
+        source_commit=commit, source_tree=tree,
+    ).run(tasks)
+    metrics = receipt["metrics"]
+    windows = receipt["windows"]
+    final_windows = windows[-5:]
+    longevity = {
+        "task_count": len(tasks),
+        "task_stream_hash": canonical_hash([case.evaluator_dict() | case.public_dict() for case in tasks]),
+        "success_rate": metrics["success_rate"],
+        "registry_start_size": receipt["production_registry_size"],
+        "registry_final_size": receipt["final_experimental_registry_size"],
+        "new_capabilities_admitted": metrics["new_capabilities_admitted"],
+        "new_capability_rate": metrics["new_capability_rate"],
+        "final_100_new_capability_rate": sum(row["new_capability_rate"] for row in final_windows) / len(final_windows),
+        "reuse_rate": metrics["direct_reuse_rate"] + metrics["parameterization_rate"],
+        "composition_rate": metrics["composition_rate"],
+        "gap_precision": metrics["true_gap_precision"],
+        "gap_recall": metrics["true_gap_recall"],
+        "zero_use_capability_rate": metrics["zero_reuse_capability_rate"],
+        "duplicate_rate": metrics["duplicate_capability_count"] / len(tasks),
+        "median_reuse_count": metrics["median_reuse_count"],
+        "deprecation_candidates": len(receipt["consolidation_proposals"]),
+        "tokens_per_task": (
+            metrics["known_total_tokens"] / len(tasks)
+            if metrics["known_total_tokens"] is not None
+            else None
+        ),
+        "cost_per_task_cny": (
+            metrics["known_cost_cny"] / len(tasks)
+            if metrics["known_cost_cny"] is not None
+            else None
+        ),
+        "production_registry_modified": receipt["production_registry_modified"],
+        "status": "PASS" if (
+            metrics["success_rate"] == 1.0
+            and metrics["true_gap_precision"] == 1.0
+            and metrics["true_gap_recall"] == 1.0
+            and all(row["new_capability_rate"] == 0 for row in final_windows)
+            and not receipt["production_registry_modified"]
+        ) else "NOT_READY",
+    }
+    receipt["longevity"] = longevity
+    receipt["receipt_hash"] = canonical_hash({key: value for key, value in receipt.items() if key != "receipt_hash"})
+    path = destination / "longevity_receipt.json"
+    path.write_text(json.dumps(receipt, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return receipt | {"receipt_path": str(path)}
+
+
 def _final(output_root: pathlib.Path, paths: list[pathlib.Path], expected_commit: str) -> dict[str, Any]:
     commit, tree = _source_identity(expected_commit=expected_commit, require_clean=True)
     receipts = [_load_json(path.resolve()) for path in paths]
@@ -200,7 +269,7 @@ def _final(output_root: pathlib.Path, paths: list[pathlib.Path], expected_commit
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the bounded Self-Growth V1 evaluation profiles.")
-    parser.add_argument("--profile", required=True, choices=["growth-discovery", *PROFILES, "growth-final"])
+    parser.add_argument("--profile", required=True, choices=["growth-discovery", "growth-longevity", *PROFILES, "growth-final"])
     parser.add_argument("--output-root", type=pathlib.Path, required=True)
     parser.add_argument("--expected-source-commit", default="")
     parser.add_argument("--count", type=int, default=20)
@@ -213,6 +282,8 @@ def main() -> int:
             if not 1 <= args.count <= 20:
                 raise ValueError("discovery count must be between 1 and 20")
             result = _discovery(output_root, args.count)
+        elif args.profile == "growth-longevity":
+            result = _longevity(output_root, args.count)
         elif args.profile == "growth-final":
             if not args.expected_source_commit:
                 raise ValueError("growth-final requires --expected-source-commit")

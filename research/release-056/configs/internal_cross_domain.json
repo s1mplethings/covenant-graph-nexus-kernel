@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "seed": 56025,
+  "temperature": 0.0,
+  "max_output_tokens": 300,
+  "configured_timeout_seconds": 90,
+  "outer_deadline_seconds": 120,
+  "deadline_reserve_seconds": 30,
+  "logical_retries": 0,
+  "transport_attempts_max": 2,
+  "strong_route": "qwen",
+  "cheap_route": "deepseek",
+  "api_lab_commit": "999dff096afe45f058fe67016aee28a73912d5d4",
+  "price_snapshot": "../model_pricing_snapshot.json"
+}

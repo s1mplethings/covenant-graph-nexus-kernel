@@ -533,7 +533,7 @@
     "iteration_050_checkpoint_targeted": "PASS_70_SKIP_3",
     "adoption_full_regression": "PASS_2773_SKIP_357_0_FAILED_0_ERRORS",
     "adoption_full_regression_reason": "The unchanged 250k cold-start gate passed; the v2 new-pack default, explicit-v1 compatibility, and governance update passed the isolated active-repository profile.",
-    "canonical_python": "C:/Users/sunom/AppData/Local/Programs/Python/Python313/python.exe",
+    "canonical_python": "Python 3.13 (machine-local executable path redacted for public release)",
     "evidence": ".cgkn/publish/c_adoption_active_repository.json",
     "unit_rerun_evidence": "artifacts/kernel-profiles-iter-046-fresh-receipt.json"
   },

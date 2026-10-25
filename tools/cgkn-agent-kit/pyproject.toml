@@ -8,9 +8,12 @@ version = "0.2.0rc2"
 description = "Project-agnostic Agent supervision companion for the CGKN Provider mainline"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "Proprietary"}
-authors = [{name = "CGKN"}]
+license = "Apache-2.0"
+authors = [{name = "CGKN contributors"}]
 dependencies = []
+
+[project.urls]
+Repository = "https://github.com/s1mplethings/covenant-graph-nexus-kernel"
 
 [project.scripts]
 cgkn-agent = "cgkn_agent_kit.cli:main"

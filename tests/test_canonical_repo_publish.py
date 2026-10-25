@@ -51,6 +51,12 @@ def init_repo(tmp_path: pathlib.Path) -> tuple[pathlib.Path, pathlib.Path]:
         ("src/app.py", "SOURCE", "COMMIT"),
         (".github/workflows/ci.yml", "SOURCE", "COMMIT"),
         (".gitignore", "CURRENT_DOC", "COMMIT"),
+        ("LICENSE", "CURRENT_DOC", "COMMIT"),
+        ("CITATION.cff", "CURRENT_DOC", "COMMIT"),
+        ("CONTRIBUTING.md", "CURRENT_DOC", "COMMIT"),
+        ("SECURITY.md", "CURRENT_DOC", "COMMIT"),
+        ("CHANGELOG.md", "CURRENT_DOC", "COMMIT"),
+        ("pyproject.toml", "SOURCE", "COMMIT"),
         ("legacy/pre_mvp_reset/README.md", "SOURCE", "COMMIT"),
         ("experiments/semantic_artifact_design/README.md", "CURRENT_DOC", "COMMIT"),
         (".cgnk/governance/governance.lock.json", "CURRENT_GOVERNANCE", "COMMIT"),
@@ -85,6 +91,10 @@ def test_consumer_migrations_require_explicit_review() -> None:
 
 def test_experiment_receipts_require_explicit_review() -> None:
     assert gate.classify_path("experiments/semantic_artifact_design/receipts/live.json")[0] == "DURABLE_EVIDENCE"
+
+
+def test_research_artifacts_require_explicit_review() -> None:
+    assert gate.classify_path("research/release-056/preregistration.md")[0] == "DURABLE_EVIDENCE"
 
 
 def test_environment_key_reference_is_not_secret_content(tmp_path: pathlib.Path) -> None:

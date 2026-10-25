@@ -61,7 +61,9 @@ def _exclude_reason(item: dict[str, Any], query: dict[str, Any]) -> str | None:
     return None
 
 
-def _score(item: dict[str, Any], query: dict[str, Any]) -> tuple[Any, ...]:
+def _score(
+    item: dict[str, Any], query: dict[str, Any], relevance: int | None = None,
+) -> tuple[Any, ...]:
     needed_types = set(query.get("needed_types", []))
     selected_modules = {str(row).lower() for row in query.get("selected_modules", [])}
     tags = {str(row).lower() for row in item.get("tags", [])}
@@ -69,7 +71,7 @@ def _score(item: dict[str, Any], query: dict[str, Any]) -> tuple[Any, ...]:
     exact_scope = 0 if scope and item.get("scope") == scope else 1
     type_rank = 0 if item.get("type") in needed_types else 1
     tag_rank = 0 if selected_modules and selected_modules.intersection(tags) else 1
-    lexical_rank = -item_relevance(item, query)
+    lexical_rank = -(item_relevance(item, query) if relevance is None else relevance)
     return (
         REVIEW_RANK.get(item.get("review_state"), 8),
         lexical_rank,
@@ -98,11 +100,14 @@ def retrieve_relevant_knowledge(pack: dict[str, Any], query: dict[str, Any]) -> 
     all_items = pack.get("all_items", [])
     index_used = False
     candidate_pool = all_items
+    indexed_relevance: dict[str, int] = {}
     if effective_query.get("require_relevance") and knowledge_index_is_current(pack):
         index = pack["knowledge_index"]
-        query_terms = _terms(effective_query.get("goal")) | {
+        goal_terms = _terms(effective_query.get("goal"))
+        selected_modules = {
             str(value).casefold() for value in effective_query.get("selected_modules", ()) if str(value)
         }
+        query_terms = goal_terms | selected_modules
         # This is an indexed implementation of the existing any-term lexical
         # relevance rule, so candidate acceleration does not change selection
         # semantics or lose multi-fact evidence.
@@ -116,21 +121,38 @@ def retrieve_relevant_knowledge(pack: dict[str, Any], query: dict[str, Any]) -> 
             for item_id in sorted(indexed_ids)
             if item_id in index.get("by_id", {})
         ]
+        # The inverted index already proves lexical membership. Count the
+        # matching goal postings once and add the existing exact tag boost;
+        # this is identical to item_relevance without re-tokenizing every
+        # candidate's content once for filtering and again for sorting.
+        for term in goal_terms:
+            for item_id in index.get("by_term", {}).get(term, ()):
+                indexed_relevance[str(item_id)] = indexed_relevance.get(str(item_id), 0) + 1
+        if selected_modules:
+            for item in candidate_pool:
+                item_id = str(item.get("id", ""))
+                tags = {str(row).casefold() for row in item.get("tags", ())}
+                if selected_modules & tags:
+                    indexed_relevance[item_id] = indexed_relevance.get(item_id, 0) + 2
         index_used = True
-    candidates: list[dict[str, Any]] = []
+    candidates: list[tuple[dict[str, Any], int]] = []
     excluded: list[dict[str, Any]] = []
     for item in candidate_pool:
+        relevance = (
+            indexed_relevance.get(str(item.get("id", "")), 0)
+            if index_used else item_relevance(item, effective_query)
+        )
         reason = _exclude_reason(item, effective_query)
         if reason:
             excluded.append({"item": item, "reason": reason})
-        elif effective_query.get("require_relevance") and item_relevance(item, effective_query) <= 0:
+        elif effective_query.get("require_relevance") and relevance <= 0:
             excluded.append({"item": item, "reason": "low_relevance"})
         else:
-            candidates.append(item)
-    ranked = sorted(candidates, key=lambda item: _score(item, effective_query))
+            candidates.append((item, relevance))
+    ranked = sorted(candidates, key=lambda row: _score(row[0], effective_query, row[1]))
     max_items = int(effective_query.get("max_items") or 20)
-    selected = ranked[:max_items]
-    for item in ranked[max_items:]:
+    selected = [item for item, _ in ranked[:max_items]]
+    for item, _ in ranked[max_items:]:
         excluded.append({"item": item, "reason": "over_budget"})
     diagnostics = []
     if not selected:

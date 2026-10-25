@@ -60,6 +60,6 @@ the local CGKN checkout path and non-secret workflow settings.
 ## Publish later
 
 This directory has its own `pyproject.toml`, source package, schema, tests, and
-README, so it can be split into a dedicated repository when the release remote
-and license are chosen. Until then it can be versioned safely on the
-`codex/cgkn-codex-edition` branch beside its matching CGKN contracts.
+README. It is distributed with CGKN under Apache-2.0. Splitting it into a
+dedicated repository or publishing it to a package registry remains a separate
+release decision.

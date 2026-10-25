@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "kind": "CGKNRelease056OptimizationEvidence",
+  "source_baseline": {
+    "commit": "8544dd0f03b95e19de0e17fad183450c879b4a42",
+    "tree": "75b2c3db06d8474c72e26114288c6f57ff13fefb",
+    "runtime_source_hash": "sha256:3f149373ed7798314b6ba7955c98fe9f89a3242a19534b17db39d21a5c05fcd6"
+  },
+  "source_optimized": {
+    "runtime_source_hash": "sha256:77dee85842831005c700cafcd97d95a3415f8fb672aad7fe54527bd9a2329384"
+  },
+  "hypotheses": [
+    {
+      "id": "OPT-RETRIEVAL-001",
+      "claim": "Exact lexical relevance can use the canonical inverted-index posting counts and one pre-tokenized query without changing retrieval semantics.",
+      "change": "Reused posting counts, computed each candidate relevance once, and removed per-candidate content tokenization from filtering and sorting.",
+      "semantic_risk_control": "The candidate pool, tag boost, exclusion policy, score tuple, and deterministic tie-break are unchanged; frozen selected-result hashes and indexed/fallback equivalence tests pass.",
+      "before": {
+        "100000_retrieval_p95_ms": 214.46,
+        "250000_retrieval_p95_ms": 493.432,
+        "content_term_calls_at_250000": 350420
+      },
+      "after": {
+        "100000_retrieval_p95_ms": 42.698,
+        "250000_retrieval_p95_ms": 113.992,
+        "content_term_calls_at_250000": 0,
+        "500000_retrieval_p95_ms_exploratory": 228.674
+      },
+      "improvement": {
+        "100000_retrieval_p95_percent": 80.09,
+        "250000_retrieval_p95_percent": 76.90
+      },
+      "regression": {
+        "retrieval_accuracy": 1.0,
+        "result_hash_100000_and_250000": "sha256:93b00e1be0d58ae55601a9a9ec2feef9f9881405606f18ba686bc849ab36f909",
+        "candidate_pool_changed": false
+      }
+    },
+    {
+      "id": "OPT-CONTEXT-001",
+      "claim": "Conversation context assembly can resolve selected item IDs through the current canonical knowledge index instead of rebuilding an O(N) item map for every query.",
+      "change": "Used index by-id offsets when the index fingerprint is current and retained the original full-scan fallback for stale or unindexed packs.",
+      "semantic_risk_control": "Index freshness is checked on every query; fallback output is covered by exact equivalence tests.",
+      "before": {
+        "100000_context_p95_ms": 886.521,
+        "250000_context_p95_ms": 2457.228
+      },
+      "after": {
+        "100000_context_p95_ms": 0.130,
+        "250000_context_p95_ms": 0.132,
+        "500000_context_p95_ms_exploratory": 0.134
+      },
+      "improvement": {
+        "100000_context_p95_percent": 99.985,
+        "250000_context_p95_percent": 99.995
+      },
+      "regression": {
+        "retrieval_accuracy": 1.0,
+        "selected_paths_identical": true,
+        "stale_index_fallback_retained": true
+      }
+    }
+  ],
+  "scale_observations": {
+    "500000_items": {
+      "status": "EXPLORATORY_PASS",
+      "build_wall_ms": 42869.961,
+      "rss_growth_bytes": 1688735744,
+      "retrieval_accuracy": 1.0,
+      "candidate_p95": 10000,
+      "retrieval_p95_ms": 228.674,
+      "context_p95_ms": 0.134
+    },
+    "interpretation": "Retrieval and context-query latency remain bounded enough for the release study; corpus construction memory remains linear and is a documented future optimization target, not hidden as a pass."
+  },
+  "safe_slimming": {
+    "source_deletions": 0,
+    "decision": "NO_DELETION_WITHOUT_DETERMINISTIC_USAGE_EVIDENCE",
+    "reason": "Static reachability alone cannot prove public, CLI, plugin, or reflection-based code is obsolete. Compatibility surfaces remain classified rather than silently deleted."
+  },
+  "evidence_locations": {
+    "external_root": "D:/CGKN/.service_evidence/release-056",
+    "baseline": [
+      "baseline/profile-100k.json",
+      "baseline/profile-250k.json"
+    ],
+    "optimized": [
+      "optimized/profile-100k-final.json",
+      "optimized/profile-250k-final.json",
+      "optimized/profile-500k-exploratory.json"
+    ]
+  }
+}

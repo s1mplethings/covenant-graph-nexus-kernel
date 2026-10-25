@@ -1,0 +1,26 @@
+{
+  "schema_version": "1.0",
+  "kind": "CGKNRelease056FailureTaxonomy",
+  "classes": [
+    "RETRIEVAL_MISS",
+    "IRRELEVANT_CONTEXT",
+    "EVIDENCE_LOSS",
+    "TOOL_SELECTION",
+    "TOOL_ARGUMENT",
+    "CAPABILITY_GAP",
+    "FALSE_GAP",
+    "PLANNING",
+    "EXECUTION",
+    "REPAIR_NO_PROGRESS",
+    "MODEL_REASONING",
+    "POLICY",
+    "STATE",
+    "PERSISTENCE",
+    "TIMEOUT",
+    "PROVIDER",
+    "EVALUATOR",
+    "ENVIRONMENT",
+    "BENCHMARK_DISPUTE",
+    "UNKNOWN"
+  ]
+}
