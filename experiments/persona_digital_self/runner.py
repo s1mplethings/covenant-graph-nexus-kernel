@@ -205,10 +205,15 @@ def _sandbox_evaluation() -> dict[str, Any]:
         observed_risky = result["aggregate"] != "SOCIAL_REHEARSAL_PASS"
         rows.append({"case_id": f"sandbox-{index+1:02d}", "expected_risky": risky, "observed_risky": observed_risky,
                      "aggregate": result["aggregate"], "status": "PASS" if risky == observed_risky else "FAIL"})
-    human = rows[:15]
-    agreement = sum(item["expected_risky"] == item["observed_risky"] for item in human) / len(human)
+    calibration = rows[:15]
+    agreement = sum(item["expected_risky"] == item["observed_risky"] for item in calibration) / len(calibration)
+    review_dataset = tuple({"draft_id": f"persona-draft-{index+1:02d}", "rubric_fields":
+                            ("generic", "outsider", "spam_perception", "persona_consistency", "relationship_appropriateness"),
+                            "human_label": None} for index in range(40))
     return {"cases": 30, "passed": sum(item["status"] == "PASS" for item in rows), "results": rows,
-            "human_review": {"cases": 15, "risk_ranking_agreement": agreement, "use": "RUBRIC_CALIBRATION_ONLY"},
+            "rubric_calibration": {"cases": 15, "risk_ranking_agreement": agreement, "reviewer_type": "FROZEN_DETERMINISTIC_RUBRIC"},
+            "human_review": {"status": "NOT_EVALUATED", "prepared_cases": 40, "dataset": review_dataset,
+                             "reason": "No human reviewer labels were supplied; deterministic labels are not presented as human evidence."},
             "benefit": "PROVEN_DIRECTIONALLY" if agreement >= .8 else "NEUTRAL"}
 
 

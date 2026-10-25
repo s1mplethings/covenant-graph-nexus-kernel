@@ -29,7 +29,9 @@ def test_full_persona_longitudinal_evaluation(tmp_path):
     assert p3["commitment_accuracy"] > p0["commitment_accuracy"]
     assert report["context_localization"]["reduction"] >= .4
     assert report["social_sandbox"]["cases"] == 30
-    assert report["social_sandbox"]["human_review"]["cases"] == 15
+    assert report["social_sandbox"]["rubric_calibration"]["cases"] == 15
+    assert report["social_sandbox"]["human_review"]["status"] == "NOT_EVALUATED"
+    assert report["social_sandbox"]["human_review"]["prepared_cases"] == 40
     assert report["controlled_relationship"]["episodes"] == 8
     assert report["security"]["external_writes"] == 0
     assert (tmp_path / "persona_evaluation.json").is_file()
