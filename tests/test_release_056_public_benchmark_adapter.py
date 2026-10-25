@@ -75,6 +75,21 @@ def test_adapter_accepts_unambiguous_short_pinned_revision(tmp_path: pathlib.Pat
     assert identity["clean"] is True
 
 
+def test_adapter_classifies_windows_docker_daemon_failure_as_environment_blocked(tmp_path: pathlib.Path) -> None:
+    checkout, commit = _checkout(tmp_path)
+    output = tmp_path / "evidence" / "docker-blocked"
+    result = MODULE.run_adapter(
+        benchmark=_benchmark(commit), checkout=checkout,
+        command=[
+            sys.executable, "-c",
+            "import sys; print('error during connect: open //./pipe/dockerDesktopLinuxEngine', file=sys.stderr); raise SystemExit(1)",
+        ],
+        output=output, timeout_seconds=10, task_ids=[],
+    )
+    assert result["status"] == "ENVIRONMENT_BLOCKED"
+    assert result["return_code"] == 1
+
+
 def test_adapter_rejects_secret_bearing_command_arguments() -> None:
     with pytest.raises(ValueError, match="secret-bearing"):
         MODULE.validate_command(["python", "runner.py", "--api-key", "do-not-store"])

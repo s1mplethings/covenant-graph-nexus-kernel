@@ -112,7 +112,9 @@ def run_adapter(
         stderr = sanitize_output(completed.stderr, checkout=checkout_resolved)
         combined = f"{stdout}\n{stderr}".casefold()
         environment_blocked = any(marker in combined for marker in (
-            "docker daemon", "cannot connect to the docker", "no space left on device",
+            "docker daemon", "cannot connect to the docker", "error during connect",
+            "dockerdesktoplinuxengine", "no suitable python runtime", "requires python",
+            "no space left on device",
             "cuda is not available", "connection timed out", "temporary failure in name resolution",
         ))
         status = "ENVIRONMENT_BLOCKED" if environment_blocked else ("PASS" if completed.returncode == 0 else "FAIL")
