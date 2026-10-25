@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from cgkn.application.community.capabilities import build_community_registry
 from cgkn.application.community.contracts import CommunitySource
-from cgkn.application.community.discovery import DiscoveryCoordinator, RecordedCommunityReadAdapter
+from cgkn.application.community.discovery import DiscoveryCoordinator, GitHubPublicReadAdapter, RecordedCommunityReadAdapter
 from cgkn.application.community.service import TopicDeriver
 from cgkn.capabilities import CapabilityLifecycle
 
@@ -34,6 +34,20 @@ def test_discovery_budget_spans_multiple_queries(claim_ledger):
     adapter = BudgetAdapter()
     DiscoveryCoordinator({"a": adapter}).scan((source,), topics, max_results=30)
     assert adapter.observed_max == 30
+
+
+def test_github_discovery_only_requests_maintainer_labeled_questions():
+    class Transport:
+        url = ""
+        def get(self, url, *, headers, timeout):
+            self.url = url
+            return {"items": []}
+
+    transport = Transport()
+    GitHubPublicReadAdapter(transport=transport).search(("RAG",), max_results=10)
+    decoded = __import__("urllib.parse").parse.unquote(transport.url)
+    assert "label:question" in decoded
+    assert "is:issue is:open" in decoded
 
 
 def test_topic_set_is_deterministic_and_bounded(claim_ledger):

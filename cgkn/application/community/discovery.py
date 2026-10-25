@@ -75,7 +75,11 @@ class GitHubPublicReadAdapter:
         per_query = min(10, max_results)
         headers = {"Accept": "application/vnd.github+json", "User-Agent": "CGKN-Community-Operator/1.0", "X-GitHub-Api-Version": "2022-11-28"}
         for query in bounded_queries:
-            q = urllib.parse.quote(f'{query} in:title,body is:issue is:open archived:false')
+            # The community operator is not a general issue crawler. Restrict
+            # discovery to threads whose maintainers explicitly classify them
+            # as questions; this removes implementation backlogs and bot-owned
+            # task boards before ranking ever sees them.
+            q = urllib.parse.quote(f'{query} in:title,body is:issue is:open label:question archived:false')
             raw = self.transport.get(f"{self.api_base}/search/issues?q={q}&sort=updated&order=desc&per_page={per_query}", headers=headers, timeout=20)
             if not isinstance(raw, Mapping):
                 continue
@@ -101,11 +105,24 @@ class GitHubPublicReadAdapter:
         created = str(item.get("created_at") or utc_now())
         updated = str(item.get("updated_at") or created)
         labels = tuple(str(label.get("name")) for label in item.get("labels", []) if isinstance(label, Mapping) and label.get("name"))
+        normalized_labels = {label.casefold() for label in labels}
+        is_question = "question" in normalized_labels
         post = CommunityPost(
             post_id=f"github-post-{item.get('id')}", thread_id=thread_id, parent_post_id=None,
             author_public_identity=author, content=body or _plain(item.get("title")), created_at=created,
             edited_at=updated if updated != created else None, links=tuple(re.findall(r"https?://\S+", body)),
-            public_metadata={"query": query, "state": item.get("state"), "comments": item.get("comments", 0), "source": "official_github_search_api"},
+            public_metadata={
+                "query": query,
+                "state": item.get("state"),
+                "comments": item.get("comments", 0),
+                "source": "official_github_search_api",
+                # These conservative priors express only what the official
+                # query and maintainer label prove. Unknown community rules
+                # still force HUMAN_REVIEW before any draft can be used.
+                "relevance": 0.65 if is_question else 0.4,
+                "ability_to_help": 0.7 if is_question else 0.3,
+                "discussion_quality": 0.7 if is_question else 0.5,
+            },
             our_reply_target=True,
         )
         return CommunityThread(

@@ -113,10 +113,12 @@ class OpportunityRanker:
 
         if metadata.get("blocked_policy"):
             priority = OpportunityDecision.BLOCKED_POLICY
-        elif metadata.get("security_sensitive") or not policy.rules_known:
+        elif metadata.get("security_sensitive"):
             priority = OpportunityDecision.HUMAN_REVIEW
         elif duplicate or metadata.get("resolved") or metadata.get("hostile_bait") or relevance < 0.55 or ability < 0.55 or freshness < 0.25:
             priority = OpportunityDecision.IGNORE
+        elif not policy.rules_known:
+            priority = OpportunityDecision.HUMAN_REVIEW
         elif promo_risk >= 0.75 or rule_risk >= 0.75:
             priority = OpportunityDecision.DRAFT_ONLY
         elif direct or (relevance >= 0.85 and ability >= 0.8):

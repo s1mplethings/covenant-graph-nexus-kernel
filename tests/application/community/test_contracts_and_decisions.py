@@ -51,6 +51,12 @@ def test_unknown_rules_force_human_review(claim_ledger, community_policy):
     assert opportunity.priority is OpportunityDecision.HUMAN_REVIEW
 
 
+def test_unknown_rules_do_not_rescue_irrelevant_thread(claim_ledger, community_policy):
+    policy = dataclasses.replace(community_policy, rules_known=False)
+    opportunity = ranker(claim_ledger).rank(make_thread("unknown-irrelevant", {"relevance": .2, "ability_to_help": .1}), policy)
+    assert opportunity.priority is OpportunityDecision.IGNORE
+
+
 def test_mention_fatigue_suppresses_project_reference(claim_ledger, community_policy):
     opportunity = ranker(claim_ledger).rank(make_thread("mention", {"direct_mention": True, "relevance": .95, "ability_to_help": .95, "project_mention_fit": .95}), community_policy)
     decision = EngagementPolicy.decide(opportunity, community_policy, recent_project_mentions=2)
