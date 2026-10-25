@@ -2,7 +2,7 @@
   "kind": "CGKNCurrentBacklog",
   "schemaVersion": "3",
   "project": "CGKN",
-  "current_item_id": "PB-030",
+  "current_item_id": "PB-031",
   "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
   "verification_status": "PASS_WITH_LIMITS",
   "product_authority": [
@@ -12,6 +12,21 @@
     "governance/current_architecture.json"
   ],
   "items": [
+    {
+      "id": "PB-031",
+      "title": "Build transparent evidence-backed Project Digital Persona",
+      "priority": 31,
+      "state": "in_progress",
+      "value": "Give the CGKN public project identity durable, auditable continuity across interactions without human impersonation or weaker external-write governance.",
+      "acceptance": [
+        "governed Identity Constitution cannot be silently rewritten",
+        "episodes, relationships, commitments, reflections, and SelfModel changes remain evidence-backed",
+        "Situation and Attention support precise action and explicit silence",
+        "100-episode P0-P3 evidence shows sustained continuity rather than context accumulation alone",
+        "Community, Promotion, Knowledge, CapabilityRegistry, Runtime, routing, and approval authorities remain unchanged"
+      ],
+      "evidence_status": "NOT_EVALUATED"
+    },
     {
       "id": "PB-030",
       "title": "Build policy-safe Community Operator capability branch",

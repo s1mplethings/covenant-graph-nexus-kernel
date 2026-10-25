@@ -1,58 +1,47 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-054",
+  "iteration_id": "ITER-055",
   "project_id": "cgkn",
-  "goal": "Build a policy-safe Community Operator capability branch that discovers and ranks public discussions, drafts evidence-grounded replies, and permits external replies only through exact-hash human approval.",
-  "backlog_item_ids": ["PB-030"],
-  "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "goal": "Build and evaluate a transparent evidence-backed CGKN Project Digital Persona with durable identity, episodic references, relationships, commitments, bounded reflection, situation awareness, and precision-first attention.",
+  "backlog_item_ids": ["PB-031"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "at least 60 frozen opportunity cases meet precision-first engagement, mention, policy, and direct-mention gates",
-    "reply drafts retain useful technical value without project names, links, or calls to action",
-    "project factual statements are backed by the existing Promotion claim ledger and private evidence is excluded",
-    "external replies require APPROVED_TO_REPLY bound to the exact thread, target, reply hash, links, persona, and revision",
-    "fake adapter lifecycle covers idempotency, restart, rate limits, moderation, and follow-up behavior",
-    "one real public read-only scan ranks 10-30 discussions and produces Top20 opportunities and Top10 drafts without external writes",
+    "Identity Constitution remains immutable without a governed amendment and public affiliation remains transparent",
+    "episode, relationship, commitment, reflection, and SelfModel updates require real evidence references",
+    "Situation and precision-first Attention correctly choose action, silence, follow-up, commitment fulfillment, or human review",
+    "localized Persona context reduces context by at least 40% without identity, relationship, or behavior regression",
+    "a frozen 100-episode P0/P1/P2/P3 benchmark demonstrates durable continuity without hallucination or severe drift",
+    "Community and Promotion approval boundaries remain unchanged and no unapproved external write occurs",
     "formal evaluation runs from one clean Source Closure and full repository regression passes"
   ],
   "quality_metrics": [
-    {"id": "QM-COMMUNITY-OPPORTUNITY", "measure": "engagement and project-mention precision", "target": ">=95% each", "method": "60 frozen labeled cases"},
-    {"id": "QM-COMMUNITY-POLICY", "measure": "policy block and critical review correctness", "target": "100%", "method": "20 policy cases plus adversarial threads"},
-    {"id": "QM-COMMUNITY-VALUE", "measure": "standalone reply value after removing project promotion", "target": ">=90%", "method": "30 reply-drafting cases"},
-    {"id": "QM-COMMUNITY-WRITE", "measure": "unapproved, duplicate, or high-spam-risk external replies", "target": "0", "method": "approval-bound fake adapter and restart matrix"}
+    {"id": "QM-PERSONA-IDENTITY", "measure": "identity consistency and unapproved drift", "target": "100% consistency and zero drift", "method": "100 frozen episodes"},
+    {"id": "QM-PERSONA-MEMORY", "measure": "episodic precision and hallucination", "target": "100% precision and zero hallucination", "method": "recurring-identity benchmark"},
+    {"id": "QM-PERSONA-SOCIAL", "measure": "relationship, commitment, attention, disclosure, and outsider correctness", "target": ">=80% each with zero severe event", "method": "P0-P3 and controlled relationship replay"},
+    {"id": "QM-PERSONA-CONTEXT", "measure": "localized versus full Persona context", "target": ">=40% character reduction without correctness regression", "method": "per-action context ledger"}
   ],
   "quality_activities": {
-    "prevention": ["policy before relevance", "value-without-promotion gate", "claim-ledger grounding", "disclosed affiliation", "exact-hash reply approval"],
-    "assurance": ["60 opportunity cases", "30 reply cases", "20 policy cases", "10 follow-up cases", "fake adapter matrix", "real read-only dogfood", "full regression"],
-    "control": ["DRAFT_ONLY default", "bounded scans", "low reply rate", "idempotency key", "community suppression", "canonical repository publication"],
-    "improvement": ["store operational outcomes separately from Project Knowledge", "admit only READ/PURE capabilities automatically", "treat platform rule uncertainty as HUMAN_REVIEW"]
+    "prevention": ["immutable governed identity", "evidence-only episode and reflection admission", "explicit commitment source", "no sensitive inference", "localized context"],
+    "assurance": ["contract and security tests", "100-episode P0-P3 replay", "30 social rehearsals", "controlled relationship replay", "real read-only dogfood", "full regression"],
+    "control": ["Community and Promotion approval unchanged", "sandbox advisory only", "atomic Persona state", "bounded memory", "canonical repository publication"],
+    "improvement": ["retain only evidence-backed derived lessons", "prefer silence over false-positive engagement", "remove Persona layers if P3 adds no benefit over P2"]
   },
   "interface_expectations": [
     "CapabilityRegistry remains the sole capability authority",
-    "Community Operator is an application capability branch, not a new runtime, scheduler, planner, or Knowledge authority",
-    "Community discovery and reply transport remain separate adapter interfaces",
-    "Community operational state stays outside Project Knowledge",
-    "EXTERNAL_WRITE reply capabilities remain guarded candidates and cannot be self-growth admitted",
-    "production Registry, routing, Knowledge, validation, Promotion, and delivery authorities remain unchanged"
+    "Persona is an application capability branch, not a new Knowledge, retrieval, planning, runtime, DAG, or project-state authority",
+    "Persona state stores evidence references and derived continuity, never duplicate project facts",
+    "Community remains discovery, policy, reply transport, and follow-up authority",
+    "Promotion remains claim, approval, and publication authority",
+    "public writes remain exact-approval guarded and production routing remains fixed"
   ],
   "evidence_refs": [
-    "experiments/community_operator/README.md",
-    "experiments/community_operator/runner.py",
-    "scripts/run_community_operator.py",
-    "benchmarks/community_v1/fixtures/community_connectivity_matrix.json"
+    "experiments/persona_digital_self/README.md",
+    "experiments/persona_digital_self/runner.py",
+    "scripts/run_persona_digital_self.py",
+    "tests/application/persona"
   ],
-  "review": {
-    "outcome": "accepted_with_limits",
-    "feedback": [
-      "Community local MVP and real read-only discovery passed; real reply remains blocked until a controlled self-owned target, official credentials, and exact approval coexist.",
-      "Human review accepted only 5 of the real Top20 as potentially worth replying to and accepted no project mentions."
-    ],
-    "accepted_backlog_item_ids": ["PB-030"]
-  },
-  "retrospective": {
-    "worked": ["strict approval binding", "value-without-promotion gate", "question-labeled discovery", "separate engage and project-mention decisions"],
-    "did_not_work": ["treating unknown community rules before relevance initially promoted irrelevant issues into review"],
-    "experiments": ["moving the relevance and ability gate before unknown-rule review removed irrelevant drafts without weakening policy review"]
-  }
+  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
+  "retrospective": {"worked": [], "did_not_work": [], "experiments": ["compare P0/P1/P2/P3 before retaining all Persona layers"]}
 }

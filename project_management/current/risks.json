@@ -3,6 +3,15 @@
   "schema_version": "3.0",
   "risks": [
     {
+      "id": "R-MVP-020",
+      "title": "Persistent Persona could drift, fabricate social history, overpersonalize, or bypass public-write authority",
+      "probability": "medium",
+      "impact": "high",
+      "signal": "Identity changes without approval, episodes or commitments lack receipts, sensitive traits are inferred, unrelated history appears in public context, or Persona acts around Community/Promotion approval.",
+      "response": "Keep identity governed and immutable, require evidence references for durable state, validate explicit commitment sources, localize relationship context, treat the social sandbox as advisory only, and leave every public write behind existing exact-hash approval.",
+      "owner": "persona capability"
+    },
+    {
       "id": "R-MVP-019",
       "title": "Community engagement could become spam, violate platform rules, or publish without informed approval",
       "probability": "medium",
