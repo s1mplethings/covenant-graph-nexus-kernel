@@ -5,10 +5,10 @@
     {
       "id": "R-MVP-020",
       "title": "Persistent Persona could drift, fabricate social history, overpersonalize, or bypass public-write authority",
-      "probability": "medium",
+      "probability": "low",
       "impact": "high",
       "signal": "Identity changes without approval, episodes or commitments lack receipts, sensitive traits are inferred, unrelated history appears in public context, or Persona acts around Community/Promotion approval.",
-      "response": "Keep identity governed and immutable, require evidence references for durable state, validate explicit commitment sources, localize relationship context, treat the social sandbox as advisory only, and leave every public write behind existing exact-hash approval.",
+      "response": "The formal 100-episode replay recorded zero identity drift, hallucination, overpersonalization, sensitive inference, or unapproved writes. Retain immutable identity, evidence references, explicit commitments, localized relationship context, advisory-only sandboxing, exact-hash approval, and require independent human calibration before broader social use.",
       "owner": "persona capability"
     },
     {

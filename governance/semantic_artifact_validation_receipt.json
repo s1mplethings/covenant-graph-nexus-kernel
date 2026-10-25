@@ -1,9 +1,9 @@
 {
   "kind": "CGKNSemanticArtifactValidationReceipt",
   "schema_version": "1.0",
-  "source_commit": "0bc46cafb875c3f5da6baa2f7fe99b4e99dd38e1",
-  "source_tree": "0f4b103fc304c42ed65ef383bedf130a83ac2544",
-  "experiment_boundary_hash": "sha256:e299029eae6d4c94ec88c4de4c99ebe7ade69173b0c2f6e2fdec3a42bb5ca927",
+  "source_commit": "a6825912cee716a7391a8b7750d8b8da6f603010",
+  "source_tree": "05217e431c55dd0f89e0f1457819eadb72c18e3b",
+  "experiment_boundary_hash": "sha256:17695b386963fc35661a6a57af71d6414dfab2561af5a186c9535d41e83d46c0",
   "evidence_status": "NEEDS_REWORK",
   "semantic_artifact_interface": "PARTIAL",
   "winner": "NONE",
@@ -17,11 +17,11 @@
     "failure_attribution": "PASS"
   },
   "source_boundary_validation": {
-    "command": "python -m pytest -q tests/experiments",
-    "passed": 32,
+    "command": "python -m pytest tests/application tests/experiments -q",
+    "passed": 694,
     "failed": 0,
     "errors": 0,
-    "skipped": 0,
+    "skipped": 1,
     "historical_live_evidence_retained": true
   },
   "blueprint_a2_validation": {
@@ -62,6 +62,14 @@
     "real_read": "PASS_30_TOP20_TOP10",
     "evaluation_hash": "sha256:94eeef7b00f78287dc101e175515e6e9efaa29a01b6be27637ab1a8a8d325b96"
   },
+  "persona_digital_self_validation": {
+    "status": "PASS_FORMAL_100_EPISODES",
+    "evaluation_hash": "sha256:1964c00398164f16d5c24c5705b23d97978f81023cc7e48c64c63bb4a2d3fb78",
+    "p0_p1_p2_p3": "PASS_FROZEN_REPLAY",
+    "social_sandbox": "PASS_30_OF_30_RUBRIC_HUMAN_REVIEW_NOT_EVALUATED",
+    "real_read": "PASS_30_TOP20_TOP10",
+    "external_writes": 0
+  },
   "kernel_regression": {
     "compileall": "PASS",
     "product_direction_gate": "PASS",
@@ -69,12 +77,14 @@
     "test_architecture_gate": "PASS",
     "kernel_test_receipt_verification": "PASS",
     "kernel_completeness_gate": "PASS",
-    "receipt_freshness": "PASS",
+    "receipt_freshness": "PASS_AFTER_PERSONA_BOUNDARY_REFRESH",
     "unit_profile": "PASS_482_SKIP_1",
     "remaining_profiles": "PASS_STATIC_BOUNDARY_FAULT_SECURITY_LOCAL_FUNCTIONAL_FULL_CORE_ACTIVE_REPOSITORY",
-    "active_repository": "PASS_2933_SKIP_357_0_FAILED_0_ERRORS",
-    "collection": "PASS_3290",
-    "note": "The Community Operator source closure refreshed application and experiment source-bound receipts after source-bound formal evaluation."
+    "active_repository": "PASS_2972_SKIP_357",
+    "collection": "PASS_3329",
+    "failed": 0,
+    "errors": 0,
+    "note": "Persona source-bound application and experiment suites plus the final active-repository profile passed."
   },
   "stop_condition": "B"
 }

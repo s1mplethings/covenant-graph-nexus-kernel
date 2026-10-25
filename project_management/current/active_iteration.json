@@ -5,8 +5,8 @@
   "project_id": "cgkn",
   "goal": "Build and evaluate a transparent evidence-backed CGKN Project Digital Persona with durable identity, episodic references, relationships, commitments, bounded reflection, situation awareness, and precision-first attention.",
   "backlog_item_ids": ["PB-031"],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
     "Identity Constitution remains immutable without a governed amendment and public affiliation remains transparent",
     "episode, relationship, commitment, reflection, and SelfModel updates require real evidence references",
@@ -42,6 +42,29 @@
     "scripts/run_persona_digital_self.py",
     "tests/application/persona"
   ],
-  "review": {"outcome": "pending", "feedback": [], "accepted_backlog_item_ids": []},
-  "retrospective": {"worked": [], "did_not_work": [], "experiments": ["compare P0/P1/P2/P3 before retaining all Persona layers"]}
+  "review": {
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "The frozen 100-episode comparison supports retaining the full Persona directionally.",
+      "Deterministic sandbox labels must not be represented as human review.",
+      "Public writes remain approval-bound; controlled live reply is still environment-blocked."
+    ],
+    "accepted_backlog_item_ids": ["PB-031"]
+  },
+  "retrospective": {
+    "worked": [
+      "immutable identity plus evidence references prevented drift and fabricated history",
+      "situation-aware localized context reduced context characters by 93.83% without measured regression",
+      "P0/P1/P2/P3 isolated identity, memory/relationship, and full-Persona benefits",
+      "read-only Community dogfood preserved zero external writes"
+    ],
+    "did_not_work": [
+      "human rubric validation could not be completed without independent human labels",
+      "a controlled self-owned live reply target and approval were not available"
+    ],
+    "experiments": [
+      "P3 outperformed P2 on attention, goals, reflection, generic reply rate, unique contribution, and outsider mismatch",
+      "the next evidence step is human calibration and one controlled approved reply, not Multi-Agent Runtime"
+    ]
+  }
 }

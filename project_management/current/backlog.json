@@ -16,7 +16,7 @@
       "id": "PB-031",
       "title": "Build transparent evidence-backed Project Digital Persona",
       "priority": 31,
-      "state": "in_progress",
+      "state": "done_with_limits",
       "value": "Give the CGKN public project identity durable, auditable continuity across interactions without human impersonation or weaker external-write governance.",
       "acceptance": [
         "governed Identity Constitution cannot be silently rewritten",
@@ -25,7 +25,7 @@
         "100-episode P0-P3 evidence shows sustained continuity rather than context accumulation alone",
         "Community, Promotion, Knowledge, CapabilityRegistry, Runtime, routing, and approval authorities remain unchanged"
       ],
-      "evidence_status": "NOT_EVALUATED"
+      "evidence_status": "PASS_WITH_HUMAN_REVIEW_AND_LIVE_REPLY_LIMITS"
     },
     {
       "id": "PB-030",

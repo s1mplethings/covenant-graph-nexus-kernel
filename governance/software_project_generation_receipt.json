@@ -1,25 +1,25 @@
 {
   "kind": "CGKNSoftwareProjectGenerationReceipt",
   "schema_version": "1.0",
-  "source_commit": "0bc46cafb875c3f5da6baa2f7fe99b4e99dd38e1",
-  "source_tree_sha": "0f4b103fc304c42ed65ef383bedf130a83ac2544",
-  "application_boundary_hash": "sha256:21b198fad3aa4b7537961dfade9ec8eb2a3e1f74fc1536e1008c9e169990ae44",
+  "source_commit": "a6825912cee716a7391a8b7750d8b8da6f603010",
+  "source_tree_sha": "05217e431c55dd0f89e0f1457819eadb72c18e3b",
+  "application_boundary_hash": "sha256:5b3362b18a651b56decc273bb2f7ecdcfe3e9a508e997291a8bcb4261c124fb3",
   "suite_result": "PASS_ARCHITECTURE_CONVERGENCE",
   "formal_final_suite": "PASS_CURRENT_SOURCE",
   "generation_readiness": "GENERATION_LEVEL_3",
   "bundle_status": "COMPLETE",
   "application_validation": {
-    "targeted_command": "python -m pytest -q tests/application tests/experiments/self_growth_v1 tests/experiments/promotion_studio tests/test_knowledge*.py tests/test_agent_conversation_mainline.py tests/test_codex_conversation.py tests/test_local_conversation_manager.py tests/test_capability_tree_mvp.py tests/test_capability_reuse_skill_learning.py tests/test_codex_capability_supervisor.py",
-    "targeted_passed": 761,
+    "targeted_command": "python -m pytest tests/application tests/experiments -q",
+    "targeted_passed": 694,
     "targeted_failed": 0,
     "targeted_errors": 0,
-    "targeted_skipped": 58,
+    "targeted_skipped": 1,
     "full_repository_status": "PASS",
-    "full_repository_passed": 2933,
+    "full_repository_passed": 2972,
     "full_repository_failed": 0,
     "full_repository_errors": 0,
     "full_repository_skipped": 357,
-    "collection_count": 3290,
+    "collection_count": 3329,
     "provider_network_usage_during_regression": false
   },
   "coordinator_qualification": "PASS_5_OF_5_RETAINED",
@@ -83,5 +83,13 @@
     "real_reply": "BLOCKED_ENVIRONMENT_REAL_REPLY",
     "external_writes": 0
   },
-  "receipt_hash": "sha256:af68f1750192542d773dfbe18cb1b71840797ff228504d6240e823322ff7f462"
+  "persona_digital_self_validation": {
+    "status": "PASS_FORMAL_100_EPISODES",
+    "evaluation_hash": "sha256:1964c00398164f16d5c24c5705b23d97978f81023cc7e48c64c63bb4a2d3fb78",
+    "source_commit": "a6825912cee716a7391a8b7750d8b8da6f603010",
+    "identity_drift": 0,
+    "memory_hallucination_rate": 0.0,
+    "external_writes": 0
+  },
+  "receipt_hash": "sha256:7e328a00ab567a5340873fcae433b81b2559f4a9cf9da382e2077411f5c49e05"
 }
