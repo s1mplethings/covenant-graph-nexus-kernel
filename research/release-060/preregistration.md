@@ -1,6 +1,6 @@
 # ITER-060 Preregistration
 
-Status: DEVELOPMENT SPEC FREEZE CANDIDATE  
+Status: DEVELOPMENT SPEC REVISION AFTER PUBLIC/HIDDEN CONTRACT AUDIT  
 Title: *CGNK Project Complexity Frontier: When Does Agent Architecture Start to Help?*
 
 ## Research questions
@@ -24,14 +24,16 @@ No route is presumed best. A negative or neutral Full-CGNK result is valid evide
 
 ## Frozen hashes
 
-- Full family manifest: `sha256:a1f2444b5c8f70aeb8a17e294d64413272583c11c9d6eead145ea50cc5c73fb2`
-- Development family manifest: `sha256:1b012325dcb2293b424d397c5aff9ef5dead96c78e579f79c1b2c20dcc23dc8e`
-- Formal family manifest: `sha256:28f72fa1223f9959255dfd672296bcd38816763e910edc4978b7cc4bcb5f0425`
+- Full family manifest: `sha256:74d370b604bf0085dfb5b4ad0fd4f0dbead6a3c6043249ff973e17130ad3f2c1`
+- Development family manifest: `sha256:dcc1ef804ec3a4975607e2e787c2902be8f3a5878ed00efab1af5cf7ef49f7b2`
+- Formal family manifest: `sha256:8147e3682f2aec26820ae283bd1bdbc6a81264e38a24108913ffc5ed456cf256`
 - Evaluation policy: `sha256:3dd0ae8ad579f267d9f1f935540f2d423721e064ac954980091eded528a67c67`
 - System prompt: `sha256:1db387a8cf8341f78b1fc778b368665d41f5dbf5f2ae6750b95433378a1a854d`
 - Dynamic FileBundle schema template: `sha256:6f2a0c090b3e817965bfeb588b991250ff76e1768006cb0a3265f0f9d737f16f`
 
 The formal freeze receipt binds these hashes to the final Source Closure and Git tree outside the repository under the local-only evaluation root.
+
+The first four development smoke attempts exposed a public/hidden contract defect: empty numeric input was accepted by the private oracle but not specified publicly. Those negative attempts remain in the local Corpus. Before formal freeze, every operation was updated with explicit semantic and boundary rules; no private example or expected output was disclosed.
 
 ## Family and evaluator isolation
 

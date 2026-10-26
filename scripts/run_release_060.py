@@ -120,7 +120,8 @@ def _freeze_document(source_version: str, policy: EvaluationPolicy) -> dict[str,
 
 
 def _prepare_freeze(artifact_root: pathlib.Path, source_version: str, policy: EvaluationPolicy, *, formal: bool) -> dict[str, Any]:
-    path = artifact_root / ("formal-freeze.json" if formal else "development-freeze.json")
+    source_slug = "".join(char for char in source_version[:8].casefold() if char.isalnum()) or "unknown"
+    path = artifact_root / ("formal-freeze.json" if formal else f"development-freeze-{source_slug}.json")
     expected = _freeze_document(source_version, policy)
     if path.is_file():
         observed = json.loads(path.read_text(encoding="utf-8"))

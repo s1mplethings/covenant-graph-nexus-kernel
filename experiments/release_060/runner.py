@@ -344,7 +344,8 @@ def run_family(
 ) -> dict[str, Any]:
     ArchitectureBaseline(baseline)
     destination = destination.resolve(); destination.mkdir(parents=True, exist_ok=True)
-    run_id = f"iter060-{family.family_id.casefold()}-{baseline[:2].casefold()}"
+    source_slug = "".join(char for char in source_version[:8].casefold() if char.isalnum()) or "unknown"
+    run_id = f"iter060-{family.family_id.casefold()}-{baseline[:2].casefold()}-{source_slug}"
     receipt_path = destination / "receipts" / f"{run_id}.json"
     if receipt_path.is_file():
         existing = json.loads(receipt_path.read_text(encoding="utf-8"))

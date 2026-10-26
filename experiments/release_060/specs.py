@@ -156,6 +156,32 @@ _PRIVATE_VALUES: dict[str, Any] = {
 }
 
 
+_SEMANTICS: dict[str, str] = {
+    "canonicalize": "Return the parsed JSON value unchanged; object serialization must be deterministic.",
+    "select_even": "From an input array, keep integer (but not boolean) values divisible by two in original order, including negative values and zero.",
+    "deduplicate": "Remove structurally equal JSON values after their first occurrence while preserving original order; objects compare by JSON structure, not key order.",
+    "group_sum": "For records containing group and integer value, sum value by the string form of group and emit an object with groups in deterministic key order.",
+    "count_levels": "Count records by the upper-case string form of level; an empty array yields an empty object.",
+    "migrate_record": "Copy the object, rename old_name to name when old_name exists, preserve an existing name otherwise, and set schema_version to integer 2.",
+    "merge_config": "Start from base, apply override keys, shallow-merge a value when both sides at that key are objects, and otherwise replace it.",
+    "index_headings": "Slugify headings to lower-case alphanumeric hyphenated text; repeated slugs receive -1, -2 and later occurrence suffixes in input order.",
+    "extract_refs": "Trim reference strings, discard empty references, deduplicate, and return lexicographic order.",
+    "normalize_paths": "Replace backslashes with slashes and remove empty and single-dot components while preserving input order.",
+    "numeric_summary": "Convert numeric array members to floats and return count, sum, min, and max; for an empty array return count 0, sum 0, min null, and max null.",
+    "window_average": "For positive integer width and numeric values, return each contiguous full-width arithmetic mean; return an empty array when width exceeds the value count.",
+    "validate_records": "For each record, list missing required keys; return valid true exactly when the errors array is empty.",
+    "toposort": "Return a deterministic lexicographic topological order over all named nodes and dependencies; return {\"error\":\"cycle\"} for a cycle.",
+    "checksums": "Return a key-sorted object mapping every input key to the lowercase SHA-256 hex digest of str(value) encoded as UTF-8.",
+    "diagnose": "Map timeout to TRANSIENT, permission to CONFIGURATION, syntax to SOURCE, missing to DEPENDENCY, and any other case-insensitive label to UNKNOWN.",
+    "retry_plan": "Sort jobs by integer attempts then string id and return ids whose attempts are strictly below max (default max 1).",
+    "version_trace": "Walk records in order, accept the first version and then only records whose supersedes equals the current version; return current and accepted history.",
+    "join_records": "Inner-join left and right arrays by id in left order, retaining left fields and overlaying non-id right fields.",
+    "schedule": "Return ids sorted by descending integer priority and then lexicographic id.",
+    "counter_state": "Read state value (default 0), add the input object's numeric value, atomically persist the new value, and output {\"result\": NEW_VALUE}.",
+    "dedup_state": "Read a persisted set of previously seen JSON values, atomically add the input object's value if new, and output {\"result\": true} only for a new value.",
+}
+
+
 def _case(package: str, operation: str, value: Any, *, suffix: str) -> Mapping[str, Any]:
     input_name = f"{suffix}-input.json"; output_name = f"{suffix}-output.json"
     return {
@@ -194,7 +220,7 @@ def _episode(package: str, family_id: str, index: int, operation: str, mode: str
     public_case = _state_case(package, operation, private=False) if stateful else _case(package, operation, _PUBLIC_VALUES[operation], suffix="public")
     private_case = _state_case(package, operation, private=True) if stateful else _case(package, operation, _PRIVATE_VALUES[operation], suffix="private")
     behavior = (
-        f"Implement the {operation} command with the exact public examples. "
+        f"Implement the {operation} command with the exact public examples. {_SEMANTICS[operation]} "
         "The command is invoked as `python -m PACKAGE OP INPUT OUTPUT`; stateful commands also accept `--state FILE`. "
         "Read UTF-8 JSON, write deterministic UTF-8 JSON, use stderr and exit code 2 for invalid input, and never use network or shell."
     )
