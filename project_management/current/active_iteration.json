@@ -42,6 +42,14 @@
     "research/release-059/claim_ledger.json",
     "research/release-059/technical_report.md"
   ],
-  "review": null,
-  "retrospective": null
+  "review": {
+    "outcome": "pending",
+    "feedback": [],
+    "accepted_backlog_item_ids": []
+  },
+  "retrospective": {
+    "worked": [],
+    "did_not_work": [],
+    "experiments": []
+  }
 }
