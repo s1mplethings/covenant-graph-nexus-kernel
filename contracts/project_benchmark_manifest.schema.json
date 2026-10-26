@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/s1mplethings/covenant-graph-nexus-kernel/contracts/project_benchmark_manifest.schema.json",
+  "title": "CGNK Project Benchmark Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "schema_version", "seed", "selection_rules", "entries", "manifest_hash"],
+  "properties": {
+    "kind": {"const": "CGNKProjectBenchmarkManifest"},
+    "schema_version": {"const": "1.0"},
+    "seed": {"type": "integer"},
+    "selection_rules": {"type": "object"},
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["entry_id", "family_id", "attempt_id"],
+        "properties": {
+          "entry_id": {"type": "string"},
+          "family_id": {"type": "string"},
+          "attempt_id": {"type": "string"}
+        }
+      }
+    },
+    "manifest_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

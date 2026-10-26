@@ -1,0 +1,21 @@
+{
+  "kind": "ITER059CleanCloneReproduction",
+  "schema_version": "1.0",
+  "status": "PASS",
+  "source_closure": "a6c9414f687a9e44e4370112b709b8662907796f",
+  "clone_mode": "HTTPS clean clone with detached Source Closure checkout",
+  "environment": "new isolated Python 3.12 virtual environment",
+  "editable_install": "PASS",
+  "compileall": "PASS",
+  "product_direction_gate": "PASS",
+  "canonical_version_gate": "PASS",
+  "focused_release_tests": {
+    "passed": 27,
+    "skipped": 1,
+    "failed": 0,
+    "errors": 0
+  },
+  "offline_100_node_smoke": "PASS",
+  "provider_calls": 0,
+  "note": "The first attempted version-check filename did not exist; the canonical_version_gate.py command was then run and passed. This operator correction did not modify the clone."
+}

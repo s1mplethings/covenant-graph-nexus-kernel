@@ -1,0 +1,316 @@
+{
+  "benchmark_sample": {
+    "entries": [
+      {
+        "attempt_id": "backfill-03",
+        "entry_id": "entry-backfill-03",
+        "family_id": "historical-minimal-boundary"
+      },
+      {
+        "attempt_id": "dogfood-repair-attempt",
+        "entry_id": "entry-dogfood-repair-attempt",
+        "family_id": "dogfood-repair"
+      },
+      {
+        "attempt_id": "backfill-02",
+        "entry_id": "entry-backfill-02",
+        "family_id": "historical-artifact-refactor"
+      }
+    ],
+    "kind": "CGNKProjectBenchmarkManifest",
+    "manifest_hash": "sha256:5781ea89012f2e27c6aa2c91ef5edf36bf5c69b75b90c7d3b30eb73f4b579fa1",
+    "schema_version": "1.0",
+    "seed": 5901,
+    "selection_rules": {
+      "count": 3,
+      "split": "DEVELOPMENT"
+    }
+  },
+  "captured_at": "2026-10-26T14:44:55.966232Z",
+  "catalog_rebuild": {
+    "receipt": {
+      "rebuilt_entries": 10,
+      "status": "PASS"
+    },
+    "stable_stats": true
+  },
+  "dogfood": [
+    {
+      "attempt_status": "PASS",
+      "corpus_entry_id": "entry-dogfood-success-attempt",
+      "family_id": "dogfood-success",
+      "manifest_hash": "sha256:3bfb689fe7f571b24a63be2fcb79f1591bfdb7c13cfc8e3097751c195cc8623e",
+      "quarantine_findings": [],
+      "reason": null,
+      "status": "PASS"
+    },
+    {
+      "attempt_status": "PASS",
+      "corpus_entry_id": "entry-dogfood-repair-attempt",
+      "family_id": "dogfood-repair",
+      "manifest_hash": "sha256:6568cdc2c6e61a3699952bdd028c0ec8647273318628b088a0fade92758c1d40",
+      "quarantine_findings": [],
+      "reason": null,
+      "status": "PASS"
+    },
+    {
+      "attempt_status": "PARTIAL",
+      "corpus_entry_id": "entry-dogfood-partial-attempt",
+      "family_id": "dogfood-partial",
+      "manifest_hash": "sha256:1d6d3cb0981234ca0a5428bf55506c333a9fe6e40d910056dec9c2c18ba32cf3",
+      "quarantine_findings": [],
+      "reason": null,
+      "status": "PASS"
+    }
+  ],
+  "elapsed_ms": 31029.822,
+  "hard_gates": {
+    "all_outcomes_retained": true,
+    "atomic_capture": true,
+    "byte_faithful_reconstruction": true,
+    "crash_safe_catalog": true,
+    "failed_attempts_retained": true,
+    "failed_capture_does_not_fail_project": true,
+    "failure_repair_pass_chain": true,
+    "family_split_isolation": true,
+    "hash_integrity": true,
+    "no_hidden_evaluator_leakage": true,
+    "no_secret_leakage": true,
+    "portable_import_export": true,
+    "scale_1000_snapshots_10k_refs": true,
+    "search_and_sampling": true
+  },
+  "historical_backfill": [
+    {
+      "backfill_status": "FULLY_RECOVERED",
+      "entry_id": "entry-backfill-01",
+      "family_id": "historical-agent-bugfix",
+      "status": "PASS"
+    },
+    {
+      "backfill_status": "FULLY_RECOVERED",
+      "entry_id": "entry-backfill-02",
+      "family_id": "historical-artifact-refactor",
+      "status": "PASS"
+    },
+    {
+      "backfill_status": "SOURCE_ONLY",
+      "entry_id": "entry-backfill-03",
+      "family_id": "historical-minimal-boundary",
+      "status": "PASS"
+    },
+    {
+      "backfill_status": "SOURCE_ONLY",
+      "entry_id": "entry-backfill-04",
+      "family_id": "historical-broken-pipeline",
+      "status": "PASS"
+    },
+    {
+      "backfill_status": "SOURCE_ONLY",
+      "entry_id": "entry-backfill-05",
+      "family_id": "historical-hello-pipeline",
+      "status": "PASS"
+    },
+    {
+      "backfill_status": "PARTIAL_METADATA_ONLY",
+      "entry_id": "entry-backfill-06",
+      "family_id": "historical-project-generation",
+      "status": "PASS"
+    }
+  ],
+  "integrity": {
+    "errors": [],
+    "manifests": 10,
+    "referenced_objects": 20,
+    "staged_entries": 0,
+    "status": "PASS",
+    "unreferenced_objects": []
+  },
+  "kind": "CGNKProjectCorpusFormalEvaluation",
+  "portable_bundle": {
+    "export": {
+      "entries": 1,
+      "family_id": "dogfood-repair",
+      "objects": 2,
+      "output": "artifacts/iter-059-formal/dogfood-repair.corpus.zip",
+      "status": "PASS"
+    },
+    "import": {
+      "imported_entries": 1,
+      "status": "PASS"
+    }
+  },
+  "profile": {
+    "attempts": 10,
+    "complexity": {
+      "LOW": 10
+    },
+    "dedup_ratio": 1.003782,
+    "families": 10,
+    "logical_bytes": 21498,
+    "object_references": 23,
+    "objects": 20,
+    "physical_bytes": 21417,
+    "snapshots": 17,
+    "statuses": {
+      "FAIL": 1,
+      "PARTIAL": 2,
+      "PASS": 6,
+      "QUARANTINED": 1
+    }
+  },
+  "reconstruction": {
+    "byte_faithful": true,
+    "file_count": 1,
+    "snapshot_hash": "sha256:ea93fa4f659e1a73dba1d48f31caa5c45a84dc94ad2b7728cfd796f7ffef4d23",
+    "snapshot_id": "dogfood-repair-attempt-s005",
+    "status": "PASS"
+  },
+  "repair_chain": {
+    "corpus_entry_id": "entry-dogfood-repair-attempt",
+    "created_at": "2026-10-26T14:44:25.195825Z",
+    "events": [],
+    "failures": [
+      {
+        "failure_type": "TEST",
+        "fingerprint": "add-subtracts"
+      }
+    ],
+    "generator_version": "deterministic-dogfood-v1",
+    "kind": "CGNKProjectCorpusEntry",
+    "lineage": {},
+    "manifest_hash": "sha256:6568cdc2c6e61a3699952bdd028c0ec8647273318628b088a0fade92758c1d40",
+    "metadata": {
+      "capture_observer_errors": [],
+      "complexity": "LOW",
+      "complexity_metrics": {
+        "capability_count": 0,
+        "dependency_count": 0,
+        "file_count": 1,
+        "knowledge_source_count": 0,
+        "language_count": 1,
+        "module_count": 1,
+        "repair_rounds": 1,
+        "source_loc": 2,
+        "state_dependency_count": 0,
+        "task_episode_count": 0,
+        "test_loc": 0,
+        "version_count": 5
+      },
+      "manual_intervention_count": 0,
+      "model": "none",
+      "project_type": "CLI",
+      "provider": "deterministic"
+    },
+    "private_evaluator_ref": null,
+    "project_attempt_id": "dogfood-repair-attempt",
+    "project_family_id": "dogfood-repair",
+    "provenance": "generated_original",
+    "public_project_packet": {
+      "constraints": [
+        "stdlib only"
+      ],
+      "requirement": "Materialize dogfood-repair"
+    },
+    "repairs": [
+      {
+        "after_hash": "sha256:after",
+        "before_hash": "sha256:before",
+        "failure_fingerprint": "add-subtracts",
+        "patch": "return a - b -> return a + b",
+        "status": "FIXED"
+      }
+    ],
+    "run_id": "dogfood-repair-attempt",
+    "schema_version": "1.0",
+    "snapshot_refs": [
+      {
+        "snapshot_hash": "sha256:aa1ad08518747bef5ca588c20e1eba551a13c6f34514c81a8cb13a3a8155f196",
+        "snapshot_id": "dogfood-repair-attempt-s001",
+        "stage": "INPUT"
+      },
+      {
+        "snapshot_hash": "sha256:1bf71544c02a3d4369d706c22a1299457898164b283176269b2f7bf0b6b36bc4",
+        "snapshot_id": "dogfood-repair-attempt-s002",
+        "stage": "FAILED_TEST"
+      },
+      {
+        "snapshot_hash": "sha256:df242b26e914ec8c0e3e0d4ba264608b90e70a6c18510ea19b4caaec1a732d54",
+        "snapshot_id": "dogfood-repair-attempt-s003",
+        "stage": "PRE_REPAIR"
+      },
+      {
+        "snapshot_hash": "sha256:53d3975420690f370e7b5a23a96c84a0dc5470192dff8aa186d7af875c03981a",
+        "snapshot_id": "dogfood-repair-attempt-s004",
+        "stage": "POST_REPAIR"
+      },
+      {
+        "snapshot_hash": "sha256:ea93fa4f659e1a73dba1d48f31caa5c45a84dc94ad2b7728cfd796f7ffef4d23",
+        "snapshot_id": "dogfood-repair-attempt-s005",
+        "stage": "FINAL"
+      }
+    ],
+    "source_version": "a6c9414f687a9e44e4370112b709b8662907796f",
+    "split": "DEVELOPMENT",
+    "status": "PASS",
+    "task_hash": "sha256:75908da41b5edd867ac4ed9c45e41ffac87105ad0138258fec3984517324d2e8",
+    "tests": [
+      {
+        "command": "pytest",
+        "exit_code": 1,
+        "failed": 1,
+        "status": "FAIL"
+      },
+      {
+        "command": "pytest",
+        "exit_code": 0,
+        "passed": 1,
+        "status": "PASS"
+      }
+    ]
+  },
+  "scale": {
+    "capture": {
+      "corpus_entry_id": "entry-scale-attempt",
+      "manifest_hash": "sha256:1ec52a7e6c1efead36311c048cce1525a19421b319cec2a06d63a6c679d8e836",
+      "quarantine_findings": [],
+      "reason": null,
+      "status": "PASS"
+    },
+    "elapsed_ms": 9362.107,
+    "stats": {
+      "attempts": 1,
+      "complexity": {
+        "LOW": 1
+      },
+      "dedup_ratio": 1000.0,
+      "families": 1,
+      "logical_bytes": 100000,
+      "object_references": 10000,
+      "objects": 10,
+      "physical_bytes": 100,
+      "snapshots": 1000,
+      "statuses": {
+        "PASS": 1
+      }
+    },
+    "verify": {
+      "errors": [],
+      "manifests": 1,
+      "referenced_objects": 10,
+      "staged_entries": 0,
+      "status": "PASS",
+      "unreferenced_objects": []
+    }
+  },
+  "schema_version": "1.0",
+  "search": {
+    "failure_count": 1
+  },
+  "source_version": "a6c9414f687a9e44e4370112b709b8662907796f",
+  "split_leakage": {
+    "leaks": [],
+    "status": "PASS"
+  },
+  "status": "PASS"
+}

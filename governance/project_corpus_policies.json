@@ -1,0 +1,56 @@
+{
+  "kind": "CGNKProjectCorpusPolicies",
+  "schema_version": "1.0",
+  "authority_boundary": {
+    "classification": "application_evaluation_artifact_infrastructure",
+    "not_authorities": [
+      "ProjectKnowledgePack",
+      "CapabilityTree",
+      "ExecutionDAG",
+      "FileRunStore",
+      "ProjectBlueprint",
+      "Provider planner",
+      "Git replacement"
+    ],
+    "capture_failure_effect": "CAPTURE_FAILED_ONLY_PROJECT_RESULT_UNCHANGED"
+  },
+  "capture_policy": {
+    "root_environment_variable": "CGNK_PROJECT_CORPUS_ROOT",
+    "default_storage": "external_local_only",
+    "object_hash": "sha256",
+    "object_immutability": true,
+    "atomic_sequence": ["stage", "hash", "validate", "finalize manifest", "catalog transaction"],
+    "snapshot_stages": ["INPUT", "INITIAL_GENERATION", "POST_MATERIALIZATION", "PRE_TEST", "FAILED_TEST", "PRE_REPAIR", "POST_REPAIR", "FINAL", "ABORTED"],
+    "excluded_paths": [".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".coverage", "build", "dist", ".idea", ".vscode"],
+    "garbage_collection": "REPORT_ONLY",
+    "large_file_limit_bytes": 16777216
+  },
+  "privacy_policy": {
+    "public_packet": "PUBLIC_PROJECT_PACKET",
+    "private_packet": "PRIVATE_EVALUATOR_PACKET",
+    "private_packet_searchable": false,
+    "private_packet_exportable": false,
+    "hidden_evaluator_in_model_context": false,
+    "machine_absolute_paths": "REDACT",
+    "source_secrets": "QUARANTINE_AND_DO_NOT_STORE_SOURCE_CONTENT",
+    "credentials": "PROHIBITED"
+  },
+  "provenance_policy": {
+    "allowed_values": ["generated_original", "third_party_seeded", "public_repo_derived", "user_supplied", "benchmark_derived", "unknown"],
+    "third_party_requirements": ["source_ref", "license"],
+    "unknown_action": "QUARANTINE",
+    "benchmark_redistribution": "LICENSE_GOVERNED_METADATA_ONLY_WHEN_REDISTRIBUTION_FORBIDDEN"
+  },
+  "benchmark_split_policy": {
+    "seed": 5901,
+    "assignment_unit": "project_family",
+    "splits": ["DEVELOPMENT", "VALIDATION", "FORMAL_HOLDOUT", "QUARANTINE", "PUBLIC_SAMPLE"],
+    "development_percent": 70,
+    "validation_percent": 15,
+    "formal_holdout_percent": 15,
+    "cross_split_family_allowed": false,
+    "leakage_signals": ["same_family", "same_task_hash", "same_source_hash", "high_shared_file_ratio", "explicit_parent_child"],
+    "holdout_searchable_during_formal_evaluation": false,
+    "holdout_internalizable": false
+  }
+}

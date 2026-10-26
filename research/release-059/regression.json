@@ -1,0 +1,36 @@
+{
+  "kind": "ITER059RegressionReceipt",
+  "schema_version": "1.0",
+  "status": "PASS_WITH_ENVIRONMENT_LIMIT",
+  "source_boundary_commit": "333052d75bdbe5ba73f4f6d356bac8bf2c586df5",
+  "release_source_closure": "a6c9414f687a9e44e4370112b709b8662907796f",
+  "collection": {"collected": 3410, "status": "PASS"},
+  "active_repository": {"passed": 3046, "skipped": 364, "failed": 0, "errors": 0, "duration_seconds": 1672.51, "status": "PASS"},
+  "kernel_profiles": {
+    "static": "PASS",
+    "unit": "PASS",
+    "boundary": "PASS",
+    "fault": "PASS",
+    "security": "PASS",
+    "local-functional": "PASS",
+    "full-core": "PASS",
+    "active-repository": "PASS",
+    "live-provider": "BLOCKED_ENVIRONMENT"
+  },
+  "profile_aggregate": {"passed": 4540, "skipped": 369, "failed": 0, "errors": 0},
+  "application_and_experiments": {"passed": 719, "skipped": 2, "failed": 0, "errors": 0},
+  "project_corpus": {"passed": 22, "skipped": 1, "failed": 0, "errors": 0},
+  "project_loop_and_corpus": {"passed": 76, "skipped": 1, "failed": 0, "errors": 0},
+  "clean_clone": {"passed": 27, "skipped": 1, "failed": 0, "errors": 0, "offline_smoke": "PASS"},
+  "gates": {
+    "compileall": "PASS",
+    "product_direction": "PASS",
+    "kernel_architecture": "PASS",
+    "test_architecture": "PASS",
+    "kernel_completeness": "PASS",
+    "kernel_test_receipt": "PASS",
+    "receipt_freshness": "PASS",
+    "canonical_version": "PASS"
+  },
+  "live_provider_note": "The selected live-provider case was skipped because the environment did not provide live credentials/network configuration; it is not counted as PASS."
+}

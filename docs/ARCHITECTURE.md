@@ -45,6 +45,17 @@ Self-Growth admission remains bounded and experimental. Persona and Community
 results are directional. Adaptive routing and Multi-Agent Runtime are not
 release defaults. The release uses fixed routing.
 
+## Project Corpus boundary
+
+`cgkn/application/project_corpus/` observes application runs and preserves
+versioned attempt and snapshot manifests over immutable SHA-256 objects. Its
+SQLite catalog is disposable derived state. It can reconstruct a snapshot,
+trace failure-to-repair lineage, and produce deterministic family-level samples,
+but it cannot plan, schedule, execute, mutate project state, or internalize
+Knowledge. Capture is best-effort and is disabled unless an external local root
+is configured. Private evaluator packets use a separate non-searchable,
+non-exportable namespace.
+
 ## Context and dependency boundaries
 
 Executors receive only the node contract and relevant dependencies. Downstream

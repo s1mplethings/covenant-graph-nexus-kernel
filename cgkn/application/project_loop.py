@@ -29,6 +29,7 @@ from cgkn.orchestration.invalidation import downstream_closure
 from cgkn.providers import CompletionClient, GatewayCompletionError, ModelRoleConfig, parse_json_object
 from cgkn.runtime import DAGRunner, RunSummary
 from cgkn.state import FileRunStore
+from cgkn.application.project_corpus import ProjectCorpusCaptureHook
 
 from .test_authority import AssertionAuthority, PublicContractProjection, TestAuthorityFirewall, TestAuthorityReceipt
 from .repair_convergence import (
@@ -1224,6 +1225,8 @@ class BlueprintUnitExecutor:
                     "relevant_files": list(relevant_sources),
                     "relevant_functions": list(relevant_functions),
                     "baseline_hash": baseline_hash,
+                    "after_hash": self.materialized_units[unit.unit_id][1],
+                    "candidate_diff": summarize_patch_diff(sources, new_sources, changed),
                     "repair_target_rerun_count": 1 if target is not None else 0,
                     "repair_no_progress": False,
                     "repair_exact_target_fixed": bool(target is not None),
@@ -1746,6 +1749,38 @@ class MinimalProjectLoop:
         workspace = pathlib.Path(workspace).resolve(); workspace.mkdir(parents=True, exist_ok=True)
         run_id = f"blueprint-{blueprint.project_id}-{uuid.uuid4().hex[:10]}"; tree = compile_blueprint(blueprint, case_id=case_id); dag = compile_tree(tree)
         state_root = self.run_root / run_id; store = FileRunStore(state_root)
+        source_version = os.environ.get("CGNK_SOURCE_VERSION", "").strip()
+        if not source_version:
+            try:
+                source_version = subprocess.run(
+                    ["git", "rev-parse", "HEAD"], cwd=self.repository_root,
+                    capture_output=True, text=True, check=True, timeout=5,
+                ).stdout.strip()
+            except (OSError, subprocess.SubprocessError):
+                source_version = "unknown"
+        corpus_capture = ProjectCorpusCaptureHook(
+            workspace=workspace,
+            project_id=blueprint.project_id,
+            run_id=run_id,
+            source_version=source_version,
+            generator_version=f"minimal-project-loop:{blueprint.schema_version}",
+            public_packet={
+                "project_id": blueprint.project_id,
+                "public_goal": blueprint.goal,
+                "constraints": list(blueprint.constraints),
+                "project_blueprint": blueprint.as_dict(),
+            },
+            metadata={
+                "project_type": "CLI" if any("cli" in path.casefold() for unit in blueprint.units for path in unit.owns) else "OTHER",
+                "provider": "reviewed-provider-route",
+                "model": self.worker_config.model,
+                "coordinator_model": self.agent_config.model,
+                "selected_capabilities": [unit.executor_ref for unit in blueprint.units],
+                "manual_intervention_count": 0,
+                "ai_only_generated": True,
+            },
+        )
+        corpus_capture.observe("INPUT", metadata={"blueprint_hash": blueprint.blueprint_hash})
         registry = ExecutorRegistry(); worker = BlueprintUnitExecutor(workspace, self.client, self.worker_config, self.worker_repair_config)
         if initial_failure is not None:
             owner = initial_failure.owner_unit_id
@@ -1756,7 +1791,14 @@ class MinimalProjectLoop:
         registry.register(worker); registry.register(CommandExecutor(workspace)); registry.register(PythonTestExecutor(workspace)); registry.register(ExternalAcceptanceExecutor(workspace, self.repository_root / "benchmarks" / "real_project_generation" / "acceptance"))
         runner = DAGRunner(registry, store)
         _write_json(state_root / "project_blueprint.json", blueprint.as_dict())
-        summary = runner.run(project_id=blueprint.project_id, run_id=run_id, tree=tree, dag=dag, constraints=blueprint.constraints)
+        try:
+            summary = runner.run(project_id=blueprint.project_id, run_id=run_id, tree=tree, dag=dag, constraints=blueprint.constraints)
+        except Exception as exc:
+            corpus_capture.record_failure({"failure_type": "STATE", "error_type": type(exc).__name__, "stage": "INITIAL_GENERATION"})
+            corpus_capture.observe("ABORTED")
+            _write_json(state_root / "corpus_capture.json", corpus_capture.finalize("ABORTED").as_dict())
+            raise
+        corpus_capture.observe("POST_MATERIALIZATION", metadata={"run_status": summary.status})
         reports: list[FailureReport] = [initial_failure] if initial_failure is not None else []
         repairs = 1 if initial_failure is not None else 0
         generation_retries = 0
@@ -1776,6 +1818,14 @@ class MinimalProjectLoop:
                 else self._failure_report(blueprint, failed_check, failed_result, dag, worker, failure_owner_hint)
             )
             reports.append(report)
+            corpus_capture.record_failure(report.as_dict())
+            corpus_capture.record_test({
+                "status": "FAIL",
+                "check_id": failed_check,
+                "failure_type": report.failure_type,
+                "evidence_refs": list(report.evidence_refs),
+            })
+            corpus_capture.observe("FAILED_TEST", metadata={"failed_check": failed_check, "failure_type": report.failure_type})
             owner = report.owner_unit_id
             if report.recovery_action == FailureAction.RETRY_GENERATION.value:
                 if generation_retries >= max_generation_retries or not owner:
@@ -1791,10 +1841,21 @@ class MinimalProjectLoop:
                 worker.failure_reports[owner] = report
                 repairs += 1
                 _write_json(state_root / "failure_reports" / f"repair-{repairs}.json", report.as_dict())
+                corpus_capture.observe("PRE_REPAIR", metadata={"repair_round": repairs, "owner_unit_id": owner})
             else:
                 _write_json(state_root / "failure_reports" / f"stopped-{len(reports)}.json", report.as_dict())
                 break
-            summary = runner.run(project_id=blueprint.project_id, run_id=run_id, tree=tree, dag=dag, resume=True, retry_node=owner, constraints=blueprint.constraints)
+            try:
+                summary = runner.run(project_id=blueprint.project_id, run_id=run_id, tree=tree, dag=dag, resume=True, retry_node=owner, constraints=blueprint.constraints)
+            except Exception as exc:
+                corpus_capture.record_failure({"failure_type": "STATE", "error_type": type(exc).__name__, "stage": "REPAIR_OR_RETRY"})
+                corpus_capture.observe("ABORTED")
+                _write_json(state_root / "corpus_capture.json", corpus_capture.finalize("ABORTED").as_dict())
+                raise
+            if report.recovery_action == FailureAction.REPAIR_EXISTING.value:
+                corpus_capture.observe("POST_REPAIR", metadata={"repair_round": repairs, "run_status": summary.status})
+            else:
+                corpus_capture.observe("INITIAL_GENERATION", metadata={"generation_retry": generation_retries, "run_status": summary.status})
         final_status = BlueprintStatus.DONE.value if summary.status == "SUCCEEDED" else BlueprintStatus.FAILED.value
         final_blueprint = replace(blueprint, status=final_status, blueprint_hash="")
         _write_json(state_root / "project_blueprint_final.json", final_blueprint.as_dict())
@@ -1807,6 +1868,32 @@ class MinimalProjectLoop:
         _write_json(state_root / "project_outcome.json", outcome.as_dict())
         _write_json(state_root / "provider_calls.json", {"calls": worker.calls})
         _write_json(state_root / "attribution_calls.json", {"calls": self.attribution_calls})
+        for call in worker.calls:
+            corpus_capture.record_event({
+                "kind": str(call.get("call_class") or call.get("operation") or "PROVIDER_CALL"),
+                "provider": call.get("provider"),
+                "model": call.get("model"),
+                "operation": call.get("operation"),
+                "input_tokens": call.get("input_tokens"),
+                "output_tokens": call.get("output_tokens"),
+                "elapsed_ms": call.get("elapsed_ms"),
+                "retry_count": max(int(call.get("transport_attempts") or 1) - 1, 0),
+            })
+            if call.get("operation") == "REPAIR":
+                corpus_capture.record_repair({
+                    "failure_fingerprint": call.get("repair_target"),
+                    "patch": call.get("candidate_diff"),
+                    "changed_files": call.get("modified_files", ()),
+                    "status": "FIXED" if call.get("candidate_committed") and call.get("unit_result") == "SUCCEEDED" else (call.get("repair_progress") or call.get("unit_result")),
+                    "before_hash": call.get("baseline_hash"),
+                    "after_hash": call.get("after_hash"),
+                })
+        corpus_capture.record_test({"status": "PASS" if summary.status == "SUCCEEDED" else "FAIL", "check_id": "project_summary"})
+        corpus_capture.observe("FINAL" if final_status == BlueprintStatus.DONE.value else "ABORTED", metadata={"final_status": final_status})
+        _write_json(
+            state_root / "corpus_capture.json",
+            corpus_capture.finalize("PASS" if final_status == BlueprintStatus.DONE.value else "FAIL").as_dict(),
+        )
         return outcome
 
     @staticmethod

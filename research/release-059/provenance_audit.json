@@ -1,0 +1,36 @@
+{
+  "kind": "ITER059LicenseAndProvenanceAudit",
+  "schema_version": "1.0",
+  "status": "PASS",
+  "source_closure": "a6c9414f687a9e44e4370112b709b8662907796f",
+  "project_license": "Apache-2.0",
+  "license_file": "standard unmodified Apache License 2.0 text",
+  "copyright_identity": "CGNK contributors",
+  "new_runtime_dependencies": [],
+  "vendored_code_added": false,
+  "third_party_assets_added": false,
+  "fonts_or_model_assets_added": false,
+  "postiz": {
+    "license": "AGPL-3.0",
+    "boundary": "independent service/transport",
+    "implementation_code_imported": false
+  },
+  "public_benchmarks": {
+    "datasets_redistributed": false,
+    "committed_material": "task IDs, manifests, adapters, sanitized result metadata, and reproduction instructions only",
+    "license_authority": "each upstream benchmark license"
+  },
+  "project_corpus": {
+    "real_corpus_committed": false,
+    "public_dataset_released": false,
+    "historical_backfill_sources": "repository-owned examples already present in this source history",
+    "unknown_or_unlicensed_material": "quarantined and excluded from normal search, sampling, and export"
+  },
+  "tracked_binary_assets": [
+    "evidence/architecture-reduction-v1/e2e/math_training_screenshot.png",
+    "evidence/candidate-canonicalization-v1/math_training_screenshot.png"
+  ],
+  "tracked_binary_asset_origin": "repository-generated end-to-end evidence",
+  "unresolved_relicensing_or_provenance": [],
+  "p0_release_blockers": []
+}

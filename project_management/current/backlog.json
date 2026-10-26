@@ -2,7 +2,7 @@
   "kind": "CGKNCurrentBacklog",
   "schemaVersion": "3",
   "project": "CGNK",
-  "current_item_id": "PB-033",
+  "current_item_id": null,
   "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
   "verification_status": "PASS_WITH_LIMITS",
   "product_authority": [
@@ -12,6 +12,21 @@
     "governance/current_architecture.json"
   ],
   "items": [
+    {
+      "id": "PB-034",
+      "title": "Establish a local-first Project Corpus and benchmark material library",
+      "priority": 34,
+      "state": "done_with_limits",
+      "value": "Preserve byte-faithful successful, failed, partial, and repaired project attempts as safe, replayable research material for future project-generation evaluation.",
+      "acceptance": [
+        "content-addressed snapshots reconstruct byte-for-byte and verify by hash",
+        "failed attempts and repair lineage remain recoverable without exposing private evaluator material",
+        "family-level deterministic splits prevent benchmark leakage",
+        "capture is atomic, crash-recoverable, and cannot fail the project run",
+        "search, sampling, import/export, catalog rebuild, scale, security, and full repository regression pass"
+      ],
+      "evidence_status": "PROJECT_CORPUS_BENCHMARK_READY"
+    },
     {
       "id": "PB-033",
       "title": "Establish CGNK necessity boundaries and decompose the Knowledge SCC",

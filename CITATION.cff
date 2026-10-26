@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use CGNK in research, please cite the software and its release report."
 title: "Covenant Graph Nexus Kernel (CGNK)"
 type: software
-version: 0.2.0-rc.4
+version: 0.2.0-rc.5
 authors:
   - name: "CGNK contributors"
 repository-code: "https://github.com/s1mplethings/covenant-graph-nexus-kernel"

@@ -14,16 +14,16 @@ branch does not imply formal acceptance or public release.
 Companion packages follow their ecosystem's equivalent notation:
 
 - Codex plugin: repository SemVer plus one `+codex.<cachebuster>` suffix for local pickup.
-- Python Agent Kit: PEP 440 (`0.2.0rc4` for repository version `0.2.0-rc.4`).
+- Python Agent Kit: PEP 440 (`0.2.0rc5` for repository version `0.2.0-rc.5`).
 - MCP server protocol identity: repository SemVer without the Codex cachebuster.
 
 ## Current review candidate
 
-`0.2.0-rc.4` is a Research Preview boundary release. It removes the conceptual
-Knowledge import SCC without changing the Knowledge authority or persistence
-formats and reports a frozen necessity-boundary holdout. The holdout does not
-prove a full-architecture success advantage, so it does not adopt a Router,
-Multi-Agent runtime, or new kernel authority.
+`0.2.0-rc.5` is a Research Preview data-foundation release. It adds a local,
+content-addressed Project Corpus for project-attempt evidence and replay without
+changing Knowledge, planning, execution, or project-state authority. It does
+not publish a dataset, adopt a Router or Multi-Agent runtime, or claim that
+corpus capture itself improves generation quality.
 
 Runtime workspaces, generated project memory, media, transient evidence, and local `.cgkn` state are
 not release source and must not be committed to the review branch.

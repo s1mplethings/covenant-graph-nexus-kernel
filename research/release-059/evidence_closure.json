@@ -1,0 +1,29 @@
+{
+  "kind": "ITER059EvidenceClosure",
+  "schema_version": "1.0",
+  "status": "PASS_WITH_LIMITS",
+  "evidence_commit": "SELF",
+  "source_closure": "a6c9414f687a9e44e4370112b709b8662907796f",
+  "source_tree": "a0fe7cd93cb4f593864210c973d89d6f11b42024",
+  "formal_evaluation_status": "PASS",
+  "hard_gates": {"passed": 14, "total": 14, "failed": 0},
+  "corpus_verdict": "PROJECT_CORPUS_BENCHMARK_READY",
+  "regression": {"failed": 0, "errors": 0, "active_repository_passed": 3046, "active_repository_skipped": 364},
+  "security": {"status": "PASS", "history_p0_count": 0},
+  "license_and_provenance": {"status": "PASS", "unresolved_items": 0},
+  "clean_clone": "PASS",
+  "release": {
+    "version": "0.2.0-rc.5",
+    "tag": "v0.2.0-rc.5",
+    "repository_visibility_before_release": "PUBLIC",
+    "public_dataset_released": false,
+    "external_package_or_paper_publication": false
+  },
+  "limitations": [
+    "historical backfill includes source-only and metadata-only cases",
+    "live-provider profile is BLOCKED_ENVIRONMENT rather than PASS",
+    "full CGNK architecture benefit remains NOT_PROVEN",
+    "real corpus contents remain local"
+  ],
+  "p0_release_blockers": []
+}

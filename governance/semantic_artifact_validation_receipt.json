@@ -1,9 +1,9 @@
 {
   "kind": "CGKNSemanticArtifactValidationReceipt",
   "schema_version": "1.0",
-  "source_commit": "c495738556ac1ee288df232a2b372a8294968051",
-  "source_tree": "e76a64286a260fbd1ea13c0117b765c98526634d",
-  "experiment_boundary_hash": "sha256:ace02b8f8f464e37defa7cbe419d715b65912ccb1914ec225faf4546dac2b823",
+  "source_commit": "333052d75bdbe5ba73f4f6d356bac8bf2c586df5",
+  "source_tree": "3cf6f8d2ce8bf242cef43150210e4bf456ed0bca",
+  "experiment_boundary_hash": "sha256:21e6cfc6cb0db85bdf193fbbd396740f0061fba06c681fb0a1885b82772e39f1",
   "evidence_status": "NEEDS_REWORK",
   "semantic_artifact_interface": "PARTIAL",
   "winner": "NONE",
@@ -18,10 +18,10 @@
   },
   "source_boundary_validation": {
     "command": "python -m pytest tests/application tests/experiments -q",
-    "passed": 695,
+    "passed": 719,
     "failed": 0,
     "errors": 0,
-    "skipped": 1,
+    "skipped": 2,
     "historical_live_evidence_retained": true
   },
   "blueprint_a2_validation": {
