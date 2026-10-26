@@ -16,6 +16,7 @@
     "include_reference": {"type": "boolean", "default": false},
     "include_archived": {"type": "boolean", "default": false},
     "include_uncertain": {"type": "boolean", "default": false},
+    "require_relevance": {"type": "boolean", "default": false},
     "max_items": {"type": "integer", "minimum": 1, "default": 20}
   }
 }

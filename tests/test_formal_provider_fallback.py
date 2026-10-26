@@ -206,6 +206,16 @@ def test_local_manifest_requires_component_minimum_paths() -> None:
     assert "src/styles.css" in error
     assert run_local_pipeline_impl.component_path_allowed("data", "data/schema.json")
     assert not run_local_pipeline_impl.component_path_allowed("backend", "data/schema.json")
+    assert run_local_pipeline_impl.component_path_allowed("backend", "app/main.py")
+    assert run_local_pipeline_impl.component_path_allowed("backend", "src/storage.py")
+    assert not run_local_pipeline_impl.component_path_allowed("frontend", "app/main.py")
+    assert not run_local_pipeline_impl.component_path_allowed("frontend", "src/storage.py")
+    assert run_local_pipeline_impl.component_path_allowed("frontend", "src/app.js")
+    assert run_local_pipeline_impl.component_path_allowed("docs", "docs/design_system.md")
+    assert run_local_pipeline_impl.legal_owner_for_path("app/main.py") == "backend"
+    assert run_local_pipeline_impl.legal_owner_for_path("src/storage.py") == "backend"
+    assert run_local_pipeline_impl.legal_owner_for_path("src/app.js") == "frontend"
+    assert run_local_pipeline_impl.legal_owner_for_path("docs/design_research.md") == "docs"
     assert "exactly main.py" in run_local_pipeline_impl.local_provider_contract_error(
         {"files": [{"path": "main.py"}, {"path": "api/tasks.py"}]},
         stage="component_file_manifest",
@@ -4690,6 +4700,83 @@ def test_independent_leaves_run_in_parallel_and_publish_receipts(
     assert len(list((checkpoint_dir / "boundary_receipts" / "backend").glob("*.json"))) == 4
 
 
+def test_parallel_surrogate_wait_checkpoints_successful_peer_before_yield(
+    monkeypatch,
+    tmp_path: pathlib.Path,
+) -> None:
+    paths = ["backend/accepted.py", "backend/waiting.py"]
+    manifest = [
+        {
+            "path": path,
+            "purpose": "independent",
+            "dependencies": [],
+            "estimated_complexity": "low",
+            "expected_output_chars": 15000,
+        }
+        for path in paths
+    ]
+
+    def fake_provider_text(_messages, *_args, **kwargs):
+        if kwargs.get("stage") == "component_file_manifest":
+            return json.dumps({"component": "backend", "files": manifest})
+        target = str(kwargs.get("target_file"))
+        if target == paths[1]:
+            raise run_local_pipeline_impl.surrogate_provider_adapter.SurrogateResponseRequired(
+                tmp_path / "waiting-request.json"
+            )
+        return json.dumps(
+            {
+                "path": target,
+                "content": "READY = True\nNAME = 'accepted'\nCOUNT = 1\nENABLED = True\n",
+            }
+        )
+
+    monkeypatch.setattr(run_local_pipeline_impl, "provider_text", fake_provider_text)
+    monkeypatch.setenv("CGKN_PROVIDER_LEAF_MAX_WORKERS", "2")
+    checkpoint_dir = tmp_path / "artifacts" / "provider_components"
+    semantic_plan = {
+        "status": "pending",
+        "stage": "provider_semantic_repair",
+        "blockers": ["repair both backend leaves"],
+        "provider_actions": [
+            {"component": "backend", "path": path, "instruction": "repair"}
+            for path in paths
+        ],
+    }
+
+    with pytest.raises(
+        run_local_pipeline_impl.surrogate_provider_adapter.SurrogateResponseRequired
+    ):
+        run_local_pipeline_impl.provider_generate_project_component_split(
+            goal="repair two independent backend leaves",
+            component={"id": "backend", "required_paths": paths},
+            component_pipeline={"components": [{"id": "backend"}]},
+            prior_manifest=[],
+            repair_errors=[],
+            model="test-model",
+            timeout=30,
+            deadline=None,
+            checkpoint_dir=checkpoint_dir,
+            run_dir=tmp_path,
+            spec_hash="surrogate-peer-spec",
+            phase_log_path=tmp_path / "provider_phase_log.jsonl",
+            routing_policy=None,
+            split_reason="semantic_repair",
+            original_prompt_chars=80000,
+            pending_context=semantic_plan,
+            repair_target_files=paths,
+        )
+
+    accepted_checkpoint = run_local_pipeline_impl.split_file_checkpoint_path(
+        checkpoint_dir, "backend", paths[0]
+    )
+    assert accepted_checkpoint is not None and accepted_checkpoint.is_file()
+    pending = run_local_pipeline_impl.load_json(
+        tmp_path / "artifacts" / "pending_repair_plan.json"
+    )
+    assert pending["completed_repair_files"] == {"backend": [paths[0]]}
+
+
 def test_repair_regenerates_only_target_and_transitive_consumers(
     monkeypatch,
     tmp_path: pathlib.Path,
@@ -4722,10 +4809,11 @@ def test_repair_regenerates_only_target_and_transitive_consumers(
         if kwargs.get("stage") == "component_file_manifest":
             return json.dumps({"component": "backend", "files": manifest})
         if kwargs.get("payload_mode") == "multi_file":
-            owns = json.loads(messages[-1]["content"])["provider_job"]["owns"]
-            generated.extend(owns)
+            emission_paths = json.loads(messages[-1]["content"])["provider_job"]["emission_paths"]
+            generated.extend(emission_paths)
             return json.dumps(
                 {
+                    "component_id": "backend",
                     "files": [
                         {
                             "path": path,
@@ -4735,7 +4823,7 @@ def test_repair_regenerates_only_target_and_transitive_consumers(
                                 "        return True\n"
                             ),
                         }
-                        for path in owns
+                        for path in emission_paths
                     ]
                 }
             )
@@ -4790,10 +4878,11 @@ def test_forced_component_repair_regenerates_all_split_leaves(
         if kwargs.get("stage") == "component_file_manifest":
             return json.dumps({"component": "backend", "files": manifest})
         if kwargs.get("payload_mode") == "multi_file":
-            owns = json.loads(messages[-1]["content"])["provider_job"]["owns"]
-            generated.extend(owns)
+            emission_paths = json.loads(messages[-1]["content"])["provider_job"]["emission_paths"]
+            generated.extend(emission_paths)
             return json.dumps(
                 {
+                    "component_id": "backend",
                     "files": [
                         {
                             "path": path,
@@ -4803,7 +4892,7 @@ def test_forced_component_repair_regenerates_all_split_leaves(
                                 "        return True\n"
                             ),
                         }
-                        for path in owns
+                        for path in emission_paths
                     ]
                 }
             )
@@ -5039,7 +5128,7 @@ def test_high_complexity_python_leaf_auto_expands_into_symbol_groups() -> None:
     assert graph["leaves"][-1]["facade_children"] == expanded[-1]["facade_children"]
 
 
-def test_high_complexity_javascript_leaf_auto_expands_into_real_modules() -> None:
+def test_high_complexity_javascript_leaf_preserves_product_defined_module_path() -> None:
     entry = {
         "path": "src/app.js",
         "purpose": "render and control the offline analysis workspace",
@@ -5067,32 +5156,13 @@ def test_high_complexity_javascript_leaf_auto_expands_into_real_modules() -> Non
         [entry],
     )
 
-    assert [item["path"] for item in expanded] == [
-        "src/app_part_01.js",
-        "src/app_part_02.js",
-        "src/app_part_03.js",
-        "src/app.js",
-    ]
-    assert all(
-        item["generation_role"] == "bounded_submodule"
-        for item in expanded[:-1]
-    )
-    assert expanded[-1]["generation_role"] == "compatibility_facade"
-    assert expanded[-1]["facade_children"] == [
-        "src/app_part_01.js",
-        "src/app_part_02.js",
-        "src/app_part_03.js",
-    ]
+    assert [item["path"] for item in expanded] == ["src/app.js"]
+    assert "generation_role" not in expanded[0]
     graph = run_local_pipeline_impl.build_component_leaf_work_graph(
         "frontend",
         expanded,
     )
-    assert [path for leaf in graph["leaves"] for path in leaf["paths"]] == [
-        "src/app_part_01.js",
-        "src/app_part_02.js",
-        "src/app_part_03.js",
-        "src/app.js",
-    ]
+    assert [path for leaf in graph["leaves"] for path in leaf["paths"]] == ["src/app.js"]
     assert not any(
         warning.startswith("cyclic_or_unresolved")
         for warning in graph["ordering_warnings"]
@@ -6139,8 +6209,57 @@ def test_feature_unit_review_uses_short_qwen_review_stage(monkeypatch) -> None:
     assert captured["max_attempts"] == 1
 
 
+def test_semantic_review_exact_outbound_budget_routes_to_split_review(monkeypatch) -> None:
+    split_calls: list[dict[str, object]] = []
+
+    def reject_full_request(messages, *, stage, max_tokens):
+        raise run_local_pipeline_impl.ProviderInputContextBudgetError(
+            "full semantic request exceeds the exact outbound budget",
+            receipt={"stage": stage, "max_tokens": max_tokens, "status": "FAIL"},
+        )
+
+    def fake_split(**kwargs):
+        split_calls.append(kwargs)
+        return {"status": "pass", "semantic_review_budget_applied": True}
+
+    monkeypatch.setattr(
+        run_local_pipeline_impl,
+        "enforce_provider_request_context_budget",
+        reject_full_request,
+    )
+    monkeypatch.setattr(
+        run_local_pipeline_impl,
+        "split_semantic_review_pipeline",
+        fake_split,
+    )
+    monkeypatch.setattr(
+        run_local_pipeline_impl,
+        "provider_text",
+        lambda *args, **kwargs: (_ for _ in ()).throw(
+            AssertionError("the oversized monolithic review must not reach Provider transport")
+        ),
+    )
+
+    result = run_local_pipeline_impl.provider_review_project(
+        "Build a small local application.",
+        {},
+        {},
+        {},
+        {},
+        {"component_pipeline": {"components": [{"id": "backend"}]}},
+        [{"path": "app.py", "content": "print('ok')\n"}],
+        "test-model",
+        30,
+    )
+
+    assert result["status"] == "pass"
+    assert result["semantic_review_budget_applied"] is True
+    assert len(split_calls) == 1
+    assert int(split_calls[0]["original_prompt_chars"]) > 0
+
+
 def test_qwen_feature_unit_review_uses_reasoning_none() -> None:
-    base_url = "https://llm-example.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
+    base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
     assert run_local_pipeline_impl.provider_qwen_feature_unit_review_enabled(
         base_url, "qwen3.8-max", "semantic_feature_unit_review"
@@ -6154,7 +6273,7 @@ def test_qwen_feature_unit_review_uses_reasoning_none() -> None:
 
 
 def test_qualified_qwen_bounded_generation_uses_reasoning_none_only_in_scope() -> None:
-    base_url = "https://llm-example.cn-beijing.maas.aliyuncs.com/compatible-mode/v1"
+    base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
     for model in ("qwen3.5-flash", "qwen3.6-plus", "qwen3.7-flash", "qwen3.7-plus", "qwen3.8-max"):
         assert run_local_pipeline_impl.provider_reasoning_effort(
@@ -6202,7 +6321,7 @@ def test_nonvisual_post_build_failure_never_invents_html_repair(tmp_path: pathli
     assert plan["target_files"] == ["tests/test_feature.py"]
 
 
-def test_provider_text_uses_compact_reasoning_none_qwen_leaf_payload(monkeypatch, tmp_path) -> None:
+def test_provider_text_uses_reasoning_none_qwen_leaf_payload(monkeypatch, tmp_path) -> None:
     captured: dict[str, object] = {}
 
     monkeypatch.setattr(run_local_pipeline_impl, "try_local_provider_text", lambda *_args, **_kwargs: None)
@@ -6211,7 +6330,7 @@ def test_provider_text_uses_compact_reasoning_none_qwen_leaf_payload(monkeypatch
         "_resolve_api_credentials",
         lambda: {
             "api_key": "secret-test-key",
-            "base_url": "https://llm-example.cn-beijing.maas.aliyuncs.com/compatible-mode/v1",
+            "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
         },
     )
 
@@ -6271,16 +6390,14 @@ def test_provider_text_uses_compact_reasoning_none_qwen_leaf_payload(monkeypatch
 
     assert json.loads(raw)["path"] == "src/model.py"
     provider_payload = captured["payload"]
-    assert provider_payload["reasoning"] == {"effort": "none"}
-    assert provider_payload["max_output_tokens"] == 1600
-    assert "CGKNCompactProviderLeafRequest" in provider_payload["input"]
-    assert "large project goal" not in provider_payload["input"]
+    assert provider_payload["enable_thinking"] is False
+    assert provider_payload["max_tokens"] == 7000
+    assert provider_payload["messages"]
     events = [json.loads(line) for line in phase_log.read_text(encoding="utf-8").splitlines()]
     request_event = next(item for item in events if item.get("event") == "provider_request")
-    assert request_event["request_profile"] == "qwen_compact_leaf"
-    assert request_event["effective_prompt_chars"] < request_event["legacy_prompt_chars"]
+    assert request_event["request_profile"] in {"full", "qwen_compact_leaf"}
     assert request_event["reasoning_effort"] == "none"
-    assert request_event["max_tokens"] == 1600
+    assert request_event["max_tokens"] == 7000
     assert "secret-test-key" not in phase_log.read_text(encoding="utf-8")
 
 
@@ -9204,16 +9321,16 @@ def test_javascript_leaf_receives_exact_exported_symbol_contract(monkeypatch) ->
         routing_policy=None,
     )
 
-    contract = captured["required_symbol_contract"]
+    contract = captured["implementation_symbol_contract"]
     assert contract["exact_names"] == ["initializeApp", "handleUserInput"]
     assert contract["declaration_forms"] == [
-        "export function initializeApp(...)",
-        "export function handleUserInput(...)",
+        "function initializeApp(...)",
+        "function handleUserInput(...)",
     ]
-    assert "private declaration is not published" in contract["publication_rule"]
-    assert "overrides historical names" in contract["precedence_rule"]
-    assert "CURRENT TARGET SYMBOL CONTRACT (highest precedence)" in captured_system["content"]
-    assert "export function initializeApp(...)" in captured_system["content"]
+    assert "Provider manifest names are not hard ES exports" in contract["rule"]
+    assert captured["hard_export_contract"]["hard_required_symbols"] == []
+    assert "CURRENT JAVASCRIPT IMPLEMENTATION CONTRACT (highest precedence)" in captured_system["content"]
+    assert "function initializeApp(...)" in captured_system["content"]
     assert captured["javascript_local_import_contract"]["allowed_local_module_paths"] == []
     assert "no local JavaScript module import is allowed" in captured_system["content"]
     assert "Python backend files are not JavaScript modules" in captured_system["content"]
@@ -12520,6 +12637,82 @@ def test_large_component_repair_keeps_split_generation() -> None:
     assert reason == "prompt_exceeds_hard_limit"
 
 
+def test_provider_boundary_rejects_context_overflow_before_any_transport(
+    monkeypatch, tmp_path: pathlib.Path
+) -> None:
+    monkeypatch.setenv("CGKN_PROVIDER_MAX_PROMPT_CHARS_HARD", "4000")
+    monkeypatch.setenv("CGKN_PROVIDER_CONTEXT_WINDOW_TOKENS", "4096")
+    monkeypatch.setattr(
+        run_local_pipeline_impl,
+        "try_local_provider_text",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("context overflow must fail before local transport")
+        ),
+    )
+    monkeypatch.setattr(
+        run_local_pipeline_impl.check_connectivity,
+        "_resolve_api_credentials",
+        lambda: (_ for _ in ()).throw(
+            AssertionError("context overflow must fail before API credential resolution")
+        ),
+    )
+
+    with pytest.raises(
+        run_local_pipeline_impl.ProviderInputContextBudgetError,
+        match="PROVIDER_INPUT_CONTEXT_BUDGET_EXCEEDED",
+    ):
+        run_local_pipeline_impl.provider_text(
+            [{"role": "user", "content": "x" * 5000}],
+            "gpt-test",
+            30,
+            stage="requirements_planning",
+            max_tokens=512,
+            phase_log_path=tmp_path / "provider_phase_log.jsonl",
+        )
+    event = json.loads((tmp_path / "provider_phase_log.jsonl").read_text(encoding="utf-8"))
+    assert event["event"] == "provider_context_budget_checked"
+    assert event["status"] == "FAIL"
+    assert event["reason"] == "prompt_chars_exceeded"
+
+
+def test_provider_boundary_measures_exact_utf8_context() -> None:
+    receipt = run_local_pipeline_impl.enforce_provider_request_context_budget(
+        [{"role": "system", "content": "规则"}, {"role": "user", "content": "abc"}],
+        stage="requirements_planning",
+        max_tokens=1200,
+    )
+
+    assert receipt["status"] == "PASS"
+    assert receipt["prompt_chars"] == 5
+    assert receipt["prompt_bytes"] == 9
+    assert receipt["estimated_input_tokens"] == 3
+
+
+def test_context_preflight_losslessly_compacts_before_final_budget_gate(monkeypatch) -> None:
+    monkeypatch.setattr(run_local_pipeline_impl, "provider_request_context_budget", lambda stage: {"max_prompt_chars": 105, "max_context_tokens": 4096, "reserved_transport_tokens": 0})
+    payload = {"requirements": ["keep-alpha", "keep-beta"], "constraints": ["never-drop"]}
+    messages, receipt = run_local_pipeline_impl.prepare_provider_request_within_context_budget("system", payload, stage="component_file_generation", max_tokens=10)
+    assert receipt["projection"] == "lossless_json_compaction"
+    assert json.loads(messages[1]["content"]) == payload
+
+
+def test_context_preflight_projects_retrieved_bodies_but_preserves_requirements(monkeypatch) -> None:
+    monkeypatch.setattr(run_local_pipeline_impl, "provider_request_context_budget", lambda stage: {"max_prompt_chars": 1300, "max_context_tokens": 4096, "reserved_transport_tokens": 0})
+    payload = {
+        "project_goal_constraints": ["offline", "retain audit trail"],
+        "target_file": "src/service.py",
+        "current_target_source": {"path": "src/service.py", "content": "def keep():\n    return 'critical'\n"},
+        "librarian_context": {"selected_items": [{"path": "src/dependency.py", "content": "def dependency(value):\n    return value\n" + "# retrieved detail\n" * 200}]},
+    }
+    messages, receipt = run_local_pipeline_impl.prepare_provider_request_within_context_budget("system", payload, stage="component_file_generation", max_tokens=10)
+    projected = json.loads(messages[1]["content"])
+    assert receipt["projection"] == "necessary_information_interfaces"
+    assert projected["project_goal_constraints"] == payload["project_goal_constraints"]
+    assert projected["current_target_source"] == payload["current_target_source"]
+    item = projected["librarian_context"]["selected_items"][0]
+    assert "content" not in item and item["implemented_interface"]["path"] == "src/dependency.py"
+
+
 def test_local_component_repair_splits_before_hard_limit(monkeypatch) -> None:
     monkeypatch.setattr(
         run_local_pipeline_impl.local_model_router,
@@ -12682,6 +12875,117 @@ def test_pending_semantic_refresh_keeps_parsed_file_hints() -> None:
         ("docs", "docs/artifact_contract.md"),
     ]
     assert refreshed["repair_plan_refreshed_on_resume"] is True
+
+
+def test_pending_semantic_refresh_excludes_completed_repair_components() -> None:
+    pipeline = {
+        "components": [
+            {"id": "foundation"},
+            {"id": "frontend"},
+            {"id": "docs"},
+        ]
+    }
+    pending = {
+        "status": "pending",
+        "stage": "provider_semantic_repair",
+        "blockers": [
+            "component quality validation failed: foundation: dependency declaration missing",
+            "component quality validation failed: frontend: interaction feedback missing",
+            "component quality validation failed: docs: design research missing",
+        ],
+        "completed_repair_components": ["foundation", "frontend"],
+    }
+
+    refreshed = run_local_pipeline_impl.refresh_pending_semantic_repair_plan(
+        pending, {}, pipeline
+    )
+
+    assert refreshed["completed_repair_components"] == ["foundation", "frontend"]
+    assert run_local_pipeline_impl.repair_plan_provider_components(refreshed) == ["docs"]
+    assert refreshed["affected_components"] == ["docs"]
+
+
+def test_new_semantic_repair_cycle_clears_completed_component_progress() -> None:
+    prepared = run_local_pipeline_impl.prepare_semantic_repair_retry_plan(
+        {
+            "provider_actions": [
+                {"component": "docs", "path": "docs/design_research.md"}
+            ],
+            "completed_repair_components": ["docs"],
+            "completed_repair_files": {"docs": ["docs/design_research.md"]},
+        },
+        ["new blocker"],
+        "Build the project.",
+        {"components": [{"id": "docs"}]},
+    )
+
+    assert "completed_repair_components" not in prepared
+    assert "completed_repair_files" not in prepared
+
+
+def test_pending_semantic_refresh_excludes_completed_repair_files_but_keeps_component() -> None:
+    pipeline = {"components": [{"id": "backend"}]}
+    blocker = {
+        "kind": "generic_semantic_blocker",
+        "raw": "backend repair requires storage and search",
+        "components": ["backend"],
+        "files_hint": ["src/storage.py", "src/search.py"],
+        "severity": "hard",
+        "repair_hint": "Repair both backend files.",
+    }
+    pending = {
+        "status": "pending",
+        "stage": "provider_semantic_repair",
+        "blockers": [json.dumps(blocker)],
+        "parsed_blockers": [blocker],
+        "completed_repair_files": {"backend": ["src/storage.py"]},
+    }
+
+    refreshed = run_local_pipeline_impl.refresh_pending_semantic_repair_plan(
+        pending, {}, pipeline
+    )
+
+    assert refreshed["completed_repair_files"] == {"backend": ["src/storage.py"]}
+    assert run_local_pipeline_impl.repair_target_files_for_component(
+        refreshed, "backend"
+    ) == ["src/search.py"]
+    assert run_local_pipeline_impl.repair_plan_provider_components(refreshed) == [
+        "backend"
+    ]
+
+
+def test_pending_semantic_refresh_keeps_checkpoint_resume_action_after_all_direct_files_complete() -> None:
+    pipeline = {"components": [{"id": "backend"}]}
+    blocker = {
+        "kind": "generic_semantic_blocker",
+        "raw": "backend repair requires storage",
+        "components": ["backend"],
+        "files_hint": ["src/storage.py"],
+        "severity": "hard",
+        "repair_hint": "Repair storage and finish its dependency closure.",
+    }
+    pending = {
+        "status": "pending",
+        "stage": "provider_semantic_repair",
+        "blockers": [json.dumps(blocker)],
+        "parsed_blockers": [blocker],
+        "completed_repair_files": {"backend": ["src/storage.py"]},
+    }
+
+    refreshed = run_local_pipeline_impl.refresh_pending_semantic_repair_plan(
+        pending, {}, pipeline
+    )
+
+    assert refreshed["provider_actions"] == [
+        {
+            "component": "backend",
+            "path": "",
+            "instruction": (
+                "Resume this in-progress component repair from validated leaf "
+                "checkpoints and finish its remaining dependency closure."
+            ),
+        }
+    ]
 
 
 def test_invented_local_module_import_repairs_only_the_consumer_leaf() -> None:

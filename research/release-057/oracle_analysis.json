@@ -1,0 +1,29 @@
+{
+  "kind": "CGNKArchitectureRoutingOracleSummary",
+  "schema_version": "1.0",
+  "source_evidence": {
+    "release": "v0.2.0-rc.2",
+    "direct_batch_id": "cross-domain-b0-direct-cheap-6b2da9ee37",
+    "direct_receipt_hash": "sha256:f23eb6707cc0d1524e31a5224288f11f8ff54b5eb7ce6bfd475833f1b239cf9a",
+    "architecture_batch_id": "cross-domain-b4-optimized-cgnk-rc-9d11af56fe",
+    "architecture_receipt_hash": "sha256:0c329ef77785ad603c567bb1c7701f714cac7ea739c11709ec6056798a182cc0",
+    "full_analysis_hash": "sha256:4f0188e737d6457c69039a37fff2d0abd3f9cb6aedf4591856a33a5df3a816e2"
+  },
+  "task_count": 72,
+  "direct_successes": 58,
+  "architecture_successes": 48,
+  "oracle_successes": 58,
+  "oracle_gain_percentage_points": 0.0,
+  "classification_counts": {
+    "BOTH_PASS": 48,
+    "DIRECT_ONLY": 10,
+    "ARCHITECTURE_ONLY": 0,
+    "BOTH_FAIL": 14
+  },
+  "complementarity": "NONE_OBSERVED",
+  "router_oracle_opportunity": "LOW",
+  "router_status": "INSUFFICIENT_EVIDENCE",
+  "router_production_adoption": "REJECTED_BY_ORACLE_GATE",
+  "fresh_holdout_status": "NOT_RUN_STOP_GATE_APPLIED",
+  "interpretation": "The theoretical oracle cannot outperform Always Direct Cheap on these paired outcomes, so fitting routing rules or implementing Router V1 would add complexity without an available success benefit."
+}

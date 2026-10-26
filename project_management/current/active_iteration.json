@@ -1,44 +1,64 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-077",
-  "project_id": "cgkn",
-  "goal": "Deliver generic longitudinal consumer governance without changing Provider, packaging, or delivery behavior.",
-  "backlog_item_ids": ["PB-055"],
+  "iteration_id": "ITER-057",
+  "project_id": "cgnk",
+  "goal": "Normalize the public CGNK release identity, bind history audits to an explicit Source Closure, and use the ITER-056 paired oracle as an anti-overengineering gate before any architecture admission Router implementation.",
+  "backlog_item_ids": ["PB-032"],
   "workflow_state": "closed",
-  "evidence_status": "PASS",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
-    "Consumer declarations are hash locked by id and version, with permanent invariant weakening routed to user review.",
-    "Changed governed paths resolve to capabilities, dependent capabilities, invariants, and executable checks.",
-    "Missing evidence, unmapped governed files, stale mutations, zero tests, and strict tool mismatch fail closed.",
-    "Verify is read-only; record requires a clean strict PASS; history preserves UNKNOWN and NOT_APPLICABLE.",
-    "Attune proves twelve unsafe mutations blocked and three safe evolutions allowed."
+    "public branding consistently uses CGNK while the cgkn Python namespace and legacy machine identifiers remain compatible",
+    "history audit reports the exact scope commit, unique reachable blob count, policy, and result hash",
+    "main advances from the validated release lineage without force push or history rewrite and becomes the GitHub default branch",
+    "the ITER-056 B0/B4 paired oracle is reproduced before any Router implementation",
+    "Router V1 is implemented only if the frozen opportunity gate authorizes it",
+    "full repository regression finishes with zero failures and zero errors before release"
   ],
   "quality_metrics": [
-    {"id": "QM-GOV-ENGINE", "measure": "consumer governance engine tests", "target": "all pass", "method": "pytest"},
-    {"id": "QM-GOV-ADVERSARIAL", "measure": "Attune unsafe mutations blocked", "target": "12/12", "method": "isolated git worktrees"},
-    {"id": "QM-GOV-EVOLUTION", "measure": "safe evolution cases allowed", "target": "3/3", "method": "isolated git worktrees"}
+    {"id": "QM-057-NAME", "measure": "strict public naming findings", "target": "0", "method": "deterministic naming audit"},
+    {"id": "QM-057-AUDIT", "measure": "release-blocking compliance findings", "target": "0 P0", "method": "scope-bound current/history audit"},
+    {"id": "QM-057-ORACLE", "measure": "oracle gain over Always Direct Cheap", "target": ">=5pp to authorize Router V1", "method": "paired 72-task analysis"},
+    {"id": "QM-057-REGRESSION", "measure": "repository failures/errors", "target": "0/0", "method": "required profiles and full pytest"}
   ],
   "quality_activities": {
-    "prevention": ["Separate permanent invariants, capability contracts, and implementation policy."],
-    "assurance": ["Run immutable-contract, dependency, ownership, evidence, record, and historical tests."],
-    "control": ["Run CGKN tests plus Attune strict and repeatability gates."],
-    "improvement": ["Keep ordinary verification affected-only and reserve mutation replay for strict verification."]
+    "prevention": ["preserve the rc.2 tag", "do not rename the Python package", "freeze machine identifiers", "run oracle before implementation"],
+    "assurance": ["naming tests", "audit-scope tests", "paired oracle reproduction", "full regression"],
+    "control": ["canonical repository publisher", "no force push", "no new authority", "no Router after a failed opportunity gate"],
+    "improvement": ["make audit scope explicit", "keep architecture opt-in only when evidence supports it"]
   },
   "interface_expectations": [
-    "consumer projects depend on CGKN only through explicit development commands",
-    "governance support results never authorize formal delivery",
-    "no second kernel is implemented in the consumer"
+    "CGNK is the public name and cgkn remains the compatibility package namespace",
+    "legacy CGKN schema kinds remain stable machine identifiers",
+    "an admission policy, if authorized, may choose an execution level but cannot plan or change business behavior",
+    "CapabilityTree, ExecutionDAG, Knowledge, Registry, Runtime, State, and public-delivery authorities remain unchanged"
   ],
-  "evidence_refs": ["tests/test_consumer_governance.py", "evidence/longitudinal-governance-v1/test_evidence.json"],
+  "evidence_refs": [
+    "research/release-057/oracle_analysis.json",
+    "research/release-057/history_audit_summary.json",
+    "research/release-057/regression_summary.json",
+    "project_management/summaries/ITER-057-release-hygiene-simple-routing.md"
+  ],
   "review": {
-    "outcome": "accepted",
-    "feedback": ["Generic engine tests passed; Attune strict blocked 12/12 unsafe mutations, allowed 3/3 safe evolutions, and produced a six-commit timeline without converting UNKNOWN to PASS."],
-    "accepted_backlog_item_ids": ["PB-055"]
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "Public naming and audit scope are consistent and release-ready.",
+      "The paired oracle provides no architecture-only successes, so Router V1 and a fresh holdout were correctly stopped.",
+      "The Knowledge persistence/internalization cycle remains a bounded P1 follow-up rather than a hygiene-release refactor."
+    ],
+    "accepted_backlog_item_ids": ["PB-032"]
   },
   "retrospective": {
-    "worked": ["Isolated worktrees made unsafe and safe evolution executable.", "Fail-closed dependency attachment exposed and removed an environment-based false PASS."],
-    "did_not_work": ["Initial Windows npx resolution and detached-worktree dependency handling were incomplete and correctly blocked strict verification."],
-    "experiments": ["Keep incremental verification affected-only; reserve all mutation replay for strict release verification."]
+    "worked": [
+      "The oracle-first gate prevented unsupported Router implementation.",
+      "Explicit commit-scoped history scanning removed ambiguity from mutable --all scans.",
+      "Canonical publication preserved normal push and remote-SHA verification."
+    ],
+    "did_not_work": [
+      "The first frozen regression exposed stale experiment-boundary receipt assumptions and two metadata test mismatches; all were corrected before final evidence."
+    ],
+    "experiments": [
+      "Always Direct Cheap and Optimized CGNK had no complementary architecture-only successes in 72 paired ITER-056 cases."
+    ]
   }
 }

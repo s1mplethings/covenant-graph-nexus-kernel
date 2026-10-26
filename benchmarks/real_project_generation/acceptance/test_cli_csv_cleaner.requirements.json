@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "case_id": "cli_csv_cleaner",
+  "tests": {
+    "test_cli_csv_cleaner.py::test_deduplication_contract": ["public-requirement-1"],
+    "test_cli_csv_cleaner.py::test_fill_and_preview_contract": ["public-requirement-2"],
+    "test_cli_csv_cleaner.py::test_output_and_invalid_input_contract": ["public-requirement-3"],
+    "test_cli_csv_cleaner.py::test_readme_and_public_tests": ["public-requirement-4"],
+    "test_cli_csv_cleaner.py::test_stdlib_and_offline_contract": ["public-requirement-5"]
+  }
+}

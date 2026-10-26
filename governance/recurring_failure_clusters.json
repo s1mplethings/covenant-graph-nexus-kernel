@@ -1,0 +1,56 @@
+{
+  "clusters": [
+    {
+      "affected_projects": [
+        "markdown_toc_cli"
+      ],
+      "cluster_id": "cluster.221cbda7ecaf4006",
+      "count": 1,
+      "failure_code": "package",
+      "failure_domain": "CANDIDATE_DEFECT",
+      "framework_fix": "",
+      "lesson_id": "",
+      "root_cause_signature": "sha256:221cbda7ecaf40066826e0bfcbecd632e43375e510d7bd543e5d4dcac06c556f",
+      "status": "PROJECT_SPECIFIC"
+    },
+    {
+      "affected_projects": [
+        "rename_plan_cli",
+        "log_summary_library"
+      ],
+      "cluster_id": "cluster.bf7b6b2b020520dd",
+      "count": 2,
+      "failure_code": "PROVIDER_BUDGET_EXHAUSTED",
+      "failure_domain": "PROVIDER_BUDGET_EXHAUSTED",
+      "framework_fix": "",
+      "lesson_id": "",
+      "root_cause_signature": "sha256:bf7b6b2b020520dd6f12c3b5dfd3c11a01d5335795c7b211281ac870a0db604f",
+      "status": "RECURRING"
+    },
+    {
+      "affected_projects": [
+        "text_stats_cli",
+        "json_flatten_cli",
+        "todo_json_cli",
+        "ini_merge_cli",
+        "duplicate_finder_cli",
+        "zip_manifest_cli",
+        "env_audit_cli",
+        "notes_search_cli"
+      ],
+      "cluster_id": "cluster.af8a5f5d13bea2e6",
+      "count": 8,
+      "failure_code": "core-generate",
+      "failure_domain": "PROVIDER_TRANSPORT_FAILURE",
+      "framework_fix": "",
+      "lesson_id": "",
+      "root_cause_signature": "sha256:af8a5f5d13bea2e65cc3f2fdac258201e7fcaa8a24941ae8b6e7ec56a1f834c1",
+      "status": "RECURRING"
+    }
+  ],
+  "contains_credentials": false,
+  "iteration": "ITER-MULTI-PROJECT-REAL-USAGE-CAMPAIGN-026",
+  "kind": "RecurringFailureClusterIndex",
+  "recurring_count": 2,
+  "schema_version": "1.0"
+}

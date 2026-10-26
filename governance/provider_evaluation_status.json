@@ -1,0 +1,62 @@
+{
+  "kind": "CGKNProviderEvaluationStatus",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-ADAPTIVE-PROVIDER-CODE-GROWTH-016",
+  "source_commit": "c7be884a047b37b8e50f5a21b94a95b55b854528",
+  "protected_baseline": "BASELINE-PROVIDER-GATEWAY-001",
+  "status": "PROVIDER_SELECTION_BLOCKED_ENVIRONMENT",
+  "benchmark_version": "provider-micro-suite-v1",
+  "benchmark_suite_hash": "sha256:8ed356d285a3b02b6e97f1533a761110a3c6f4f56664044190768954360dc197",
+  "selection_policy_version": "provider-selection-v1",
+  "providers": [
+    {
+      "provider_id": "qwen",
+      "actual_model": "qwen3.8-max",
+      "catalog_probe": "HTTP_ERROR",
+      "structured_output_probe": "TRANSPORT_FAILURE",
+      "sanitized_failure": "provider_authentication_failed: HTTP 401 invalid_api_key",
+      "eligible": false
+    },
+    {
+      "provider_id": "deepseek",
+      "actual_models_tested": ["deepseek-v4-pro", "deepseek-flash"],
+      "catalog_probe": "PASS",
+      "catalog_models": ["deepseek-flash", "deepseek-v4-pro"],
+      "structured_output_probe": "TRANSPORT_FAILURE",
+      "sanitized_failure": "HTTP 400: json_schema response_format unavailable",
+      "eligible": false
+    },
+    {
+      "provider_id": "grok",
+      "actual_model": "grok-4.7",
+      "catalog_probe": "HTTP_ERROR",
+      "structured_output_probe": "TRANSPORT_FAILURE",
+      "sanitized_failure": "HTTP 401 incorrect API key",
+      "eligible": false
+    }
+  ],
+  "live_evidence": {
+    "catalog_probe_calls": 3,
+    "benchmark_and_diagnostic_transport_calls": 7,
+    "successful_benchmark_receipts": 0,
+    "eligible_provider_count": 0,
+    "cost_estimate": "UNAVAILABLE",
+    "credentials_persisted": false,
+    "gateway_tokens_persisted": false,
+    "silent_fallback": false
+  },
+  "tests": {
+    "micro": "48 passed, 2 skipped",
+    "fast": "81 passed, 2 skipped",
+    "promotion": "127 passed, 2 skipped",
+    "compileall": "PASS",
+    "product_direction_gate": "PASS",
+    "kernel_architecture_gate": "PASS",
+    "test_architecture_gate": "PASS",
+    "baseline_ledger": "PASS",
+    "full": "NOT_RUN_STOP_CONDITION_A"
+  },
+  "stop_condition": "A",
+  "next_required_action": "Replace or repair at least two vendor credentials and ensure their configured chat-completions models accept the fixed json_schema contract, then rerun the unchanged suite.",
+  "contains_credentials": false
+}

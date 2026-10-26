@@ -1,0 +1,39 @@
+{
+  "kind": "SelfGrownCapabilityReceipt",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-PROXY-AWARE-RESEARCH-LEAF-019",
+  "source_commit": "d131e358798af062dc80cf963ba05460fe610f19",
+  "capability_ref": "github.repo.inspect.public@1",
+  "package_hash": "sha256:8556a53123b95278eecaed5d1b121cda9987ab38dba485473ccb7963240d3658",
+  "risk_class": "PURE",
+  "provider_id": "grok",
+  "provider_calls": 1,
+  "repair_rounds": 0,
+  "tests": "PASS_5_OF_5",
+  "test_cases": ["mock_success", "not_found", "malformed_json", "dependency_unavailable", "output_schema"],
+  "oracle": "PASS",
+  "admission": "ADMITTED",
+  "registry": "REGISTERED",
+  "first_execution": "PASS",
+  "reuse_execution": "PASS_WITH_ZERO_GROWTH",
+  "dependencies": ["web.fetch.public@1"],
+  "dependency_hash_recorded": true,
+  "dependency_hashes": {
+    "web.fetch.public@1": "sha256:2a88c7ed22cc6ac8739c029efa9163ab562fd3b7f4a37469f22f2ec45c28d53c"
+  },
+  "real_smoke_target": "octocat/Hello-World",
+  "real_smoke_checks": {
+    "full_name_non_empty": true,
+    "default_branch_non_empty": true,
+    "stars_non_negative_integer": true,
+    "html_url_github_https": true
+  },
+  "reuse_growth_calls": 0,
+  "reuse_builder_calls": 0,
+  "reuse_admission_calls": 0,
+  "transient_observation": "The first continuation attempt received an unauthenticated GitHub rate-limit response; a later public rate-limit diagnostic reported 60/60 remaining and the bounded retry passed.",
+  "manual_edits": 0,
+  "unsafe_direct_network_imports": 0,
+  "historical_receipt": "governance/iterations/ITER-SELF-GROWN-REAL-CAPABILITIES-018/github-repo-inspect-public-1.json",
+  "contains_credentials": false
+}

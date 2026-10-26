@@ -1,0 +1,58 @@
+{
+  "kind": "HigherOrderGrowthStatus",
+  "schema_version": "1.3",
+  "iteration": "ITER-CANDIDATE-LIFECYCLE-REFRACTOR-024",
+  "parent_baseline": "BASELINE-SELF-GROWN-LEAVES-001",
+  "source_commit": "2ec60f0a94a2b9e67457b8ffa5e0ac37debfaf96",
+  "status": "HIGHER_ORDER_GROWTH_PARTIAL",
+  "previous_iteration": {
+    "iteration": "ITER-GROK-DATA-PLANE-HIGHER-ORDER-023",
+    "status": "HIGHER_ORDER_GROWTH_PARTIAL",
+    "research_repo_brief": "BUILD_FAILED_AFTER_BOUNDED_REPAIR",
+    "initial_candidate_returned": true,
+    "initial_validation": "FRAMEWORK_HARNESS_FALSE_NEGATIVE"
+  },
+  "candidate_lifecycle": "FUNCTIONAL_PASS",
+  "research_repo_brief": {
+    "status": "PASS_WITH_EXTERNAL_LIMIT",
+    "recovered_revision": "research-repo-brief-1.iter-023-r1-recovery.r0001",
+    "source_hash": "sha256:1a1d0249683e482ba2a995d42103442b3531119d69fd577d4091b9cf4a6f2b5b",
+    "candidate_unchanged": true,
+    "revalidation": "PASS",
+    "revalidation_provider_calls": 0,
+    "admission": "ADMITTED",
+    "local_execution": "PASS",
+    "reuse": "PASS",
+    "reuse_growth_calls": 0,
+    "reuse_builder_calls": 0,
+    "external_readiness": "BLOCKED_EXTERNAL_GITHUB_RATE_LIMITED",
+    "manual_candidate_edits": 0
+  },
+  "research_compare_repos": "NOT_RUN_BY_ITERATION_SCOPE",
+  "composition": "NOT_RUN_BY_ITERATION_SCOPE",
+  "provider_usage": {
+    "grok_calls": 0,
+    "qwen_calls": 0,
+    "deepseek_calls": 0,
+    "ledger_rows": 0
+  },
+  "tests": {
+    "micro_and_small_regression": {"passed": 58, "failed": 0, "skipped": 0},
+    "product_direction_gate": "PASS",
+    "full": "NOT_RUN_BY_POLICY"
+  },
+  "security": {
+    "dependency_guards": "PASS",
+    "raw_network_guard": "PASS",
+    "validator_provider_guard": "PASS",
+    "unsafe_admissions": 0,
+    "manual_candidate_edits": 0
+  },
+  "external_health": "GITHUB_RATE_LIMITED_UNCHANGED_NOT_REPROBED",
+  "kernel_receipt": "STALE_BY_PRIOR_PROVIDER_BOUNDARY_CHANGE",
+  "provider_receipt": "CURRENT_UNCHANGED_FROM_ITER_023",
+  "application_receipt": "STALE_BY_CAPABILITY_BUILDER_CHANGE",
+  "baseline_promotion": "NOT_PROMOTED",
+  "current_baseline_unchanged": "BASELINE-SELF-GROWN-LEAVES-001",
+  "contains_credentials": false
+}

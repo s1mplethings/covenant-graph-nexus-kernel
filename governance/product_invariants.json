@@ -1,0 +1,58 @@
+{
+  "kind": "CGKNProductInvariants",
+  "schema_version": "1.0",
+  "authority": [
+    "PRODUCT_GOAL.md",
+    "MVP_SCOPE.md"
+  ],
+  "invariants": [
+    {
+      "id": "INV-01",
+      "rule": "The high-capability Agent owns project-level understanding and key decisions."
+    },
+    {
+      "id": "INV-02",
+      "rule": "Executors perform bounded work and cannot redefine project intent or become the canonical project planner."
+    },
+    {
+      "id": "INV-03",
+      "rule": "Every executable capability must expose the common Component/Block boundary with declared inputs and outputs."
+    },
+    {
+      "id": "INV-04",
+      "rule": "The kernel must not require a fixed Product-Design-Build-QA-Delivery sequence."
+    },
+    {
+      "id": "INV-05",
+      "rule": "The Agent expands a CapabilityTree and executable dependencies compile to one ExecutionDAG."
+    },
+    {
+      "id": "INV-06",
+      "rule": "Project-team roles are capability bundles or views and never mandatory kernel stages."
+    },
+    {
+      "id": "INV-07",
+      "rule": "A failure invalidates and reruns the smallest safely identifiable affected subgraph."
+    },
+    {
+      "id": "INV-08",
+      "rule": "New reusable capabilities enter through a validated interface and tests before registry reuse."
+    },
+    {
+      "id": "INV-09",
+      "rule": "Self-growth may add or replace capabilities but cannot silently weaken product invariants or create a second kernel authority."
+    },
+    {
+      "id": "INV-10",
+      "rule": "High-cost Agent calls are reserved for decisions deterministic logic or bounded cheap executors cannot safely make."
+    }
+  ],
+  "forbidden_mvp_authorities": [
+    "mandatory_virtual_team_chain",
+    "provider_owned_project_planning",
+    "fixed_project_studio_pipeline",
+    "fixed10_readiness_authority",
+    "role_driven_validation_authority",
+    "stress_or_soak_readiness_authority"
+  ]
+}

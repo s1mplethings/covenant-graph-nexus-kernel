@@ -23,6 +23,31 @@
     "superseded_by": {"type": "string"},
     "expires_at": {"type": "string"},
     "stable_hash": {"type": "string"},
+    "content_hash": {"type": "string"},
+    "semantic_hash": {"type": "string"},
+    "evidence_kind": {"enum": ["raw", "derived", "tombstone"]},
+    "subject_ref": {"type": "string"},
+    "branch_ref": {"type": "string"},
+    "source_version": {"type": "string"},
+    "observed_at": {"type": "string"},
+    "relations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "target_id"],
+        "additionalProperties": false,
+        "properties": {
+          "type": {"enum": ["SUPPORTS", "SUPPORTED_BY", "SUPERSEDES", "SUPERSEDED_BY", "CONTRADICTS", "CONTRADICTED_BY", "CORRECTS", "CORRECTED_BY", "RETRACTS", "RETRACTED_BY", "MAY_RELATE_TO"]},
+          "target_id": {"type": "string"}
+        }
+      }
+    },
+    "observation_count": {"type": "integer", "minimum": 1},
+    "derived_state": {"enum": ["fresh", "stale"]},
+    "stale_due_to": {"type": "array", "items": {"type": "string"}},
+    "revision": {"type": "integer", "minimum": 1},
+    "dependency_mode": {"enum": ["explicit", "branch"]},
+    "refresh_count": {"type": "integer", "minimum": 0},
     "diagnostics": {"type": "array", "items": {"type": "object"}}
   }
 }

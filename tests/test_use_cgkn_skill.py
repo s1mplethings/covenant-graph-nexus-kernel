@@ -32,7 +32,7 @@ def test_plugin_skill_routes_active_codex_through_guarded_mcp_tools() -> None:
 def test_cgkn_plugin_has_discoverable_ui_metadata() -> None:
     manifest = json.loads((PLUGIN_DIR / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
 
-    assert manifest["interface"]["displayName"] == "CGKN"
+    assert manifest["interface"]["displayName"] == "CGNK"
     assert "Plan, generate, diagnose, and test" in manifest["interface"]["shortDescription"]
     assert "MCP" in manifest["interface"]["longDescription"]
     assert len(manifest["interface"]["defaultPrompt"]) == 4

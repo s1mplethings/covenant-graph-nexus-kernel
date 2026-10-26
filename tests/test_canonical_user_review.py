@@ -93,12 +93,19 @@ def make_project(root: pathlib.Path) -> pathlib.Path:
         "production_provenance_ref": provenance["provenance_ref"],
         "production_provenance_hash": provenance["provenance_hash"],
     }
-    assert (
-        real_test_execution.run_tests(
-            project, **identity, **provenance_args
-        )["status"]
-        == "PASS"
+    test_evidence = real_test_execution.run_tests(
+        project, **identity, **provenance_args
     )
+    if test_evidence["status"] != "PASS":
+        diagnostics = dict(test_evidence)
+        for key in ("stdout_artifact", "stderr_artifact"):
+            path = pathlib.Path(str(test_evidence.get(key, "")))
+            diagnostics[f"{key}_text"] = (
+                path.read_text(encoding="utf-8", errors="replace")
+                if path.is_file()
+                else ""
+            )
+        raise AssertionError(diagnostics)
     assert (
         customer_runtime_runner.run(
             project, **identity, **provenance_args

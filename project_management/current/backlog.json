@@ -1,28 +1,443 @@
 {
   "kind": "CGKNCurrentBacklog",
-  "schemaVersion": "1",
-  "project": "CGKN",
+  "schemaVersion": "3",
+  "project": "CGNK",
+  "current_item_id": "PB-032",
+  "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
+  "verification_status": "PASS_WITH_LIMITS",
+  "product_authority": [
+    "PRODUCT_GOAL.md",
+    "MVP_SCOPE.md",
+    "governance/product_invariants.json",
+    "governance/current_architecture.json"
+  ],
   "items": [
     {
-      "id": "PB-054",
-      "title": "Repository Layout v1",
-      "priority": 1,
-      "state": "completed",
-      "value": "Separate source, formal specs, examples, curated evidence, and local runtime data.",
+      "id": "PB-032",
+      "title": "Normalize release hygiene and gate simple architecture admission",
+      "priority": 32,
+      "state": "done_with_limits",
+      "value": "Make the public release internally consistent and avoid routing simple tasks through architecture that cannot improve them.",
       "acceptance": [
-        "specs is the formal registry",
-        "tracked raw runtime is zero",
-        "core flows compile",
-        "repository hygiene passes"
+        "CGNK is the canonical public name and cgkn remains compatible",
+        "history audit is bound to an exact Source Closure",
+        "main is advanced normally from the validated release lineage",
+        "the paired oracle gate precedes any Router implementation",
+        "a negative oracle result stops Router development"
+      ],
+      "evidence_status": "PASS_ROUTER_REJECTED_BY_ORACLE_GATE"
+    },
+    {
+      "id": "PB-031",
+      "title": "Build transparent evidence-backed Project Digital Persona",
+      "priority": 31,
+      "state": "done_with_limits",
+      "value": "Give the CGNK public project identity durable, auditable continuity across interactions without human impersonation or weaker external-write governance.",
+      "acceptance": [
+        "governed Identity Constitution cannot be silently rewritten",
+        "episodes, relationships, commitments, reflections, and SelfModel changes remain evidence-backed",
+        "Situation and Attention support precise action and explicit silence",
+        "100-episode P0-P3 evidence shows sustained continuity rather than context accumulation alone",
+        "Community, Promotion, Knowledge, CapabilityRegistry, Runtime, routing, and approval authorities remain unchanged"
+      ],
+      "evidence_status": "PASS_WITH_HUMAN_REVIEW_AND_LIVE_REPLY_LIMITS"
+    },
+    {
+      "id": "PB-030",
+      "title": "Build policy-safe Community Operator capability branch",
+      "priority": 30,
+      "state": "done_with_limits",
+      "value": "Find a small number of public technical discussions where CGNK can contribute real value, draft grounded non-spam replies, and preserve human authority over every external reply.",
+      "acceptance": [
+        "60 opportunity cases meet precision-first engagement and project-mention gates",
+        "community rules, standalone value, claim grounding, disclosure, and spam risk fail closed",
+        "reply approval binds exact target, content, links, persona, and revision",
+        "fake reply lifecycle is restart-safe, idempotent, moderation-aware, and follow-up capable",
+        "real read-only dogfood produces audited Top20 opportunities and Top10 drafts with zero external writes",
+        "Community capabilities use the existing Component and CapabilityRegistry boundary"
+      ],
+      "evidence_status": "PASS_WITH_ENVIRONMENT_LIMIT"
+    },
+    {
+      "id": "PB-029",
+      "title": "Build local-first Promotion Studio capability branch",
+      "priority": 29,
+      "state": "done_with_limits",
+      "value": "Turn validated project evidence into grounded campaign drafts, local media, approval-bound publication plans, receipts, and aggregate feedback without adding a second runtime or authority.",
+      "acceptance": [
+        "20/20 signal decisions and 10/10 campaign cases pass",
+        "public content cites only approved evidence claims and leaks no local paths or credentials",
+        "project cards and short videos are generated and locally validated",
+        "publishing is DRAFT_ONLY by default and exact-hash approval is mandatory",
+        "fake publication and at least two native adapter contracts pass with idempotent restart-safe receipts",
+        "production Registry and fixed routing remain unchanged"
+      ],
+      "evidence_status": "PASS_WITH_ENVIRONMENT_LIMIT"
+    },
+    {
+      "id": "PB-023",
+      "title": "Normalize Provider connections and decouple code growth readiness",
+      "priority": 20,
+      "state": "done_with_limits",
+      "value": "Give Qwen, Grok, and DeepSeek independent bounded connection strategies while preserving one canonical completion contract and allowing honest single-provider code growth.",
+      "acceptance": [
+        "vendor HTTP, credentials, probes, structured-output strategies, and error classification remain inside independent connectors",
+        "connection receipts contain no credentials and old blocked evidence remains immutable",
+        "Provider selection requires fair evidence but does not globally block builders when one eligible Provider exists",
+        "repository codegen, capability building, and self-growth preserve CapabilityTree, ExecutionDAG, admission, and fallback-deny authorities"
+      ],
+      "evidence_status": "PASS_WITH_LIMITS"
+    },
+    {
+      "id": "PB-024",
+      "title": "Grow the first real Research and Release capability leaves",
+      "priority": 21,
+      "state": "done_with_limits",
+      "value": "Use the admitted Self-Growth path to generate bounded public-network and deterministic release capabilities without manually implementing business executors.",
+      "acceptance": [
+        "READ_ONLY_PUBLIC_NETWORK is credential-free, SSRF-protected, redirect-revalidated, and bounded",
+        "web.fetch.public@1 is generated and admitted only through the bounded network runtime",
+        "github.repo.inspect.public@1 depends on an executable web.fetch.public@1",
+        "release.notes.from_diff@1 is generated, admitted, executed, and reused",
+        "all Provider work stays within eight calls and Full regression remains out of policy"
+      ],
+      "evidence_status": "PASS_WITH_LIMITS"
+    },
+    {
+      "id": "MVP-001",
+      "title": "Complete repository MVP reset",
+      "priority": 1,
+      "state": "done",
+      "value": "Remove obsolete active authorities and make the CapabilityTree MVP the only current product direction.",
+      "acceptance": [
+        "obsolete fixed-flow authorities are outside active paths",
+        "historical material is removed from the working tree and remains recoverable from Git history",
+        "orphaned branch-agent, full-dynamic resume, scale, and long-test diagnostics are removed",
+        "cleanup boundary is machine-readable",
+        "cleanup remains on an isolated non-force branch"
+      ],
+      "evidence_status": "PASS"
+    },
+    {
+      "id": "MVP-002",
+      "title": "Wire the common Block execution boundary",
+      "priority": 2,
+      "state": "done",
+      "value": "Make the Component/Block contract executable through one replaceable bounded Executor interface.",
+      "acceptance": [
+        "canonical execution request and result contracts",
+        "typed declared inputs and outputs",
+        "replaceable Executor adapter protocol",
+        "deterministic local-action adapter",
+        "ExecutionDAG coordinator executes ready nodes",
+        "run and result state are persisted",
+        "focused tests execute a real node without Provider-owned project planning"
+      ],
+      "evidence_status": "PASS"
+    },
+    {
+      "id": "MVP-003",
+      "title": "Finish CapabilityTree composition semantics",
+      "priority": 3,
+      "state": "done",
+      "value": "Let the high-capability Agent incrementally create and modify a stable composition tree.",
+      "acceptance": [
+        "stable node identity",
+        "structural parent-child composition",
+        "add, replace, remove, and expand operations",
+        "roles remain optional views over capabilities"
+      ],
+      "evidence_status": "PASS"
+    },
+    {
+      "id": "MVP-004",
+      "title": "Finish Tree-to-DAG compilation",
+      "priority": 4,
+      "state": "done",
+      "value": "Compile executable dependencies separately from the human-readable composition tree.",
+      "acceptance": [
+        "fan-out and fan-in",
+        "cycle and unknown-dependency rejection",
+        "deterministic topological order",
+        "no second execution graph authority"
+      ],
+      "evidence_status": "PASS"
+    },
+    {
+      "id": "MVP-005",
+      "title": "Create replaceable executor adapters",
+      "priority": 5,
+      "state": "local_adapters_complete_external_adapters_pending",
+      "value": "Run bounded Blocks through cheap models, local models, APIs, search, scripts, browsers, and deterministic tools.",
+      "acceptance": [
+        "common execute contract",
+        "bounded task packet",
+        "cost, timeout, and provenance metadata",
+        "executor cannot redefine project intent"
+      ],
+      "evidence_status": "PASS_WITH_LIMITS"
+    },
+    {
+      "id": "MVP-006",
+      "title": "Persist project and run state",
+      "priority": 6,
+      "state": "done",
+      "value": "Keep goals, tree, DAG, node results, artifacts, failures, and checkpoints without replaying full conversation history.",
+      "acceptance": [
+        "identity-bound project state",
+        "node execution history",
+        "artifact and result references",
+        "safe resume after interruption"
+      ],
+      "evidence_status": "PASS"
+    },
+    {
+      "id": "MVP-007",
+      "title": "Prove one real vertical slice",
+      "priority": 7,
+      "state": "done",
+      "value": "Complete one real project change through the new tree, DAG, executor, test, and state path.",
+      "acceptance": [
+        "real repository or project input",
+        "CapabilityTree and compiled DAG recorded",
+        "real code or project change",
+        "real test or runtime result",
+        "high-capability Agent calls measured"
+      ],
+      "evidence_status": "PASS"
+    },
+    {
+      "id": "MVP-008",
+      "title": "Implement affected-subgraph repair",
+      "priority": 8,
+      "state": "done",
+      "value": "Map failures to the smallest safe node/subgraph and rerun only affected work.",
+      "acceptance": [
+        "failure-to-node mapping",
+        "downstream invalidation",
+        "unaffected results reused",
+        "no default whole-project regeneration"
+      ],
+      "evidence_status": "PASS"
+    },
+    {
+      "id": "MVP-009",
+      "title": "Build the capability registry",
+      "priority": 9,
+      "state": "done",
+      "value": "Allow the Agent to discover capabilities by interface, constraints, cost, executor, and observed quality.",
+      "acceptance": [
+        "queryable capability metadata",
+        "versioned interface identity",
+        "test and usage evidence",
+        "reuse before new implementation"
+      ],
+      "evidence_status": "PASS"
+    },
+    {
+      "id": "MVP-010",
+      "title": "Prove first validated self-growth",
+      "priority": 10,
+      "state": "done",
+      "value": "Discover, integrate, test, register, and reuse one previously missing capability.",
+      "acceptance": [
+        "capability gap detected",
+        "library, API, or tool search performed",
+        "bounded trial passes",
+        "new Block is registered and reused"
+      ],
+      "evidence_status": "PASS"
+    },
+    {
+      "id": "MVP-011",
+      "title": "Add project-team views",
+      "priority": 11,
+      "state": "later",
+      "value": "Expose PM, Developer, Tester, Researcher, Release, and Marketing as capability bundles over the same kernel.",
+      "acceptance": [
+        "no mandatory role chain",
+        "role composition reuses registered capabilities",
+        "one project uses only the roles it needs"
       ]
     },
     {
-      "id": "PB-055",
-      "title": "Review stable release promotion",
-      "priority": 2,
-      "state": "planned",
-      "value": "Decide stable release only after independent review of the cleaned Artifact-driven branch.",
-      "acceptance": ["no force push", "reviewed integration strategy", "formal evidence remains independently evaluated"]
+      "id": "MVP-012",
+      "title": "Add promotion and publishing capabilities",
+      "priority": 12,
+      "state": "later",
+      "value": "Extend the project team into content, media, social publishing, feedback, and metrics without another pipeline system.",
+      "acceptance": [
+        "promotion actions are Blocks",
+        "connectors are replaceable",
+        "publishing requires explicit authorization",
+        "results feed project state"
+      ]
+    },
+    {
+      "id": "MVP-013",
+      "title": "Integrate high-capability Agent and bounded cheap LLM executor",
+      "priority": 13,
+      "state": "done",
+      "value": "Let the Agent make sparse composition and repair decisions while a cheaper model performs bounded node work.",
+      "acceptance": [
+        "Agent decisions compile to validated TreeEdits",
+        "cheap model proposals are strict and deterministically applied",
+        "Agent and worker model roles are separately configured",
+        "a real provider vertical slice edits code and passes pytest",
+        "failure repair and escalation remain bounded"
+      ],
+      "evidence_status": "PASS"
+    },
+    {
+      "id": "MVP-014A",
+      "title": "Freeze and complete the kernel foundation",
+      "priority": 14,
+      "state": "done",
+      "value": "Make every current kernel layer fail-closed, tested, mapped, and governed before adding leaves.",
+      "acceptance": ["single authorities", "complete source-to-test mapping", "static, unit, boundary, and local-functional profiles", "foundation vertical slice", "independent kernel completeness status"],
+      "blocked_successors": ["MVP-014B", "Research", "PM", "Marketing", "Publishing", "Self-Growth V1", "LEVEL 5"],
+      "evidence_status": "PASS"
+    },
+    {
+      "id": "MVP-015",
+      "title": "Build the first L6 software project generation bundle",
+      "priority": 15,
+      "state": "done_with_limits",
+      "value": "Generate and externally validate real local software projects through existing kernel authorities and bounded file-scoped workers.",
+      "acceptance": [
+        "deterministic L6 contracts and hidden acceptance harness pass",
+        "one real CLI project passes within fixed Provider and repair budgets",
+        "the CLI repeats 3/3 before Web, API, and seeded repair authorize higher generation readiness",
+        "no generated candidate is manually edited"
+      ],
+      "blocked_successors": ["repeatability", "multitype generation", "real repair", "PM", "Research", "Marketing", "Publishing", "Self-Growth V1", "LEVEL 5"],
+      "evidence_status": "PASS_WITH_LIMITS"
+    },
+    {
+      "id": "MVP-016",
+      "title": "Select a canonical semantic artifact interface",
+      "priority": 16,
+      "state": "partial",
+      "value": "Replace prompt-coupled L6 coordination with validated contract, state, evidence, interface, and repair facts chosen through a fair A/B/C experiment.",
+      "acceptance": [
+        "three complete designs pass the same deterministic and fake-provider contract suite",
+        "real Provider comparison uses identical models, budgets, cases, hidden acceptance, and independent workspaces",
+        "winner selection uses the fixed 100-point rubric and hard qualification threshold",
+        "only a qualified winner may change production L6 semantics",
+        "Kernel foundation remains COMPLETE and candidate projects receive zero manual edits"
+      ],
+      "blocked_successors": ["Web generation", "API generation", "PM", "Research", "Marketing", "Publishing", "Self-Growth V1", "LEVEL 5"],
+      "evidence_status": "NEEDS_REWORK"
+    },
+    {
+      "id": "MVP-017",
+      "title": "Compile requirements into traceable executable obligations",
+      "priority": 17,
+      "state": "in_progress",
+      "value": "Prevent Agent, Worker, public tests, and hidden acceptance from applying different interpretations of the same user requirement, while preserving a direct high-capability route for small tasks.",
+      "acceptance": [
+        "ratcheted Kernel/Application/Experiment baselines prevent silent regression",
+        "dependency and error semantics are typed and source-traceable",
+        "public and hidden tests have 100% obligation traceability",
+        "direct Agent and composed DAG routes are compared under equal facts and budgets",
+        "semantic A/B/C comparison resumes only after the obligation layer meets the CLI threshold"
+      ],
+      "blocked_successors": ["semantic artifact production winner", "Web generation", "API generation", "LEVEL 5"],
+      "evidence_status": "NOT_EVALUATED"
+    },
+    {
+      "id": "PB-021",
+      "title": "Integrate the independent local multi-model Provider gateway",
+      "priority": 18,
+      "state": "done_with_limits",
+      "value": "Route high-capability Agent and bounded Worker calls through independently managed Qwen, DeepSeek, or Grok providers without moving credentials or authority into CGNK.",
+      "acceptance": [
+        "GatewayCompletionClient preserves the CompletionClient contract and the old client remains the default",
+        "one immutable run snapshot routes Agent to qwen and Worker to deepseek with fallback denied",
+        "the existing budget ledger rejects excess work before transport and records unavailable usage honestly",
+        "a real seeded project traverses Agent, CapabilityTree, DAG, bounded Worker, pytest, snapshot, and external acceptance through HTTP mock gateway",
+        "Grok can replace either role by configuration without CapabilityTree or DAG changes"
+      ],
+      "evidence_status": "PASS_WITH_LIMITS"
+    },
+    {
+      "id": "PB-022",
+      "title": "Evaluate and select Providers by task-specific evidence",
+      "priority": 19,
+      "state": "blocked_environment",
+      "value": "Benchmark allowed Providers fairly, aggregate task-specific capability profiles, select deterministically, and freeze routing before each run.",
+      "acceptance": [
+        "at least two Providers produce eligible real evidence",
+        "agent.composition, worker.codegen, and worker.repair have evidence-based winners",
+        "unknown cost is never treated as zero",
+        "run routing is immutable and fallback remains deny"
+      ],
+      "blocked_successors": [
+        "Repository Codegen",
+        "Capability Builder",
+        "Self-Growth V1"
+      ],
+      "evidence_status": "PROVIDER_SELECTION_BLOCKED_ENVIRONMENT"
+    },
+    {
+      "id": "PB-025",
+      "title": "Validate local-lazy knowledge growth and internalization",
+      "priority": 22,
+      "state": "done",
+      "value": "Preserve raw evidence while classifying updates, invalidating only dependent abstractions, refreshing derived knowledge on demand, and measuring maintenance cost as the knowledge pack grows.",
+      "acceptance": [
+        "exact duplicate ingestion performs zero model calls and no derived rebuild",
+        "support, novel, supersession, contradiction, correction, retraction, and unresolved relations are auditable",
+        "leaf changes invalidate only actual dependent abstractions and never force immediate global recomputation",
+        "Conversation excludes stale abstractions and can retrieve updated raw evidence with preserved provenance",
+        "100, 1000, and 5000 entry comparisons report write, retrieval, context, recomputation, and model-call costs for flat, eager, and local-lazy policies"
+      ],
+      "evidence_status": "PASS"
+    },
+    {
+      "id": "PB-026",
+      "title": "Measure ProjectKnowledgePack persistence and retrieval scaling",
+      "priority": 23,
+      "state": "done",
+      "value": "Separate logical local-lazy behavior from physical persistence, cold-start, memory, and retrieval costs before authorizing a storage redesign.",
+      "acceptance": [
+        "real filesystem and new-process measurements cover 1k, 5k, 10k, 50k, 100k, and resource-safe 250k",
+        "uniform, hot-branch, and long-tail corpora preserve fixed-query correctness and restart equivalence",
+        "physical write and serialization amplification are reported separately from node-level invalidation",
+        "S0/S1/S2/S3 research preserves one logical authority and tests corruption behavior",
+        "any production redesign remains backward-compatible and starts in a separate follow-up"
+      ],
+      "evidence_status": "PASS_PRODUCTION_V2_QUALIFIED_AT_250K_ADOPTION_FOLLOW_UP_COLD_START"
+    },
+    {
+      "id": "PB-027",
+      "title": "Improve evidence-backed strong escalation without new authority",
+      "priority": 24,
+      "state": "ready",
+      "value": "Close strong-token and pricing uncertainty on bounded decision workloads before considering adaptive routing as a default or collapsing the retained coordinator/worker boundary.",
+      "acceptance": [
+        "all compared routes return complete usage and pricing evidence or are explicitly excluded from percentage claims",
+        "adaptive routing preserves critical-stop correctness and reliability against strong-all",
+        "strong tokens per successful decision fall by at least the declared gate without increasing false or missed escalation",
+        "no new Agent, planner, runtime, DAG, state, Knowledge, or Capability authority is introduced",
+        "Blueprint or role-boundary changes require a separate source closure and new real generation/repair evidence"
+      ],
+      "evidence_status": "NOT_EVALUATED"
+    },
+    {
+      "id": "PB-028",
+      "title": "Validate bounded capability internalization",
+      "priority": 25,
+      "state": "done_with_limits",
+      "value": "Test whether CGNK can accumulate qualified reusable capabilities through search, composition, sandboxed creation, and later reuse without changing production authority.",
+      "acceptance": [
+        "reuse, parameterization, and bounded composition precede creation",
+        "only true capability gaps enter proposal and candidate lifecycle",
+        "hidden qualification gates experimental admission and remains invisible to Providers",
+        "G0/G1/G2/G3 use the same frozen 100-task stream and independent registries",
+        "production registry and fixed production routing remain unchanged"
+      ],
+      "evidence_status": "PASS_WITH_LIMITS_PRODUCTION_NOT_READY"
     }
   ]
 }

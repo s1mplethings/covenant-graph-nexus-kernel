@@ -1,0 +1,181 @@
+{
+  "kind": "CGKNArchitectureConvergenceReport",
+  "schema_version": "1.0",
+  "iteration": "ITER-CGNK-PARALLEL-ARCHITECTURE-CONVERGENCE-050",
+  "status": "PASS_WITH_LIMITS",
+  "baseline": {
+    "branch": "codex/v2-resource-gate-scale-qualification-20261024",
+    "commit": "7fafb7471ebfda9a931fc1b8fb8fb3e40185a1e4"
+  },
+  "source_closures": {
+    "A_safe_slimming": {
+      "branch": "codex/architecture-diet-safe-20261024",
+      "commit": "6692ebba0698d6e969e51633b4b95fde0451af04",
+      "tree": "1a1156e1dd87bd9c44f796cccc5de654974d4115"
+    },
+    "B_capability_routing": {
+      "branch": "codex/capability-routing-decision-hierarchy-20261024",
+      "commit": "a2f8f8aa081b59e0e6bf00fcc2f97a54d59424a9"
+    },
+    "C_checkpoint": {
+      "source_commit": "859919f3555a1fff985377da41bbf8bece08b18a",
+      "adoption_commit": "34f1b1f937c90ad698d1e7f9d4d04c3c48bb801a"
+    },
+    "integrated_formal": {
+      "commit": "c3de7effcbd4baa18938b258c04644b80820bd72",
+      "tree": "e46ce2306b82a9bbd2f13cef96c456701221676c"
+    },
+    "A2_blueprint_evaluation": {
+      "commit": "a14b309ff5fcc9a27dabd2acff824e8919298884",
+      "tree": "1b7825ab106df56234c790eb1ec23803803d5bf8"
+    }
+  },
+  "workstream_A": {
+    "status": "PASS",
+    "production_loc_before": 76461,
+    "production_loc_after": 76438,
+    "production_loc_delta": -23,
+    "modules_before": 222,
+    "modules_after": 222,
+    "unused_imports_or_bindings_removed": 21,
+    "duplicate_helpers_removed": 2,
+    "maximum_import_depth_before": 9,
+    "maximum_import_depth_after": 9,
+    "public_surface_changes": 0,
+    "public_surface_hash": "sha256:81a0eab4f713ffc8f52ad7c74beb3601d7af3820ed6bfa19749348b9bced2658",
+    "registry_hash": "sha256:725ce7dcda0088029e091b71ae4fbf931249a84236c6bbd9a7b5bb2de7ff4f",
+    "schema_hash": "sha256:37bd1dd2dc394f6711018abf289894e42ef29b42a345a5fe08609bec5307053d"
+  },
+  "workstream_B": {
+    "capability_search": {
+      "authority": "DERIVED_REBUILDABLE_CAPABILITY_REGISTRY_REMAINS_CANONICAL",
+      "real_registry_count": 10,
+      "real_top1_accuracy": 1.0,
+      "real_top3_recall": 1.0,
+      "current_benefit": "NOT_YET_NEEDED_AT_CURRENT_SCALE",
+      "synthetic": {
+        "scales": [100, 500, 1000],
+        "top1_accuracy": 1.0,
+        "top3_recall": 1.0,
+        "context_reduction_percent": [97.9442, 99.5902, 99.7953],
+        "benefit": "PROVEN_FOR_SYNTHETIC_SCALING_ONLY"
+      }
+    },
+    "decision_hierarchy": {
+      "formal_receipt_hash": "sha256:3d5ba76ae7666363d6517de9387fe5dd6bd6975b4506792a885810d3cbc45760",
+      "calls": {"transport_completed": 28, "accepted": 25, "validator_rejected": 1, "provider_call_failed": 2, "schema_failures": 0},
+      "D0": {"success": 22, "cases": 24, "strong_calls": 14, "false_escalations": 8, "missed_escalations": 0},
+      "D1": {"success": 23, "cases": 24, "cheap_calls": 14, "total_tokens": 9144, "cost_cny": 0.012510288, "false_escalations": 0, "missed_escalations": 6},
+      "D2": {"success": 23, "cases": 24, "strong_calls": 8, "cheap_calls": 6, "total_tokens": 10330, "cost_cny": 0.145317552, "false_escalations": 4, "missed_escalations": 2},
+      "D3": {
+        "success": 22,
+        "cases": 24,
+        "strong_calls": 6,
+        "cheap_calls": 8,
+        "decision_share": {"deterministic": 0.25, "cheap": 0.3333333333333333, "strong": 0.25, "human_stop": 0.16666666666666666},
+        "strong_model_call_share": 0.42857142857142855,
+        "strong_token_share": "UNKNOWN_EXACT_LOWER_BOUND_53_89_PERCENT",
+        "false_escalations": 0,
+        "missed_escalations": 0,
+        "critical_stop_correctness": 1.0
+      },
+      "conclusions": {
+        "deterministic_decision_benefit": "PROVEN_FOR_FORMAL_CASE_SUITE",
+        "cheap_execution_benefit": "PROVEN_DIRECTIONALLY_FOR_ROUTER_SELECTED_LOW_RISK_CASES",
+        "strong_escalation_benefit": "NOT_PROVEN",
+        "adaptive_decision_hierarchy_benefit": "PARTIAL_DIRECTIONAL_NOT_QUALIFIED",
+        "role_pipeline_collapse": "DO_NOT_PROCEED"
+      }
+    }
+  },
+  "workstream_C": {
+    "status": "PASS_GATE_CLOSED",
+    "production_files_equal_to_C_closure": true,
+    "scale": 250000,
+    "checkpoint_build_ms": 31468.845,
+    "checkpoint_load_ms": 8063.769,
+    "full_replay_ms": 20257.322,
+    "corrupt_fallback_ms": 20125.27,
+    "first_retrieval_ms": 0.113,
+    "first_conversation_ms": 1279.72,
+    "query_p95_ms": 79.023,
+    "recall": 1.0,
+    "peak_rss_bytes": 1479794688,
+    "checkpoint_bytes": 276694723,
+    "storage_amplification": 2.3652896903551808,
+    "cold_load_improvement_vs_s0_percent": 78.457,
+    "v2_new_pack_default": true,
+    "v1_read_and_explicit_write_supported": true
+  },
+  "A2": {
+    "status": "EVALUATED_NOT_ADOPTED",
+    "receipt_hash": "sha256:4dc13ec42eb339f885fc95a24437d9e0628bbbab1c1f34872f29380e2672b14b",
+    "csv": {"current_bytes": 4031, "minimal_bytes": 1355, "reduction_percent": 66.39, "calls": [3, 3], "prompt_chars": [31788, 31788]},
+    "repair": {"current_bytes": 3274, "minimal_bytes": 856, "reduction_percent": 73.85, "calls": [3, 3], "prompt_chars": [14276, 14276]},
+    "equivalence": "PROVEN_OFFLINE",
+    "runtime_benefit": "NOT_PROVEN_PROMPT_CHARS_AND_CALLS_IDENTICAL",
+    "production_blueprint_unchanged": true
+  },
+  "integration": {
+    "status": "PASS",
+    "authority_duplication": 0,
+    "production_checkpoint_hash_changed_after_C": false,
+    "conflicts": "RESOLVED_SEMANTICALLY_NO_USER_CONTENT_OVERWRITTEN",
+    "hidden_source_exposed": false,
+    "hidden_assertion_exposed": false,
+    "hidden_traceback_exposed": false,
+    "secret_persisted": false,
+    "scope_violations": 0,
+    "manual_candidate_edits": 0
+  },
+  "regression": {
+    "collection": 3185,
+    "active_repository": {"passed": 2828, "skipped": 357, "failed": 0, "errors": 0},
+    "application": {"passed": 645, "skipped": 39, "failed": 0, "errors": 0},
+    "experiments": {"passed": 32, "skipped": 0, "failed": 0, "errors": 0},
+    "profiles": {
+      "static": "PASS",
+      "unit": "PASS_482_SKIP_1",
+      "boundary": "PASS_325_SKIP_1",
+      "fault": "PASS_80",
+      "security": "PASS_119_SKIP_1",
+      "local_functional": "PASS_6",
+      "full_core": "PASS_482_SKIP_1",
+      "active_repository": "PASS_2828_SKIP_357",
+      "live_provider": "BLOCKED_ENVIRONMENT_1_SKIPPED"
+    },
+    "coverage": {"statements_percent": 90.77, "branches_percent": 77.12},
+    "kernel_receipt_hash": "sha256:7dc5f932c121651224c7545f3945b07f5672c62231c9d6afe3039795cbea7253",
+    "receipt_freshness": "PASS"
+  },
+  "final_classification": {
+    "KEEP": ["Component/Block boundary", "CapabilityTree", "ExecutionDAG", "CapabilityRegistry", "StructuredAnswerSelector", "current ProjectBlueprint", "local-lazy knowledge", "segmented-v2 persistence", "cheap executor"],
+    "KEEP_FOR_RELIABILITY": ["incremental materialization", "interface guard", "raw evidence and provenance", "v1 compatibility", "human stop"],
+    "SIMPLIFY": ["Blueprint representation only after runtime benefit is proven", "provider usage completeness"],
+    "COLLAPSE": [],
+    "REMOVE": ["21 unused imports or bindings", "2 duplicate helper implementations"],
+    "DEFER": ["fixed role-pipeline collapse", "Multi-Agent Runtime", "large capability-search infrastructure", "retrieval-scaling P2"]
+  },
+  "readiness": {
+    "kernel_foundation": "COMPLETE",
+    "minimal_blueprint_status": "COMPLETE_CURRENT_PRODUCTION_RETAINED",
+    "checkpoint_cold_start_status": "PASS_GATE_CLOSED",
+    "v2_default_adoption_readiness": "PASS",
+    "integration_status": "PASS",
+    "adaptive_decision_hierarchy_status": "EVALUATED_NOT_ADOPTED",
+    "multi_agent_status": "NOT_RECOMMENDED_CURRENT_EVIDENCE"
+  },
+  "remaining_blockers": [
+    {"priority": "P1", "code": "STRONG_ESCALATION_BENEFIT_NOT_PROVEN", "detail": "D3 preserved D0 reliability and reduced strong calls, but complete strong-token evidence is unavailable and the >=50 percent token gate is mathematically unattainable in the observed call mix."},
+    {"priority": "P2", "code": "BLUEPRINT_RUNTIME_BENEFIT_NOT_PROVEN", "detail": "The minimal representation is much smaller on disk but produced identical prompt characters and calls in the controlled A/B."},
+    {"priority": "P2", "code": "CAPABILITY_SEARCH_CURRENT_SCALE_SMALL", "detail": "The real registry has 10 capabilities; synthetic scaling is positive but does not prove material current-product savings."},
+    {"priority": "P2", "code": "RETRIEVAL_SCALING_P2_RETAINED", "detail": "Ambiguous-query candidate growth remains outside this iteration."}
+  ],
+  "evidence": {
+    "formal_decision_and_search": "D:/CGKN/.service_evidence/architecture-convergence-050/formal/formal-c3de7ef-r1.json",
+    "formal_file_sha256": "73B2E777EE9F2588886827C5859D9FCED9253E7AECB805C1429011311387EA89",
+    "blueprint_ab": "D:/CGKN/.service_evidence/architecture-convergence-050/a2/a14b309ff5fcc9a27dabd2acff824e8919298884/blueprint-ab/blueprint-ab.json",
+    "checkpoint_250k": "D:/CGKN/.service_evidence/workstream-c/formal-250k-859919f3.json",
+    "pricing": "D:/CGKN/.service_evidence/architecture-convergence-050/pricing/pricing.json"
+  }
+}

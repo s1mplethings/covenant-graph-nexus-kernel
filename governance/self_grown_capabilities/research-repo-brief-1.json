@@ -1,0 +1,62 @@
+{
+  "kind": "SelfGrownCapabilityHistory",
+  "schema_version": "1.0",
+  "capability_ref": "research.repo.brief@1",
+  "history": [
+    {
+      "iteration": "ITER-EXTERNAL-HEALTH-HIGHER-ORDER-GROWTH-021",
+      "provider_calls": 2,
+      "initial_call": "FAILED_NO_RESPONSE",
+      "bounded_repair": "FAILED_NO_RESPONSE",
+      "candidate_returned": false,
+      "admission": "NOT_ATTEMPTED_NO_CANDIDATE",
+      "status": "BUILD_FAILED_PROVIDER_CONNECTION"
+    },
+    {
+      "iteration": "ITER-GROK-TIMEOUT-HIGHER-ORDER-CLOSURE-022",
+      "provider_calls": 0,
+      "candidate_returned": false,
+      "admission": "NOT_ATTEMPTED",
+      "status": "NOT_ATTEMPTED_STRUCTURED_PROBE_BLOCKED",
+      "reason": "Builder-compatible structured probe stopped at model catalog transport"
+    },
+    {
+      "iteration": "ITER-GROK-DATA-PLANE-HIGHER-ORDER-023",
+      "provider_calls": 2,
+      "initial_candidate_returned": true,
+      "initial_validation": "FRAMEWORK_HARNESS_FALSE_NEGATIVE",
+      "framework_fix_commit": "9ad637f0d077660cc4935c737742d6bb562a3dde",
+      "bounded_repair": "PROVIDER_TRANSPORT_FAILURE",
+      "repair_candidate_returned": false,
+      "candidate_returned": true,
+      "admission": "NOT_ADMITTED",
+      "status": "BUILD_FAILED_AFTER_BOUNDED_REPAIR",
+      "manual_candidate_edits": 0
+    },
+    {
+      "iteration": "ITER-CANDIDATE-LIFECYCLE-REFRACTOR-024",
+      "provider_calls": 0,
+      "recovered_revision": "research-repo-brief-1.iter-023-r1-recovery.r0001",
+      "recovered_from": "ITER-023_INITIAL_PROVIDER_OUTPUT",
+      "provider_request_id": "6736b9676e774953ab51e46eb77f0e82",
+      "source_hash": "sha256:1a1d0249683e482ba2a995d42103442b3531119d69fd577d4091b9cf4a6f2b5b",
+      "candidate_unchanged": true,
+      "revalidation": "PASS",
+      "admission": "ADMITTED",
+      "local_execution": "PASS",
+      "reuse": "PASS",
+      "reuse_growth_calls": 0,
+      "reuse_builder_calls": 0,
+      "external_readiness": "BLOCKED_EXTERNAL_GITHUB_RATE_LIMITED",
+      "status": "PASS_WITH_EXTERNAL_LIMIT",
+      "manual_candidate_edits": 0
+    }
+  ],
+  "risk": "READ_ONLY_PUBLIC_NETWORK_COMPOSITE",
+  "dependencies": ["github.repo.inspect.public@1", "web.fetch.public@1", "markdown.links.extract@1"],
+  "provider": "grok",
+  "routing_mode": "SINGLE_PROVIDER_MODE",
+  "fallback": "deny",
+  "manual_candidate_edits": 0,
+  "contains_credentials": false
+}

@@ -1,0 +1,21 @@
+{
+  "kind": "GenerationManifestStatus",
+  "schema_version": "1.0",
+  "iteration": "ITER-GREENFIELD-BUNDLE-GENERATION-027",
+  "status": "PASS",
+  "manifest_version": "greenfield-manifest-1.0",
+  "deterministic": true,
+  "round_trip": "PASS",
+  "stable_hash": "PASS",
+  "bundle_graph_acyclic": "PASS",
+  "overlapping_targets_rejected": "PASS",
+  "size_guard": {"max_files_per_bundle": 3, "max_contract_chars": 24000, "status": "PASS"},
+  "standard_decomposition": {
+    "GREENFIELD_CLI": ["DOMAIN", "CLI"],
+    "PERSISTENT_CRUD": ["DOMAIN_STORE", "CLI"],
+    "LIBRARY": ["LIBRARY_API", "CLI"]
+  },
+  "cli_help_contract": {"interface": "PASS", "contract_test": "PASS", "runtime_smoke": "PASS", "pre_package_gate": "PASS"},
+  "test_ref": "tests/application/software_project/greenfield/test_greenfield_v2.py",
+  "contains_credentials": false
+}

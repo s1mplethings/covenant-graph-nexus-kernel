@@ -1,0 +1,10 @@
+{
+  "kind":"CGKNBaselineReceipt","schema_version":"1.0","baseline_id":"BASELINE-MVP-PROJECT2-002","parent_baseline_id":"BASELINE-MVP-PROJECT2-001",
+  "source_commit":"0e0f284bc37a8dc1b5fb74c1895cf3493948aa18","source_tree_sha":"77b647fd203d63e06af9feff6d96ace3e1dc653e",
+  "core_source_hash":"sha256:f7339f27a3c41c78d9b050992affcc0d1b6ee19161f51330406bcd04c6ed75e6","kernel_receipt_hash":"sha256:fe14731d4fbfbecd7d3e5c20dc6b1e732317cd2527c2636cfea13b19137ec269","l6_receipt_hash":"sha256:ae320da037c5666970c200a8a8fd997407ddb3b83ee3c5b4c7164a126ec33893","semantic_experiment_receipt_hash":"sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
+  "profiles":{"micro":"PASS","fast":"PASS","promotion":"PASS","full":"PASS_WITH_LIMITS","live-provider":"NOT_EVALUATED"},"test_counts":{"passed":2150,"failed":0,"errors":0,"skipped":350},
+  "known_blockers":["real Provider evidence remains required","observable CLI output repair ownership was not yet challenged by a real Provider"],
+  "protected_invariants":["kernel_foundation=COMPLETE","functional_readiness=LEVEL_4","L0-L5=COMPLETE","fake_id_reuse_owner=WU-CORE","fake_tag_filter_owner=WU-CORE","fake_optional_id_precommit=PASS","affected_only_reuse=PASS","generation_readiness=GENERATION_LEVEL_1"],
+  "inherits":"BASELINE-MVP-PROJECT2-001","added_guarantees":["fake Provider correct and defect matrix passes","CLI and Docs are reused during CORE-only repair","precommit interface correction is bounded to two proposals"],
+  "unchanged_guarantees":["all protected guarantees from BASELINE-MVP-PROJECT2-001"],"removed_guarantees":[],"created_at":"2026-10-17T06:54:00Z","evidence_status":"PASS_WITH_LIMITS","baseline_hash":"sha256:6d9ba26fdb273b27405af67a3622f4ea43cada3c1cc620592e89d6a49de69418"
+}

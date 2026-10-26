@@ -1,0 +1,15 @@
+{
+  "checkpoint": "FUNCTIONAL-CHECKPOINT-MULTI-PROJECT-REAL-USAGE-001",
+  "contains_credentials": false,
+  "full_regression": "NOT_RUN_BY_POLICY",
+  "iteration": "ITER-MULTI-PROJECT-REAL-USAGE-CAMPAIGN-026",
+  "kind": "CGKNFunctionalCheckpoint",
+  "learning": "FUNCTIONAL_PASS",
+  "permanent_baseline_changed": false,
+  "project_production": "MULTI_PROJECT_REAL_USAGE",
+  "protected_baseline": "BASELINE-SELF-GROWN-LEAVES-001",
+  "schema_version": "1.0",
+  "self_growth": "COMPLETE_FROZEN",
+  "source_commit": "3633d3406edca6e79a33413c3d754d8a6169a61a",
+  "status": "MULTI_PROJECT_REAL_USAGE_NEEDS_REWORK"
+}

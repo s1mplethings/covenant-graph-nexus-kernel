@@ -4,7 +4,6 @@ import importlib
 import json
 import pathlib
 import subprocess
-import time
 from datetime import datetime, timezone
 from typing import Any, Callable
 
@@ -12,6 +11,13 @@ from cgkn.artifacts.models import ArtifactInstance, ArtifactRef, Producer, Prove
 from cgkn.artifacts.store import ArtifactStore
 from cgkn.artifacts.types import ArtifactValidationError
 from cgkn.compiler.artifact_graph import ArtifactFlowCompiler
+from cgkn.component import (
+    ComponentExecution,
+    ComponentResult,
+    ExecutionContext,
+    ModuleComponentAdapter,
+)
+from cgkn.component.spec import _thaw
 
 from .cache import ArtifactCache
 from .checkpoint import write_checkpoint
@@ -59,6 +65,7 @@ class ArtifactModuleRunner:
         self.provider_executor = provider_executor
         self.local_functions = local_functions or {}
         self.feed_rows: list[dict[str, Any]] = []
+        self.component_executions: list[ComponentExecution] = []
         self._outputs: dict[tuple[str, str], ArtifactRef] = {}
         self._seed_existing_outputs()
 
@@ -109,23 +116,48 @@ class ArtifactModuleRunner:
         manifest["outputArtifacts"] = [item.as_dict() for item in outputs.values()]
         self._save_manifest(manifest)
         report = self._write_feed_report()
-        return {"outputs": outputs, "feedForwardReport": report, "runManifest": manifest}
+        return {
+            "outputs": outputs,
+            "componentExecutions": self.component_executions,
+            "feedForwardReport": report,
+            "runManifest": manifest,
+        }
 
     def _run_node(self, node: dict[str, Any], flow_inputs: dict[str, ArtifactRef], raw_source_chars: int) -> None:
         node_id = node["id"]
         module_ref = node["uses"]
         module = self.compiler.modules[module_ref]
-        inputs = self._resolve_inputs(node_id, flow_inputs)
-        started = _now()
-        start_clock = time.perf_counter()
-        diagnostics: list[dict[str, Any]] = []
-        fingerprint = ""
-        cache_status = "miss"
+        component = ModuleComponentAdapter(module, self._execute_component)
+        spec = component.spec
+        inputs: dict[str, ArtifactRef] = {}
+        execution = ComponentExecution(spec.ref, node_id, self.run_dir.name)
+        self.component_executions.append(execution)
         context_pack: dict[str, Any] = {}
         output_refs: list[ArtifactRef] = []
+        cache_hit = False
+        evidence_refs: tuple[str, ...] = ()
         try:
+            inputs = self._resolve_inputs(node_id, flow_inputs)
+            execution.start(inputs.values())
+            missing = [port.name for port in spec.input_ports if port.required and port.name not in inputs]
+            if missing:
+                raise ModuleExecutionError(
+                    f"node {node_id} is missing required inputs: {missing}",
+                    [{"code": "CGKN_RUNTIME_REQUIRED_INPUT_MISSING", "ports": missing}],
+                )
             for port, ref in inputs.items():
-                expected = module["ports"]["input"][port]["artifact_type"]
+                try:
+                    expected = spec.input_port(port).artifact_type
+                except KeyError as exc:
+                    raise ModuleExecutionError(
+                        f"node {node_id} received undeclared input {port}",
+                        [{"code": "CGKN_RUNTIME_INPUT_PORT_UNDECLARED", "port": port}],
+                    ) from exc
+                if not self.store.verify_artifact_hash(ref):
+                    raise ModuleExecutionError(
+                        f"node {node_id} input hash is invalid",
+                        [{"code": "CGKN_INPUT_HASH_INVALID", "artifactRef": ref.as_dict()}],
+                    )
                 artifact = self.store.resolve_artifact_ref(ref)
                 if artifact.artifact_type != expected:
                     raise ModuleExecutionError(
@@ -136,11 +168,6 @@ class ArtifactModuleRunner:
                     raise ModuleExecutionError(
                         f"node {node_id} cannot consume {artifact.status} input {artifact.id}",
                         [{"code": "CGKN_STALE_INPUT_BLOCKED", "artifactRef": ref.as_dict(), "status": artifact.status}],
-                    )
-                if not self.store.verify_artifact_hash(ref):
-                    raise ModuleExecutionError(
-                        f"node {node_id} input hash is invalid",
-                        [{"code": "CGKN_INPUT_HASH_INVALID", "artifactRef": ref.as_dict()}],
                     )
             context_pack = build_context_pack(
                 node,
@@ -153,30 +180,39 @@ class ArtifactModuleRunner:
             )
             implementation = module["implementation"]
             prompt_version = implementation.get("promptVersion")
-            fingerprint = execution_fingerprint(module_ref, node.get("config", {}), inputs.values(), prompt_version, self.flow["policy_ref"])
-            cached = self.cache.lookup(node_id, fingerprint, self.store) if implementation.get("cacheable", True) else None
+            execution.execution_fingerprint = execution_fingerprint(spec.ref, node.get("config", {}), inputs.values(), prompt_version, self.flow["policy_ref"])
+            cached = self.cache.lookup(node_id, execution.execution_fingerprint, self.store) if implementation.get("cacheable", True) else None
             if cached:
-                cache_status = "hit"
                 output_refs = cached
+                cache_hit = True
             else:
-                self.effects.consume_declared(module.get("effects", {}), node_id=node_id, phase=str(node.get("config", {}).get("phase", "")), run=self.run_dir.name)
-                contents, execution_meta = self._execute(module, inputs, context_pack, node)
-                output_refs = self._materialize_outputs(node, module, inputs, contents, execution_meta)
+                self.effects.consume_declared(dict(spec.effects), node_id=node_id, phase=str(node.get("config", {}).get("phase", "")), run=self.run_dir.name)
+                execution.effects_summary = dict(spec.effects)
+                result = component.execute(
+                    ExecutionContext(run_id=self.run_dir.name, node=node, context_pack=context_pack),
+                    inputs,
+                )
+                output_refs = self._materialize_outputs(node, spec, module, inputs, result)
                 if implementation.get("cacheable", True):
-                    self.cache.record(node_id, fingerprint, output_refs)
+                    self.cache.record(node_id, execution.execution_fingerprint, output_refs)
+                evidence_refs = result.evidence_refs
             for ref in inputs.values():
                 self.store.register_consumer(ref, node_id)
             for ref in output_refs:
                 artifact = self.store.resolve_artifact_ref(ref)
                 self._outputs[(node_id, artifact.producer.output_port)] = ref
+            if cache_hit:
+                execution.cached(output_refs)
+            else:
+                execution.succeed(output_refs, evidence_refs=evidence_refs)
         except Exception as exc:
             diagnostics = exc.diagnostics if isinstance(exc, ModuleExecutionError) else [{"code": "CGKN_MODULE_EXECUTION_FAILED", "message": str(exc)}]
-            checkpoint = self._checkpoint(node_id, started, _now(), "fail", inputs, [], fingerprint, cache_status, diagnostics)
-            self._record_checkpoint(checkpoint)
+            if execution.status.value == "pending":
+                execution.start(inputs.values())
+            execution.fail(diagnostics)
+            self._record_checkpoint(execution.as_checkpoint())
             raise ModuleExecutionError(str(exc), diagnostics) from exc
-        duration_ms = int((time.perf_counter() - start_clock) * 1000)
-        checkpoint = self._checkpoint(node_id, started, _now(), "pass", inputs, output_refs, fingerprint, cache_status, diagnostics)
-        self._record_checkpoint(checkpoint)
+        self._record_checkpoint(execution.as_checkpoint())
         metrics = context_pack.get("metrics", {})
         self.feed_rows.append(
             {
@@ -189,8 +225,11 @@ class ArtifactModuleRunner:
                 "raw_source_chars": metrics.get("raw_source_chars", 0),
                 "artifact_context_chars": metrics.get("artifact_context_chars", 0),
                 "compression_ratio": metrics.get("compression_ratio"),
-                "cache": cache_status,
-                "durationMs": duration_ms,
+                "executionId": execution.execution_id,
+                "componentRef": execution.component_ref,
+                "status": execution.status.value,
+                "cache": execution.cache_status,
+                "durationMs": execution.duration_ms,
             }
         )
 
@@ -272,6 +311,10 @@ class ArtifactModuleRunner:
             }
         raise ModuleExecutionError(f"unsupported module implementation kind: {kind}")
 
+    def _execute_component(self, module, inputs, context: ExecutionContext) -> ComponentResult:
+        contents, metadata = self._execute(module, inputs, dict(context.context_pack), dict(context.node))
+        return ComponentResult(output_contents=contents, metadata=metadata)
+
     @staticmethod
     def _provider_payload(response: Any) -> dict[str, Any]:
         if isinstance(response, str):
@@ -281,34 +324,39 @@ class ArtifactModuleRunner:
         return response
 
     def _validate_output_contents(self, module: dict[str, Any], contents: dict[str, Any]) -> None:
-        expected_ports = module.get("ports", {}).get("output", {})
-        for port, spec in expected_ports.items():
-            if port not in contents:
-                raise ArtifactValidationError(f"missing output port: {port}")
-            self.compiler.registry.validate_content(spec["artifact_type"], contents[port])
+        spec = ModuleComponentAdapter(module).spec
+        self._validate_component_outputs(spec, contents)
+
+    def _validate_component_outputs(self, spec, contents: dict[str, Any]) -> None:
+        expected_ports = {port.name: port for port in spec.output_ports}
+        for name, port in expected_ports.items():
+            if name not in contents:
+                raise ArtifactValidationError(f"missing output port: {name}")
+            self.compiler.registry.validate_content(port.artifact_type, contents[name])
         extra = set(contents) - set(expected_ports)
         if extra:
             raise ArtifactValidationError(f"undeclared output ports: {sorted(extra)}")
 
-    def _materialize_outputs(self, node, module, inputs, contents, execution_meta) -> list[ArtifactRef]:
-        self._validate_output_contents(module, contents)
+    def _materialize_outputs(self, node, spec, module, inputs, result: ComponentResult) -> list[ArtifactRef]:
+        contents = _thaw(result.output_contents)
+        self._validate_component_outputs(spec, contents)
         pending: list[ArtifactInstance] = []
-        module_ref = f"{module['id']}@{module['version']}"
+        module_ref = spec.ref
         implementation = module["implementation"]
-        for port, spec in module["ports"]["output"].items():
-            prior = self.store.latest_produced_by_node(node["id"], port, fresh_only=False)
+        for port in spec.output_ports:
+            prior = self.store.latest_produced_by_node(node["id"], port.name, fresh_only=False)
             pending.append(
                 ArtifactInstance(
-                    id=self.store.allocate_id(spec["artifact_type"]),
-                    artifact_type=spec["artifact_type"],
+                    id=self.store.allocate_id(port.artifact_type),
+                    artifact_type=port.artifact_type,
                     run_id=self.run_dir.name,
-                    producer=Producer(node["id"], module_ref, port),
-                    content=dict(contents[port]),
+                    producer=Producer(node["id"], module_ref, port.name),
+                    content=dict(contents[port.name]),
                     provenance=Provenance(
                         input_artifact_refs=tuple(inputs.values()),
                         source_refs=tuple(str(item) for item in node.get("config", {}).get("sourceRefs", [])),
-                        provider=execution_meta.get("provider"),
-                        model=execution_meta.get("model"),
+                        provider=result.metadata.get("provider"),
+                        model=result.metadata.get("model"),
                         prompt_version=implementation.get("promptVersion"),
                     ),
                     supersedes=prior.id if prior else None,
@@ -328,22 +376,6 @@ class ArtifactModuleRunner:
             raise ModuleExecutionError(f"local function entrypoint is not callable: {entrypoint}")
         return function
 
-    @staticmethod
-    def _checkpoint(node_id, started, finished, status, inputs, outputs, fingerprint, cache_status, diagnostics):
-        return {
-            "kind": "GenerationCheckpoint",
-            "runId": "",
-            "nodeId": node_id,
-            "status": status,
-            "startedAt": started,
-            "finishedAt": finished,
-            "inputArtifactRefs": [item.as_dict() for item in inputs.values()],
-            "outputArtifactRefs": [item.as_dict() for item in outputs],
-            "executionFingerprint": fingerprint,
-            "cacheStatus": cache_status,
-            "diagnostics": diagnostics,
-        }
-
     def _record_checkpoint(self, checkpoint: dict[str, Any]) -> None:
         checkpoint["runId"] = self.run_dir.name
         path = write_checkpoint(self.run_dir, checkpoint)
@@ -355,8 +387,12 @@ class ArtifactModuleRunner:
 
     def _record_bypass(self, node_id: str, overrides: dict[tuple[str, str], ArtifactRef]) -> None:
         refs = [ref for (owner, _), ref in overrides.items() if owner == node_id]
+        node = next(item for item in self.flow["nodes"] if item["id"] == node_id)
+        execution = ComponentExecution(node["uses"], node_id, self.run_dir.name).bypass(refs)
+        self.component_executions.append(execution)
+        self._record_checkpoint(execution.as_checkpoint())
         self.feed_rows.append(
-            {"nodeId": node_id, "inputs": [], "outputs": [item.as_dict() for item in refs], "contextChars": 0, "contextTrace": [], "tokenEstimate": 0, "raw_source_chars": 0, "artifact_context_chars": 0, "compression_ratio": None, "cache": "bypass", "durationMs": 0}
+            {"nodeId": node_id, "executionId": execution.execution_id, "componentRef": execution.component_ref, "status": execution.status.value, "inputs": [], "outputs": [item.as_dict() for item in refs], "contextChars": 0, "contextTrace": [], "tokenEstimate": 0, "raw_source_chars": 0, "artifact_context_chars": 0, "compression_ratio": None, "cache": "bypass", "durationMs": 0}
         )
 
     def _manifest_path(self) -> pathlib.Path:

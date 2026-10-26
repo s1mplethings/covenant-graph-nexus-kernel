@@ -1,0 +1,25 @@
+{
+  "kind": "CGKNBaselineReceipt", "schema_version": "1.0",
+  "baseline_id": "BASELINE-OBLIGATION-005", "parent_baseline_id": "BASELINE-OBLIGATION-004",
+  "source_commit": "79b52ed043742b8dd062ae75f6af025297fe5c39",
+  "source_tree_sha": "8414fdb23ef01edf33e2702c80153199e58200a7",
+  "core_source_hash": "sha256:f7339f27a3c41c78d9b050992affcc0d1b6ee19161f51330406bcd04c6ed75e6",
+  "kernel_receipt_hash": "sha256:fe14731d4fbfbecd7d3e5c20dc6b1e732317cd2527c2636cfea13b19137ec269",
+  "l6_receipt_hash": "sha256:6c26bbdb3e3f2033b8d97b1658fee62ece03121967edce5ed5881ca9c120573a",
+  "semantic_experiment_receipt_hash": "sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
+  "profiles": {"static":"PASS","unit":"PASS","boundary":"PASS","fault":"PASS","security":"PASS","local-functional":"PASS","full-core":"PASS","active-repository":"PASS","live-provider":"BLOCKED_ENVIRONMENT"},
+  "test_counts": {"passed":3099,"failed":0,"errors":0,"skipped":355},
+  "known_blockers": ["semantic artifact winner is NONE","real CLI direct and DAG repeatability are not evaluated","generation readiness is GENERATION_LEVEL_0"],
+  "protected_invariants": ["kernel_foundation=COMPLETE","functional_readiness=LEVEL_4","L0-L5=COMPLETE","L6=PARTIAL","seeded_repair_A_B_C=PASS","accepted_interface_breakages=0","whole_project_repair_replans=0","manual_candidate_edits=0","hidden_source_exposed=false","generation_readiness=GENERATION_LEVEL_0","semantic_artifact_winner=NONE"],
+  "inherits": "BASELINE-OBLIGATION-004",
+  "added_guarantees": [
+    "direct_agent_execute@1 is a declared bounded application capability",
+    "execution strategy is deterministically recorded before execution and never used as a failure fallback",
+    "Direct Agent and composed DAG use the same obligations, dependency policy, TestPlan, and hidden acceptance in independent workspaces",
+    "both routes retain non-bypassable compile, pytest, runtime, and hidden acceptance gates",
+    "fake Direct and DAG comparison passes with zero manual edits and zero whole replans"
+  ],
+  "unchanged_guarantees": ["all protected invariants and guarantees from BASELINE-OBLIGATION-004"],
+  "removed_guarantees": [], "created_at": "2026-10-16T09:52:07.0315601Z",
+  "evidence_status": "PASS_WITH_LIMITS", "baseline_hash": "sha256:532becc3621678f0119263780b5b4cd65d10ca63b27fa243511602e7886db530"
+}

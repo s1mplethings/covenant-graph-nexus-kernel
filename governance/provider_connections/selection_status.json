@@ -1,0 +1,18 @@
+{
+  "kind": "CGKNProviderSelectionStatus",
+  "schema_version": "2.0",
+  "source_commit": "5602fe8117c32ab05c2aad8405edd5a4a42fd5f1",
+  "pre_normalization_evidence": [
+    "governance/provider_evaluation_status.json",
+    "governance/provider_selection_status.json"
+  ],
+  "status": "PROVIDER_SELECTION_BLOCKED_ENVIRONMENT",
+  "eligible_provider_count": 1,
+  "eligible_providers": ["grok"],
+  "decisions": [],
+  "adaptive_selection_complete": false,
+  "repository_codegen_mode": "SINGLE_PROVIDER_MODE",
+  "routing_provider": "grok",
+  "fallback": "deny",
+  "contains_credentials": false
+}

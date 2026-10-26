@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0",
+  "kind": "CGKNModelPricingSnapshot",
+  "captured_at": "2026-10-25",
+  "currency": "USD",
+  "unit": "per_1m_tokens",
+  "models": [
+    {
+      "provider": "Alibaba Cloud Model Studio",
+      "route_id": "qwen",
+      "model": "qwen3.8-max",
+      "deployment_scope": "China (Beijing)",
+      "mode": "non_thinking",
+      "input_price": 1.65,
+      "output_price": 4.951,
+      "cache_price": null,
+      "budget_rate_policy": "standard list price; no promotional discount assumed",
+      "source": "https://www.alibabacloud.com/help/en/model-studio/model-pricing"
+    },
+    {
+      "provider": "DeepSeek",
+      "route_id": "deepseek",
+      "model": "deepseek-flash",
+      "resolved_model_at_capture": "DeepSeek-V4.1-Flash-1017",
+      "mode": "non_thinking",
+      "input_price": 0.30,
+      "output_price": 1.20,
+      "cache_hit_input_price": 0.006,
+      "budget_rate_policy": "peak cache-miss upper bound; off-peak discounts not assumed",
+      "source": "https://api-docs.deepseek.com/quick_start/pricing/"
+    }
+  ],
+  "limitations": [
+    "Prices can change after capture.",
+    "Run receipts must preserve provider-reported usage and the captured price snapshot hash.",
+    "Unknown usage remains null and is never converted to zero."
+  ]
+}

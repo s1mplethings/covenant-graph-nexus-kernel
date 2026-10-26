@@ -1,0 +1,39 @@
+{
+  "kind": "CGKNBaselineReceipt",
+  "schema_version": "1.0",
+  "baseline_id": "BASELINE-PROVIDER-CONNECTORS-001",
+  "parent_baseline_id": "BASELINE-PROVIDER-EVAL-001",
+  "source_commit": "5602fe8117c32ab05c2aad8405edd5a4a42fd5f1",
+  "source_tree_sha": "2eb8871cac66674dd490c0bbe1c8fae7b0a09613",
+  "core_source_hash": "sha256:f5966427b66178eae2ba42bed51c25d4eae78c558647b15fde946e3a5920ca55",
+  "kernel_receipt_hash": "sha256:b9d38fc616632b5362114958d7ae6926dc3924b179f31ea13eefc10242582eba",
+  "l6_receipt_hash": "sha256:f60050f62fa20e22cc055faa3144b43b990f17ad80b840708a6476401b1c8945",
+  "semantic_experiment_receipt_hash": "sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
+  "profiles": {"micro": "PASS", "fast": "PASS", "promotion": "NOT_EVALUATED", "full": "NOT_EVALUATED", "live-provider": "PASS_WITH_LIMITS"},
+  "test_counts": {"passed": 93, "failed": 0, "errors": 0, "skipped": 2},
+  "known_blockers": [
+    "Qwen workspace and recognized connector credential are not configured",
+    "DeepSeek connector credential is not configured",
+    "only Grok is eligible, so adaptive Provider selection remains blocked",
+    "live connector diagnostics are not yet bound to a durable Provider budget ledger"
+  ],
+  "protected_invariants": [
+    "kernel_foundation=COMPLETE", "functional_readiness=LEVEL_4", "L0-L5=COMPLETE",
+    "generation_readiness=GENERATION_LEVEL_2", "mvp_readiness=READY", "fallback=deny",
+    "manual_candidate_edits=0", "whole_project_repair_replans=0", "accepted_interface_breakages=0",
+    "semantic_artifact_winner=NONE"
+  ],
+  "inherits": "BASELINE-PROVIDER-EVAL-001",
+  "added_guarantees": [
+    "Qwen, Grok, and DeepSeek have independent connector implementations and credential-free profiles",
+    "the connector registry contains lookup only and rejects unknown Providers",
+    "all successful structured outputs pass one Draft 2020-12 local validator",
+    "GatewayCompletionClient contains no vendor request behavior",
+    "Grok is live eligible through the Responses API while Qwen and DeepSeek remain independently blocked"
+  ],
+  "unchanged_guarantees": ["all protected guarantees from BASELINE-PROVIDER-EVAL-001"],
+  "removed_guarantees": [],
+  "created_at": "2026-10-17T22:40:00+08:00",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "baseline_hash": "sha256:1d3e35224e4e9120c54d2ae6dace60d3471dd7b4e7109415ba68859d7580ef47"
+}

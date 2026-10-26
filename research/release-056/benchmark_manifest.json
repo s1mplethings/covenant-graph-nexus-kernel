@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0",
+  "kind": "CGKNRelease056BenchmarkManifest",
+  "frozen_at": "2026-10-25",
+  "seed": 56025,
+  "internal": {
+    "cross_domain_task_count": 72,
+    "cross_domain_public_task_hash": "sha256:da664c538a8dd6e3e434f3ab3484b218246b217ac60c4e3893a26089e1e730af",
+    "cross_domain_evaluator_hash": "sha256:f056ff3bc306020d8224f73b310c59074639a49a52ec49a9b095efc294460a3b",
+    "longevity_task_count": 500
+  },
+  "public_benchmarks": [
+    {
+      "id": "CRAG",
+      "repository": "https://github.com/facebookresearch/CRAG",
+      "commit": "ad1518887dd4d9ebcd7de95388c7a62751e7705c",
+      "license": "CC-BY-NC-4.0",
+      "relevance": "HIGH",
+      "redistribution": "PROHIBITED_IN_CGNK_TREE",
+      "adapter": "thin external official-harness adapter"
+    },
+    {
+      "id": "LongMemEval-V2",
+      "repository": "https://github.com/xiaowu0162/LongMemEval-V2",
+      "commit": "2cc8c540bdb87fe6761629b585e727e1c4704520",
+      "license": "Apache-2.0",
+      "relevance": "HIGH",
+      "redistribution": "NO_DATA_COPY; IDs/config/results only",
+      "adapter": "official memory backend interface"
+    },
+    {
+      "id": "BFCL-V4",
+      "repository": "https://github.com/ShishirPatil/gorilla",
+      "commit": "6ea57973c7a6097fd7c5915698c54c17c5b1b6c8",
+      "official_evaluation_commit": "f7cf735",
+      "license": "Apache-2.0 repository; dataset terms remain benchmark-controlled",
+      "relevance": "HIGH",
+      "redistribution": "NO_DATA_COPY; IDs/config/results only",
+      "adapter": "official bfcl evaluator model adapter"
+    },
+    {
+      "id": "TUA-Bench",
+      "repository": "https://github.com/facebookresearch/TUA-Bench",
+      "commit": "3497fd320abcafaf4797424192c891a593fd7964",
+      "license": "CC-BY-NC-4.0; third-party task assets separately governed",
+      "relevance": "HIGH",
+      "redistribution": "PROHIBITED_IN_CGNK_TREE",
+      "adapter": "official container environment"
+    },
+    {
+      "id": "SWE-bench-Pro-V2",
+      "repository": "https://github.com/scaleapi/SWE-bench_Pro-os",
+      "commit": "66f92766bba642462d4bbe5479e83f91f9211862",
+      "release_tag": "v2.0.0",
+      "license": "MIT harness; individual task repositories retain their own licenses",
+      "relevance": "MEDIUM",
+      "redistribution": "NO_TASK_OR_REPOSITORY_COPY; IDs/config/results only",
+      "subset": "HARD-51",
+      "adapter": "official locked no-network Harbor protocol"
+    }
+  ],
+  "prohibited": [
+    "gold answers in execution context",
+    "benchmark solution retrieval",
+    "fixing-commit search",
+    "evaluator modification",
+    "restricted dataset repackaging",
+    "leaderboard submission"
+  ]
+}

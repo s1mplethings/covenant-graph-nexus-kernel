@@ -1,0 +1,43 @@
+{
+  "kind": "CGKNExternalProviderProfile",
+  "schema_version": "1.0",
+  "profile_id": "project-generation-external-api",
+  "execution_mode": "external_api",
+  "protocol": "openai_compatible",
+  "base_url_env_names": [
+    "CGKN_OPENAI_BASE_URL_OVERRIDE",
+    "QWEN_BASE_URL",
+    "CGKN_OPENAI_BASE_URL",
+    "OPENAI_BASE_URL"
+  ],
+  "api_key_env_names": [
+    "CGKN_OPENAI_API_KEY_OVERRIDE",
+    "QWEN_API_KEY",
+    "CGKN_OPENAI_API_KEY",
+    "OPENAI_API_KEY"
+  ],
+  "generator_model_env": "CGKN_PROJECT_GENERATION_MODEL",
+  "repair_model_env": "CGKN_PROJECT_REPAIR_MODEL",
+  "timeout_seconds": 360,
+  "max_retries": 2,
+  "max_tokens": 5000,
+  "temperature": 0.2,
+  "cache_mode": "off",
+  "cache_mode_env": "CGKN_PROVIDER_CACHE_MODE",
+  "cache_directory_env": "CGKN_PROVIDER_RESPONSE_CACHE_DIR",
+  "cache_modes": ["off", "read_write", "replay_only"],
+  "cache_replay_is_live_generation": false,
+  "dependency_mode": "wheelhouse",
+  "wheelhouse_env": "CGKN_PROJECT_WHEELHOUSE",
+  "budget_env": {
+    "max_api_calls": "CGKN_PROVIDER_MAX_API_CALLS",
+    "max_total_input_tokens": "CGKN_PROVIDER_MAX_INPUT_TOKENS",
+    "max_total_output_tokens": "CGKN_PROVIDER_MAX_OUTPUT_TOKENS",
+    "max_estimated_cost": "CGKN_PROVIDER_MAX_ESTIMATED_COST",
+    "input_cost_per_million": "CGKN_PROVIDER_INPUT_COST_PER_MILLION",
+    "output_cost_per_million": "CGKN_PROVIDER_OUTPUT_COST_PER_MILLION"
+  },
+  "credentials_must_come_from_environment": true,
+  "codex_generation_calls_allowed": 0,
+  "codex_repair_calls_allowed": 0
+}

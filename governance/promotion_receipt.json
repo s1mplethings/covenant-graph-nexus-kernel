@@ -1,0 +1,74 @@
+{
+  "kind": "CGKNPromotionEvidenceReceipt",
+  "schema_version": "1.0",
+  "source_commit": "3c5d2dc7d3eca4947ff319d0a98ac67c9436a1bd",
+  "source_tree": "34e2a20e833adc584b0c1fe2854f1317231f0fed",
+  "evaluation_path": "project_management/summaries/ITER-053-evidence/promotion_evaluation.json",
+  "evaluation_hash": "sha256:d13ba0f7773ba3c694ca79b5df8bbbea6e87291e5d21e3f1ceb0587749915ec1",
+  "created_at": "2026-10-24T19:17:49.978413Z",
+  "signal_cases": {"passed": 20, "total": 20},
+  "campaign_cases": {"passed": 10, "total": 10},
+  "assets": {
+    "passed": 6,
+    "total": 6,
+    "images": 4,
+    "videos": 2,
+    "video_validation": [
+      {"resolution": "640x360", "duration_seconds": 2.0, "video_codec": "h264", "audio_codec": "aac", "container": "mp4"},
+      {"resolution": "720x1280", "duration_seconds": 4.0, "video_codec": "h264", "audio_codec": "aac", "container": "mp4"}
+    ]
+  },
+  "native_adapters": ["mastodon", "bluesky", "youtube"],
+  "postiz_bridge": "IMPLEMENTED_AND_OFFLINE_TESTED",
+  "fake_publication": {
+    "status": "PASS",
+    "receipt_hash": "sha256:243c3e0e4c938b636d5fd057fa7e2ccc40dfcd08ae0ba7b86e41b0ca55a8033e",
+    "duplicate_result": "ALREADY_PUBLISHED",
+    "retry_result": "FAILED_RETRYABLE",
+    "restart_result": "PUBLISHED"
+  },
+  "metrics": {
+    "signal_precision": 1.0,
+    "signal_recall": 1.0,
+    "unsupported_claim_rate": 0.0,
+    "private_leakage_rate": 0.0,
+    "campaign_dedup_rate": 1.0,
+    "draft_validity": 1.0,
+    "platform_compliance": 1.0,
+    "approval_integrity": 1.0,
+    "duplicate_unintended_publication_rate": 0.0,
+    "publication_success": 1.0,
+    "retry_correctness": 1.0,
+    "restart_correctness": 1.0,
+    "render_success": 1.0,
+    "tokens_per_campaign": 0.0,
+    "cost_per_campaign_usd": 0.0,
+    "mean_campaign_wall_time_ms": 0.635,
+    "evaluation_wall_time_ms": 1510.816
+  },
+  "security": {
+    "external_writes": 0,
+    "credentials_exposed": false,
+    "hidden_source_exposed": false,
+    "browser_click_automation": false,
+    "private_paths_exposed": false
+  },
+  "real_publication": "BLOCKED_ENVIRONMENT",
+  "regression": {
+    "targeted_promotion": "PASS_33",
+    "combined_application_domains": "PASS_761_SKIP_58",
+    "collection": "PASS_3260",
+    "static": "PASS",
+    "unit": "PASS_482_SKIP_1",
+    "boundary": "PASS_325_SKIP_1",
+    "fault": "PASS_80",
+    "security": "PASS_119_SKIP_1",
+    "local_functional": "PASS_6",
+    "full_core": "PASS_482_SKIP_1",
+    "active_repository": "PASS_2903_SKIP_357_0_FAILED_0_ERRORS",
+    "full_pytest": "PASS_2903_SKIP_357_0_FAILED_0_ERRORS",
+    "receipt_freshness": "PASS"
+  },
+  "formal_evidence_status": "PASS_WITH_ENVIRONMENT_LIMIT",
+  "receipt_hash": "sha256:eb6adaa781f8d9c2f69c10d4f7bfc5fa25f436842896b2b9a71f73f4a28da842"
+}

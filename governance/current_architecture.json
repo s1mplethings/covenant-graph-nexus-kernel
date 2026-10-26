@@ -1,0 +1,91 @@
+{
+  "kind": "CGKNCurrentArchitecture",
+  "schema_version": "1.3",
+  "product_version": "0.2.0-rc.3",
+  "architecture_generation": "capability-tree-mvp-runtime-foundation",
+  "supersedes": [],
+  "authorities": {
+    "requirement": "PRODUCT_GOAL.md",
+    "assumption": "cgkn.agent.composer:AgentComposer",
+    "planning": "cgkn.agent.composer:AgentComposer",
+    "execution": "cgkn.runtime.dag_runner:DAGRunner",
+    "provider_scheduler": "scripts.provider_jobs:ProviderJob",
+    "evidence": "scripts.test_architecture_gate:check",
+    "acceptance": "scripts.kernel_completeness_gate:check",
+    "promotion": "scripts.local_packager:main",
+    "packaging": "scripts.local_packager:main",
+    "delivery": "scripts.public_delivery_gate:evaluate",
+    "clarification": null
+  },
+  "implementation_state": {
+    "repository_cleanup": "COMPLETE",
+    "runtime_wiring": "ISOLATED_VERTICAL_SLICE_OPERATIONAL",
+    "compatibility_mainline_replacement": "NOT_IMPLEMENTED",
+    "agent_cheap_executor_mvp": "REAL_PROVIDER_VALIDATED",
+    "software_project_generation_bundle": "PASS_REAL_GENERATION_REPAIR_AND_CSV_3_OF_3",
+    "minimal_project_blueprint": "COMPLETE_CURRENT_PRODUCTION_RETAINED_AFTER_A2",
+    "capability_retrieval": "PASS_DERIVED_REBUILDABLE_REAL_10_SYNTHETIC_TO_1000",
+    "decision_hierarchy": "EVALUATED_NOT_ADOPTED_PARTIAL_DIRECTIONAL",
+    "knowledge_persistence_v2": "DEFAULT_FOR_NEW_PACKS_CHECKPOINT_QUALIFIED_AT_250K",
+    "functional_readiness": "LEVEL_4"
+  },
+  "product_authority": ["PRODUCT_GOAL.md", "MVP_SCOPE.md", "governance/product_invariants.json"],
+  "state_authority": ["governance/current_architecture.json", "docs/00_kernel_contract.md", "project_management/current/active_iteration.json"],
+  "declared_authorities": {
+    "composition": "cgkn/orchestration/capability_tree.py:CapabilityTree",
+    "execution_graph": "cgkn/orchestration/execution_dag.py:compile_tree",
+    "component_contract": "cgkn/component/spec.py:ComponentSpec",
+    "port_contract": "cgkn/component/ports.py:PortSpec",
+    "component_execution_record": "cgkn/component/execution.py:ComponentExecution",
+    "block_execution_envelope": "cgkn/execution/contracts.py:BlockExecutionRequest",
+    "executor_resolution": "cgkn/executors/registry.py:ExecutorRegistry",
+    "project_run_state": "cgkn/state/store.py:FileRunStore",
+    "dag_runtime": "cgkn/runtime/dag_runner.py:DAGRunner",
+    "capability_registry": "cgkn/capabilities/registry.py:CapabilityRegistry",
+    "growth_admission": "cgkn/growth/admission.py:CapabilityAdmissionReceipt",
+    "growth_loop": "cgkn/growth/loop.py:GrowthLoop",
+    "agent_decision": "cgkn/agent/composer.py:AgentDecision",
+    "agent_project_loop": "cgkn/agent/project_loop.py:AgentProjectLoop",
+    "project_blueprint": "cgkn/application/project_blueprint.py:ProjectBlueprint",
+    "project_blueprint_compiler": "cgkn/application/project_loop.py:compile_blueprint",
+    "minimal_project_loop": "cgkn/application/project_loop.py:MinimalProjectLoop",
+    "bounded_llm_executor": "cgkn/executors/llm.py:LLMExecutor",
+    "executor_factory": "cgkn/executors/factory.py:ExecutorFactoryRegistry",
+    "artifact_runtime": "cgkn/runtime/runner.py:ArtifactModuleRunner",
+    "provider_executor_adapter": "scripts/provider_jobs.py:ProviderJob",
+    "deterministic_action_adapter": "scripts/local_agent_actions.py:LocalAgentActionExecutor",
+    "real_test_support": "scripts/real_test_execution.py",
+    "repository_publish": "scripts/canonical_repo_publish.py:publish",
+    "product_direction_gate": "scripts/product_direction_gate.py:check"
+  },
+  "target_routes": {
+    "composition": ["high-capability Agent", "CapabilityTree", "compile_tree"],
+    "isolated_execution": ["ComponentSpec/PortSpec", "ExecutorRegistry", "DAGRunner", "BlockExecutionResult", "FileRunStore", "Agent checkpoint"],
+    "failure_recovery": ["failed node", "downstream_closure", "explicit retry", "unaffected PASS reuse"]
+  },
+  "derived_services": {
+    "capability_search": "cgkn/application/capability_routing/search.py:CapabilitySearchIndex",
+    "decision_routing": "cgkn/application/capability_routing/decision.py:DecisionRouter",
+    "knowledge_checkpoint": "derived rebuildable segmented-v2 checkpoint; authoritative segments remain the source of truth"
+  },
+  "architecture_convergence": {
+    "iteration": "ITER-CGNK-PARALLEL-ARCHITECTURE-CONVERGENCE-050",
+    "integrated_source": "a14b309ff5fcc9a27dabd2acff824e8919298884",
+    "safe_slimming": "PASS_0_PUBLIC_CHANGES",
+    "capability_retrieval": "KEEP_DERIVED_REAL_SCALE_BENEFIT_NOT_YET_NEEDED",
+    "decision_router": "KEEP_EVALUATED_NONDEFAULT",
+    "adaptive_hierarchy": "PARTIAL_DIRECTIONAL_NOT_QUALIFIED",
+    "blueprint_simplification": "EVALUATED_NOT_ADOPTED",
+    "strong_role_separation_collapse": "DO_NOT_PROCEED",
+    "checkpoint_cold_start": "PASS_GATE_CLOSED",
+    "multi_agent_runtime": "NOT_RECOMMENDED_CURRENT_EVIDENCE"
+  },
+  "scope_invariants": {
+    "BLUEPRINT_SCOPE_CONSISTENCY": "A WorkerScope may add runtime safety checks but cannot reject an unchanged ProjectBlueprint unit with a stricter duplicate business-level write-file ceiling; owned paths are writable, declared read paths are visible only, and both contracts share the canonical cohesive write-file limit."
+  },
+  "compatibility_entrypoints": ["scripts/codex_conversation.py", "scripts/run_codex_conversation_generation.py", "scripts/run_local_pipeline.py", "scripts/run_local_pipeline_impl.py"],
+  "compatibility_rule": "Compatibility entrypoints remain callable and are not the MVP planning or composition authority. The isolated MVP runtime has not replaced them.",
+  "next_feature_increment": {"id": "PB-027", "name": "Improve evidence-backed strong escalation without new authority", "migration_target": "Reduce incomplete-usage uncertainty and test stronger escalation thresholds on bounded workloads before considering any default routing or role collapse."},
+  "forbidden_parallel_authorities": true,
+  "verification": {"github_actions": "NOT_EVALUATED", "product_direction_gate": "PASS", "focused_tests": "PASS", "deterministic_vertical_slice": "PASS", "resume_and_local_repair": "PASS", "self_growth_v0": "PASS", "agent_cheap_executor_fake_integration": "PASS", "agent_cheap_executor_real_provider": "PASS", "decision_efficiency_benchmark": "PASS_WITH_LIMITS", "architecture_convergence": "PASS_WITH_LIMITS", "self_growth_v1": "NOT_EVALUATED", "full_pytest": "PASS_2828_SKIP_357_0_FAILED_0_ERRORS"}
+}

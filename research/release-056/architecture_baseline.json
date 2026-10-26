@@ -1,0 +1,32 @@
+{
+  "kind": "CGKNArchitectureComplexityBaseline",
+  "schema_version": "1.0",
+  "source_commit": "8544dd0f03b95e19de0e17fad183450c879b4a42",
+  "source_tree": "75b2c3db06d8474c72e26114288c6f57ff13fefb",
+  "audit_tool": "scripts/architecture_diet_audit.py",
+  "production_python_files": 246,
+  "production_loc": 82687,
+  "public_classes": 557,
+  "public_functions": 861,
+  "dataclass_schema_classes": 274,
+  "runtime_dependency_edges": 552,
+  "maximum_import_depth": 9,
+  "cyclic_scc_count": 1,
+  "cyclic_sccs": [
+    [
+      "cgnk_knowledge.internalization",
+      "cgnk_knowledge.persistence",
+      "cgnk_knowledge.store"
+    ]
+  ],
+  "module_classification": {
+    "governance": 1,
+    "production_contract": 52,
+    "runtime": 193
+  },
+  "public_surface_hash": "sha256:a8eb7614da55e940d42e98c3cab48b769a87c6120f6ab75b98eddbfbce988d08",
+  "registry_hash": "sha256:725ce7dcda0088029e091b71ae4fbf931249a84236c6bbd9a7b5bb2de7ff4f4f",
+  "schema_hash": "sha256:c1b2a5b16613f675a693759ef1971b0a2ae3f7111acb392215ec5fab26281067",
+  "safe_slimming_decision": "NO_DELETION_YET",
+  "reason": "Static reachability marks many modules uncertain; deterministic unused/duplicate evidence is required before deletion."
+}

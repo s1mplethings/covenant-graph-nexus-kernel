@@ -1,0 +1,21 @@
+{
+  "kind": "ProviderConnectionStatus",
+  "schema_version": "1.0",
+  "provider_id": "grok",
+  "source_commit": "5602fe8117c32ab05c2aad8405edd5a4a42fd5f1",
+  "status": "GROK_CONNECTION_READY",
+  "endpoint_class": "xai-inference",
+  "credential_present": true,
+  "requested_model": "grok-4.7",
+  "actual_model": "grok-4.7",
+  "catalog_status": "PASS",
+  "api_backend": "RESPONSES",
+  "reasoning_effort": "medium",
+  "structured_output_mode": "NATIVE_JSON_SCHEMA",
+  "structured_output_status": "PASS",
+  "local_schema_validation": "PASS",
+  "latency_ms": 7390,
+  "cost_estimate": "UNAVAILABLE",
+  "budget_evidence": "NOT_EVALUATED",
+  "contains_credentials": false
+}

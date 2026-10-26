@@ -9,6 +9,13 @@ import pytest
 from scripts import provider_free_partial_acceptance_replay as replay
 
 
+_CASES = pathlib.Path(__file__).resolve().parents[1] / "benchmarks" / "project_generation_v1" / "cases.json"
+pytestmark = [
+    pytest.mark.historical_asset,
+    pytest.mark.skipif(not _CASES.is_file(), reason="historical_asset: retired project_generation_v1 benchmark cases are not present in the active repository"),
+]
+
+
 @pytest.fixture(scope="module")
 def provider_free_report(tmp_path_factory: pytest.TempPathFactory) -> tuple[pathlib.Path, dict]:
     output = tmp_path_factory.mktemp("provider-free-report")

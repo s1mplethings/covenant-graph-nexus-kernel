@@ -1,0 +1,121 @@
+{
+  "kind": "CGKNKnowledgePersistenceScalingEvidence",
+  "schema_version": "1.0",
+  "iteration": "ITER-CGNK-KNOWLEDGE-PERSISTENCE-RETRIEVAL-SCALING-045",
+  "scaling_base_source": "b1c6eb9673fd20a2631e6a8f3a9206495dd1fef2",
+  "scaling_base_tree": "62610b8600b8da4ea4c4586660b52ed7b3eca424",
+  "benchmark_harness_commit": "657574921ff0a06fb742294d12027160c07bdcf2",
+  "benchmark_harness_tree": "8c83baef86b75ed1fa30972843b84b451dba4edc",
+  "api_lab_commit": "7c15f2546ec007cc7e601fa62ae4d88b9ba12f80",
+  "production_source_modified": false,
+  "persistence_gap_classification": "MONOLITHIC_FULL_REWRITE_WITH_PERSISTED_REBUILT_DERIVED_INDEX_AND_NO_ATOMIC_COMMIT",
+  "frozen_hashes": {
+    "corpus_generator": "sha256:affd7cca5ce88fc0732b1194ad0b2e7f3739b77678b7e8dd125a0ed8ba365c53",
+    "corpus_shape": "sha256:ec78945b923af807917f773034a73633d6c7f44b4752224d9a4443e5aa6e2a61",
+    "queryset": "sha256:01d3a9338f513995dc0574ef3346e1b3b3a304c1ac4d78b85c1a269954aa7f55",
+    "workload_spec": "sha256:82405d03ff53533bf72ee982905e1ada8e8f1bfdeb8ec6dccb925a289ab7914e",
+    "workload_traces": "sha256:e9f77272d872be0360758dac8e3fec8e86d6cf4d250ea4c4d330257d7f27e3df",
+    "persistence_policy": "sha256:244a75a6b464f8e91c6e11945562026c6dca82e56924c568d9aa475ebde00cc0",
+    "retrieval_policy": "sha256:4c8ab829857dfab3b3123ae2cd0c95e0f18118c6c070c45ba35fffd6eb0986d9",
+    "context_policy": "sha256:612fd56b47af75e9e90a74e247549b7338fab1c565c57960ad2f5e04f66ee0bb",
+    "model_config": "sha256:b9976c84b9b960f570860b50052c4833cdd9af35cc2a0d7b203563e27b4623e0"
+  },
+  "raw_report_hashes": {
+    "gap_audit": "sha256:21e0d3ced0b87c1d7e8db8b1cee5bfe5a9665b71e18a16c2a0c8586e1cf09309",
+    "baseline": "sha256:acf0f0401845a42d3dda0e4c51d9c94d3afd1ca9e0f46433c08029ccc7cfd996",
+    "alternatives": "sha256:b067e1b588b25a619d8a9007e29b3602efff3f9d5f462067c27480b7e60f6b37",
+    "mixed_workloads": "sha256:669c49489553f1e74e9b00104888d3beef85c6f5bfbcaefd81670b3d0b3ca023"
+  },
+  "authority_inventory": {
+    "authoritative": [
+      "pack identity, project, schema version, knowledge revision, and diagnostics",
+      "all_items raw observations and tombstones",
+      "identity hashes, source refs, versions, subjects, and branch refs",
+      "relationship edges and lifecycle status",
+      "supersession, contradiction, retraction, review, retention, and stale markers"
+    ],
+    "derived_rebuildable": [
+      "knowledge_index",
+      "active type buckets",
+      "archived_items projection",
+      "discarded_items projection"
+    ],
+    "ephemeral": [
+      "retrieval candidates and ranked selections",
+      "Conversation context and response",
+      "operation receipts and timing",
+      "runtime lookup maps"
+    ]
+  },
+  "baseline_uniform": [
+    {"items": 1000, "branches": 20, "file_mb": 2.59, "internalize_p50_ms": 1.40, "save_p50_ms": 125.22, "write_amplification_p50": 8125.4, "cold_load_ms": 75.56, "peak_rss_gb": 0.04, "query_p50_ms": 0.05, "query_p95_ms": 1.26, "candidate_max": 60, "accuracy": 1.0},
+    {"items": 5000, "branches": 100, "file_mb": 12.81, "internalize_p50_ms": 9.86, "save_p50_ms": 1098.13, "write_amplification_p50": 40133.3, "cold_load_ms": 383.04, "peak_rss_gb": 0.09, "query_p50_ms": 0.06, "query_p95_ms": 2.32, "candidate_max": 100, "accuracy": 1.0},
+    {"items": 10000, "branches": 100, "file_mb": 25.59, "internalize_p50_ms": 22.48, "save_p50_ms": 2490.08, "write_amplification_p50": 80127.9, "cold_load_ms": 844.71, "peak_rss_gb": 0.15, "query_p50_ms": 0.08, "query_p95_ms": 5.60, "candidate_max": 200, "accuracy": 1.0},
+    {"items": 50000, "branches": 500, "file_mb": 127.86, "internalize_p50_ms": 126.17, "save_p50_ms": 14654.21, "write_amplification_p50": 400254.4, "cold_load_ms": 6057.61, "peak_rss_gb": 0.65, "query_p50_ms": 0.12, "query_p95_ms": 36.85, "candidate_max": 1000, "accuracy": 1.0},
+    {"items": 100000, "branches": 1000, "file_mb": 255.75, "internalize_p50_ms": 276.37, "save_p50_ms": 29715.30, "write_amplification_p50": 800552.4, "cold_load_ms": 12757.03, "peak_rss_gb": 1.28, "query_p50_ms": 0.14, "query_p95_ms": 72.79, "candidate_max": 2000, "accuracy": 1.0},
+    {"items": 250000, "branches": 1000, "file_mb": 639.47, "internalize_p50_ms": 258.01, "save_p50_ms": 80617.51, "write_amplification_p50": 2001607.3, "cold_load_ms": 37430.23, "peak_rss_gb": 3.16, "query_p50_ms": 0.15, "query_p95_ms": 199.71, "candidate_max": 5000, "accuracy": 1.0}
+  ],
+  "baseline_growth": {
+    "item_growth": 250.0,
+    "save_p50_growth": 643.83,
+    "internalization_p50_growth": 184.82,
+    "largest_persistence_wall_share": 0.99681,
+    "serialized_to_authority_ratio": 3.20,
+    "persistence_locality_gap": "PROVEN"
+  },
+  "skew_at_10k": [
+    {"shape": "UNIFORM", "query_p95_ms": 5.60, "candidate_max": 200, "accuracy": 1.0},
+    {"shape": "HOT_BRANCH_SKEW", "query_p95_ms": 23.22, "candidate_max": 1101, "accuracy": 1.0},
+    {"shape": "LONG_TAIL", "query_p95_ms": 45.83, "candidate_max": 2312, "accuracy": 1.0}
+  ],
+  "alternatives_at_100k": [
+    {"strategy": "S0_CURRENT", "update_p50_ms": 29715.30, "bytes_written_mb": 255.75, "cold_load_ms": 12757.03, "peak_rss_gb": 1.28, "query_accuracy": 1.0},
+    {"strategy": "S1_CHUNKED", "update_p50_ms": 26.75, "bytes_written_mb": 0.242, "cold_load_ms": 30299.33, "peak_rss_gb": 0.58, "file_count": 1001, "query_accuracy": 1.0},
+    {"strategy": "S2_APPEND_LOG", "update_p50_ms": 3.18, "bytes_written_mb": 0.00112, "cold_load_ms": 16542.95, "peak_rss_gb": 0.76, "file_count": 2, "query_accuracy": 1.0},
+    {"strategy": "S3_AUTHORITY_SIDECAR", "update_p50_ms": 4508.71, "bytes_written_mb": 77.32, "cold_load_ms": 21507.08, "peak_rss_gb": 1.01, "file_count": 2, "query_accuracy": 1.0}
+  ],
+  "mixed_workloads": {
+    "planned": 18,
+    "executed": 10,
+    "passed": 10,
+    "s0_skipped_by_runtime_guard": 8,
+    "s0_10k_read_heavy": {"operations": 1000, "queries": 910, "updates": 90, "wall_seconds": 233.30, "physical_written_mb": 2315.29, "write_amplification": 80522.6, "persistence_p50_ms": 2529.08},
+    "s2_100k_write_heavy": {"operations": 1000, "queries": 90, "updates": 910, "wall_seconds": 100.10, "physical_written_mb": 1.03, "write_amplification": 3.53, "internalization_p50_ms": 103.27, "persistence_p50_ms": 2.97}
+  },
+  "restart_and_quality": {
+    "authority_hash_equivalence": "PASS_ALL_SCALES_AND_CANDIDATES",
+    "query_result_equivalence": "PASS_ALL_SCALES_AND_CANDIDATES",
+    "fixed_query_accuracy": "PASS_100_PERCENT",
+    "first_update_after_restart_retrieval_visibility": "PASS",
+    "first_update_after_restart_conversation_visibility": "PASS_EVIDENCE_ONLY_READ_ONLY",
+    "provider_calls": 0
+  },
+  "crash_safety": {
+    "current": "FAIL_NO_ATOMIC_RENAME_NO_CHECKSUM_NO_PARTIAL_WRITE_RECOVERY",
+    "current_corrupt_derived_index": "PASS_REBUILT",
+    "s1": "PASS_CORRUPT_CHUNK_DETECTED_AND_UNREFERENCED_TEMP_IGNORED",
+    "s2": "PASS_INCOMPLETE_TAIL_RECOVERED_AND_CORRUPT_CHECKPOINT_DISCARDED",
+    "s3": "PASS_CORRUPT_SIDECAR_REBUILT_AND_INTERRUPTED_TEMP_PRESERVES_AUTHORITY"
+  },
+  "conclusions": {
+    "algorithmic_update_locality": "PASS_SEMANTIC_LOCALITY_WITH_LINEAR_CONTAINER_COPY",
+    "persistence_update_locality": "PERSISTENCE_BOUND",
+    "retrieval_scalability": "DEGRADED_AMBIGUOUS_CANDIDATES_LINEAR_CORRECTNESS_PASS_AT_250K",
+    "cold_start_scalability": "DEGRADED_37_43_SECONDS_AT_250K",
+    "memory_scalability": "PASS_AT_250K_LINEAR_3_16_GIB_PEAK",
+    "end_to_end_growth_scalability": "PERSISTENCE_BOUND_CURRENT_S2_RESEARCH_MOVES_BOUND_TO_IN_MEMORY_UPDATE",
+    "maximum_evaluated_safe_scale": 250000,
+    "should_storage_be_redesigned_now": "YES",
+    "recommended_next_phase": "Implement a backward-compatible segmented append authority with checksummed records, validated derived checkpoints, bounded compaction, old-format loading, and no second truth authority.",
+    "production_candidate": "S2_APPEND_LOG_WITH_VALIDATED_CHECKPOINT_AND_COMPACTION",
+    "production_adoption_status": "NOT_IMPLEMENTED_RESEARCH_ONLY"
+  },
+  "tests": {
+    "targeted": "PASS_30",
+    "compileall": "PASS",
+    "product_direction_gate": "PASS",
+    "full_regression": "RETAINED_FROM_260A7FD_NO_PRODUCTION_SOURCE_CHANGE"
+  },
+  "evidence_root": "D:/CGKN/.service_evidence/knowledge-persistence-retrieval-scaling-v1",
+  "contains_credentials": false
+}

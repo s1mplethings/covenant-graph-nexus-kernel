@@ -44,6 +44,70 @@ def test_real_pytest_execution_passes(tmp_path: pathlib.Path) -> None:
     assert real_test_execution.inspect_test_report(tmp_path, run_id="run-a", candidate_hash=result["candidate_hash"], commit_sha="commit-a")["verdict"] == "PASS"
 
 
+def test_real_pytest_ignores_deleted_inherited_pythonpath(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    deleted_parent = tmp_path.parent / "deleted-parent-pythonpath"
+    assert not deleted_parent.exists()
+    monkeypatch.setenv("PYTHONPATH", str(deleted_parent))
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_ok.py").write_text(
+        "def test_ok():\n    assert True\n", encoding="utf-8"
+    )
+
+    result = real_test_execution.run_tests(tmp_path)
+
+    assert result["status"] == "PASS"
+    assert result["collected"] == 1
+
+
+def test_real_pytest_does_not_execute_existing_inherited_pythonpath_startup_code(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    inherited = tmp_path / "parent-pythonpath"
+    inherited.mkdir()
+    (inherited / "sitecustomize.py").write_text(
+        "raise RuntimeError('parent startup code executed')\n", encoding="utf-8"
+    )
+    monkeypatch.setenv("PYTHONPATH", str(inherited))
+    candidate = tmp_path / "candidate"
+    (candidate / "tests").mkdir(parents=True)
+    (candidate / "tests" / "test_ok.py").write_text(
+        "def test_ok():\n    assert True\n", encoding="utf-8"
+    )
+
+    result = real_test_execution.run_tests(candidate)
+
+    assert result["status"] == "PASS"
+    stdout = pathlib.Path(result["stdout_artifact"]).read_text(encoding="utf-8")
+    stderr = pathlib.Path(result["stderr_artifact"]).read_text(encoding="utf-8")
+    assert "parent startup code executed" not in stdout + stderr
+
+
+def test_real_pytest_uses_minimal_parent_environment_and_live_owned_temp(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("UNRELATED_PARENT_SENTINEL", "must-not-leak")
+    candidate = tmp_path / "candidate"
+    (candidate / "tests").mkdir(parents=True)
+    (candidate / "tests" / "test_environment.py").write_text(
+        "import os\n"
+        "from pathlib import Path\n\n"
+        "def test_child_environment():\n"
+        "    assert 'UNRELATED_PARENT_SENTINEL' not in os.environ\n"
+        "    assert Path(os.environ['TEMP']).is_dir()\n"
+        "    assert Path(os.environ['TMP']).is_dir()\n",
+        encoding="utf-8",
+    )
+
+    result = real_test_execution.run_tests(candidate)
+
+    assert result["status"] == "PASS"
+    assert result["environment"] == "isolated_minimal_env"
+    basetemp_index = result["argv"].index("--basetemp")
+    assert not pathlib.Path(result["argv"][basetemp_index + 1]).exists()
+
+
 def test_declared_pytest_testpaths_are_authoritative_over_legacy_tests(
     tmp_path: pathlib.Path,
 ) -> None:
@@ -298,6 +362,30 @@ def test_candidate_hash_mismatch_fails(tmp_path: pathlib.Path) -> None:
     result = real_test_execution.inspect_test_report(tmp_path, candidate_hash="sha256:other")
     assert result["verdict"] == "FAIL"
     assert "candidate_hash" in result["missing"]
+
+
+def test_candidate_pytest_does_not_inherit_repository_pytest_controls(
+    tmp_path: pathlib.Path, monkeypatch,
+) -> None:
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_env.py").write_text(
+        "import os\n\n"
+        "def test_outer_pytest_controls_are_absent():\n"
+        "    for name in ('PYTEST_ADDOPTS', 'PYTEST_PLUGINS', 'CGKN_PYTEST_EVENT_LOG'):\n"
+        "        assert name not in os.environ\n"
+        "    assert os.environ.get('PYTEST_CURRENT_TEST') != 'outer::node (call)'\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("PYTEST_ADDOPTS", "--definitely-not-a-real-option")
+    monkeypatch.setenv("PYTEST_PLUGINS", "missing_outer_plugin")
+    monkeypatch.setenv("PYTEST_CURRENT_TEST", "outer::node (call)")
+    monkeypatch.setenv("CGKN_PYTEST_EVENT_LOG", str(tmp_path / "outer-events.jsonl"))
+
+    result = real_test_execution.run_tests(tmp_path)
+
+    assert result["status"] == "PASS", result
+    assert result["collected"] == 1
+    assert result["passed"] == 1
 
 
 def test_test_time_product_file_change_detects_candidate_mutation(tmp_path: pathlib.Path) -> None:

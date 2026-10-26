@@ -1,0 +1,33 @@
+{
+  "kind": "CGKNReductionAcceptance",
+  "schema_version": "1.0",
+  "baseline_sha": "5358aa1f2b4e32a51715bd0edccb34d726df998c",
+  "legacy_isolated": true,
+  "legacy_removed": false,
+  "legacy_retention_reason": "status_adapter and explicit migration/compatibility entrypoints remain necessary; production mainline imports no legacy package",
+  "experimental_isolated": true,
+  "canonical_worknode": true,
+  "provider_job_role": "only production concurrency and Provider executor unit",
+  "production_route_preserved": true,
+  "generation_pass": true,
+  "integration_pass": true,
+  "evidence_pass": true,
+  "packaging_pass": true,
+  "delivery_gate_pass": true,
+  "agent_visible_complexity_reduced": true,
+  "metrics_after": {
+    "production_like_entrypoints": 2,
+    "legacy_entrypoints": 6,
+    "planner_visible_concepts": 8,
+    "agent_visible_schema_families": 7,
+    "ordinary_worknode_context_sources": 6,
+    "parallel_execution_abstractions": 1,
+    "generation_routes": 1
+  },
+  "tests": [
+    {"command": "python -m pytest tests/test_architecture_reduction.py tests/test_provider_jobs.py tests/test_decomposition_tree_mainline.py tests/test_kernel_contract.py -q", "result": "58 passed"},
+    {"command": "python -m pytest reduction mainline evidence/package/delivery selection -q", "result": "138 passed, 41 skipped"},
+    {"command": "python -m pytest --run-profile-marked codex generation smoke -q", "result": "1 passed"}
+  ],
+  "status": "PASS"
+}

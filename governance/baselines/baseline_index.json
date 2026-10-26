@@ -1,0 +1,61 @@
+{
+  "kind": "CGKNBaselineIndex",
+  "schema_version": "1.0",
+  "current_baseline_id": "BASELINE-SELF-GROWN-LEAVES-001",
+  "baselines": [
+    {
+      "baseline_id": "BASELINE-OBLIGATION-START",
+      "parent_baseline_id": null,
+      "receipt": "governance/baselines/receipts/BASELINE-OBLIGATION-START.json",
+      "baseline_hash": "sha256:c45c8b68a803edc58de64039269cf6f856f9a0af7b951b9e30adb072cd0444b3"
+    },
+    {
+      "baseline_id": "BASELINE-OBLIGATION-001",
+      "parent_baseline_id": "BASELINE-OBLIGATION-START",
+      "receipt": "governance/baselines/receipts/BASELINE-OBLIGATION-001.json",
+      "baseline_hash": "sha256:bc6d194a604e6c99c174aa1d1dc6c800b699e5c172bafb4fc0a08b46965e3839"
+    },
+    {
+      "baseline_id": "BASELINE-OBLIGATION-002",
+      "parent_baseline_id": "BASELINE-OBLIGATION-001",
+      "receipt": "governance/baselines/receipts/BASELINE-OBLIGATION-002.json",
+      "baseline_hash": "sha256:e78836c0258be81046573884b826fa2cd783356add8cc027f400690fd325bf55"
+    },
+    {
+      "baseline_id": "BASELINE-OBLIGATION-003",
+      "parent_baseline_id": "BASELINE-OBLIGATION-002",
+      "receipt": "governance/baselines/receipts/BASELINE-OBLIGATION-003.json",
+      "baseline_hash": "sha256:741985c16cea2e4d08983028116b5162d9f7d30d70643ba774ea8db9e1453533"
+    },
+    {
+      "baseline_id": "BASELINE-OBLIGATION-004",
+      "parent_baseline_id": "BASELINE-OBLIGATION-003",
+      "receipt": "governance/baselines/receipts/BASELINE-OBLIGATION-004.json",
+      "baseline_hash": "sha256:f786531695654f05fce839b147448e5ec63f5e2dd9d980dc4ee5bdce4fdcb97d"
+    },
+    {"baseline_id":"BASELINE-OBLIGATION-005","parent_baseline_id":"BASELINE-OBLIGATION-004","receipt":"governance/baselines/receipts/BASELINE-OBLIGATION-005.json","baseline_hash":"sha256:532becc3621678f0119263780b5b4cd65d10ca63b27fa243511602e7886db530"},
+    {"baseline_id":"BASELINE-OBLIGATION-006","parent_baseline_id":"BASELINE-OBLIGATION-005","receipt":"governance/baselines/receipts/BASELINE-OBLIGATION-006.json","baseline_hash":"sha256:f12202fddaf12a40ab0b8f9c31005590715836d93d1a3d75483d067942e6d936"},
+    {"baseline_id":"BASELINE-ORACLE-001","parent_baseline_id":"BASELINE-OBLIGATION-006","receipt":"governance/baselines/receipts/BASELINE-ORACLE-001.json","baseline_hash":"sha256:b44853682dbb8210741690468b7ecfaf8e62cb07521168d246e3624d0e1dd6ce"},
+    {"baseline_id":"BASELINE-ORACLE-002","parent_baseline_id":"BASELINE-ORACLE-001","receipt":"governance/baselines/receipts/BASELINE-ORACLE-002.json","baseline_hash":"sha256:49129ed9316fe6294c22b33183947edb9576ebd2732f367ee6c65f59dd351998"},
+    {"baseline_id":"BASELINE-ORACLE-003","parent_baseline_id":"BASELINE-ORACLE-002","receipt":"governance/baselines/receipts/BASELINE-ORACLE-003.json","baseline_hash":"sha256:6a8f6b9f919b3f65255cdd302439c87d7678c68578371da8caf528a279ecbe41"},
+    {"baseline_id":"BASELINE-ORACLE-004","parent_baseline_id":"BASELINE-ORACLE-003","receipt":"governance/baselines/receipts/BASELINE-ORACLE-004.json","baseline_hash":"sha256:9035ba382198a832b1841a6b0f34d2b6aa31bb8bdd9050200adb2d9001f1411a"},
+    {"baseline_id":"BASELINE-ORACLE-005","parent_baseline_id":"BASELINE-ORACLE-004","receipt":"governance/baselines/receipts/BASELINE-ORACLE-005.json","baseline_hash":"sha256:0f2b9a6cd27edb32dedd1f45a89077696fb90575df702591633f88152d55549d"},
+    {"baseline_id":"BASELINE-ORACLE-006","parent_baseline_id":"BASELINE-ORACLE-005","receipt":"governance/baselines/receipts/BASELINE-ORACLE-006.json","baseline_hash":"sha256:ebffd0d5dd3720428a9fe9d265acf235fff9f00de5c57e6595b90d36a58b449c"},
+    {"baseline_id":"BASELINE-CONTRACT-TEST-001","parent_baseline_id":"BASELINE-ORACLE-006","receipt":"governance/baselines/receipts/BASELINE-CONTRACT-TEST-001.json","baseline_hash":"sha256:ccaf02d1ae0b19a98e548b76e6e9c2ff129c784eac836c53b70465d0f3228ce2"},
+    {"baseline_id":"BASELINE-CONTRACT-TEST-002","parent_baseline_id":"BASELINE-CONTRACT-TEST-001","receipt":"governance/baselines/receipts/BASELINE-CONTRACT-TEST-002.json","baseline_hash":"sha256:c178a8de6262dbd9a03b6b2dc08cc0033a1b5908443975f571edbaabf568ae59"},
+    {"baseline_id":"BASELINE-INTERFACE-001","parent_baseline_id":"BASELINE-CONTRACT-TEST-002","receipt":"governance/baselines/receipts/BASELINE-INTERFACE-001.json","baseline_hash":"sha256:c2a11b0546c393fbb873680ee2abdc16143fb2d6234f8ae9c59fc1ffab80affd"},
+    {"baseline_id":"BASELINE-INTERFACE-002","parent_baseline_id":"BASELINE-INTERFACE-001","receipt":"governance/baselines/receipts/BASELINE-INTERFACE-002.json","baseline_hash":"sha256:0903ef97af5b847ee575aa3e501ce3c4e34b36b1e440154a01dc4ed9bb46c3c9"},
+    {"baseline_id":"BASELINE-INTERFACE-003","parent_baseline_id":"BASELINE-INTERFACE-002","receipt":"governance/baselines/receipts/BASELINE-INTERFACE-003.json","baseline_hash":"sha256:abedfc9bfdb54d53372988be42e0521d89ae09d4cdd2e7d4e7c626def5bf031d"},
+    {"baseline_id":"BASELINE-INTERFACE-004","parent_baseline_id":"BASELINE-INTERFACE-003","receipt":"governance/baselines/receipts/BASELINE-INTERFACE-004.json","baseline_hash":"sha256:74f68593b515cab12ecf45c0ba3dd3704dd7eb0aa5454156f687ba05346b42c2"},
+    {"baseline_id":"BASELINE-MVP-PROJECT2-001","parent_baseline_id":"BASELINE-INTERFACE-004","receipt":"governance/baselines/receipts/BASELINE-MVP-PROJECT2-001.json","baseline_hash":"sha256:232864abb9e671800162b6e09a2f09813bf50743fc870eb58e779053e784079e"},
+    {"baseline_id":"BASELINE-MVP-PROJECT2-002","parent_baseline_id":"BASELINE-MVP-PROJECT2-001","receipt":"governance/baselines/receipts/BASELINE-MVP-PROJECT2-002.json","baseline_hash":"sha256:6d9ba26fdb273b27405af67a3622f4ea43cada3c1cc620592e89d6a49de69418"},
+    {"baseline_id":"BASELINE-MVP-001","parent_baseline_id":"BASELINE-MVP-PROJECT2-002","receipt":"governance/baselines/receipts/BASELINE-MVP-001.json","baseline_hash":"sha256:c94f42358560050af6c95ce196dc46fd50245b68f67db0f426ff39d2d0fe63f5"},
+    {"baseline_id":"BASELINE-PROVIDER-GATEWAY-001","parent_baseline_id":"BASELINE-MVP-001","receipt":"governance/baselines/receipts/BASELINE-PROVIDER-GATEWAY-001.json","baseline_hash":"sha256:51cedf1606f5a789aae938876d81cca04c423dbab58580cd485216cd3031c9d0"},
+    {"baseline_id":"BASELINE-PROVIDER-EVAL-001","parent_baseline_id":"BASELINE-PROVIDER-GATEWAY-001","receipt":"governance/baselines/receipts/BASELINE-PROVIDER-EVAL-001.json","baseline_hash":"sha256:89023d369df6bba4867e234ee3351ca841b99c46167faae7de260e430f2111bd"},
+    {"baseline_id":"BASELINE-PROVIDER-CONNECTORS-001","parent_baseline_id":"BASELINE-PROVIDER-EVAL-001","receipt":"governance/baselines/receipts/BASELINE-PROVIDER-CONNECTORS-001.json","baseline_hash":"sha256:1d3e35224e4e9120c54d2ae6dace60d3471dd7b4e7109415ba68859d7580ef47"},
+    {"baseline_id":"BASELINE-REPO-CODEGEN-SINGLE-PROVIDER-001","parent_baseline_id":"BASELINE-PROVIDER-CONNECTORS-001","receipt":"governance/baselines/receipts/BASELINE-REPO-CODEGEN-SINGLE-PROVIDER-001.json","baseline_hash":"sha256:bb730dbfd9e311629bd882a50c9ebcdfb15a443df80a0eb0b2ec80acc03d26a0"},
+    {"baseline_id":"BASELINE-CAPABILITY-BUILDER-SINGLE-PROVIDER-001","parent_baseline_id":"BASELINE-REPO-CODEGEN-SINGLE-PROVIDER-001","receipt":"governance/baselines/receipts/BASELINE-CAPABILITY-BUILDER-SINGLE-PROVIDER-001.json","baseline_hash":"sha256:0bec58cae0f17bd042c026a066ecb7b98ad2c99d3e33b103e1aee58cebfdeb65"},
+    {"baseline_id":"BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001","parent_baseline_id":"BASELINE-CAPABILITY-BUILDER-SINGLE-PROVIDER-001","receipt":"governance/baselines/receipts/BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001.json","baseline_hash":"sha256:58b60c2d99138884990253b3c048d7b1715636122b9bab2721161dbd7011335d"},
+    {"baseline_id":"BASELINE-SELF-GROWN-LEAVES-001","parent_baseline_id":"BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001","receipt":"governance/baselines/receipts/BASELINE-SELF-GROWN-LEAVES-001.json","baseline_hash":"sha256:490af47b443cc0fd6bc370849f12f2e0ef9d3bbd400a448aba0c5fa8a7d1555a"}
+  ]
+}

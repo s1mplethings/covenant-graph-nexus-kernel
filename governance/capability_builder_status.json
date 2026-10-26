@@ -1,0 +1,24 @@
+{
+  "kind": "CapabilityBuilderBenchmarkStatus",
+  "schema_version": "1.0",
+  "source_commit": "56ba2a6840bb92987545f5443657917b721e1483",
+  "status": "COMPLETE",
+  "mode": "SINGLE_PROVIDER_MODE",
+  "provider_id": "grok",
+  "routing_frozen": true,
+  "fallback": "deny",
+  "eligible_provider_count": 1,
+  "passed": 2,
+  "required": 2,
+  "manual_edits": 0,
+  "cases": [
+    {"capability_ref":"text.slugify@1","status":"PASS","calls":1,"repairs":0,"tokens":2573,"tests_passed":true,"execution_passed":true,"admitted":true,"stored":true},
+    {"capability_ref":"markdown.links.extract@1","status":"PASS","calls":1,"repairs":0,"tokens":2398,"tests_passed":true,"execution_passed":true,"admitted":true,"stored":true},
+    {"capability_ref":"json.path.get@1","status":"FAIL","calls":1,"repairs":0,"tokens":2722,"tests_passed":true,"execution_passed":false,"admitted":false,"stored":false}
+  ],
+  "prior_run": {"source_commit":"d75c3c9bbc02e1d702b0179a5dd8a95816037348","passed":1,"required":2,"status":"CAPABILITY_BUILDER_NEEDS_REWORK","preserved":true},
+  "total_tokens": 7693,
+  "provider_reported_cost_ticks": 167780000,
+  "cost_estimate": "UNAVAILABLE",
+  "contains_credentials": false
+}

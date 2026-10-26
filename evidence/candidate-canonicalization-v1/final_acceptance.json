@@ -1,0 +1,28 @@
+{
+  "kind": "CGKNCandidateCanonicalizationAcceptance",
+  "schema_version": "1.0",
+  "status": "PASS_WITH_LIMITS",
+  "limit": "LIVE_PROVIDER_NOT_EVALUATED",
+  "baseline_sha": "b4dae1925ef661fc0913b5cd8947216ec0209b66",
+  "scope": "Validated Real Project -> Canonical Production Candidate -> Canonical Package -> Public Delivery",
+  "math_e2e": {
+    "tests": "PASS",
+    "runtime": "PASS",
+    "browser_interaction": "PASS",
+    "visual": "PASS",
+    "runtime_receipt": "PASS",
+    "production_candidate": "PASS",
+    "package": "PASS",
+    "package_integrity": "PASS",
+    "public_delivery_gate": "PASS",
+    "delivery_receipt": "PASS"
+  },
+  "regression": {
+    "candidate_evidence_package_suites": "140 PASS",
+    "frozen_architecture_and_delivery_gate_suites": "106 PASS",
+    "math_real_e2e": "1 PASS",
+    "kernel_contract": "PASS"
+  },
+  "frozen_architecture_changed": false,
+  "formal_release_authority": false
+}

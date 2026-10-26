@@ -206,6 +206,54 @@ def test_design_context_enters_only_relevant_librarian_queries(tmp_path: pathlib
     assert any(item["item_id"] == "contract:design_context" for item in context["selected_items"])
 
 
+def test_design_context_restores_frontend_pruned_before_research() -> None:
+    base = {
+        "components": [
+            {
+                "id": "backend",
+                "depends_on": ["foundation"],
+                "required_paths": ["app/main.py"],
+                "acceptance": [],
+            },
+            {
+                "id": "tests",
+                "depends_on": ["foundation", "backend"],
+                "required_paths": ["tests/test_app.py"],
+                "acceptance": [],
+            },
+        ],
+        "execution_order": ["backend", "tests"],
+        "scope_pruning": {
+            "frontend_removed": True,
+            "reversible_until_design_context": True,
+            "removed_components": [
+                {
+                    "id": "frontend",
+                    "depends_on": ["foundation", "backend"],
+                    "required_paths": ["index.html"],
+                    "acceptance": [],
+                }
+            ],
+            "removed_dependency_edges": {"tests": ["frontend"]},
+        },
+    }
+
+    reconciled = run_local_pipeline_impl.apply_design_context_to_component_pipeline(
+        base,
+        {
+            "visual_surface_required": True,
+            "design_contract": {"required_project_docs": []},
+        },
+    )
+
+    assert reconciled["execution_order"] == ["backend", "frontend", "tests"]
+    assert reconciled["scope_pruning"]["frontend_removed"] is False
+    assert reconciled["scope_pruning"]["restored_by_design_context"] is True
+    components = {item["id"]: item for item in reconciled["components"]}
+    assert "frontend" in components
+    assert "frontend" in components["tests"]["depends_on"]
+
+
 def test_design_quality_rejects_generic_industrial_shell(tmp_path: pathlib.Path) -> None:
     design = researched_design(tmp_path)
     context = design_research_agent.bounded_design_context(design)

@@ -1,0 +1,38 @@
+{
+  "kind": "SelfGrowthBenchmarkStatus",
+  "schema_version": "1.0",
+  "source_commit": "665b901bf1e5888e9ff5dc4f55a18256a2e4e6a4",
+  "status": "COMPLETE",
+  "mode": "SINGLE_PROVIDER_MODE",
+  "provider_id": "grok",
+  "routing_frozen": true,
+  "fallback": "deny",
+  "passed": 2,
+  "required": 2,
+  "manual_edits": 0,
+  "capabilities": [
+    {
+      "capability_ref": "text.slugify@1",
+      "first_run": "BUILD_ADMIT_RESUME_PASS",
+      "first_run_provider_calls": 1,
+      "second_run": "DIRECT_REUSE_PASS",
+      "second_run_growth_calls": 0,
+      "second_run_builder_calls": 0
+    },
+    {
+      "capability_ref": "markdown.links.extract@1",
+      "first_run": "BUILD_REPAIR_ADMIT_RESUME_PASS",
+      "first_run_provider_calls": 2,
+      "second_run": "DIRECT_REUSE_PASS",
+      "second_run_growth_calls": 0,
+      "second_run_builder_calls": 0
+    }
+  ],
+  "budget_ledger": "artifacts/iterations/ITER-PROVIDER-CONNECTION-NORMALIZATION-017/self_growth/665b901/provider_budget_ledger.json",
+  "provider_calls": 3,
+  "actual_input_tokens": 5913,
+  "actual_output_tokens": 7649,
+  "actual_token_usage_complete": true,
+  "estimated_cost_usd": 0.05772,
+  "contains_credentials": false
+}

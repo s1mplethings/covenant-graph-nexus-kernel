@@ -1,15 +1,15 @@
-# Codex–CGKN Runtime Supervision Baseline
+# Codex–CGNK Runtime Supervision Baseline
 
-CGKN is the long-running project-production system. The active Codex task is
+CGNK is the long-running project-production system. The active Codex task is
 its only user-facing conversation interface. Codex may start, attach to, and
-supervise declared CGKN checkpoints, but the conversation itself is owned by
+supervise declared CGNK checkpoints, but the conversation itself is owned by
 the Codex app rather than a repository listener.
 
 ## Ownership
 
 - The Codex app owns user messages, attachments, visible progress, review
   decisions, and artifact rendering.
-- CGKN owns durable project state, `whiteboard`, `agent_session`, requirements,
+- CGNK owns durable project state, `whiteboard`, `agent_session`, requirements,
   generation orchestration, and recovery state.
 - The Provider route is the only generated-candidate author.
 - Canonical inspectors own evidence evaluation.
@@ -29,8 +29,8 @@ run, bounded context references, requested action, and fixed authority fields.
 Supervisor results are support state and never formal evidence.
 
 The persistent thread is an adversarial auditor, not a project worker. It is
-called only when CGKN proposes a positive transition at requirements freeze,
-integration complete, or pre-public-delivery. It treats CGKN PASS/READY claims
+called only when CGNK proposes a positive transition at requirements freeze,
+integration complete, or pre-public-delivery. It treats CGNK PASS/READY claims
 as untrusted, checks the underlying source, tests, runtime observations,
 candidate identity, requirement coverage, and dependencies, and must bind any
 challenge to concrete evidence. Ordinary leaf completion, Provider failure,
@@ -47,7 +47,7 @@ package, or deliver.
 
 ```text
 Codex user message or attachment
--> CGKN intake and shared state
+-> CGNK intake and shared state
 -> Provider API planning and parallel ProviderJob execution
 -> deterministic ownership check, merge, and integration
 -> Provider validation and canonical evidence

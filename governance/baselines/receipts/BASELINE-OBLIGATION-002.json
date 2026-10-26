@@ -1,0 +1,44 @@
+{
+  "kind": "CGKNBaselineReceipt",
+  "schema_version": "1.0",
+  "baseline_id": "BASELINE-OBLIGATION-002",
+  "parent_baseline_id": "BASELINE-OBLIGATION-001",
+  "source_commit": "b29193bd40bd382e86ad0ad9a56f39454bcc9668",
+  "source_tree_sha": "c9c740842aea9387057f03dd89272da2ad42a7ed",
+  "core_source_hash": "sha256:f7339f27a3c41c78d9b050992affcc0d1b6ee19161f511330406bcd04c6ed75e6",
+  "kernel_receipt_hash": "sha256:fe14731d4fbfbecd7d3e5c20dc6b1e732317cd2527c2636cfea13b19137ec269",
+  "l6_receipt_hash": "sha256:34699114ecc055339042a7f109cdcbb38bb997007e3859e830a8314371e18442",
+  "semantic_experiment_receipt_hash": "sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
+  "profiles": {
+    "static": "PASS", "unit": "PASS", "boundary": "PASS", "fault": "PASS",
+    "security": "PASS", "local-functional": "PASS", "full-core": "PASS",
+    "active-repository": "PASS", "live-provider": "BLOCKED_ENVIRONMENT"
+  },
+  "test_counts": {"passed": 3099, "failed": 0, "errors": 0, "skipped": 355},
+  "known_blockers": [
+    "semantic artifact winner is NONE",
+    "real CLI repeatability is 0/3 for designs A, B, and C",
+    "generation readiness is GENERATION_LEVEL_0",
+    "CSV-specific obligations are not compiled yet"
+  ],
+  "protected_invariants": [
+    "kernel_foundation=COMPLETE", "functional_readiness=LEVEL_4", "L0-L5=COMPLETE",
+    "L6=PARTIAL", "seeded_repair_A_B_C=PASS", "accepted_interface_breakages=0",
+    "whole_project_repair_replans=0", "manual_candidate_edits=0",
+    "hidden_source_exposed=false", "generation_readiness=GENERATION_LEVEL_0",
+    "semantic_artifact_winner=NONE"
+  ],
+  "inherits": "BASELINE-OBLIGATION-001",
+  "added_guarantees": [
+    "canonical obligations are immutable, versioned, serializable, hashable, and deterministic",
+    "runtime, development, test, tooling, and network dependency policies are distinct",
+    "HARNESS_INTERNAL cannot create project obligations",
+    "orphan public or hidden test obligations produce HARNESS_CONTRACT_GAP instead of PROJECT_FAILURE",
+    "generation preflight reports REQUIREMENT_INCOMPLETE until acceptance and verification mappings are complete"
+  ],
+  "unchanged_guarantees": ["all protected invariants and guarantees from BASELINE-OBLIGATION-001"],
+  "removed_guarantees": [],
+  "created_at": "2026-10-16T08:37:40.1382480Z",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "baseline_hash": "sha256:e78836c0258be81046573884b826fa2cd783356add8cc027f400690fd325bf55"
+}

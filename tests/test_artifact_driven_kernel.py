@@ -187,7 +187,8 @@ def test_checkpoint_contains_refs_not_business_content(tmp_path: pathlib.Path) -
     checkpoint = json.loads((tmp_path / "run" / "checkpoints" / "n_problem_analysis.json").read_text(encoding="utf-8"))
     assert checkpoint["inputArtifactRefs"] and checkpoint["outputArtifactRefs"]
     assert "content" not in checkpoint
-    assert set(checkpoint) == {"kind","runId","nodeId","status","startedAt","finishedAt","inputArtifactRefs","outputArtifactRefs","executionFingerprint","cacheStatus","diagnostics"}
+    assert set(checkpoint) == {"kind","executionId","componentRef","runId","nodeId","status","startedAt","finishedAt","durationMs","inputArtifactRefs","outputArtifactRefs","executionFingerprint","cacheStatus","diagnostics","evidenceRefs","effectsSummary"}
+    assert checkpoint["componentRef"] == "module.problem.analyze@1"
 
 
 def test_provider_output_gets_one_bounded_schema_repair(tmp_path: pathlib.Path) -> None:

@@ -1,0 +1,22 @@
+{
+  "kind": "LearningLayerStatus",
+  "schema_version": "1.0",
+  "iteration": "ITER-LESSON-AWARE-END-TO-END-PRODUCTION-025",
+  "status": "FUNCTIONAL_PASS",
+  "contracts": ["LearningEvent", "LessonRecord", "LessonQuery", "LessonContext", "GenerationRequest", "GenerationContext", "GenerationResult"],
+  "store": {
+    "backend": "FILE_BACKED",
+    "events": "APPEND_ONLY",
+    "lesson_revisions": "APPEND_ONLY",
+    "index_update": "ATOMIC",
+    "corruption_policy": "FAIL_CLOSED",
+    "credential_policy": "REJECT",
+    "stable_identity": true
+  },
+  "query": {"max_lessons": 3, "max_chars": 1600, "deterministic_ranking": true, "injectable_status": "VALIDATED"},
+  "authority": {"lessons_are_authoritative": false, "conflicts": "LESSON_CONFLICT_WITH_AUTHORITY", "contract_override_allowed": false},
+  "extractor": {"provider_calls": 0, "plain_pass_creates_lesson": false, "closed_single_revision_required_for_validation": true},
+  "same_run_visibility": "FROZEN_UNTIL_FINALIZE",
+  "architecture_gate": "PASS",
+  "contains_credentials": false
+}

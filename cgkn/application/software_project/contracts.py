@@ -1,0 +1,130 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import pathlib
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Mapping
+
+
+MAX_COHESIVE_WRITE_FILES = 5
+
+
+class ProjectResultStatus(str, Enum):
+    PASS = "PASS"
+    FAIL = "FAIL"
+    BLOCKED_ENVIRONMENT = "BLOCKED_ENVIRONMENT"
+    BLOCKED_PROVIDER = "BLOCKED_PROVIDER"
+    NEEDS_REWORK = "NEEDS_REWORK"
+
+
+class FailureClass(str, Enum):
+    PROJECT_FAILURE = "PROJECT_FAILURE"
+    ENVIRONMENT_BLOCKED = "ENVIRONMENT_BLOCKED"
+    HARNESS_FAILURE = "HARNESS_FAILURE"
+    HARNESS_ATTRIBUTION_UNAVAILABLE = "HARNESS_ATTRIBUTION_UNAVAILABLE"
+    TIMEOUT = "TIMEOUT"
+    SECURITY_BLOCK = "SECURITY_BLOCK"
+    CONTRACT_FAILURE = "CONTRACT_FAILURE"
+
+
+def canonical_hash(value: Mapping[str, Any]) -> str:
+    payload = json.dumps(dict(value), ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
+@dataclass(frozen=True)
+class WorkerScope:
+    allowed_paths: tuple[str, ...]
+    target_paths: tuple[str, ...] = ()
+    protected_paths: tuple[str, ...] = (
+        ".git", ".github", ".cgkn", "benchmarks", "artifacts", "governance", "cgkn"
+    )
+    max_actions: int = 4
+    max_write_files: int = 2
+    max_total_output_bytes: int = 64_000
+    allow_create: bool = True
+    allow_patch: bool = True
+    allow_delete: bool = False
+
+    @property
+    def visible_paths(self) -> tuple[str, ...]:
+        """Project-relative paths the worker may read."""
+        return self.allowed_paths
+
+    @property
+    def writable_paths(self) -> tuple[str, ...]:
+        """Project-relative paths the worker may modify."""
+        return self.target_paths
+
+    def __post_init__(self) -> None:
+        if not self.allowed_paths:
+            raise ValueError("worker scope requires explicit allowed paths")
+        for raw in (*self.allowed_paths, *self.target_paths):
+            path = pathlib.PurePosixPath(str(raw).replace("\\", "/"))
+            if path.is_absolute() or not str(path) or ".." in path.parts:
+                raise ValueError("worker scope paths must be safe and relative")
+        if self.max_actions < 1 or self.max_total_output_bytes < 1:
+            raise ValueError("worker scope limits must be positive")
+        if not 1 <= self.max_write_files <= MAX_COHESIVE_WRITE_FILES:
+            raise ValueError(
+                f"worker max_write_files must be between 1 and {MAX_COHESIVE_WRITE_FILES}"
+            )
+        targets = self.target_paths or self.allowed_paths
+        if not targets or len(targets) > self.max_write_files or any(item not in self.allowed_paths for item in targets):
+            raise ValueError("worker writable paths must fit the declared write-file limit and visible paths")
+        object.__setattr__(self, "target_paths", tuple(targets))
+        if self.allow_delete:
+            raise ValueError("project workers may not delete files")
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> "WorkerScope":
+        return cls(
+            allowed_paths=tuple(str(item) for item in value.get("allowed_paths", ())),
+            target_paths=tuple(str(item) for item in value.get("target_paths", ())),
+            protected_paths=tuple(str(item) for item in value.get("protected_paths", cls.__dataclass_fields__["protected_paths"].default)),
+            max_actions=int(value.get("max_actions", 4)),
+            max_write_files=int(value.get("max_write_files", 2)),
+            max_total_output_bytes=int(value.get("max_total_output_bytes", 64_000)),
+            allow_create=bool(value.get("allow_create", True)),
+            allow_patch=bool(value.get("allow_patch", True)),
+            allow_delete=bool(value.get("allow_delete", False)),
+        )
+
+
+@dataclass(frozen=True)
+class AcceptanceResult:
+    status: ProjectResultStatus
+    failure_class: FailureClass | None
+    sanitized_summary: str
+    failed_requirement_ids: tuple[str, ...] = ()
+    public_requirement_summaries: Mapping[str, str] = field(default_factory=dict)
+    requirement_manifest_hash: str = ""
+    mapping_complete: bool = False
+    return_codes: tuple[int, ...] = ()
+    stdout_tail: str = ""
+    stderr_tail: str = ""
+    runtime_observations: Mapping[str, Any] = field(default_factory=dict)
+    duration_ms: int = 0
+    snapshot_hash: str = ""
+
+    def as_dict(self) -> dict[str, Any]:
+        value = {
+            "kind": "CGKNExternalAcceptanceReceipt",
+            "schema_version": "1.0",
+            "status": self.status.value,
+            "failure_class": self.failure_class.value if self.failure_class else None,
+            "sanitized_summary": self.sanitized_summary,
+            "failed_requirement_ids": list(self.failed_requirement_ids),
+            "public_requirement_summaries": dict(self.public_requirement_summaries),
+            "requirement_manifest_hash": self.requirement_manifest_hash,
+            "mapping_complete": self.mapping_complete,
+            "return_codes": list(self.return_codes),
+            "stdout_tail": self.stdout_tail,
+            "stderr_tail": self.stderr_tail,
+            "runtime_observations": dict(self.runtime_observations),
+            "duration_ms": self.duration_ms,
+            "snapshot_hash": self.snapshot_hash,
+        }
+        return value | {"receipt_hash": canonical_hash(value)}

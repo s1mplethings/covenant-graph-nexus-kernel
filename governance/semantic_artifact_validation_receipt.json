@@ -1,0 +1,90 @@
+{
+  "kind": "CGKNSemanticArtifactValidationReceipt",
+  "schema_version": "1.0",
+  "source_commit": "c495738556ac1ee288df232a2b372a8294968051",
+  "source_tree": "e76a64286a260fbd1ea13c0117b765c98526634d",
+  "experiment_boundary_hash": "sha256:ace02b8f8f464e37defa7cbe419d715b65912ccb1914ec225faf4546dac2b823",
+  "evidence_status": "NEEDS_REWORK",
+  "semantic_artifact_interface": "PARTIAL",
+  "winner": "NONE",
+  "deterministic_validation": {
+    "schema_profile": {"status": "PASS", "passed": 19},
+    "fake_profile": {"status": "PASS", "passed": 6},
+    "round_trip": "PASS",
+    "hash_stability": "PASS",
+    "interface_extractor": "PASS",
+    "interface_guard": "PASS",
+    "failure_attribution": "PASS"
+  },
+  "source_boundary_validation": {
+    "command": "python -m pytest tests/application tests/experiments -q",
+    "passed": 695,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 1,
+    "historical_live_evidence_retained": true
+  },
+  "blueprint_a2_validation": {
+    "status": "PASS_EVALUATION_ONLY",
+    "receipt_hash": "sha256:4dc13ec42eb339f885fc95a24437d9e0628bbbab1c1f34872f29380e2672b14b",
+    "representation_equivalence": "PROVEN_OFFLINE",
+    "representation_size_benefit": "PROVEN_OFFLINE",
+    "runtime_token_call_benefit": "NOT_PROVEN_PROMPT_CHARS_AND_CALLS_IDENTICAL",
+    "production_adoption": "NOT_ADOPTED"
+  },
+  "real_provider_validation": {
+    "live_single": {"A": "FAIL", "B": "FAIL", "C": "FAIL"},
+    "live_repair": {"A": "PASS", "B": "PASS", "C": "PASS"},
+    "repeat": {"A": "0/3", "B": "0/3", "C": "0/3"},
+    "manual_candidate_edits": 0,
+    "whole_project_replans": 0,
+    "accepted_breaking_changes": 0,
+    "hidden_source_exposed": false
+  },
+  "comparison": {
+    "sha256": "ed628878cc132c4ca2525f248a186289dfed5845d6f054306fefbc923b40f12c",
+    "winner": "NONE"
+  },
+  "production_validation": "NOT_EVALUATED",
+  "promotion_studio_validation": {
+    "status": "PASS",
+    "signal_cases": "PASS_20_OF_20",
+    "campaign_cases": "PASS_10_OF_10",
+    "asset_cases": "PASS_6_OF_6",
+    "native_adapter_contracts": "PASS_3_OF_3_OFFLINE",
+    "evaluation_hash": "sha256:d13ba0f7773ba3c694ca79b5df8bbbea6e87291e5d21e3f1ceb0587749915ec1"
+  },
+  "community_operator_validation": {
+    "status": "PASS_WITH_ENVIRONMENT_LIMIT",
+    "offline_cases": "PASS_60_OPPORTUNITY_30_REPLY_20_POLICY_10_FOLLOWUP",
+    "fake_adapters": "PASS_12_OF_12",
+    "official_adapter_contracts": "PASS_4_OF_4_OFFLINE",
+    "real_read": "PASS_30_TOP20_TOP10",
+    "evaluation_hash": "sha256:94eeef7b00f78287dc101e175515e6e9efaa29a01b6be27637ab1a8a8d325b96"
+  },
+  "persona_digital_self_validation": {
+    "status": "PASS_FORMAL_100_EPISODES",
+    "evaluation_hash": "sha256:1964c00398164f16d5c24c5705b23d97978f81023cc7e48c64c63bb4a2d3fb78",
+    "p0_p1_p2_p3": "PASS_FROZEN_REPLAY",
+    "social_sandbox": "PASS_30_OF_30_RUBRIC_HUMAN_REVIEW_NOT_EVALUATED",
+    "real_read": "PASS_30_TOP20_TOP10",
+    "external_writes": 0
+  },
+  "kernel_regression": {
+    "compileall": "PASS",
+    "product_direction_gate": "PASS",
+    "kernel_architecture_gate": "PASS",
+    "test_architecture_gate": "PASS",
+    "kernel_test_receipt_verification": "PASS",
+    "kernel_completeness_gate": "PASS",
+    "receipt_freshness": "PASS_AFTER_RELEASE_056_RC6_BOUNDARY_REFRESH",
+    "unit_profile": "PASS_482_SKIP_1",
+    "remaining_profiles": "PASS_STATIC_BOUNDARY_FAULT_SECURITY_LOCAL_FUNCTIONAL_FULL_CORE_ACTIVE_REPOSITORY",
+    "active_repository": "PASS_3001_SKIP_363",
+    "collection": "PASS_3364",
+    "failed": 0,
+    "errors": 0,
+    "note": "Application and experiment source boundaries passed 695 tests with one skip; RC7 active-repository regression passed 3,001 tests with 363 skips and zero failures or errors after stable dependency prompt projection."
+  },
+  "stop_condition": "B"
+}

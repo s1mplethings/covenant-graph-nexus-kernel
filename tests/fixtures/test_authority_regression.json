@@ -1,0 +1,9 @@
+{
+  "case_id": "cli_csv_cleaner",
+  "canonical_preview_rows": [["1", "Ada", ""]],
+  "canonical_header": ["id", "name", "city"],
+  "newline_semantics": "UNSPECIFIED",
+  "repaired_implementation_stdout": "1,Ada,\n",
+  "conflicting_generated_test": "def test_preview_contract(result):\n    assert result.stdout == 'id,name,city\\n1,Ada,\\n'\n",
+  "newline_brittle_test": "def test_preview_newline(result):\n    assert result.stdout == '1,Ada,\\r\\n'\n"
+}

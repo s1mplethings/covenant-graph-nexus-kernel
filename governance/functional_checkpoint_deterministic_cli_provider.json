@@ -1,0 +1,4 @@
+{
+  "kind":"FunctionalCheckpoint","schema_version":"1.0","checkpoint":"FUNCTIONAL-CHECKPOINT-DETERMINISTIC-CLI-ADAPTIVE-PROVIDER-001","status":"NOT_ESTABLISHED","protected_baseline":"BASELINE-SELF-GROWN-LEAVES-001","protected_baseline_unchanged":true,
+  "deterministic_cli":"FUNCTIONAL_PASS","adaptive_micro_selection":"PASS","greenfield_real_projects":"NEEDS_REWORK_PROVIDER_TIMEOUT","existing_repo_canary":"NOT_RUN_BY_PHASE_BUDGET","provider_calls":16,"provider_call_limit":20,"manual_candidate_edits":0,"whole_replans":0,"unsafe_admissions":0,"accepted_interface_breaks":0,"hidden_leakage":0,"contains_credentials":false
+}

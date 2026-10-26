@@ -1711,6 +1711,88 @@ def test_partial_job_persists_each_emission_and_reserves_prioritized_completion(
     )
 
 
+def test_surrogate_wait_after_first_emission_persists_semantic_file_progress(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
+) -> None:
+    entries, leaf, component = _three_path_job_inputs()
+    calls = 0
+
+    def fake_generate(**kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise run_local_pipeline_impl.surrogate_provider_adapter.SurrogateResponseRequired(
+                tmp_path / "waiting-emission.json"
+            )
+        return {
+            "file_items": [
+                {
+                    "path": entry["path"],
+                    "content": f"# {entry['path']}\n\nVerified output.\n",
+                }
+                for entry in kwargs["manifest_entries"]
+            ],
+            "raw_output": "{}",
+            "author_origin": "primary",
+        }
+
+    semantic_plan = {
+        "status": "pending",
+        "stage": "provider_semantic_repair",
+        "provider_actions": [
+            {"component": "docs", "path": entry["path"], "instruction": "repair"}
+            for entry in entries
+        ],
+    }
+    monkeypatch.setattr(run_local_pipeline_impl, "plan_provider_job_emissions", _two_emission_plan)
+    monkeypatch.setattr(run_local_pipeline_impl, "provider_generate_component_job", fake_generate)
+
+    with pytest.raises(
+        run_local_pipeline_impl.surrogate_provider_adapter.SurrogateResponseRequired
+    ):
+        run_local_pipeline_impl._provider_generate_job_with_retry(
+            goal="Repair bounded docs",
+            component=component,
+            component_pipeline={"components": [component]},
+            leaf=leaf,
+            entries=entries,
+            prior_manifest=[],
+            completed_files=[],
+            prior_files=[],
+            manifest=entries,
+            repair_errors=[],
+            integration_feedforward=None,
+            interface_registry={},
+            librarian_index={},
+            model="test-model",
+            timeout=90,
+            deadline=None,
+            phase_log_path=tmp_path / "provider_phase_log.jsonl",
+            routing_policy=None,
+            pending_context=semantic_plan,
+            last_transport_error=None,
+            run_dir=tmp_path,
+            checkpoint_dir=tmp_path / "provider_components",
+            spec_hash="spec-emission-wait",
+        )
+
+    assert calls == 2
+    assert semantic_plan["completed_repair_files"] == {"docs": ["A.md", "B.md"]}
+    pending = run_local_pipeline_impl.load_json(
+        tmp_path / "artifacts" / "pending_repair_plan.json"
+    )
+    assert pending["completed_repair_files"] == {"docs": ["A.md", "B.md"]}
+    assert all(
+        run_local_pipeline_impl.split_file_checkpoint_path(
+            tmp_path / "provider_components", "docs", path
+        ).exists()
+        for path in ("A.md", "B.md")
+    )
+    assert not run_local_pipeline_impl.split_file_checkpoint_path(
+        tmp_path / "provider_components", "docs", "C.md"
+    ).exists()
+
+
 def test_failed_prioritized_completion_keeps_partial_checkpoints_and_does_not_retry(
     monkeypatch: pytest.MonkeyPatch, tmp_path: pathlib.Path
 ) -> None:

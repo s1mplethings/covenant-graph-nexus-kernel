@@ -1,0 +1,35 @@
+{
+  "schema_version": "1.0",
+  "source_evidence": "canonical-test-authority-full-eval-live/csv-single-v5",
+  "public_safe": true,
+  "unit_id": "implementation-1",
+  "path": "csv_cleaner/__main__.py",
+  "baseline_hash": "sha256:fixture-baseline",
+  "source_before_repair_1": "def _read_csv(path: str):\n    with open(path, \"r\", newline=\"\", encoding=\"utf-8\") as handle:\n        rows = list(csv.reader(handle))\n    header = rows[0]\n    return header, rows[1:]\n\ndef _print_preview(rows, count):\n    writer = csv.writer(sys.stdout)\n    writer.writerows(rows[:count])\n",
+  "repair_1_patch": {
+    "find": "    header = rows[0]\n    return header, rows[1:]",
+    "replace": "    header = rows[0]\n    data = [row for row in rows[1:] if row]\n    return header, data"
+  },
+  "source_after_repair_1": "def _read_csv(path: str):\n    with open(path, \"r\", newline=\"\", encoding=\"utf-8\") as handle:\n        rows = list(csv.reader(handle))\n    header = rows[0]\n    data = [row for row in rows[1:] if row]\n    return header, data\n\ndef _print_preview(rows, count):\n    writer = csv.writer(sys.stdout)\n    writer.writerows(rows[:count])\n",
+  "repair_2_patch": {
+    "find": "    data = [row for row in rows[1:] if row]",
+    "replace": "    data = [row for row in rows[1:] if any(cell != \"\" for cell in row)]"
+  },
+  "source_after_repair_2": "def _read_csv(path: str):\n    with open(path, \"r\", newline=\"\", encoding=\"utf-8\") as handle:\n        rows = list(csv.reader(handle))\n    header = rows[0]\n    data = [row for row in rows[1:] if any(cell != \"\" for cell in row)]\n    return header, data\n\ndef _print_preview(rows, count):\n    writer = csv.writer(sys.stdout)\n    writer.writerows(rows[:count])\n",
+  "failure_fingerprint": {
+    "requirement_ids": ["OBL-CSV-PREVIEW", "REQ-CSV-ACCEPT-02", "REQ-002"],
+    "owner_unit_id": "implementation-1",
+    "check_id": "test_preview_prints_rows_and_writes_output",
+    "observable": "stdout.csv_rows",
+    "normalized_input": "{\"header\":[\"id\",\"name\",\"city\"],\"input_path\":\"input.csv\",\"output_path\":\"output.csv\",\"rows\":[[\"1\",\"Ada\",\"\"],[\"2\",\"Lin\",\"Paris\"]]}",
+    "normalized_expected": "[[\"1\",\"Ada\",\"\"]]",
+    "normalized_actual": "[[\"1\",\"Ada\",\"\"],[]]",
+    "failure_kind": "EXTRA_EMPTY_ROW",
+    "relevant_interface_id": "python -m csv_cleaner",
+    "relevant_source_locator": "csv_cleaner/__main__.py:_print_preview"
+  },
+  "correct_patch": {
+    "find": "    writer = csv.writer(sys.stdout)",
+    "replace": "    writer = csv.writer(sys.stdout, lineterminator=\"\\n\")"
+  }
+}

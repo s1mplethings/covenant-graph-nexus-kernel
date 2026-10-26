@@ -1,4 +1,4 @@
-# CGKN Repository Guide
+# CGNK Repository Guide
 
 This guide defines the Repository Layout v1 retention model. It does not replace
 `AGENTS.md`, `docs/00_kernel_contract.md`, or the formal registry in

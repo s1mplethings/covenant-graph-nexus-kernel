@@ -1,0 +1,51 @@
+{
+  "kind": "CGKNMVPDecisionEfficiencyBenchmarkContract",
+  "schema_version": "1.0",
+  "purpose": "Measure successful task completion per high-capability Agent decision call.",
+  "modes": ["direct_agent", "cgkn_delegated"],
+  "controlled_inputs": [
+    "visible_goal",
+    "starting_project_snapshot",
+    "acceptance_criteria",
+    "environment",
+    "time_limit",
+    "allowed_tools"
+  ],
+  "required_metrics": [
+    "functional_success",
+    "high_capability_agent_calls",
+    "cheap_executor_calls",
+    "deterministic_tool_calls",
+    "external_capability_calls",
+    "input_tokens",
+    "output_tokens",
+    "wall_time_seconds",
+    "retries",
+    "affected_subgraph_reruns",
+    "whole_project_reruns",
+    "human_interventions",
+    "acceptance_coverage"
+  ],
+  "first_gate": {
+    "case_count": 1,
+    "requires_real_project": true,
+    "requires_same_acceptance_for_both_modes": true,
+    "requires_cgkn_functional_success": true,
+    "requires_evaluator_result_binding": true,
+    "requires_fewer_high_capability_agent_calls": true,
+    "required_executor_classes": [
+      "cheap_model_or_api",
+      "deterministic_tool",
+      "external_search_or_tool"
+    ],
+    "repair_scope": "affected_subgraph_only"
+  },
+  "excluded_from_first_gate": [
+    "Fixed10",
+    "large_catalog",
+    "high_concurrency",
+    "latency_readiness",
+    "stress_readiness",
+    "long_horizon_soak"
+  ]
+}

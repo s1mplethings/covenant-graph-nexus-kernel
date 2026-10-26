@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgkn.local/contracts/observed_project_failure_evidence_v1.schema.json",
+  "title": "CGKN Observed Project Failure Evidence",
+  "type": "object",
+  "required": [
+    "kind",
+    "schema_version",
+    "evidence_id",
+    "run_id",
+    "project_id",
+    "original_requirement_identity",
+    "failure_category",
+    "failed_acceptance_ids",
+    "observable_failure",
+    "candidate_identity",
+    "repair_round",
+    "repair_eligible",
+    "failures",
+    "constraints"
+  ],
+  "properties": {
+    "kind": {"const": "CGKNObservedProjectFailureEvidence"},
+    "schema_version": {"const": "1.0"},
+    "evidence_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string", "minLength": 1},
+    "project_id": {"type": "string", "minLength": 1},
+    "case_id": {"type": "string"},
+    "original_requirement_identity": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "failure_category": {"type": "string", "minLength": 1},
+    "failed_acceptance_ids": {"type": "array", "items": {"type": "string"}},
+    "observable_failure": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "runtime_error": {"type": "string"},
+    "dependency_error": {"type": "string"},
+    "stack_trace": {"type": "string"},
+    "affected_interfaces": {"type": "array", "items": {"type": "string"}},
+    "affected_files": {"type": "array", "items": {"type": "string"}},
+    "affected_work_nodes": {"type": "array", "items": {"type": "string"}},
+    "candidate_identity": {
+      "type": "object",
+      "required": ["evaluated_candidate_dir", "candidate_sha256"],
+      "properties": {
+        "evaluated_candidate_dir": {"type": "string", "minLength": 1},
+        "candidate_sha256": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    },
+    "evaluated_candidate_dir": {"type": "string", "minLength": 1},
+    "candidate_sha256": {"type": "string", "minLength": 1},
+    "repair_round": {"type": "integer", "minimum": 1, "maximum": 2},
+    "repair_eligible": {"type": "boolean"},
+    "blocking_reason": {"type": "string"},
+    "summary": {"type": "string", "minLength": 1},
+    "failures": {"type": "array", "items": {"type": "object"}, "minItems": 1},
+    "constraints": {"type": "object"}
+  },
+  "additionalProperties": false
+}

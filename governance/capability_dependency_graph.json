@@ -1,0 +1,31 @@
+{
+  "kind": "CapabilityDependencyGraph",
+  "schema_version": "1.0",
+  "iteration": "ITER-GROK-DATA-PLANE-HIGHER-ORDER-023",
+  "nodes": [
+    {"ref": "web.fetch.public@1", "state": "ADMITTED"},
+    {"ref": "github.repo.inspect.public@1", "state": "ADMITTED"},
+    {"ref": "markdown.links.extract@1", "state": "ADMITTED"},
+    {"ref": "release.notes.from_diff@1", "state": "ADMITTED"},
+    {"ref": "research.repo.brief@1", "state": "NOT_ADMITTED_REPAIR_TRANSPORT_FAILURE"},
+    {"ref": "research.compare.repos@1", "state": "NOT_ATTEMPTED_STOP_CONDITION_E"}
+  ],
+  "edges": [
+    {"from": "web.fetch.public@1", "to": "github.repo.inspect.public@1", "state": "ACTIVE"},
+    {"from": "github.repo.inspect.public@1", "to": "research.repo.brief@1", "state": "PLANNED_NOT_ADMITTED"},
+    {"from": "web.fetch.public@1", "to": "research.repo.brief@1", "state": "PLANNED_NOT_ADMITTED"},
+    {"from": "markdown.links.extract@1", "to": "research.repo.brief@1", "state": "PLANNED_NOT_ADMITTED"},
+    {"from": "research.repo.brief@1", "to": "research.compare.repos@1", "state": "PLANNED_NOT_ADMITTED"}
+  ],
+  "guards": {
+    "direct_dependency_resolution": "PASS",
+    "transitive_dependency_resolution": "PASS",
+    "cycle_rejection": "PASS",
+    "hash_drift_rejection": "PASS",
+    "risk_propagation": "PASS",
+    "bounded_execution_context": "PASS",
+    "raw_network_rejection": "PASS"
+  },
+  "graph_valid": true,
+  "contains_credentials": false
+}

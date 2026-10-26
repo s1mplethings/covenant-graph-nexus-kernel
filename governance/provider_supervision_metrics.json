@@ -1,0 +1,12 @@
+{
+  "kind": "ProviderSupervisionMetrics",
+  "schema_version": "1.0",
+  "metrics": [
+    {"provider_id":"qwen","task_class":"project.domain.simple","calls":2,"successful_candidates":0,"first_progress_timeouts":2,"hard_limit_terminations":0,"transport_failures":0,"extensions":0,"bytes_received":0},
+    {"provider_id":"grok","task_class":"project.domain.persistent","calls":1,"successful_candidates":1,"first_progress_timeouts":0,"transport_failures":0,"median_first_progress_ms":49657,"median_total_latency_ms":50375,"extensions":0,"tokens":11699},
+    {"provider_id":"qwen","task_class":"project.domain.library","calls":2,"successful_candidates":0,"first_progress_timeouts":1,"operator_cancelled_during_fix":1,"hard_limit_terminations":0,"extensions":0},
+    {"provider_id":"qwen","task_class":"repository.patch","calls":1,"successful_candidates":1,"first_progress_timeouts":0,"transport_failures":0,"median_first_progress_ms":146375,"median_total_latency_ms":146391,"extensions":0,"bytes_received":24563,"tokens":6300}
+  ],
+  "cost": "UNAVAILABLE",
+  "contains_credentials": false
+}

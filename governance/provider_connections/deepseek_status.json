@@ -1,0 +1,17 @@
+{
+  "kind": "ProviderConnectionStatus",
+  "schema_version": "1.0",
+  "provider_id": "deepseek",
+  "source_commit": "5602fe8117c32ab05c2aad8405edd5a4a42fd5f1",
+  "status": "DEEPSEEK_CONNECTION_BLOCKED_CREDENTIAL",
+  "endpoint_class": "deepseek-inference",
+  "credential_present": false,
+  "requested_model": "deepseek-flash",
+  "actual_model": "",
+  "catalog_status": "BLOCKED",
+  "structured_output_mode": "PROMPT_JSON_LOCAL_VALIDATE",
+  "structured_output_status": "BLOCKED",
+  "error_class": "DEEPSEEK_MISSING_AUTH",
+  "recommended_operator_action": "Set CGKN_DEEPSEEK_API_KEY or DEEPSEEK_API_KEY in the gateway process.",
+  "contains_credentials": false
+}

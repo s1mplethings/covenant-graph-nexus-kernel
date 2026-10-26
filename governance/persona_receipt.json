@@ -1,0 +1,131 @@
+{
+  "kind": "CGKNPersonaReceipt",
+  "schema_version": "1.0",
+  "iteration": "ITER-055",
+  "source_identity": {
+    "commit": "a6825912cee716a7391a8b7750d8b8da6f603010",
+    "tree": "05217e431c55dd0f89e0f1457819eadb72c18e3b",
+    "branch": "codex/persona-digital-self-20261025",
+    "remote_verified": true
+  },
+  "source_hashes": {
+    "identity_schema": "sha256:f7251790c892a654c3e28a37eb2fec98ca4b2eeb16ec8df4897a4f89eadc8653",
+    "self_model_schema": "sha256:8d434dd4ddd7096834d27333a90abdbdcd404b4798997fc752f00ee5b839648f",
+    "relationship_schema": "sha256:722eea6b4ffb9dd60998131cfc4cfaad6de7122358f99a5af0946207615d4f39",
+    "commitment_schema": "sha256:0c839cd81eeb52cf87539afe9c4aec7556adb94e9660910f96a278a14f72552c",
+    "reflection_policy": "sha256:3c3965a48d88eda4409036bd16ca4f69581b2def0150befc43c76eec03fd7628",
+    "attention_policy": "sha256:a90a6c82a0db6d89c356082078108da55bdd943e9c61ae85f54e430b129ee0b9",
+    "persona_context_policy": "sha256:3fda91c256df06cbe317f30be7f3c5136f26846b3501b8140124b486eaab0a47",
+    "social_sandbox_policy": "sha256:d8e6bdf55cab6c5183f1a3b4eb396081a31a558251969a51dea97b95a740de75",
+    "model_config": "sha256:f6610dd714bb0109d176fb7970321a56a2e470755b15e772b6efb635075a1b10"
+  },
+  "benchmark_freeze": {
+    "lifelong_taskset": "sha256:2257eac5adbc7c09082da783a959533e4fe75e899aea0c693ccd7de2829a7c41",
+    "persona_initial_state": "sha256:2b38f064a99f78783818ffe49ef36483f7f1ed7c72b4ab117724da685ffd298e",
+    "identity": "sha256:9a402ed34e374be4c9a5530323541c62bb2365ede1ae91e12beea95844f6b9e5",
+    "relationship_fixture": "sha256:92553e45c8b3ec81418f368c9b8c9daba5aa7573fc82bb0f607e179bc5305c23",
+    "commitment_fixture": "sha256:b52969bb5fa3192e9e52e723390543801c7b0f9538070e6b5a68eb4b6563bf70",
+    "rubric": "sha256:2a7a438e97415b5769948d1bebebce5cb838511e6964172a454032904b03e87e",
+    "p0_p1_p2_p3_config": "sha256:7bfcef24da589451a0ad69f543309a3c55c76c367db2b779f0682172e6405180"
+  },
+  "evaluation": {
+    "status": "PASS",
+    "evaluation_hash": "sha256:1964c00398164f16d5c24c5705b23d97978f81023cc7e48c64c63bb4a2d3fb78",
+    "episodes": 100,
+    "meaningful_steps": 100,
+    "people": 12,
+    "communities": 6,
+    "categories": 12,
+    "p3_identity_consistency": 1.0,
+    "p3_unapproved_identity_drift": 0,
+    "p3_episodic_precision": 1.0,
+    "p3_episodic_recall": 0.8888888888888888,
+    "p3_memory_hallucination_rate": 0.0,
+    "p3_relationship_continuity": 0.8888888888888888,
+    "p3_commitment_accuracy": 1.0,
+    "p3_goal_alignment": 1.0,
+    "p3_reflection_quality": 1.0,
+    "p3_reflection_transfer": 1.0,
+    "p3_attention_precision": 0.9696969696969697,
+    "p3_generic_reply_rate": 0.0,
+    "p3_unique_contribution_rate": 1.0,
+    "p3_outsider_mismatch_rate": 0.0,
+    "p3_disclosure_accuracy": 1.0
+  },
+  "context_localization": {
+    "full_chars": 8894498,
+    "localized_chars": 548360,
+    "reduction": 0.9383484036985561,
+    "correctness_regression": 0
+  },
+  "social_sandbox": {
+    "status": "PASS_30_OF_30_FROZEN_RUBRIC",
+    "rubric_calibration": "PASS_15_OF_15_DETERMINISTIC",
+    "human_review": "NOT_EVALUATED",
+    "human_review_cases_prepared": 40
+  },
+  "real_community_dogfood": {
+    "status": "PASS_READ_ONLY",
+    "threads": 30,
+    "top20": 20,
+    "top10_drafts": 10,
+    "heuristic_generic_rate": 0.09999999999999998,
+    "project_mentions": 0,
+    "external_writes": 0
+  },
+  "controlled_relationship": {
+    "status": "PASS",
+    "episodes": 8,
+    "final_familiarity": "REPEATED",
+    "memory_hallucinations": 0,
+    "overpersonalization": 0
+  },
+  "controlled_live_reply": {
+    "status": "BLOCKED_ENVIRONMENT",
+    "mvp_impact": "NON_BLOCKING",
+    "external_writes": 0
+  },
+  "security": {
+    "identity_injection": 0,
+    "episode_spoofing": 0,
+    "relationship_spoofing": 0,
+    "commitment_spoofing": 0,
+    "sensitive_inference": 0,
+    "hidden_affiliation": 0,
+    "human_impersonation": 0,
+    "hidden_evidence_exposure": 0,
+    "secret_leakage": 0,
+    "unapproved_public_writes": 0,
+    "external_writes": 0
+  },
+  "cost": {
+    "status": "KNOWN_ZERO_DETERMINISTIC_FORMAL_REPLAY",
+    "provider_calls": 0,
+    "tokens": 0,
+    "known_cost_usd": 0.0,
+    "context_estimates_are_not_provider_usage": true,
+    "provider_quality_conclusion": "NOT_EVALUATED"
+  },
+  "kernel_regression": {
+    "status": "PASS",
+    "targeted_persona": "PASS_39",
+    "application_experiments": "PASS_694_SKIP_1",
+    "static": "PASS",
+    "unit": "PASS_482_SKIP_1",
+    "boundary": "PASS_325_SKIP_1",
+    "fault": "PASS_80",
+    "security": "PASS_119_SKIP_1",
+    "local_functional": "PASS_6",
+    "full_core": "PASS_482_SKIP_1",
+    "active_repository": "PASS_2972_SKIP_357",
+    "collection": "PASS_3329",
+    "failed": 0,
+    "errors": 0,
+    "initial_nonfinal_run": "One PMP evidence-status enum failure was found after governance evidence was added; the value was corrected to the registered PASS_WITH_LIMITS status, targeted schema validation passed, and the complete active-repository profile was rerun from scratch to 0 failures and 0 errors."
+  },
+  "evidence": [
+    "project_management/summaries/ITER-055-evidence/persona_evaluation_summary.json",
+    "project_management/summaries/ITER-055-persona-digital-self.md"
+  ],
+  "verdict": "PROVEN_DIRECTIONALLY_WITH_HUMAN_REVIEW_AND_LIVE_REPLY_LIMITS"
+}

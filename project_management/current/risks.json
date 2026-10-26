@@ -1,30 +1,186 @@
 {
-  "kind": "CGKNCurrentRiskRegister",
-  "schemaVersion": "1",
+  "kind": "CGKNCurrentRisks",
+  "schema_version": "3.0",
   "risks": [
     {
-      "id": "RK-LAYOUT-001",
-      "description": "Moving formal specs breaks a loader, test, or documentation reference.",
+      "id": "R-MVP-020",
+      "title": "Persistent Persona could drift, fabricate social history, overpersonalize, or bypass public-write authority",
+      "probability": "low",
+      "impact": "high",
+      "signal": "Identity changes without approval, episodes or commitments lack receipts, sensitive traits are inferred, unrelated history appears in public context, or Persona acts around Community/Promotion approval.",
+      "response": "The formal 100-episode replay recorded zero identity drift, hallucination, overpersonalization, sensitive inference, or unapproved writes. Retain immutable identity, evidence references, explicit commitments, localized relationship context, advisory-only sandboxing, exact-hash approval, and require independent human calibration before broader social use.",
+      "owner": "persona capability"
+    },
+    {
+      "id": "R-MVP-019",
+      "title": "Community engagement could become spam, violate platform rules, or publish without informed approval",
       "probability": "medium",
       "impact": "high",
-      "response": "Use a specs-first compatibility loader, reference graph, legacy-path scan, schema validation, and compilation of all important flows.",
-      "state": "active"
+      "signal": "A reply has low standalone value, unsupported project claims, hidden affiliation, unknown community rules, duplicate targeting, or executes without APPROVED_TO_REPLY bound to its exact revision.",
+      "response": "Evaluate policy before relevance, prefer precision over recall, separate engage/mention/link decisions, require claim grounding and disclosure, keep EXTERNAL_WRITE candidate-only, bind exact-hash approval, enforce idempotency and low rate limits, and suppress communities after moderation events.",
+      "owner": "community capability"
     },
     {
-      "id": "RK-LAYOUT-002",
-      "description": "Runtime cleanup deletes local user data.",
-      "probability": "low",
+      "id": "R-MVP-018",
+      "title": "Promotion publishing could leak private evidence or bypass human authorization",
+      "probability": "medium",
       "impact": "high",
-      "response": "Use git rm --cached only; keep local artifacts, workspaces, memories, and historical iteration files ignored and recoverable.",
-      "state": "controlled"
+      "signal": "Drafts contain local paths, unsupported claims, secrets, or an external adapter executes without an approval that binds exact content, media, and platform hashes.",
+      "response": "Project only explicit public-safe evidence, validate every draft against the claim ledger, keep DRAFT_ONLY default, resolve credentials locally, require exact-hash publish approval, and make EXTERNAL_WRITE proposal-only for Self-Growth.",
+      "owner": "promotion capability"
     },
     {
-      "id": "RK-LAYOUT-003",
-      "description": "Curated evidence is mistaken for delivery authority.",
+      "id": "R-MVP-001",
+      "title": "Compatibility runtime remains much larger than the new MVP substrate",
+      "probability": "high",
+      "impact": "high",
+      "signal": "New work keeps extending run_local_pipeline_impl, formal delivery, or old planning contracts instead of the CapabilityTree substrate.",
+      "response": "Treat the compatibility stack as migration material only and require the product direction gate for architecture changes.",
+      "owner": "kernel architecture"
+    },
+    {
+      "id": "R-MVP-002",
+      "title": "Multiple planning and graph abstractions may compete for authority",
+      "probability": "high",
+      "impact": "high",
+      "signal": "WorkNode, ProviderJob, decomposition tree, module flow, or planning proposal acts as a project-level source of truth beside CapabilityTree and ExecutionDAG.",
+      "response": "CapabilityTree is composition truth and ExecutionDAG is execution truth; other structures must be adapters or compatibility data.",
+      "owner": "composition runtime"
+    },
+    {
+      "id": "R-MVP-003",
+      "title": "Target architecture is not yet wired into the default runtime",
       "probability": "low",
       "impact": "high",
-      "response": "Every promoted bundle carries a canonical status, limitations, reproduction command, and explicit support-only authority note.",
-      "state": "controlled"
+      "signal": "The repository describes CapabilityTree and ExecutionDAG, but real project execution still enters the compatibility pipeline.",
+      "response": "Keep the validated isolated route separate until an explicit migration increment replaces compatibility entrypoints.",
+      "owner": "MVP runtime"
+    },
+    {
+      "id": "R-MVP-004",
+      "title": "Executor interfaces remain fragmented",
+      "probability": "medium",
+      "impact": "high",
+      "signal": "Provider, local model, search, script, browser, and test execution use unrelated request and result semantics.",
+      "response": "Continue adapting remaining executor kinds behind Block execution; the local, test, and bounded LLM adapters now share it.",
+      "owner": "executor layer"
+    },
+    {
+      "id": "R-MVP-005",
+      "title": "Retained compatibility modules may silently regain product authority",
+      "probability": "medium",
+      "impact": "high",
+      "signal": "New documentation, CI, or features cite compatibility planning and readiness modules as the canonical MVP route.",
+      "response": "Keep the migration boundary machine-readable and fail the product direction gate when archived authorities reappear.",
+      "owner": "product architecture"
+    },
+    {
+      "id": "R-MVP-006",
+      "title": "No real end-to-end MVP vertical slice exists",
+      "probability": "low",
+      "impact": "high",
+      "signal": "Tree and DAG structures exist but no real project change reaches bounded execution, testing, persistence, and Agent completion judgment through the new route.",
+      "response": "Preserve the real Agent/worker/file-edit/pytest evidence and extend with a real-provider repair case before broader scale work.",
+      "owner": "MVP delivery"
+    },
+    {
+      "id": "R-MVP-007",
+      "title": "Deletion may outrun replacement functionality",
+      "probability": "medium",
+      "impact": "high",
+      "signal": "Compatibility entrypoints are removed before the new DAG runtime owns equivalent execution, test, state, and result behavior.",
+      "response": "Enforce the cleanup boundary: migrate one vertical slice first, then delete only modules with no remaining consumer.",
+      "owner": "migration lead"
+    },
+    {
+      "id": "R-MVP-008",
+      "title": "Self-growth could become unrestricted self-modification",
+      "probability": "medium",
+      "impact": "high",
+      "signal": "A discovered capability changes kernel invariants or bypasses interface, test, and registry admission.",
+      "response": "Limit self-growth to search, bounded trial, validated Block integration, registry admission, and measured reuse.",
+      "owner": "capability registry"
+    },
+    {
+      "id": "R-MVP-009",
+      "title": "Project-team features may reintroduce fixed role pipelines",
+      "probability": "medium",
+      "impact": "high",
+      "signal": "PM, Developer, QA, Researcher, Release, or Marketing becomes a required sequential stage.",
+      "response": "Represent roles only as optional capability bundles/views over the same tree and DAG.",
+      "owner": "product architecture"
+    },
+    {
+      "id": "R-MVP-010",
+      "title": "Repository CI is not executing on the isolated branch",
+      "probability": "high",
+      "impact": "medium",
+      "signal": "Workflow runs report startup failure with no jobs or status checks.",
+      "response": "Keep all verification as NOT_EVALUATED, do not merge, and obtain an executable focused verification path before promotion.",
+      "owner": "repository operations"
+    },
+    {
+      "id": "R-MVP-011",
+      "title": "Model-produced near-synonyms may not satisfy canonical TreeEdit fields",
+      "probability": "medium",
+      "impact": "medium",
+      "signal": "Agent output uses capability, dependencies, tool, runner, or an undeclared structural root.",
+      "response": "Keep machine-readable capability catalogs, strict payload validation, narrow root normalization, and fail closed before DAG execution.",
+      "owner": "Agent composition"
+    },
+    {
+      "id": "R-MVP-012",
+      "title": "Decision efficiency is not yet better than a direct high-model call on tiny tasks",
+      "probability": "high",
+      "impact": "medium",
+      "signal": "The one-file baseline succeeds in one high-model call while CGNK uses compose and finish checkpoints.",
+      "response": "Do not degrade the baseline; evaluate larger repair tasks and reduce high-model checkpoints only when evidence shows authority and recovery remain intact.",
+      "owner": "MVP evaluation"
+    },
+    {
+      "id": "R-MVP-013",
+      "title": "Bounded project workers may regress adjacent generated interfaces during repair",
+      "probability": "high",
+      "impact": "high",
+      "signal": "A scoped repair passes action validation but replaces a declared target with code or public tests that no longer match the existing generated interfaces.",
+      "response": "Keep fixed budgets and external acceptance; improve public interface context, patch intent, and proposal verification before rerunning Stage 1. Never repair candidate projects manually or widen worker scope.",
+      "owner": "L6 software project generation"
+    },
+    {
+      "id": "R-MVP-014",
+      "title": "Stale derived knowledge could be mistaken for current raw evidence",
+      "probability": "medium",
+      "impact": "high",
+      "signal": "A changed or retracted leaf remains represented by an active summary returned to Conversation.",
+      "response": "Treat raw observations as source evidence, maintain explicit dependency edges, mark only dependent abstractions stale, exclude stale nodes from retrieval, and refresh them explicitly on demand or in a batch.",
+      "owner": "knowledge authority"
+    },
+    {
+      "id": "R-MVP-015",
+      "title": "Monolithic ProjectKnowledgePack persistence may dominate large write cost",
+      "probability": "low",
+      "impact": "high",
+      "signal": "Production v2 local updates passed through 250k, and the optimized derived checkpoint cold-start is 8.064 seconds versus the 37.430 second S0 baseline.",
+      "response": "Use v2 for new packs while retaining v1 readability, explicit migration, hash and policy validation, and authoritative replay fallback for missing or corrupt derived checkpoint data.",
+      "owner": "knowledge storage"
+    },
+    {
+      "id": "R-MVP-016",
+      "title": "Common or skewed retrieval terms produce linearly growing candidate sets",
+      "probability": "medium",
+      "impact": "medium",
+      "signal": "Exact query P50 stays near constant, but ambiguous candidate maxima reach 5,000 and P95 reaches 199.71 ms at 250k; 10k long-tail skew reaches 2,312 candidates.",
+      "response": "Preserve recall and retrieval authority; profile branch/term selectivity and add only semantics-preserving derived acceleration after the persistence authority is made crash-safe.",
+      "owner": "knowledge retrieval"
+    },
+    {
+      "id": "R-MVP-017",
+      "title": "Experimental capability growth may create registry debt instead of reusable value",
+      "probability": "medium",
+      "impact": "high",
+      "signal": "New capabilities have zero or single reuse, repeat existing semantic signatures, or fail hidden generalization while task completion appears high.",
+      "response": "Keep production admission disabled; require search, bounded composition, semantic duplicate checks, hidden qualification, independent group registries, and explicit saturation/debt metrics before recommending productionization.",
+      "owner": "capability registry"
     }
   ]
 }

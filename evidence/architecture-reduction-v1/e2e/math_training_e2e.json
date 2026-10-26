@@ -1,0 +1,68 @@
+{
+  "kind": "CGKNMathTrainingE2E",
+  "status": "PASS_WITH_LIMITS",
+  "project": "Calculus Ink Lab",
+  "capabilities": [
+    "handwriting_input",
+    "formula_recognition",
+    "problem_model",
+    "grading",
+    "error_explanation",
+    "question_generation",
+    "progress_tracking",
+    "local_storage",
+    "user_interface"
+  ],
+  "interfaces_validated": true,
+  "iterations": [
+    {
+      "id": 1,
+      "vertical_slice": [
+        "handwriting_input",
+        "formula_recognition",
+        "grading",
+        "user_interface"
+      ],
+      "status": "PASS"
+    },
+    {
+      "id": 2,
+      "vertical_slice": [
+        "error_explanation",
+        "question_generation",
+        "progress_tracking",
+        "recognizer_replacement"
+      ],
+      "status": "PASS",
+      "state_change": "recognizer executor replaced without grading change"
+    }
+  ],
+  "reuse_decisions": [
+    {
+      "capability_id": "formula_recognition",
+      "selected_source": {
+        "type": "internal",
+        "ref": "project:LocalRecognitionAdapter"
+      },
+      "adapter_required": false,
+      "reason": "compatible reusable executor",
+      "provenance": {},
+      "rejected": []
+    }
+  ],
+  "runtime": {
+    "real_http_process": true,
+    "customer_actions": 4
+  },
+  "visual": {
+    "screenshot": "math_training_screenshot.png",
+    "bytes": 30812
+  },
+  "package": {
+    "status": "NEEDS_REWORK",
+    "producer": "scripts.local_packager.package_project",
+    "manifest_kind": "CGKNDeliveryManifest",
+    "reason": "support E2E lacks production candidate identity and canonical runtime receipts; fail-closed as designed"
+  },
+  "formal_release_authority": false
+}

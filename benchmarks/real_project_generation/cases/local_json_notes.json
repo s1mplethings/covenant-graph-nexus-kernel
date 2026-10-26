@@ -1,0 +1,1 @@
+{"case_id":"local_json_notes","kind":"CGKNPublicGenerationCase","schema_version":"1.0","entrypoint":"python -m notes","stdlib_only":true,"network":false,"storage":"notes.json"}

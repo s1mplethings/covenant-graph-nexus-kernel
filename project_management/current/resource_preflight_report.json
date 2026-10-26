@@ -1,0 +1,80 @@
+{
+  "kind": "CGKNResourcePreflightReport",
+  "schema_version": "2.0",
+  "iteration": "ITER-CGNK-V2-RESOURCE-GATE-CALIBRATION-AND-SCALE-QUALIFICATION-048",
+  "captured_at": "2026-10-23T17:06:37.204242Z",
+  "repository_path": "D:/CGKN/.service_worktree/segmented-persistence-productionization",
+  "benchmark_scratch_path": "F:/CGKN-v2-scale-qualification-048",
+  "benchmark_scratch_volume": "F:",
+  "old_policy": {
+    "pre_run_used_percent_exclusive_max": 75,
+    "decision": "RESOURCE_CAPACITY_NEEDS_USER",
+    "assessment": "OVER_CONSERVATIVE_BENCHMARK_GATE"
+  },
+  "calibrated_policy": {
+    "version": "2.0",
+    "primary_gate": "absolute conservative peak plus transaction, estimator, OS/filesystem, evidence, and memory reserves",
+    "secondary_predicted_used_percent_limit": 98.0,
+    "minimum_os_disk_headroom_bytes": 17179869184,
+    "maximum_os_disk_headroom_bytes": 34359738368,
+    "os_disk_headroom_fraction": 0.01,
+    "benchmark_disk_contingency_bytes": 2147483648,
+    "minimum_os_memory_headroom_bytes": 2147483648,
+    "os_memory_headroom_fraction": 0.1,
+    "memory_fixed_headroom_bytes": 536870912,
+    "resource_policy_hash": "sha256:51e774f95fac372862d1a9fc270ad48983c7d99b95a7dbb178be0e384c514ba9",
+    "peak_estimator_hash": "sha256:6b7ea0bf565a4fea46be4bfaae437675a2b6577c0909c84048ee950dc41482e7"
+  },
+  "calibration": {
+    "scales": [1000, 5000],
+    "status": "PASS_2_OF_2",
+    "one_k_peak_disk_bytes": 3140456,
+    "five_k_peak_disk_bytes": 10772539,
+    "one_k_peak_rss_bytes": 64438272,
+    "five_k_peak_rss_bytes": 146575360,
+    "checkpoint_due_at_mutation": 255,
+    "compaction_due_at_mutation": 63
+  },
+  "selected_volume": {
+    "drive": "F:",
+    "filesystem": "NTFS",
+    "total_bytes": 2000381014016,
+    "pre_run_free_bytes": 341981667328,
+    "pre_run_used_percent": 82.904,
+    "memory_available_bytes": 13959872512,
+    "memory_total_bytes": 33968779264,
+    "selection_reason": "highest absolute safety headroom under the frozen 250k peak estimator"
+  },
+  "scale_250k_gate": {
+    "lower_estimate_bytes": 538626950,
+    "expected_peak_bytes": 2023877432,
+    "conservative_peak_bytes": 5701169517,
+    "predicted_process_peak_rss_bytes": 7510835712,
+    "required_free_bytes": 27852463306,
+    "required_memory_available_bytes": 10907713639,
+    "predicted_post_run_free_bytes": 336280497811,
+    "predicted_post_run_used_percent": 83.189,
+    "decision": "ALLOW"
+  },
+  "actual": {
+    "formal_scales": [10000, 50000, 100000, 250000],
+    "formal_status": "PASS_4_OF_4",
+    "actual_250k_peak_bytes": 479389001,
+    "actual_250k_peak_rss_bytes": 5276147712,
+    "actual_to_conservative_bound_percent": 8.409,
+    "all_actual_peaks_within_bound": true,
+    "post_scale_scratch_cleanup": "PASS"
+  },
+  "production_source": {
+    "commit": "3439370f3e0a5ba118199dce10d429e77b77e24f",
+    "tree": "7de7e2a25b54fd6924f9e623253b7d6524f374e0",
+    "modified": false
+  },
+  "benchmark_harness": {
+    "commit": "e602f54adc620e5c91c94cf5f457ef808a71a48e",
+    "hash": "sha256:4af62c41c0c8e235fd077ff026cff18853cc1109e2c074be34696c064b783cc8"
+  },
+  "resource_gate_status": "OVER_CONSERVATIVE_OLD_GATE_CONFIRMED",
+  "deleted_user_or_authoritative_bytes": 0,
+  "formal_evidence": "D:/CGKN/.service_evidence/v2-resource-gate-scale-qualification-048/formal-final/productionization-report.json"
+}

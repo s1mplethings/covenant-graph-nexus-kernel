@@ -1,0 +1,87 @@
+[
+  {
+    "campaign_id": "campaign-fbb37de10adab103",
+    "claim_ids": [
+      "claim-001",
+      "claim-002",
+      "metric-manual_edits",
+      "metric-qualified_capabilities"
+    ],
+    "description": "",
+    "hashtags": [
+      "CGKN",
+      "LocalFirst"
+    ],
+    "links": [],
+    "media_refs": [],
+    "metadata": {
+      "route": "deterministic"
+    },
+    "platform": "bluesky",
+    "revision": 1,
+    "scheduled_at": null,
+    "schema_version": "1.0",
+    "text": "Self-Growth V1 completed bounded capability acquisition and reuse qualification. Production Registry and fixed routing remain unchanged. Review the evidence and follow the project.",
+    "thumbnail_refs": [],
+    "title": "",
+    "variant_id": "campaign-fbb37de10adab103-bluesky-r1",
+    "visibility": "public"
+  },
+  {
+    "campaign_id": "campaign-fbb37de10adab103",
+    "claim_ids": [
+      "claim-001",
+      "claim-002",
+      "metric-manual_edits",
+      "metric-qualified_capabilities"
+    ],
+    "description": "",
+    "hashtags": [
+      "CGKN",
+      "LocalFirst"
+    ],
+    "links": [],
+    "media_refs": [],
+    "metadata": {
+      "route": "deterministic"
+    },
+    "platform": "mastodon",
+    "revision": 1,
+    "scheduled_at": null,
+    "schema_version": "1.0",
+    "text": "Self-Growth V1 completed bounded capability acquisition and reuse qualification. Production Registry and fixed routing remain unchanged. Review the evidence and follow the project.",
+    "thumbnail_refs": [],
+    "title": "",
+    "variant_id": "campaign-fbb37de10adab103-mastodon-r1",
+    "visibility": "public"
+  },
+  {
+    "campaign_id": "campaign-fbb37de10adab103",
+    "claim_ids": [
+      "claim-001",
+      "claim-002",
+      "metric-manual_edits",
+      "metric-qualified_capabilities"
+    ],
+    "description": "Self-Growth V1 completed bounded capability acquisition and reuse qualification. Production Registry and fixed routing remain unchanged. Review the evidence and follow the project.",
+    "hashtags": [
+      "CGKN",
+      "LocalFirst"
+    ],
+    "links": [],
+    "media_refs": [],
+    "metadata": {
+      "format": "16:9",
+      "route": "deterministic"
+    },
+    "platform": "youtube",
+    "revision": 1,
+    "scheduled_at": null,
+    "schema_version": "1.0",
+    "text": "Self-Growth V1 completed bounded capability acquisition and reuse qualification. Production Registry and fixed routing remain unchanged. Review the evidence and follow the project.",
+    "thumbnail_refs": [],
+    "title": "CGKN: Self-Growth V1 completed bounded capability acquisition and reuse qualification.",
+    "variant_id": "campaign-fbb37de10adab103-youtube-r1",
+    "visibility": "private"
+  }
+]

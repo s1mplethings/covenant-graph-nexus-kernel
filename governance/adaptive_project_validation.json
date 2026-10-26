@@ -1,0 +1,5 @@
+{
+  "kind":"AdaptiveProjectValidation","schema_version":"1.0","status":"NEEDS_REWORK_PROVIDER_TIMEOUT","phase_call_count":6,"phase_call_limit":6,"passed":0,"total":4,
+  "projects":[{"project_id":"line_select_cli","primary":"qwen","backup":"grok","calls":2,"status":"BLOCKED_TRANSPORT","candidate_created":false},{"project_id":"bookmark_store_cli","primary":"grok","backup":"qwen","calls":2,"status":"BLOCKED_TRANSPORT","candidate_created":false},{"project_id":"mapping_overlay_library","primary":"qwen","backup":"grok","calls":2,"status":"BLOCKED_TRANSPORT","candidate_created":false},{"project_id":"existing_repo_json_feature","primary":"qwen","calls":0,"status":"NOT_RUN_BY_PHASE_BUDGET"}],
+  "cli_provider_calls":0,"manual_candidate_edits":0,"whole_replans":0,"silent_fallback":0,"contains_credentials":false
+}

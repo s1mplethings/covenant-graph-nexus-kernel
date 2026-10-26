@@ -1,0 +1,5 @@
+{
+  "kind":"DeterministicCLIStatus","schema_version":"1.0","status":"FUNCTIONAL_PASS","compiler_version":"deterministic-cli-1.0","manifest_version":"greenfield-manifest-3.0","provider_calls":0,
+  "supported_shapes":["single positional","multiple positionals","variadic positional","boolean flag","repeatable option","value option","global option","subcommands","--json","exit 2","--help"],
+  "unsupported_shapes":["interactive TUI","dynamic shell completion","arbitrary Python callback","nested mutually-exclusive parser"],"revision_subject_kind":"DETERMINISTIC_PROJECT_BUNDLE","operations":["INIT_RENDER","CLI_RENDER"],"architecture_import_guard":"PASS","contains_credentials":false
+}

@@ -1,0 +1,11 @@
+{
+  "kind": "CGKNProviderCapabilityProfiles",
+  "schema_version": "1.0",
+  "source_commit": "c7be884a047b37b8e50f5a21b94a95b55b854528",
+  "benchmark_suite_hash": "sha256:8ed356d285a3b02b6e97f1533a761110a3c6f4f56664044190768954360dc197",
+  "selection_policy_version": "provider-selection-v1",
+  "status": "PROVIDER_SELECTION_BLOCKED_ENVIRONMENT",
+  "profiles": [],
+  "reason": "No Provider completed the fixed structured-output preflight, so no capability profile may be inferred.",
+  "contains_credentials": false
+}

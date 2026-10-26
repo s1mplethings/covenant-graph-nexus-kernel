@@ -17,6 +17,8 @@ RELEVANT_ENV = {
     "CGNK_OPENAI_BASE_URL",
     "OPENAI_API_KEY",
     "OPENAI_BASE_URL",
+    "QWEN_API_KEY",
+    "QWEN_BASE_URL",
     "CGKN_LOCAL_NOTES_PATH",
 }
 
@@ -29,15 +31,15 @@ def clean_process_env(**values: str):
 
 def test_user_canonical_key_beats_stale_process_values() -> None:
     registry = {
-        ("CGKN_OPENAI_API_KEY", "User"): "new-user-key-123456",
+        ("CGKN_OPENAI_API_KEY", "User"): "dummy-new-user-key-123456",
         ("CGKN_OPENAI_BASE_URL", "User"): "https://new.example/v1",
-        ("OPENAI_API_KEY", "User"): "old-user-key-123456",
+        ("OPENAI_API_KEY", "User"): "dummy-old-user-key-123456",
         ("OPENAI_BASE_URL", "User"): "https://old.example/v1",
     }
 
     with clean_process_env(
-        CGKN_OPENAI_API_KEY="old-process-key-123456",
-        OPENAI_API_KEY="old-process-key-123456",
+        CGKN_OPENAI_API_KEY="dummy-old-process-key-123456",
+        OPENAI_API_KEY="dummy-old-process-key-123456",
     ), mock.patch.object(
         check_connectivity,
         "_windows_env_value",
@@ -45,7 +47,7 @@ def test_user_canonical_key_beats_stale_process_values() -> None:
     ):
         creds = check_connectivity._resolve_api_credentials()
 
-    assert creds["api_key"] == "new-user-key-123456"
+    assert creds["api_key"] == "dummy-new-user-key-123456"
     assert creds["api_key_source"] == "CGKN_OPENAI_API_KEY(User)"
     assert "CGKN_OPENAI_API_KEY" in creds["api_key_conflict_sources"]
     assert "OPENAI_API_KEY(User)" in creds["api_key_conflict_sources"]
@@ -53,14 +55,14 @@ def test_user_canonical_key_beats_stale_process_values() -> None:
 
 
 def test_explicit_process_override_beats_user_canonical_key() -> None:
-    with clean_process_env(CGKN_OPENAI_API_KEY_OVERRIDE="one-run-override-123456"), mock.patch.object(
+    with clean_process_env(CGKN_OPENAI_API_KEY_OVERRIDE="dummy-one-run-override-123456"), mock.patch.object(
         check_connectivity,
         "_windows_env_value",
-        side_effect=lambda name, target: "user-key-123456" if (name, target) == ("CGKN_OPENAI_API_KEY", "User") else "",
+        side_effect=lambda name, target: "dummy-user-key-123456" if (name, target) == ("CGKN_OPENAI_API_KEY", "User") else "",
     ):
         creds = check_connectivity._resolve_api_credentials()
 
-    assert creds["api_key"] == "one-run-override-123456"
+    assert creds["api_key"] == "dummy-one-run-override-123456"
     assert creds["api_key_source"] == "CGKN_OPENAI_API_KEY_OVERRIDE"
     assert creds["api_key_conflict_sources"] == ["CGKN_OPENAI_API_KEY(User)"]
 
@@ -95,11 +97,11 @@ def test_replace_user_credentials_clears_legacy_values_and_scrubs_notes() -> Non
         "_resolve_api_credentials",
         return_value={"base_url": "https://provider.example/v1"},
     ), clean_process_env():
-        result = provider_credentials.replace_user_credentials("new-key-123456789")
+        result = provider_credentials.replace_user_credentials("dummy-new-key-123456789")
 
     assert applied == [
         {
-            "CGKN_OPENAI_API_KEY": "new-key-123456789",
+            "CGKN_OPENAI_API_KEY": "dummy-new-key-123456789",
             "CGKN_OPENAI_BASE_URL": "https://provider.example/v1",
             "CGNK_OPENAI_API_KEY": None,
             "OPENAI_API_KEY": None,

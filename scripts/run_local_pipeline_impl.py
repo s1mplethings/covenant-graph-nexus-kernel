@@ -6,7 +6,9 @@ import ast
 import builtins
 import codecs
 import csv
+import functools
 import hashlib
+import importlib.metadata
 import json
 import os
 import pathlib
@@ -15,6 +17,7 @@ import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import tomllib
 import zipfile
@@ -33,6 +36,9 @@ import check_connectivity
 import adaptive_project_management_context
 import candidate_materializer
 import candidate_sanitizer
+import capability_execution
+import external_executor_discovery
+import external_executor_integration
 import check_test_environment
 import codex_capability_supervisor
 import compose_local_pipeline
@@ -49,9 +55,13 @@ import long_context_state
 import market_research_agent
 import post_build_repair
 import post_build_finalize
+import provider_api_budget
 import provider_execution_metrics
 import provider_jobs
+import provider_transport
+import project_version_policy
 import repair_acceptance
+import repair_evidence_contract
 import online_input_agent
 import requirement_blueprint
 import requirement_decision_lane
@@ -79,6 +89,9 @@ from post_build_repair import (
 )
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+_PENDING_REPAIR_CONTEXT_LOCK = threading.RLock()
+
+
 def generated_root() -> pathlib.Path:
     override = str(os.environ.get("CGNK_TEST_GENERATED_ROOT", "")).strip()
     return pathlib.Path(override).resolve() if override else (ROOT / "generated").resolve()
@@ -758,6 +771,20 @@ class ProviderModelRoute(dict):
         return dict.__eq__(self, other)
 
 
+INTERNAL_PROVIDER_MODEL_ALIASES = frozenset({"surrogate-stage"})
+
+
+def is_internal_provider_model_alias(value: Any) -> bool:
+    return str(value or "").strip().lower() in INTERNAL_PROVIDER_MODEL_ALIASES
+
+
+def assert_concrete_provider_model(model: str) -> str:
+    selected = str(model or "").strip()
+    if not selected or is_internal_provider_model_alias(selected) or selected.lower().endswith("-stage"):
+        raise RuntimeError(f"PROVIDER_MODEL_UNRESOLVED_INTERNAL_ALIAS:{selected or '<empty>'}")
+    return selected
+
+
 def provider_model_routing_policy_from_args(args: argparse.Namespace | None = None) -> ProviderModelRoutingPolicy:
     policy = ProviderModelRoutingPolicy(
         small_model=str(os.environ.get("CGNK_PROVIDER_SMALL_MODEL") or ProviderModelRoutingPolicy.small_model),
@@ -817,6 +844,8 @@ def choose_provider_model(
     requested = str(requested_model or "").strip() or policy.small_model
     normalized_stage = str(stage or "").strip().lower()
     if not policy.enable_model_routing:
+        if is_internal_provider_model_alias(requested) or requested.lower().endswith("-stage"):
+            raise RuntimeError(f"PROVIDER_MODEL_ALIAS_REQUIRES_ROUTING:{requested}")
         if policy.repair_model and normalized_stage in {
             "semantic_repair",
             "file_repair",
@@ -880,6 +909,15 @@ def choose_provider_model(
     heavy_stages = {"component_generation"}
     if int(prompt_chars or 0) > int(policy.large_payload_chars) or normalized_stage in heavy_stages:
         return ProviderModelRoute({"selected_model": policy.large_model, "model_routing_reason": "large_payload", "requested_model": requested})
+
+    if is_internal_provider_model_alias(requested):
+        return ProviderModelRoute({
+            "selected_model": policy.large_model,
+            "model_routing_reason": "internal_stage_alias_resolved_by_reviewed_policy",
+            "requested_model": requested,
+        })
+    if requested.lower().endswith("-stage"):
+        raise RuntimeError(f"PROVIDER_MODEL_UNKNOWN_INTERNAL_ALIAS:{requested}")
 
     return ProviderModelRoute({"selected_model": requested, "model_routing_reason": "requested_model_default", "requested_model": requested})
 
@@ -959,6 +997,150 @@ class ProviderOutputContractError(RuntimeError):
         super().__init__(message)
         self.raw_output = str(raw_output or "")
         self.parsed_result = dict(parsed_result or {})
+
+
+class ProviderInputContextBudgetError(RuntimeError):
+    """The actual Provider request cannot fit the declared context budget."""
+
+    def __init__(self, message: str, *, receipt: dict[str, int | str]) -> None:
+        super().__init__(message)
+        self.receipt = dict(receipt)
+
+
+def provider_request_context_budget(stage: str) -> dict[str, int]:
+    """Return the fail-closed budget enforced at the shared Provider boundary."""
+    stage_name = str(stage or "provider_text").strip().lower()
+    hard_chars = max(
+        4000,
+        min(env_int("CGKN_PROVIDER_MAX_PROMPT_CHARS_HARD", 56000), 250000),
+    )
+    if stage_name in {"component_generation", "component_repair", "file_repair"}:
+        hard_chars = min(hard_chars, int(provider_component_prompt_policy()["max_prompt_chars_hard"]))
+    elif stage_name in {"semantic_review", "component_semantic_review"}:
+        hard_chars = min(hard_chars, int(semantic_review_budget_config()["hard_prompt_chars"]))
+    return {
+        "max_prompt_chars": hard_chars,
+        "max_context_tokens": max(
+            4096,
+            min(env_int("CGKN_PROVIDER_CONTEXT_WINDOW_TOKENS", 32768), 1_000_000),
+        ),
+        "reserved_transport_tokens": 512,
+    }
+
+
+def enforce_provider_request_context_budget(
+    messages: list[dict[str, str]],
+    *,
+    stage: str,
+    max_tokens: int,
+) -> dict[str, int | str]:
+    """Measure the exact outgoing messages and reject overflow without truncation."""
+    budget = provider_request_context_budget(stage)
+    prompt_chars = sum(
+        len(str(message.get("content", "")))
+        for message in messages
+        if isinstance(message, dict)
+    )
+    prompt_bytes = sum(
+        len(str(message.get("content", "")).encode("utf-8"))
+        for message in messages
+        if isinstance(message, dict)
+    )
+    estimated_input_tokens = (prompt_bytes + 2) // 3
+    requested_output_tokens = max(0, int(max_tokens or 0))
+    estimated_total_tokens = (
+        estimated_input_tokens
+        + requested_output_tokens
+        + int(budget["reserved_transport_tokens"])
+    )
+    reason = ""
+    if prompt_chars > int(budget["max_prompt_chars"]):
+        reason = "prompt_chars_exceeded"
+    elif estimated_total_tokens > int(budget["max_context_tokens"]):
+        reason = "estimated_context_tokens_exceeded"
+    receipt: dict[str, int | str] = {
+        "stage": str(stage or "provider_text"),
+        "prompt_chars": prompt_chars,
+        "prompt_bytes": prompt_bytes,
+        "estimated_input_tokens": estimated_input_tokens,
+        "requested_output_tokens": requested_output_tokens,
+        "estimated_total_tokens": estimated_total_tokens,
+        **budget,
+        "status": "FAIL" if reason else "PASS",
+        "reason": reason,
+    }
+    if reason:
+        raise ProviderInputContextBudgetError(
+            "PROVIDER_INPUT_CONTEXT_BUDGET_EXCEEDED: "
+            f"{reason}; prompt_chars={prompt_chars}; "
+            f"estimated_total_tokens={estimated_total_tokens}; "
+            f"max_prompt_chars={budget['max_prompt_chars']}; "
+            f"max_context_tokens={budget['max_context_tokens']}",
+            receipt=receipt,
+        )
+    return receipt
+
+
+def prepare_provider_request_within_context_budget(
+    system: str,
+    payload: dict[str, Any],
+    *,
+    stage: str,
+    max_tokens: int,
+) -> tuple[list[dict[str, str]], dict[str, Any]]:
+    """Estimate early, compact losslessly, then project only retrieved source bodies."""
+    original = [
+        {"role": "system", "content": str(system)},
+        {"role": "user", "content": json.dumps(payload, ensure_ascii=False, indent=2)},
+    ]
+    try:
+        receipt = enforce_provider_request_context_budget(original, stage=stage, max_tokens=max_tokens)
+        return original, {**receipt, "projection": "none", "attempts": 1}
+    except ProviderInputContextBudgetError as original_error:
+        compact_payload = json.loads(json.dumps(payload, ensure_ascii=False))
+        compact = [
+            {"role": "system", "content": str(system)},
+            {"role": "user", "content": json.dumps(compact_payload, ensure_ascii=False, separators=(",", ":"))},
+        ]
+        try:
+            receipt = enforce_provider_request_context_budget(compact, stage=stage, max_tokens=max_tokens)
+            return compact, {**receipt, "projection": "lossless_json_compaction", "attempts": 2, "original_prompt_chars": original_error.receipt["prompt_chars"]}
+        except ProviderInputContextBudgetError:
+            librarian = compact_payload.get("librarian_context", {})
+            selected = librarian.get("selected_items", []) if isinstance(librarian, dict) else []
+            projected_items: list[dict[str, Any]] = []
+            projected_paths: list[str] = []
+            for item in selected if isinstance(selected, list) else []:
+                if not isinstance(item, dict):
+                    continue
+                projected = {key: value for key, value in item.items() if key != "content"}
+                content = str(item.get("content", "") or "")
+                path = str(item.get("path", "") or "")
+                if content:
+                    projected["implemented_interface"] = generated_file_interface_summary({"path": path, "content": content})
+                    projected["content_projection"] = "implemented_interface_only"
+                    projected_paths.append(path)
+                projected_items.append(projected)
+            if isinstance(librarian, dict):
+                compact_payload["librarian_context"] = {**librarian, "selected_items": projected_items}
+            compact_payload["context_projection_receipt"] = {
+                "kind": "CGKNProviderNecessaryInformationProjection",
+                "projected_paths": projected_paths,
+                "preserved_payload_keys": sorted(str(key) for key in payload),
+                "rule": "Only retrieved source bodies were replaced by implemented interface facts; target source, requirements, constraints, repair evidence, and ownership remain intact.",
+            }
+            projected_messages = [
+                {"role": "system", "content": str(system)},
+                {"role": "user", "content": json.dumps(compact_payload, ensure_ascii=False, separators=(",", ":"))},
+            ]
+            receipt = enforce_provider_request_context_budget(projected_messages, stage=stage, max_tokens=max_tokens)
+            return projected_messages, {
+                **receipt,
+                "projection": "necessary_information_interfaces",
+                "attempts": 3,
+                "original_prompt_chars": original_error.receipt["prompt_chars"],
+                "projected_paths": projected_paths,
+            }
 
 
 class ProviderLeafRepairExhaustedError(RuntimeError):
@@ -1225,6 +1407,22 @@ def normalize_goal_plan_manifest_dependency_contract(
             if path:
                 owners_by_path.setdefault(path, []).append(workstream)
     normalized: list[dict[str, Any]] = []
+    contract_slice = (
+        component.get("contract_slice", {})
+        if isinstance(component, dict)
+        and isinstance(component.get("contract_slice", {}), dict)
+        else {}
+    )
+    goal_spec = (
+        component.get("canonical_goal_spec", {})
+        if isinstance(component, dict)
+        and isinstance(component.get("canonical_goal_spec", {}), dict)
+        else {}
+    )
+    provider_defined_direct_cli = (
+        contract_slice.get("architecture_mode") == "direct_cli_application"
+        and not _uses_legacy_note_cli_contract(goal_spec)
+    )
     for raw_entry in manifest:
         entry = dict(raw_entry)
         path = str(entry.get("path", "")).replace("\\", "/").strip()
@@ -1251,7 +1449,16 @@ def normalize_goal_plan_manifest_dependency_contract(
             and dependency_ids
             and not current_component_dependencies
         )
-        if not preserve_external_dependency_projection:
+        if provider_defined_direct_cli:
+            entry["dependencies"] = list(
+                dict.fromkeys(
+                    str(dependency).replace("\\", "/").strip()
+                    for dependency in entry.get("dependencies", [])
+                    if str(dependency).replace("\\", "/").strip() in available
+                    and str(dependency).replace("\\", "/").strip() != path
+                )
+            )
+        elif not preserve_external_dependency_projection:
             facade_dependencies = [
                 str(dependency).replace("\\", "/").strip()
                 for dependency in entry.get("dependencies", [])
@@ -1693,6 +1900,23 @@ def normalize_backend_stage_dependency_contract(
     return normalized
 
 
+def _uses_legacy_note_cli_contract(goal_spec: dict[str, Any]) -> bool:
+    """Limit the historical Note contract to goals that explicitly selected Note."""
+    entities = {
+        str(item).strip().casefold()
+        for item in goal_spec.get("entities", [])
+        if str(item).strip()
+    }
+    capabilities = {
+        str(item).strip().casefold()
+        for item in goal_spec.get("capabilities", [])
+        if str(item).strip()
+    }
+    return "note" in entities or any(
+        capability.endswith("_note") for capability in capabilities
+    )
+
+
 def normalize_direct_cli_manifest_contract(
     component_id: str,
     manifest: list[dict[str, Any]],
@@ -1750,7 +1974,7 @@ def normalize_direct_cli_manifest_contract(
             named_cli_path: ["build_parser", "main"],
             named_entry_path: ["main"],
         }
-    else:
+    elif _uses_legacy_note_cli_contract(goal_spec):
         model_path = next((path for path in paths if path.endswith("/record_model_repository.py")), "")
         service_path = next((path for path in paths if path.endswith("/record_service_cli.py")), "")
         cli_path = "backend/cli.py" if "backend/cli.py" in paths else ""
@@ -1766,6 +1990,11 @@ def normalize_direct_cli_manifest_contract(
             cli_path: ["build_parser", "run_cli"],
             entry_path: ["main"],
         }
+    else:
+        # Generic direct CLIs are Provider-defined. Preserve their reviewed manifest
+        # dependencies and symbols instead of applying the historical Notes sample.
+        dependency_contract = {}
+        symbol_contract = {}
     for entry in normalized:
         path = str(entry.get("path", "")).replace("\\", "/")
         if path in dependency_contract:
@@ -1934,6 +2163,8 @@ def direct_cli_leaf_contract(
                 "api": [f"import main from {package_path.replace('/', '.')}.cli and execute raise SystemExit(main()) only under the module guard"],
             },
         }
+    if not package_path and not _uses_legacy_note_cli_contract(goal_spec):
+        return {}
     per_file: dict[str, dict[str, Any]] = {
         "backend/record_model_repository.py": {
             "required_symbols": ["Note", "NoteRepository"],
@@ -7696,7 +7927,8 @@ def provider_qwen_feature_unit_review_enabled(base_url: str, model: str, stage: 
         and str(stage or "").strip().lower() == "semantic_feature_unit_review"
         and check_connectivity._is_alibaba_model_studio_base_url(base_url)
         and str(model or "").strip().lower().startswith("qwen3.8")
-        and check_connectivity._selected_provider_api_method(base_url, model) == "responses"
+        and check_connectivity._selected_provider_api_method(base_url, model)
+        in {"responses", "chat_completions"}
     )
 
 
@@ -7707,7 +7939,8 @@ def provider_qwen_bounded_generation_reasoning_none_enabled(base_url: str, model
         and str(stage or "").strip().lower() in {"component_file_manifest", "component_file_generation"}
         and check_connectivity._is_alibaba_model_studio_base_url(base_url)
         and check_connectivity._supports_alibaba_qwen_reasoning_none(model)
-        and check_connectivity._selected_provider_api_method(base_url, model) == "responses"
+        and check_connectivity._selected_provider_api_method(base_url, model)
+        in {"responses", "chat_completions"}
     )
 
 
@@ -7717,6 +7950,12 @@ def provider_reasoning_effort(base_url: str, model: str, stage: str) -> str:
         "none"
         if provider_qwen_bounded_generation_reasoning_none_enabled(base_url, model, stage)
         or provider_qwen_feature_unit_review_enabled(base_url, model, stage)
+        or (
+            str(stage or "").strip().lower() == "requirements_planning"
+            and check_connectivity._is_alibaba_model_studio_base_url(base_url)
+            and check_connectivity._supports_alibaba_qwen_reasoning_none(model)
+            and check_connectivity._selected_provider_api_method(base_url, model) == "chat_completions"
+        )
         else ""
     )
 
@@ -8261,7 +8500,65 @@ def provider_text(
     routing_policy: ProviderModelRoutingPolicy | None = None,
     last_error: Any = None,
     budget_deadline: float | None = None,
+    response_format: dict[str, Any] | None = None,
+    request_metrics_path: pathlib.Path | None = None,
 ) -> str:
+    lesson_metadata: dict[str, Any] = {}
+    # Reject an already-over-budget caller payload before lesson lookup or any
+    # additional evidence events. The projected prompt is checked again below.
+    try:
+        enforce_provider_request_context_budget(messages, stage=stage, max_tokens=max_tokens)
+    except ProviderInputContextBudgetError as exc:
+        append_provider_event_log(
+            phase_log_path,
+            {"event": "provider_context_budget_checked", **exc.receipt},
+        )
+        raise
+    non_production_stage = any(token in stage.lower() for token in ("benchmark", "diagnostic", "probe"))
+    if not non_production_stage:
+        from cgkn.application.learning import lesson_aware_messages
+
+        messages, lesson_metadata = lesson_aware_messages(
+            messages, task_class="compatibility.project.codegen", operation="REPAIR" if last_error else "GENERATION",
+            project_id=str(component or "compatibility-project"), capability_ref=str(target_file or component), provider_id=str(model),
+        )
+        append_provider_event_log(
+            phase_log_path,
+            {"event": "lesson_context_frozen", "stage": stage, "component": component, "target_file": target_file, **lesson_metadata},
+        )
+    try:
+        context_budget_receipt = enforce_provider_request_context_budget(
+            messages,
+            stage=stage,
+            max_tokens=max_tokens,
+        )
+    except ProviderInputContextBudgetError as exc:
+        append_provider_event_log(
+            phase_log_path,
+            {"event": "provider_context_budget_checked", **exc.receipt},
+        )
+        raise
+    append_provider_event_log(
+        phase_log_path,
+        {
+            "event": "provider_context_budget_checked",
+            **context_budget_receipt,
+        },
+    )
+    configured_max_retries = str(os.environ.get("CGKN_PROVIDER_MAX_RETRIES", "")).strip()
+    if configured_max_retries:
+        try:
+            max_attempts = min(max_attempts, max(1, int(configured_max_retries) + 1))
+        except ValueError as exc:
+            raise RuntimeError("invalid external Provider retry limit") from exc
+    configured_token_cap = str(os.environ.get("CGKN_PROVIDER_PROFILE_MAX_TOKENS", "")).strip()
+    profile_token_cap = int(configured_token_cap) if configured_token_cap else 0
+    configured_temperature = str(os.environ.get("CGKN_PROVIDER_TEMPERATURE", "")).strip()
+    try:
+        request_temperature = float(configured_temperature) if configured_temperature else 0.2
+    except ValueError as exc:
+        raise RuntimeError("invalid external Provider temperature") from exc
+    request_temperature = max(0.0, min(request_temperature, 2.0))
     adapter_context = surrogate_provider_adapter.current()
     if adapter_context is not None and adapter_context.mode != "live":
         # This branch is intentionally before local-model routing, credential
@@ -8273,8 +8570,9 @@ def provider_text(
             target_file=target_file,
             requested_role="formal_provider",
         )
+    external_api_only = str(os.environ.get("CGKN_EXTERNAL_API_ONLY", "")).strip().lower() in {"1", "true", "yes"}
     routed_task = local_model_task_for_provider_stage(stage)
-    local_stage_enabled = bool(routed_task and local_model_router.task_enabled(routed_task))
+    local_stage_enabled = bool(not external_api_only and routed_task and local_model_router.task_enabled(routed_task))
     if routed_task:
         append_provider_event_log(
             phase_log_path,
@@ -8290,7 +8588,7 @@ def provider_text(
             },
         )
     initial_timeout = timeout_before_absolute_deadline(timeout, budget_deadline)
-    local_raw = try_local_provider_text(
+    local_raw = None if external_api_only else try_local_provider_text(
         messages,
         stage=stage,
         component=component,
@@ -8305,7 +8603,7 @@ def provider_text(
     token = str(creds.get("api_key", "")).strip()
     if not token:
         missing_config_error = "missing OpenAI-compatible API key"
-        if routed_task and not local_stage_enabled:
+        if routed_task and not local_stage_enabled and not external_api_only:
             append_provider_event_log(
                 phase_log_path,
                 {
@@ -8380,10 +8678,30 @@ def provider_text(
     }
     sent_max_tokens = int(max_tokens)
     sent_reasoning_effort = ""
+    retry_attempts: list[dict[str, Any]] = []
+    last_transport_timing: dict[str, Any] = {}
+    last_request_body_sha256 = ""
     for attempt in range(max(1, max_attempts)):
         attempt_timeout = timeout_before_absolute_deadline(timeout, budget_deadline)
-        route = choose_provider_model(stage, legacy_prompt_chars, model, routing_policy, last_error=last_error_text)
-        selected_model = str(route.get("selected_model") or model)
+        if external_api_only and not is_internal_provider_model_alias(model):
+            route = {
+                "requested_model": str(model or "").strip(),
+                "selected_model": str(model or "").strip(),
+                "model_routing_reason": "external_api_profile_explicit_model",
+            }
+        else:
+            # Planning checkpoints intentionally use an internal stage alias.
+            # Resolve that alias through the reviewed policy even when the
+            # external-only profile disables local-model fallback.  Concrete
+            # generation/repair model ids remain pinned above.
+            route = choose_provider_model(
+                stage,
+                legacy_prompt_chars,
+                model,
+                routing_policy,
+                last_error=last_error_text,
+            )
+        selected_model = assert_concrete_provider_model(str(route.get("selected_model") or model))
         attempt_messages = messages
         request_profile: dict[str, Any] = {
             "profile": "full",
@@ -8397,6 +8715,8 @@ def provider_text(
             if str(request_profile.get("profile", "")).startswith("qwen_compact_leaf")
             else int(max_tokens)
         )
+        if profile_token_cap > 0:
+            effective_max_tokens = min(effective_max_tokens, profile_token_cap)
         reasoning_effort = provider_reasoning_effort(root, selected_model, stage)
         sent_messages = attempt_messages
         sent_request_profile = request_profile
@@ -8415,14 +8735,17 @@ def provider_text(
                     "reason": route.get("model_routing_reason", ""),
                 },
             )
+        request_values: dict[str, Any] = {
+            "model": selected_model,
+            "messages": attempt_messages,
+            "temperature": request_temperature,
+            "max_tokens": effective_max_tokens,
+        }
+        if response_format:
+            request_values["response_format"] = response_format
         payload = check_connectivity._build_openai_compatible_payload(
             root,
-            {
-                "model": selected_model,
-                "messages": attempt_messages,
-                "temperature": 0.2,
-                "max_tokens": effective_max_tokens,
-            },
+            request_values,
             model=selected_model,
             reasoning_effort=reasoning_effort,
         )
@@ -8430,6 +8753,13 @@ def provider_text(
         request_body_bytes = len(
             json.dumps(payload, ensure_ascii=False).encode("utf-8")
         )
+        request_body_sha256 = hashlib.sha256(
+            json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        ).hexdigest()
+        response_format_type = str((response_format or {}).get("type", ""))
+        schema_value = (response_format or {}).get("json_schema", {})
+        schema_body = json.dumps(schema_value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) if schema_value else ""
+        last_request_body_sha256 = request_body_sha256
         append_provider_event_log(
             phase_log_path,
             {
@@ -8451,20 +8781,93 @@ def provider_text(
                 "requested_max_tokens": int(max_tokens),
                 "requested_output_cap": effective_max_tokens,
                 "reasoning_effort": reasoning_effort or "provider_default",
+                "enable_thinking": payload.get("enable_thinking"),
+                "response_format_present": bool(response_format),
+                "response_format_type": response_format_type,
+                "schema_bytes": len(schema_body.encode("utf-8")),
+                "schema_sha256": hashlib.sha256(schema_body.encode("utf-8")).hexdigest() if schema_body else "",
                 "payload_mode": payload_mode,
                 "metric_call_kind": metric_call_kind or payload_mode,
                 "timeout_seconds": int(attempt_timeout),
             },
         )
-        with provider_execution_metrics.provider_api_call(
-            phase_log_path,
-            stage=stage,
-            payload_mode=metric_call_kind or payload_mode,
-            transport_retry=attempt > 0,
-        ):
-            doc, error = check_connectivity._post_json(
-                endpoint, payload, token, attempt_timeout
+        cached_doc = provider_api_budget.load_cached_response(request_body_sha256)
+        if cached_doc is None and provider_api_budget.configured_cache_mode() == "replay_only":
+            raise RuntimeError("PROVIDER_CACHE_MISS: replay_only mode forbids a live transport")
+        if cached_doc is not None:
+            doc = cached_doc
+            error = ""
+            last_transport_timing = {"call_mode": "CACHE_REPLAY"}
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "provider_response_cache_replay",
+                    "stage": stage,
+                    "component": component,
+                    "target_file": target_file,
+                    "selected_model": selected_model,
+                    "request_body_sha256": request_body_sha256,
+                    "call_mode": "CACHE_REPLAY",
+                },
             )
+        else:
+            try:
+                budget_reservation = provider_api_budget.reserve_call(
+                    case_id=str(os.environ.get("CGKN_BENCHMARK_CASE_ID", "")),
+                    purpose=provider_api_budget.call_purpose(
+                        stage, metric_call_kind or payload_mode
+                    ),
+                    model=selected_model,
+                    request_identity=request_body_sha256,
+                    estimated_input_tokens=(int(request_profile.get("effective_prompt_chars", legacy_prompt_chars)) + 3) // 4,
+                    requested_output_tokens=effective_max_tokens,
+                    retry_count=attempt,
+                )
+            except provider_api_budget.ProviderBudgetExhausted as exc:
+                append_provider_event_log(
+                    phase_log_path,
+                    {
+                        "event": "provider_budget_blocked",
+                        "stage": stage,
+                        "component": component,
+                        "target_file": target_file,
+                        "selected_model": selected_model,
+                        "reason": str(exc),
+                    },
+                )
+                raise
+            doc = None
+            error = ""
+            try:
+                provider_api_budget.mark_request_started(budget_reservation)
+                with provider_execution_metrics.provider_api_call(
+                    phase_log_path,
+                    stage=stage,
+                    payload_mode=metric_call_kind or payload_mode,
+                    transport_retry=attempt > 0,
+                ):
+                    doc, error = check_connectivity._post_json(
+                        endpoint, payload, token, attempt_timeout
+                    )
+                response_http_status = (
+                    200 if doc is not None else provider_api_budget.http_status_from_error(error)
+                )
+                if doc is not None or response_http_status is not None:
+                    provider_api_budget.mark_response_received(
+                        budget_reservation,
+                        response=doc,
+                        http_status=response_http_status,
+                    )
+            finally:
+                provider_api_budget.finalize_call(
+                    budget_reservation,
+                    usage=(doc or {}).get("usage", {}) if isinstance(doc, dict) else {},
+                    http_status=200 if doc is not None else provider_api_budget.http_status_from_error(error),
+                    status="PASS" if doc is not None else check_connectivity._provider_error_type(error),
+                )
+            last_transport_timing = check_connectivity.last_transport_timing()
+            if doc is not None:
+                provider_api_budget.store_cached_response(request_body_sha256, doc)
         append_provider_event_log(
             phase_log_path,
             {
@@ -8488,15 +8891,49 @@ def provider_text(
                 ),
                 "payload_mode": payload_mode,
                 "metric_call_kind": metric_call_kind or payload_mode,
-                "transport_timing": check_connectivity.last_transport_timing(),
+                "request_body_sha256": request_body_sha256,
+                "transport_timing": last_transport_timing,
             },
         )
+        if request_metrics_path is not None:
+            metrics_doc = load_json(request_metrics_path) if request_metrics_path.is_file() else {}
+            existing_attempts = list(metrics_doc.get("attempts", []))
+            attempt_metric = {
+                "attempt": len(existing_attempts) + 1,
+                "request_body_sha256": request_body_sha256,
+                "request_body_bytes": request_body_bytes,
+                "response_headers_received": bool(last_transport_timing.get("response_headers_received", False)),
+                "response_headers_elapsed_ms": last_transport_timing.get("response_headers_elapsed_ms"),
+                "response_body_received": bool(last_transport_timing.get("response_body_received", False)),
+                "response_body_bytes": int(last_transport_timing.get("response_body_bytes", 0) or 0),
+                "total_elapsed_ms": int(last_transport_timing.get("total_elapsed_ms", 0) or 0),
+                "error_type": check_connectivity._provider_error_type(error) if error else "",
+                "status": "PASS" if doc is not None else "FAIL",
+                "max_tokens": effective_max_tokens,
+                "reasoning_effort": reasoning_effort or "provider_default",
+                "enable_thinking": payload.get("enable_thinking"),
+                "response_format_present": bool(response_format),
+                "response_format_type": response_format_type,
+                "schema_bytes": len(schema_body.encode("utf-8")),
+                "schema_sha256": hashlib.sha256(schema_body.encode("utf-8")).hexdigest() if schema_body else "",
+            }
+            metrics_doc["attempts"] = [*existing_attempts, attempt_metric]
+            if attempt_metric["response_headers_elapsed_ms"] is not None:
+                metrics_doc["first_header_ms"] = attempt_metric["response_headers_elapsed_ms"]
+            metrics_doc["status"] = attempt_metric["status"]
+            write_json(request_metrics_path, metrics_doc)
         if doc is not None:
             final_status = "ok"
             break
         last_error_text = error
         final_status = "timeout" if check_connectivity._error_is_retryable(error) else "failed"
-        if not check_connectivity._error_is_retryable(error):
+        retry_attempts.append({
+            "attempt": attempt + 1,
+            "retryable": check_connectivity._error_is_retryable(error),
+            "error_type": check_connectivity._provider_error_type(error),
+            "response_headers_received": bool(last_transport_timing.get("response_headers_received", False)),
+        })
+        if not provider_transport.should_retry_provider_attempt(retry_attempts):
             break
         time.sleep(min(20.0, 2.0 * (attempt + 1)))
     if doc is None:
@@ -8590,11 +9027,19 @@ def provider_text(
                 "reasoning_effort": sent_reasoning_effort or "provider_default",
             },
         )
-        raise RuntimeError(f"provider_api_request_failed: {last_error_text}")
+        raise RuntimeError(
+            f"provider_api_request_failed: {last_error_text} "
+            f"[response_headers_received={str(bool(last_transport_timing.get('response_headers_received', False))).lower()}, "
+            f"failure_phase={last_transport_timing.get('failure_phase', 'unknown')}, "
+            f"request_body_sha256={last_request_body_sha256}]"
+        )
     text = check_connectivity._extract_text(doc)
     finish_reason = provider_response_finish_reason(doc)
     if finish_reason in {"length", "max_tokens", "max_output_tokens", "incomplete"}:
-        error = f"provider output truncated before contract validation: finish_reason={finish_reason}"
+        error = (
+            "PROVIDER_OUTPUT_BUDGET_EXHAUSTED: OUTPUT_BUDGET_TOO_SMALL; "
+            f"provider output truncated before contract validation: finish_reason={finish_reason}"
+        )
         record_model_call_from_phase_log(
             phase_log_path,
             stage=stage,
@@ -8804,6 +9249,7 @@ Hard rules:
 - If complexity_project_contract is present, do not use forbidden_shortcuts such as single_file_demo, static_preview_only, readme_only_delivery, fake_pass, separate GUI/CLI logic, or artifact-name-only schemas.
 - Do not turn the requested app into a meta-tool that only collects requirements, emits blueprints, or documents how it could be built.
 - Keep file paths relative. Never use absolute paths. Never write outside the project root.
+- Every new project has one VERSION file. A medium or large long-lived project also has governance/current_architecture.json; create governance/deprecation_registry.json only when real read/import compatibility remains. Structural upgrades declare supersedes, migrate all consumers, remove the old producer and entrypoint, and retain an old reader only as COMPAT_ONLY with remove_in. Never keep old/new/v2/final_v2 parallel production paths.
 
 JSON shape:
 {
@@ -9349,6 +9795,59 @@ def extract_named_file(files: list[dict[str, str]], name: str) -> str:
     return ""
 
 
+def semantic_pipeline_projection(component_pipeline: dict[str, Any]) -> dict[str, Any]:
+    """Project only cross-component contracts needed by the semantic reducer.
+
+    The complete pipeline remains durable run evidence.  Repeated GoalSpec,
+    planning, research, and implementation-depth bodies are intentionally not
+    copied into the Provider request.
+    """
+
+    def bounded_strings(value: Any, *, limit: int = 24, chars: int = 500) -> list[str]:
+        if not isinstance(value, list):
+            return []
+        return [text_summary(str(item), chars) for item in value if str(item).strip()][:limit]
+
+    components: list[dict[str, Any]] = []
+    constraints: list[str] = []
+    decisions: list[str] = []
+    entrypoints: list[str] = []
+    for item in component_pipeline.get("components", []):
+        if not isinstance(item, dict):
+            continue
+        goal_spec = item.get("canonical_goal_spec", {}) if isinstance(item.get("canonical_goal_spec"), dict) else {}
+        constraints.extend(bounded_strings(goal_spec.get("constraints", []), limit=32))
+        decisions.extend(bounded_strings(goal_spec.get("acceptance_behaviors", []), limit=24))
+        entrypoints.extend(bounded_strings(goal_spec.get("entrypoints", []), limit=16))
+        components.append(
+            {
+                "id": str(item.get("id", "")),
+                "dependencies": bounded_strings(item.get("dependencies", []), limit=16, chars=160),
+                "required_paths": bounded_strings(
+                    item.get("required_paths", item.get("expected_outputs", [])),
+                    limit=32,
+                    chars=240,
+                ),
+                "responsibilities": bounded_strings(item.get("responsibilities", []), limit=12),
+                "acceptance": bounded_strings(
+                    item.get("acceptance", item.get("acceptance_checks", [])),
+                    limit=12,
+                ),
+            }
+        )
+    merge_policy = component_pipeline.get("merge_policy", {}) if isinstance(component_pipeline.get("merge_policy"), dict) else {}
+    return {
+        "components": components,
+        "merge_policy": {
+            "required_final_files": bounded_strings(merge_policy.get("required_final_files", []), limit=64, chars=240),
+            "entrypoints": bounded_strings(merge_policy.get("entrypoints", []), limit=16, chars=240),
+        },
+        "goal_constraints": list(dict.fromkeys(constraints))[:48],
+        "acceptance_decisions": list(dict.fromkeys(decisions))[:32],
+        "entrypoints": list(dict.fromkeys(entrypoints))[:24],
+    }
+
+
 def semantic_cross_review_payload(
     *,
     goal: str,
@@ -9373,7 +9872,7 @@ def semantic_cross_review_payload(
         "runtime_contract_summary": {
             "package_json_excerpt": package_json[:3000],
             "entry_candidates": [path for path in manifest if pathlib.PurePosixPath(path).name in {"index.html", "app.py", "main.py", "server.py"} or path.startswith(("server/", "scripts/start"))],
-            "component_pipeline": component_pipeline,
+            "component_pipeline": semantic_pipeline_projection(component_pipeline),
         },
         "frontend_api_usage_summary": frontend_summary,
         "backend_api_endpoints_summary": backend_summary,
@@ -9382,6 +9881,128 @@ def semantic_cross_review_payload(
         "media_final_bundle_claims_summary": scripts_summary,
         "semantic_review_budget_applied": True,
         "required_output_shape": {"component": "cross_component", "verdict": "pass|fail", "blockers": [], "integration_failures": [], "repair_targets": []},
+    }
+
+
+def bounded_semantic_cross_review_payload(
+    *,
+    goal: str,
+    files: list[dict[str, str]],
+    component_reviews: list[dict[str, Any]],
+    component_pipeline: dict[str, Any],
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Return a deterministic bounded aggregate and an explicit loss audit."""
+    budget = semantic_review_budget_config()
+    payload = semantic_cross_review_payload(
+        goal=goal,
+        files=files,
+        component_reviews=component_reviews,
+        component_pipeline=component_pipeline,
+    )
+    retained_pipeline_keys = {"components", "merge_policy"}
+    retained_component_keys = {
+        "id",
+        "dependencies",
+        "required_paths",
+        "expected_outputs",
+        "responsibilities",
+        "acceptance",
+        "acceptance_checks",
+        "canonical_goal_spec",
+    }
+    projection_omissions = {
+        "pipeline_keys": sorted(str(key) for key in component_pipeline if key not in retained_pipeline_keys),
+        "component_keys": sorted(
+            {
+                str(key)
+                for item in component_pipeline.get("components", [])
+                if isinstance(item, dict)
+                for key in item
+                if key not in retained_component_keys
+            }
+        ),
+    }
+    payload["semantic_review_projection_omissions"] = projection_omissions
+    original_chars = len(
+        json.dumps(
+            {
+                "raw_user_goal": goal,
+                "component_reviews": component_reviews,
+                "file_manifest": [str(item.get("path", "")) for item in files],
+                "component_pipeline": component_pipeline,
+            },
+            ensure_ascii=False,
+        )
+    )
+    evidence_gaps: list[str] = []
+    hard = int(budget["hard_prompt_chars"])
+
+    def prompt_chars() -> int:
+        return semantic_review_prompt_chars(payload)
+
+    if prompt_chars() > hard:
+        payload["component_review_summaries"] = [
+            {
+                "component": item.get("component"),
+                "verdict": item.get("verdict"),
+                "summary": text_summary(item.get("summary", ""), 500),
+                "blockers": [
+                    {
+                        "kind": blocker.get("kind", "generic"),
+                        "severity": blocker.get("severity", "hard"),
+                        "files": list(blocker.get("files", []))[:12] if isinstance(blocker.get("files", []), list) else [],
+                        "message": text_summary(blocker.get("message", ""), 500),
+                    }
+                    for blocker in item.get("blockers", [])[:12]
+                    if isinstance(blocker, dict)
+                ],
+            }
+            for item in component_reviews
+            if isinstance(item, dict)
+        ]
+        evidence_gaps.append("component review narrative was compressed; structured verdicts and blockers were retained")
+    if prompt_chars() > hard:
+        full_manifest = list(payload.get("file_manifest", []))
+        entry_names = {"index.html", "app.py", "main.py", "server.py", "package.json", "pyproject.toml", "requirements.txt", "README.md"}
+        selected = [
+            path
+            for path in full_manifest
+            if pathlib.PurePosixPath(str(path)).name in entry_names
+            or str(path).startswith(("tests/", "src/", "backend/", "api/", "scripts/"))
+        ][:240]
+        payload["file_manifest"] = selected
+        payload["file_manifest_summary"] = {
+            "total": len(full_manifest),
+            "included": len(selected),
+            "sha256": hashlib.sha256(json.dumps(full_manifest, ensure_ascii=False, separators=(",", ":")).encode("utf-8")).hexdigest(),
+        }
+        evidence_gaps.append("full file manifest is available by evidence reference; the Provider received a high-risk subset")
+    if prompt_chars() > hard:
+        raw_goal = str(payload.get("raw_user_goal", ""))
+        payload["raw_user_goal"] = raw_goal[:6000]
+        payload["raw_user_goal_sha256"] = hashlib.sha256(raw_goal.encode("utf-8")).hexdigest()
+        payload["raw_user_goal_truncated"] = len(raw_goal) > 6000
+        if len(raw_goal) > 6000:
+            evidence_gaps.append("raw goal exceeded the aggregate budget; exact text is available by evidence reference")
+    payload["semantic_review_evidence_gaps"] = evidence_gaps
+    final_chars = prompt_chars()
+    if final_chars > hard:
+        raise RuntimeError(
+            "SEMANTIC_AGGREGATION_BUDGET_EXCEEDED_AFTER_COMPACTION: "
+            f"prompt_chars={final_chars}; hard_prompt_chars={hard}"
+        )
+    return payload, {
+        "kind": "CGKNSemanticAggregateCompactionReceipt",
+        "schema_version": 1,
+        "original_chars": original_chars,
+        "final_prompt_chars": final_chars,
+        "hard_prompt_chars": hard,
+        "evidence_gaps": evidence_gaps,
+        "projection_omissions": projection_omissions,
+        "raw_goal_sha256": hashlib.sha256(str(goal).encode("utf-8")).hexdigest(),
+        "component_pipeline_sha256": hashlib.sha256(
+            json.dumps(component_pipeline, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest(),
     }
 
 
@@ -9399,7 +10020,50 @@ def provider_semantic_cross_component_review(
     system = """Review cross-component CGNK runtime contracts. Return strict JSON only.
 Check module/script consistency, frontend/backend API alignment, JSON persistence, test coverage, docs claims, media/final bundle honesty, and entrypoint presence.
 A hard blocker requires direct contradictory or broken evidence in the supplied manifest/excerpts. Summary truncation, an unselected file, inability to confirm, or lack of review visibility is a warning and must not become a hard blocker. Deterministic runtime tests later decide whether unobserved behavior actually works."""
-    payload = semantic_cross_review_payload(goal=goal, files=files, component_reviews=component_reviews, component_pipeline=component_pipeline)
+    payload, compaction = bounded_semantic_cross_review_payload(
+        goal=goal,
+        files=files,
+        component_reviews=component_reviews,
+        component_pipeline=component_pipeline,
+    )
+    if phase_log_path:
+        run_root = pathlib.Path(phase_log_path).resolve().parent
+        source_path = run_root / "artifacts" / "semantic_review" / "cross_component_source.json"
+        source_doc = {
+            "kind": "CGKNSemanticAggregateSourceEvidence",
+            "schema_version": 1,
+            "raw_user_goal": goal,
+            "component_reviews": component_reviews,
+            "component_pipeline": component_pipeline,
+            "files": [
+                {
+                    "path": str(item.get("path", "")).replace("\\", "/"),
+                    "chars": len(str(item.get("content", ""))),
+                    "sha256": hashlib.sha256(str(item.get("content", "")).encode("utf-8")).hexdigest(),
+                }
+                for item in files
+            ],
+        }
+        write_json(source_path, source_doc)
+        compaction["source_evidence_ref"] = str(source_path)
+        compaction["source_evidence_sha256"] = hashlib.sha256(source_path.read_bytes()).hexdigest()
+        receipt_path = run_root / "artifacts" / "semantic_review" / "cross_component_compaction.json"
+        write_json(receipt_path, compaction)
+        payload["source_evidence"] = {
+            "ref": str(source_path),
+            "sha256": compaction["source_evidence_sha256"],
+            "compaction_receipt_ref": str(receipt_path),
+        }
+    append_provider_event_log(
+        phase_log_path,
+        {
+            "event": "semantic_cross_component_input_bounded",
+            "original_chars": compaction["original_chars"],
+            "final_prompt_chars": compaction["final_prompt_chars"],
+            "hard_prompt_chars": compaction["hard_prompt_chars"],
+            "evidence_gap_count": len(compaction["evidence_gaps"]),
+        },
+    )
     raw = provider_text(
         [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False, indent=2)}],
         model,
@@ -9424,6 +10088,7 @@ A hard blocker requires direct contradictory or broken evidence in the supplied 
         for blocker in normalize_review_blockers(doc.get("integration_failures", []), default_component="")
     )
     doc["blockers"] = blockers
+    doc["aggregate_compaction"] = compaction
     return doc
 
 
@@ -9572,23 +10237,71 @@ def provider_review_project(
         files,
         internal_context=internal_context,
     )
-    original_prompt_chars = semantic_review_prompt_chars(payload)
+    review_messages = semantic_review_messages(payload)
+    original_prompt_chars = sum(
+        len(str(message.get("content", "")))
+        for message in review_messages
+        if isinstance(message, dict)
+    )
     is_feature_unit_review = (
         str(payload.get("kind", "")) == "CGKNFeatureUnitSemanticReviewRequest"
     )
-    if original_prompt_chars > int(semantic_review_budget_config()["hard_prompt_chars"]):
-        return split_semantic_review_pipeline(
-            goal=goal,
-            component_pipeline=generation.get("component_pipeline", {}) if isinstance(generation.get("component_pipeline"), dict) else {},
-            files=files,
-            model=model,
-            timeout=timeout,
-            phase_log_path=phase_log_path,
-            routing_policy=routing_policy,
-            original_prompt_chars=original_prompt_chars,
+    review_output_tokens = 1800 if is_feature_unit_review else 12000
+    try:
+        enforce_provider_request_context_budget(
+            review_messages,
+            stage=(
+                "semantic_feature_unit_review"
+                if is_feature_unit_review
+                else "semantic_review"
+            ),
+            max_tokens=review_output_tokens,
         )
+    except ProviderInputContextBudgetError:
+        try:
+            return split_semantic_review_pipeline(
+                goal=goal,
+                component_pipeline=generation.get("component_pipeline", {}) if isinstance(generation.get("component_pipeline"), dict) else {},
+                files=files,
+                model=model,
+                timeout=timeout,
+                phase_log_path=phase_log_path,
+                routing_policy=routing_policy,
+                original_prompt_chars=original_prompt_chars,
+            )
+        except surrogate_provider_adapter.SurrogateResponseRequired:
+            raise
+        except Exception as exc:
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "semantic_review_split_failed",
+                    "error_type": type(exc).__name__,
+                    "error": text_summary(str(exc), 1000),
+                    "retry_allowed": False,
+                },
+            )
+            return {
+                "status": "fail",
+                "issues": [f"bounded semantic aggregation failed: {type(exc).__name__}: {exc}"],
+                "structured_blockers": [
+                    {
+                        "kind": "semantic_aggregation_failed",
+                        "severity": "hard",
+                        "component": "cross_component",
+                        "files": [],
+                        "message": f"bounded semantic aggregation failed: {type(exc).__name__}: {exc}",
+                        "repair_hint": "Inspect the preserved aggregate source and compaction receipt; do not retry an unchanged oversized request.",
+                    }
+                ],
+                "affected_components": [],
+                "affected_files": [],
+                "repair_priority": [],
+                "review_summary": "Bounded semantic aggregation failed before transport.",
+                "semantic_review_budget_applied": True,
+            }
     raw = provider_text(
-        semantic_review_messages(payload),
+        review_messages,
         model,
         timeout,
         max_attempts=1,
@@ -9597,7 +10310,7 @@ def provider_review_project(
             if is_feature_unit_review
             else "semantic_review"
         ),
-        max_tokens=1800 if is_feature_unit_review else 12000,
+        max_tokens=review_output_tokens,
         payload_mode=(
             "review_feature_unit"
             if is_feature_unit_review
@@ -10593,32 +11306,9 @@ def enrich_component_pipeline_with_goal_plan(
         interface_canonical.encode("utf-8")
     ).hexdigest()
     components = [row for row in pipeline.get("components", []) if isinstance(row, dict)]
-    if not visual_surface_required and not assignments["frontend"]:
-        components = [
-            component
-            for component in components
-            if str(component.get("id", "")) != "frontend"
-        ]
-        retained_ids = {
-            str(component.get("id", "")).strip()
-            for component in components
-            if str(component.get("id", "")).strip()
-        }
-        for component in components:
-            component["depends_on"] = [
-                dependency
-                for dependency in component.get("depends_on", [])
-                if str(dependency) in retained_ids
-            ]
-        pipeline["components"] = components
-        pipeline["execution_order"] = [
-            str(component.get("id", "")).strip() for component in components
-        ]
-        pipeline["scope_pruning"] = {
-            "frontend_removed": True,
-            "reason": "canonical GoalSpec declares no visual interaction mode",
-            "interaction_modes": interaction_modes,
-        }
+    prune_frontend_after_enrichment = bool(
+        not visual_surface_required and not assignments["frontend"]
+    )
     for component in components:
         component_id = str(component.get("id", ""))
         assigned = assignments.get(component_id, [])
@@ -10684,6 +11374,50 @@ def enrich_component_pipeline_with_goal_plan(
             list(project_plan.get("goal_acceptance_tests", [])) if component_id == "tests" else []
         )
         component["executable_interface_graph"] = executable_interface_graph
+    if prune_frontend_after_enrichment:
+        removed_components = [
+            component
+            for component in components
+            if str(component.get("id", "")) == "frontend"
+        ]
+        removed_dependency_edges = {
+            str(component.get("id", "")): [
+                str(dependency)
+                for dependency in component.get("depends_on", [])
+                if str(dependency) == "frontend"
+            ]
+            for component in components
+            if str(component.get("id", "")) != "frontend"
+            and "frontend" in {str(item) for item in component.get("depends_on", [])}
+        }
+        components = [
+            component
+            for component in components
+            if str(component.get("id", "")) != "frontend"
+        ]
+        retained_ids = {
+            str(component.get("id", "")).strip()
+            for component in components
+            if str(component.get("id", "")).strip()
+        }
+        for component in components:
+            component["depends_on"] = [
+                dependency
+                for dependency in component.get("depends_on", [])
+                if str(dependency) in retained_ids
+            ]
+        pipeline["components"] = components
+        pipeline["execution_order"] = [
+            str(component.get("id", "")).strip() for component in components
+        ]
+        pipeline["scope_pruning"] = {
+            "frontend_removed": True,
+            "reason": "canonical GoalSpec declares no visual interaction mode",
+            "interaction_modes": interaction_modes,
+            "removed_components": removed_components,
+            "removed_dependency_edges": removed_dependency_edges,
+            "reversible_until_design_context": True,
+        }
     pipeline["canonical_goal_spec"] = goal_spec
     pipeline["canonical_project_plan"] = project_plan
     pipeline["business_workstreams"] = [
@@ -10721,6 +11455,73 @@ def apply_design_context_to_component_pipeline(
     pipeline["design_context"] = design_context
     if not bool(design_context.get("visual_surface_required")):
         return pipeline
+    components = [
+        component
+        for component in pipeline.get("components", [])
+        if isinstance(component, dict)
+    ]
+    if not any(str(component.get("id", "")) == "frontend" for component in components):
+        scope_pruning = (
+            pipeline.get("scope_pruning", {})
+            if isinstance(pipeline.get("scope_pruning"), dict)
+            else {}
+        )
+        restored = next(
+            (
+                dict(component)
+                for component in scope_pruning.get("removed_components", [])
+                if isinstance(component, dict)
+                and str(component.get("id", "")) == "frontend"
+            ),
+            None,
+        )
+        if restored is None:
+            raise RuntimeError(
+                "visual_surface_required_but_frontend_component_unavailable"
+            )
+        insertion_index = next(
+            (
+                index
+                for index, component in enumerate(components)
+                if str(component.get("id", "")) in {"tests", "docs"}
+            ),
+            len(components),
+        )
+        components.insert(insertion_index, restored)
+        removed_edges = scope_pruning.get("removed_dependency_edges", {})
+        if isinstance(removed_edges, dict):
+            for component in components:
+                component_id = str(component.get("id", ""))
+                restored_edges = [
+                    str(item)
+                    for item in removed_edges.get(component_id, [])
+                    if str(item).strip()
+                ]
+                if restored_edges:
+                    component["depends_on"] = list(
+                        dict.fromkeys(
+                            [
+                                *[
+                                    str(item)
+                                    for item in component.get("depends_on", [])
+                                    if str(item).strip()
+                                ],
+                                *restored_edges,
+                            ]
+                        )
+                    )
+        pipeline["components"] = components
+        pipeline["execution_order"] = [
+            str(component.get("id", "")).strip()
+            for component in components
+            if str(component.get("id", "")).strip()
+        ]
+        pipeline["scope_pruning"] = {
+            **scope_pruning,
+            "frontend_removed": False,
+            "restored_by_design_context": True,
+            "reason": "bounded design context requires a visual interaction surface",
+        }
     required_docs = [
         str(item)
         for item in design_context.get("design_contract", {}).get("required_project_docs", [])
@@ -11751,6 +12552,203 @@ def project_build_coherence_issues(
     return issues
 
 
+@functools.lru_cache(maxsize=1)
+def python_import_distribution_map() -> dict[str, tuple[str, ...]]:
+    return {
+        str(module): tuple(str(item) for item in distributions)
+        for module, distributions in importlib.metadata.packages_distributions().items()
+    }
+
+
+def python_dependency_contract_issues(
+    project_files: list[dict[str, str]],
+) -> list[dict[str, Any]]:
+    """Reject third-party Python imports absent from the delivered dependency contract."""
+    by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): str(
+            item.get("content", "")
+        )
+        for item in project_files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    python_sources = {
+        path: source
+        for path, source in by_path.items()
+        if pathlib.PurePosixPath(path).suffix.lower() == ".py"
+    }
+    if not python_sources:
+        return []
+    local_modules = {
+        pathlib.PurePosixPath(path).parts[0]
+        for path in python_sources
+        if pathlib.PurePosixPath(path).parts
+    }
+    local_modules.update(
+        pathlib.PurePosixPath(path).stem
+        for path in python_sources
+        if len(pathlib.PurePosixPath(path).parts) == 1
+    )
+    imports: dict[str, list[str]] = {}
+    for path, source in python_sources.items():
+        try:
+            tree = ast.parse(source, filename=path)
+        except (SyntaxError, ValueError, TypeError):
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                roots = [alias.name.split(".", 1)[0] for alias in node.names]
+            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                roots = [node.module.split(".", 1)[0]]
+            else:
+                roots = []
+            for root in roots:
+                if root and root not in sys.stdlib_module_names and root not in local_modules:
+                    imports.setdefault(root, []).append(path)
+    if not imports:
+        return []
+
+    def normalized_distribution(value: str) -> str:
+        return re.sub(r"[-_.]+", "-", str(value).strip().lower())
+
+    declared: set[str] = set()
+    requirements = by_path.get("requirements.txt", "")
+    for line in requirements.splitlines():
+        item = line.strip()
+        if not item or item.startswith("#") or item.startswith(("-r ", "--requirement ")):
+            continue
+        match = re.match(r"([A-Za-z0-9][A-Za-z0-9_.-]*)", item)
+        if match:
+            declared.add(normalized_distribution(match.group(1)))
+    pyproject = by_path.get("pyproject.toml", "")
+    if pyproject:
+        try:
+            project = tomllib.loads(pyproject).get("project", {})
+        except (tomllib.TOMLDecodeError, TypeError):
+            project = {}
+        for dependency in project.get("dependencies", []) if isinstance(project, dict) else []:
+            match = re.match(r"([A-Za-z0-9][A-Za-z0-9_.-]*)", str(dependency).strip())
+            if match:
+                declared.add(normalized_distribution(match.group(1)))
+    package_map = python_import_distribution_map()
+    missing: dict[str, list[str]] = {}
+    for imported, paths in imports.items():
+        distributions = {
+            normalized_distribution(item)
+            for item in package_map.get(imported, [])
+            if str(item).strip()
+        }
+        distributions.add(normalized_distribution(imported))
+        if declared.isdisjoint(distributions):
+            missing[imported] = sorted(set(paths))
+    if not missing:
+        return []
+    manifest_path = "requirements.txt" if "requirements.txt" in by_path else "pyproject.toml"
+    return [
+        {
+            "kind": "external_dependency_not_declared",
+            "component_id": "foundation",
+            "path": manifest_path,
+            "related_paths": paths,
+            "message": (
+                f"{manifest_path}: Python import {imported!r} is not covered by a declared runtime dependency"
+            ),
+            "user_action": "Install dependencies and start the generated project in a clean environment",
+            "expected_behavior": "Every third-party import is covered by the delivered dependency manifest.",
+            "observed_behavior": (
+                f"{imported!r} is imported by {', '.join(paths)} but no matching distribution is declared."
+            ),
+            "repair_route": "provider",
+            "authority": "deterministic_build_coherence",
+        }
+        for imported, paths in sorted(missing.items())
+    ]
+
+
+def documented_entrypoint_contract_issues(
+    project_files: list[dict[str, str]],
+) -> list[dict[str, Any]]:
+    """Fail fast when a copyable README start command cannot exist as delivered."""
+    by_path = {
+        str(item.get("path", "")).replace("\\", "/").strip(): str(item.get("content", ""))
+        for item in project_files
+        if isinstance(item, dict) and str(item.get("path", "")).strip()
+    }
+    readme = by_path.get("README.md", "")
+    issues: list[dict[str, Any]] = []
+    commands = [
+        line.strip().lstrip("$>").strip()
+        for block in re.findall(r"```(?:bash|sh|shell|powershell|cmd)?\s*\n(.*?)```", readme, flags=re.I | re.S)
+        for line in block.splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    ]
+    commands.extend(
+        token.strip()
+        for token in re.findall(r"`([^`\r\n]+)`", readme)
+        if token.strip()
+    )
+    start = next(
+        (
+            command
+            for command in commands
+            if re.match(r"^(?:python(?:3)?|py|uvicorn|flask|npm|pnpm|yarn)\b", command, flags=re.I)
+            and not re.search(r"\b(?:pip|venv|pytest|unittest|install|test|build)\b", command, flags=re.I)
+        ),
+        "",
+    )
+    if not start:
+        return [{
+            "kind": "documented_entrypoint_missing",
+            "component_id": "docs",
+            "path": "README.md",
+            "related_paths": [],
+            "message": "README.md: no copyable documented start command was found",
+            "user_action": "Follow the README start instructions from the delivered project root",
+            "expected_behavior": "README includes one copyable command that starts the delivered project.",
+            "observed_behavior": "No supported start command was found in a fenced README command block.",
+            "repair_route": "provider",
+            "authority": "deterministic_build_coherence",
+        }]
+    match = re.match(r"^(?:python(?:3)?|py)\s+(?:-[A-Za-z]+\s+)*([^\s]+\.py)\b", start, flags=re.I)
+    if match:
+        target = match.group(1).strip("'\"").replace("\\", "/")
+        if target not in by_path:
+            issues.append({
+                "kind": "documented_entrypoint_target_missing",
+                "component_id": "docs",
+                "path": "README.md",
+                "related_paths": [target],
+                "message": f"README.md: documented Python entry point {target!r} is not delivered",
+                "user_action": "Run the documented start command from the delivered project root",
+                "expected_behavior": "The documented Python target exists in the delivered project.",
+                "observed_behavior": f"The command references {target!r}, which is absent.",
+                "repair_route": "provider",
+                "authority": "deterministic_build_coherence",
+            })
+    package_command = re.match(r"^(?:npm|pnpm|yarn)\s+(?:run\s+)?([A-Za-z0-9:_-]+)", start, flags=re.I)
+    if package_command:
+        try:
+            package_doc = json.loads(by_path.get("package.json", "{}"))
+        except (json.JSONDecodeError, TypeError):
+            package_doc = {}
+        script = package_command.group(1).lower()
+        if script in {"start", "dev", "serve"} and script not in {
+            str(key).lower() for key in package_doc.get("scripts", {})
+        }:
+            issues.append({
+                "kind": "documented_package_script_missing",
+                "component_id": "foundation",
+                "path": "package.json",
+                "related_paths": ["README.md"],
+                "message": f"package.json: documented script {script!r} is missing",
+                "user_action": "Run the documented package start command",
+                "expected_behavior": "The documented package script exists.",
+                "observed_behavior": f"README names {script!r}, but package.json does not declare it.",
+                "repair_route": "provider",
+                "authority": "deterministic_build_coherence",
+            })
+    return issues
+
+
 def candidate_build_coherence_issues(project_dir: pathlib.Path) -> list[dict[str, Any]]:
     files: list[dict[str, str]] = []
     for path in sorted(project_dir.rglob("*")):
@@ -11758,7 +12756,7 @@ def candidate_build_coherence_issues(project_dir: pathlib.Path) -> list[dict[str
             part in {"__pycache__", ".pytest_cache", ".git"} for part in path.parts
         ):
             continue
-        if path.suffix.lower() not in {".py", ".js", ".mjs", ".html", ".htm"}:
+        if path.suffix.lower() not in {".py", ".js", ".mjs", ".html", ".htm", ".txt", ".toml", ".md", ".json"}:
             continue
         files.append(
             {
@@ -11766,7 +12764,11 @@ def candidate_build_coherence_issues(project_dir: pathlib.Path) -> list[dict[str
                 "content": path.read_text(encoding="utf-8", errors="replace"),
             }
         )
-    return project_build_coherence_issues(files)
+    return [
+        *project_build_coherence_issues(files),
+        *python_dependency_contract_issues(files),
+        *documented_entrypoint_contract_issues(files),
+    ]
 
 
 def provider_repair_source_syntax_safe(path: str, content: str) -> bool:
@@ -19431,10 +20433,21 @@ Do not emit screenshots, videos, zip files, or binary data; generate source/docs
             "Return parseable TOML. Dependency table entries use TOML assignment such as flask = '==2.1.2', never requirements.txt syntax such as flask == 2.1.2.",
         ]
         system += "\nFor foundation pyproject.toml, return parseable TOML; dependency table entries use name = 'version constraint', never name == version requirements.txt syntax; omit console scripts whose target module is not a foundation-owned file; and never combine a static project version with dynamic=['version'].\n"
-    messages = [
-        {"role": "system", "content": system},
-        {"role": "user", "content": json.dumps(payload, ensure_ascii=False, indent=2)},
-    ]
+    messages, context_preflight = prepare_provider_request_within_context_budget(
+        system,
+        payload,
+        stage="component_file_generation",
+        max_tokens=requested_output_cap,
+    )
+    append_provider_event_log(
+        phase_log_path,
+        {
+            "event": "provider_context_preflight",
+            "component": component_id,
+            "target_file": target_file,
+            **context_preflight,
+        },
+    )
     raw = provider_text(
         messages,
         model,
@@ -21035,6 +22048,7 @@ def _provider_generate_job_with_retry(
     routing_policy: ProviderModelRoutingPolicy | None,
     pending_context: dict[str, Any],
     last_transport_error: Any,
+    run_dir: pathlib.Path | None = None,
     checkpoint_dir: pathlib.Path | None = None,
     spec_hash: str = "",
     repair_base_candidate: dict[str, Any] | None = None,
@@ -21306,16 +22320,25 @@ def _provider_generate_job_with_retry(
                     raise
                 raw_outputs.append(str(emission_result.get("raw_output", "")))
                 origin = str(emission_result.get("author_origin", "primary"))
+                emitted_paths: list[str] = []
                 for item in emission_result.get("file_items", []):
                     path = str(item.get("path", "")).replace("\\", "/").strip()
                     completed_job_files[path] = item
                     file_origins[path] = origin
+                    emitted_paths.append(path)
                     write_split_file_checkpoint(
                         checkpoint_dir,
                         component_id=component_id,
                         spec_hash=spec_hash,
                         file_item=item,
                         manifest_entry=manifest_by_owned_path[path],
+                    )
+                if run_dir is not None and emitted_paths:
+                    persist_completed_semantic_repair_files(
+                        run_dir,
+                        pending_context,
+                        component_id,
+                        emitted_paths,
                     )
                 provider_execution_metrics.record_authored_files(
                     phase_log_path,
@@ -21437,16 +22460,25 @@ def _provider_generate_job_with_retry(
                     completion_origin = str(
                         completion_result.get("author_origin", "primary")
                     )
+                    completion_paths: list[str] = []
                     for item in completion_result.get("file_items", []):
                         path = str(item.get("path", "")).replace("\\", "/").strip()
                         completed_job_files[path] = item
                         file_origins[path] = completion_origin
+                        completion_paths.append(path)
                         write_split_file_checkpoint(
                             checkpoint_dir,
                             component_id=component_id,
                             spec_hash=spec_hash,
                             file_item=item,
                             manifest_entry=manifest_by_owned_path[path],
+                        )
+                    if run_dir is not None and completion_paths:
+                        persist_completed_semantic_repair_files(
+                            run_dir,
+                            pending_context,
+                            component_id,
+                            completion_paths,
                         )
                     provider_execution_metrics.record_authored_files(
                         phase_log_path,
@@ -22124,6 +23156,7 @@ def provider_generate_project_component_split(
                     routing_policy=routing_policy,
                     pending_context=pending_context,
                     last_transport_error=last_transport_error,
+                    run_dir=run_dir,
                     checkpoint_dir=checkpoint_dir,
                     spec_hash=spec_hash,
                     repair_base_candidate=repair_base_by_leaf.get(
@@ -22153,10 +23186,6 @@ def provider_generate_project_component_split(
             ),
             None,
         )
-        if waiting is not None:
-            # Preserve the scheduler-created requests and return control without
-            # reclassifying a resumable handshake as a Provider failure.
-            raise waiting
         for leaf in pending_leaves:
             leaf_id = str(leaf.get("leaf_id", ""))
             owned_paths = provider_leaf_owned_paths(leaf)
@@ -22278,6 +23307,13 @@ def provider_generate_project_component_split(
                 },
             )
             if run_dir is not None:
+                persist_completed_semantic_repair_files(
+                    run_dir,
+                    pending_context,
+                    component_id,
+                    owned_paths,
+                )
+            if run_dir is not None:
                 for item_path in owned_paths:
                     if archive_completed_pending_component_leaf(
                         run_dir,
@@ -22299,6 +23335,11 @@ def provider_generate_project_component_split(
                 f"Provider ownership unit {component_id}:{','.join(owned_paths)} returned.",
                 owned_paths,
             )
+        if waiting is not None:
+            # A surrogate batch can contain both submitted responses and newly
+            # scheduled requests. Commit every validated response before yielding
+            # so resume never replays successful ProviderJob leaves.
+            raise waiting
         interface_registry = build_project_interface_registry([*(prior_files or []), *completed_files])
         write_leaf_orchestration_artifacts(
             checkpoint_dir,
@@ -22315,10 +23356,33 @@ def provider_generate_project_component_split(
             query_packs=librarian_query_packs,
         )
         if failures:
-            failed_leaf = next(
+            failed_candidates = [
                 leaf
                 for leaf in pending_leaves
                 if str(leaf.get("leaf_id", "")) in failures
+            ]
+            # A concurrent batch can expose both a retryable transport outage
+            # and secondary output/contract failures.  Persist the identity of
+            # the resumable transport failure first; choosing merely by graph
+            # order makes the pending target depend on completion timing.
+            failed_leaf = next(
+                (
+                    leaf
+                    for leaf in failed_candidates
+                    if (
+                        "provider_api_request_failed"
+                        in str(failures[str(leaf.get("leaf_id", ""))]).lower()
+                        or "retryable=true"
+                        in str(failures[str(leaf.get("leaf_id", ""))]).lower()
+                        or provider_component_error_is_retryable(
+                            provider_exception_error_type(
+                                failures[str(leaf.get("leaf_id", ""))]
+                            ),
+                            str(failures[str(leaf.get("leaf_id", ""))]),
+                        )
+                    )
+                ),
+                failed_candidates[0],
             )
             failed_paths = provider_leaf_owned_paths(failed_leaf)
             target_file = failed_paths[0]
@@ -23422,6 +24486,12 @@ def provider_generate_project_by_components(
                 prior_manifest.extend(item["path"] for item in files if item["path"] not in prior_manifest)
                 component_results.append(result)
                 completed_components.append(component_id)
+                if component_id in forced and run_dir is not None:
+                    persist_completed_semantic_repair_component(
+                        run_dir,
+                        plan_for_repair,
+                        component_id,
+                    )
                 write_provider_component_checkpoint_summary(checkpoint_dir, checkpoint_summary())
                 mark_generation_progress(
                     deadline,
@@ -23523,7 +24593,9 @@ def provider_generate_project_by_components(
                 write_provider_component_checkpoint_summary(checkpoint_dir, checkpoint_summary())
                 if os.environ.get("CGKN_PROVIDER_RETRY_FAST") != "1":
                     time.sleep(sleep_for)
-    files = merge_component_files(component_results)
+    files = project_version_policy.apply_minimum_version_governance(
+        merge_component_files(component_results)
+    )
     paths = {item["path"] for item in files if isinstance(item, dict)}
     if "TEST_PLAN.md" not in paths:
         test_paths = sorted(path for path in paths if path.startswith("tests/") and path.endswith(".py"))
@@ -25292,9 +26364,75 @@ def run_candidate_post_build_finalize(
 ) -> dict[str, Any]:
     started = time.time()
     visual_surface_required = candidate_visual_surface_required(component_pipeline)
+    checkpoint_path = run_dir / "artifacts" / "post_build_finalize_checkpoint.json"
+    result_path = run_dir / "artifacts" / "candidate_post_build_finalize.json"
+    input_rows: list[dict[str, Any]] = []
+    finalize_owned_outputs = {
+        "TEST_REPORT.md",
+        "DELIVERY_NOTES.md",
+        "known_limits.json",
+        "repair_plan.json",
+        "candidate_review_summary.json",
+        "screenshot_blocked.json",
+        "video_blocked.json",
+    }
+    for relative in sorted(set(str(item).replace("\\", "/") for item in generated_files)):
+        if relative in finalize_owned_outputs:
+            continue
+        path = project_dir / pathlib.PurePosixPath(relative)
+        if path.is_file():
+            input_rows.append(
+                {
+                    "path": relative,
+                    "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                }
+            )
+    input_hash = hashlib.sha256(
+        json.dumps(input_rows, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    existing_checkpoint = load_json(checkpoint_path) if checkpoint_path.is_file() else {}
+    if (
+        isinstance(existing_checkpoint, dict)
+        and existing_checkpoint.get("status") == "completed"
+        and existing_checkpoint.get("input_hash") == input_hash
+        and result_path.is_file()
+    ):
+        result = load_json(result_path)
+        if isinstance(result, dict):
+            append_phase_log(
+                phase_log_path,
+                "post_build_finalize",
+                "reused",
+                "Completed candidate post-build finalize was reused for the same generated input.",
+                [str(result_path)],
+                started_at=started,
+            )
+            return result
+    recovery = bool(existing_checkpoint) and existing_checkpoint.get("status") != "completed"
+    write_json(
+        checkpoint_path,
+        {
+            "kind": "CGKNPostBuildFinalizeCheckpoint",
+            "schema_version": 1,
+            "status": "running",
+            "input_hash": input_hash,
+            "last_completed_step": "",
+            "recovered_from_interruption": recovery,
+            "started_at": now(),
+        },
+    )
     append_phase_log(phase_log_path, "post_build_finalize", "started", "Candidate post-build finalize started.", [str(project_dir)], started_at=started)
-    test_environment = check_test_environment.check_environment(project_dir)
+    append_phase_log(phase_log_path, "post_build_environment", "started", "Capability-scoped test environment inspection started.", [], started_at=started)
+    test_environment = check_test_environment.check_environment(
+        project_dir,
+        require_node=(project_dir / "package.json").is_file(),
+        require_browser=visual_surface_required,
+        require_ffmpeg=visual_surface_required,
+    )
     write_json(run_dir / "artifacts" / "test_environment_report.json", test_environment)
+    existing_checkpoint.update({"status": "running", "input_hash": input_hash, "last_completed_step": "environment", "recovered_from_interruption": recovery})
+    write_json(checkpoint_path, existing_checkpoint)
+    append_phase_log(phase_log_path, "post_build_environment", "completed", "Capability-scoped test environment inspection completed.", [str(run_dir / "artifacts" / "test_environment_report.json")], started_at=started)
     test_result: dict[str, Any] = {"status": "skipped", "reason": "no recognized test command"}
     package_json = project_dir / "package.json"
     if package_json.exists():
@@ -25306,13 +26444,21 @@ def run_candidate_post_build_finalize(
         if isinstance(scripts, dict) and scripts.get("test"):
             test_result = run_allowed_command(["npm", "test"], project_dir, timeout=min(timeout, 180))
     elif (project_dir / "tests").exists():
+        append_phase_log(phase_log_path, "post_build_tests", "started", "Candidate tests started with a bounded timeout.", [], started_at=started)
         test_result = run_allowed_command([sys.executable, "-m", "pytest", "-q"], project_dir, timeout=min(timeout, 180))
+    existing_checkpoint.update({"status": "running", "input_hash": input_hash, "last_completed_step": "tests", "recovered_from_interruption": recovery})
+    write_json(checkpoint_path, existing_checkpoint)
+    append_phase_log(phase_log_path, "post_build_tests", "completed", f"Candidate tests completed with status {test_result.get('status', 'unknown')}.", [], started_at=started)
 
+    append_phase_log(phase_log_path, "post_build_fixture", "started", "Generated-project fixture validation started.", [], started_at=started)
     fixture_result = run_generated_project_fixture(
         project_dir,
         run_dir,
         timeout=min(timeout, 180),
     )
+    existing_checkpoint.update({"status": "running", "input_hash": input_hash, "last_completed_step": "fixture", "recovered_from_interruption": recovery})
+    write_json(checkpoint_path, existing_checkpoint)
+    append_phase_log(phase_log_path, "post_build_fixture", "completed", f"Generated-project fixture validation completed with status {fixture_result.get('status', 'unknown')}.", [str(fixture_result.get("receipt_path", ""))], started_at=started)
     fixture_passed = str(fixture_result.get("status", "")).lower() in {
         "pass",
         "skipped",
@@ -25511,7 +26657,15 @@ def run_candidate_post_build_finalize(
             }
         )
     status = "pass" if str(test_result.get("status", "")).lower() == "pass" and fixture_passed and not candidate_contract_issues and not static_root_issue_evidence and visual_evidence_ready and ui_passed else "needs_rework"
-    candidate_review_ready = str(test_result.get("status", "")).lower() == "pass" and fixture_passed and not candidate_contract_issues and not static_root_issue_evidence and ui_passed and (not visual_surface_required or bool(screenshots) or bool(screenshot_blocked))
+    screenshot_environment_blocked = False
+    if screenshot_blocked:
+        try:
+            screenshot_environment_blocked = str(
+                load_json(pathlib.Path(screenshot_blocked)).get("failure_type", "")
+            ) == "browser_unavailable"
+        except (OSError, ValueError, TypeError):
+            screenshot_environment_blocked = False
+    candidate_review_ready = str(test_result.get("status", "")).lower() == "pass" and fixture_passed and not candidate_contract_issues and not static_root_issue_evidence and (ui_passed or screenshot_environment_blocked) and (not visual_surface_required or bool(screenshots) or screenshot_environment_blocked)
     candidate_review_summary = ""
     if candidate_review_ready:
         candidate_review_summary = write_candidate_review_summary(
@@ -25560,7 +26714,21 @@ def run_candidate_post_build_finalize(
         "test_environment": test_environment,
         "artifact_integrity": artifact_integrity,
     }
-    write_json(run_dir / "artifacts" / "candidate_post_build_finalize.json", result)
+    write_json(result_path, result)
+    write_json(
+        checkpoint_path,
+        {
+            "kind": "CGKNPostBuildFinalizeCheckpoint",
+            "schema_version": 1,
+            "status": "completed",
+            "input_hash": input_hash,
+            "last_completed_step": "result_written",
+            "recovered_from_interruption": recovery,
+            "result_ref": str(result_path),
+            "result_sha256": hashlib.sha256(result_path.read_bytes()).hexdigest(),
+            "finished_at": now(),
+        },
+    )
     append_phase_log(phase_log_path, "post_build_finalize", status, "Candidate post-build finalize completed.", [str(test_report), str(diagnostic_package)], started_at=started)
     return result
 
@@ -25941,16 +27109,16 @@ def component_ownership_table() -> dict[str, dict[str, list[str]]]:
             "forbidden": ["src/app.js", "src/main.js", "src/App.*", "app.py", "main.py", "server.py", "routes/**", "tests/**", "README.md", "TEST_PLAN.md", "TEST_REPORT.md"],
         },
         "frontend": {
-            "allowed": ["src/**", "public/**", "index.html", "frontend/**", "app/**"],
-            "owns": ["src/app.js", "src/main.js", "src/App.*"],
+            "allowed": ["src/*.js", "src/*.css", "src/*.html", "public/**", "index.html", "frontend/**", "app/**/*.js", "app/**/*.css", "app/**/*.html"],
+            "owns": ["src/*.js", "src/*.css", "src/*.html", "public/**", "index.html", "frontend/**", "app/**/*.js", "app/**/*.css", "app/**/*.html"],
         },
         "data": {
             "allowed": ["schema.sql", "migrations/**", "data/**"],
             "owns": ["schema.sql", "migrations/**", "data/**"],
         },
         "backend": {
-            "allowed": ["app.py", "main.py", "server.py", "backend/**", "api/**"],
-            "owns": ["backend/**", "api/**", "app.py", "main.py", "server.py"],
+            "allowed": ["app.py", "main.py", "server.py", "app/main.py", "src/*.py", "backend/**", "api/**"],
+            "owns": ["backend/**", "api/**", "app.py", "main.py", "server.py", "app/main.py", "src/*.py"],
         },
         "tests": {
             "allowed": ["tests/**", "test_*.py", "*.spec.*", "*.test.*"],
@@ -25958,7 +27126,7 @@ def component_ownership_table() -> dict[str, dict[str, list[str]]]:
         },
         "docs": {
             "allowed": ["README.md", "TEST_PLAN.md", "TEST_REPORT.md", "DELIVERY_NOTES.md", "docs/**"],
-            "owns": ["README.md", "TEST_PLAN.md", "TEST_REPORT.md", "DELIVERY_NOTES.md"],
+            "owns": ["README.md", "TEST_PLAN.md", "TEST_REPORT.md", "DELIVERY_NOTES.md", "docs/**"],
         },
         "media": {
             "allowed": ["scripts/capture*", "screenshots/**", "media/**", "demo/**", "assets/demo/**", "assets/screenshots/**"],
@@ -26300,7 +27468,8 @@ def repair_target_files_for_component(
         target_file = str(repair_plan.get("target_file", "")).replace("\\", "/").strip()
         if target_file and "*" not in target_file and not target_file.endswith("/"):
             targets.add(target_file)
-    return sorted(targets)
+    completed = completed_semantic_repair_files(repair_plan).get(component_id, set())
+    return sorted(path for path in targets if path not in completed)
 
 
 def repair_plan_file_level_components(repair_plan: dict[str, Any]) -> set[str]:
@@ -26805,6 +27974,13 @@ def build_pending_repair_context(
         "attempt": attempt,
         "semantic_repair_attempts_used": semantic_repair_attempts_used,
         "transport_attempt": transport_attempt,
+        "completed_repair_components": sorted(
+            completed_semantic_repair_components(repair_plan)
+        ),
+        "completed_repair_files": {
+            component_id: sorted(paths)
+            for component_id, paths in completed_semantic_repair_files(repair_plan).items()
+        },
         "created_at": now(),
     }
 
@@ -27066,6 +28242,97 @@ def repair_plan_provider_components(repair_plan: dict[str, Any]) -> list[str]:
     return sorted(components)
 
 
+def completed_semantic_repair_components(repair_plan: dict[str, Any]) -> set[str]:
+    values = repair_plan.get("completed_repair_components", [])
+    if not isinstance(values, list):
+        return set()
+    return {str(item).strip() for item in values if str(item).strip()}
+
+
+def completed_semantic_repair_files(
+    repair_plan: dict[str, Any],
+) -> dict[str, set[str]]:
+    values = repair_plan.get("completed_repair_files", {})
+    if not isinstance(values, dict):
+        return {}
+    completed: dict[str, set[str]] = {}
+    for raw_component, raw_paths in values.items():
+        component_id = str(raw_component).strip()
+        if not component_id or not isinstance(raw_paths, list):
+            continue
+        paths = {
+            str(path).replace("\\", "/").strip()
+            for path in raw_paths
+            if str(path).replace("\\", "/").strip()
+        }
+        if paths:
+            completed[component_id] = paths
+    return completed
+
+
+def persist_completed_semantic_repair_files(
+    run_dir: pathlib.Path,
+    repair_plan: dict[str, Any],
+    component_id: str,
+    paths: list[str],
+) -> None:
+    if (
+        not repair_plan
+        or str(repair_plan.get("stage", "")) != "provider_semantic_repair"
+        or not repair_plan.get("provider_actions")
+    ):
+        return
+    component_key = str(component_id).strip()
+    normalized_paths = {
+        str(path).replace("\\", "/").strip()
+        for path in paths
+        if str(path).replace("\\", "/").strip()
+    }
+    if not component_key or not normalized_paths:
+        return
+    pending_path = run_dir / "artifacts" / "pending_repair_plan.json"
+    with _PENDING_REPAIR_CONTEXT_LOCK:
+        completed = completed_semantic_repair_files(repair_plan)
+        if pending_path.exists():
+            try:
+                on_disk = load_json(pending_path)
+            except Exception:
+                on_disk = {}
+            if isinstance(on_disk, dict):
+                for key, values in completed_semantic_repair_files(on_disk).items():
+                    completed.setdefault(key, set()).update(values)
+        completed.setdefault(component_key, set()).update(normalized_paths)
+        serialized = {
+            key: sorted(value) for key, value in sorted(completed.items())
+        }
+        repair_plan["completed_repair_files"] = serialized
+        persisted = dict(repair_plan)
+        persisted["status"] = "pending"
+        persisted["stage"] = "provider_semantic_repair"
+        persisted["updated_at"] = now()
+        write_pending_repair_context(pending_path, persisted)
+
+
+def persist_completed_semantic_repair_component(
+    run_dir: pathlib.Path,
+    repair_plan: dict[str, Any],
+    component_id: str,
+) -> None:
+    if not repair_plan or not repair_plan.get("provider_actions"):
+        return
+    completed = completed_semantic_repair_components(repair_plan)
+    completed.add(str(component_id).strip())
+    repair_plan["completed_repair_components"] = sorted(completed)
+    persisted = dict(repair_plan)
+    persisted["status"] = "pending"
+    persisted["stage"] = "provider_semantic_repair"
+    persisted["updated_at"] = now()
+    write_pending_repair_context(
+        run_dir / "artifacts" / "pending_repair_plan.json",
+        persisted,
+    )
+
+
 def refresh_pending_semantic_repair_plan(
     pending_plan: dict[str, Any],
     component_files: dict[str, list[dict[str, str]]],
@@ -27096,6 +28363,53 @@ def refresh_pending_semantic_repair_plan(
         component_files,
         component_pipeline=component_pipeline,
     )
+    completed_components = completed_semantic_repair_components(pending_plan)
+    completed_files = completed_semantic_repair_files(pending_plan)
+    if completed_components or completed_files:
+        refreshed["provider_actions"] = [
+            action
+            for action in refreshed.get("provider_actions", [])
+            if isinstance(action, dict)
+            and str(action.get("component", "")).strip() not in completed_components
+            and str(action.get("path", "")).replace("\\", "/").strip()
+            not in completed_files.get(str(action.get("component", "")).strip(), set())
+        ]
+        remaining_components = {
+            str(action.get("component", "")).strip()
+            for action in refreshed["provider_actions"]
+            if str(action.get("component", "")).strip()
+        }
+        for component_id in sorted(set(completed_files) - completed_components):
+            if component_id not in remaining_components:
+                refreshed["provider_actions"].append(
+                    {
+                        "component": component_id,
+                        "path": "",
+                        "instruction": (
+                            "Resume this in-progress component repair from validated "
+                            "leaf checkpoints and finish its remaining dependency closure."
+                        ),
+                    }
+                )
+        refreshed["affected_components"] = sorted(
+            {
+                str(action.get("component", "")).strip()
+                for action in refreshed["provider_actions"]
+                if str(action.get("component", "")).strip()
+            }
+        )
+        refreshed["affected_files"] = sorted(
+            {
+                str(action.get("path", "")).replace("\\", "/").strip()
+                for action in refreshed["provider_actions"]
+                if str(action.get("path", "")).strip()
+            }
+        )
+        refreshed["completed_repair_components"] = sorted(completed_components)
+        refreshed["completed_repair_files"] = {
+            component_id: sorted(paths)
+            for component_id, paths in sorted(completed_files.items())
+        }
     for key in (
         "status",
         "stage",
@@ -27276,6 +28590,10 @@ def prepare_semantic_repair_retry_plan(
     # checkpoints are recognized before any new manifest is requested.
     prepared["raw_user_goal"] = user_goal
     prepared["component_pipeline"] = component_pipeline
+    # Completion belongs only to one repair cycle. A newly compiled semantic
+    # blocker set must never inherit completion from the previous cycle.
+    prepared.pop("completed_repair_components", None)
+    prepared.pop("completed_repair_files", None)
     return prepared
 
 
@@ -27399,6 +28717,203 @@ def prepare_supervision_provider_repair(
         "affected_components": repair_plan_provider_components(prepared),
         "affected_files": list(prepared.get("affected_files", [])),
         "provider_authoring_required": True,
+        "formal_evidence_authorized": False,
+    }
+
+
+TRUE_PROJECT_REPAIR_BLOCKERS = {
+    "missing_user_information",
+    "policy_violation",
+    "mandatory_external_dependency_unavailable",
+    "repair_budget_exhausted",
+    "immutable_contract_conflict",
+    "unsafe_repair",
+    "provider_unavailable",
+}
+
+
+def _plain_tree_sha256(root: pathlib.Path) -> str:
+    digest = hashlib.sha256()
+    for path in sorted(
+        (item for item in root.rglob("*") if item.is_file()),
+        key=lambda item: item.relative_to(root).as_posix(),
+    ):
+        relative = path.relative_to(root).as_posix()
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(path.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
+def _contains_forbidden_repair_evidence_key(value: Any) -> bool:
+    forbidden = {
+        "hidden_acceptance",
+        "hidden_expected_implementation",
+        "expected_implementation",
+        "benchmark_answer",
+    }
+    if isinstance(value, dict):
+        if forbidden.intersection(str(key).strip().lower() for key in value):
+            return True
+        return any(_contains_forbidden_repair_evidence_key(item) for item in value.values())
+    if isinstance(value, list):
+        return any(_contains_forbidden_repair_evidence_key(item) for item in value)
+    return False
+
+
+def prepare_observed_project_failure_provider_repair(
+    run_dir: pathlib.Path | str,
+    evidence: dict[str, Any],
+    *,
+    user_goal: str,
+    candidate_dir: pathlib.Path | str,
+) -> dict[str, Any]:
+    """Route sealed black-box failure facts into the existing ProviderJob repair DAG."""
+    try:
+        repair_round = int(evidence.get("repair_round", 0) or 0)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError("observed_project_failure_repair_round_invalid") from exc
+    if repair_round not in {1, 2}:
+        raise RuntimeError("observed_project_failure_repair_round_invalid")
+    evidence_errors = repair_evidence_contract.validate(evidence)
+    if evidence_errors:
+        raise RuntimeError(
+            "observed_project_failure_evidence_invalid: " + "; ".join(evidence_errors)
+        )
+    blocking_reason = str(evidence.get("blocking_reason", "")).strip().lower()
+    repair_eligible = bool(evidence.get("repair_eligible", True))
+    if not repair_eligible or blocking_reason in TRUE_PROJECT_REPAIR_BLOCKERS:
+        return {
+            "kind": "CGKNObservedProjectFailureRepairPreparationReceipt",
+            "status": "blocked",
+            "blocking_reason": blocking_reason or "repair_declared_ineligible",
+            "repair_round": repair_round,
+            "provider_authoring_required": False,
+            "formal_evidence_authorized": False,
+        }
+    evaluated_root = pathlib.Path(
+        str(evidence.get("evaluated_candidate_dir", ""))
+    ).resolve()
+    expected_tree_hash = str(evidence.get("candidate_sha256", "")).strip().lower()
+    if not evaluated_root.is_dir() or evaluated_root.is_symlink() or not expected_tree_hash:
+        raise RuntimeError("observed_project_failure_candidate_identity_missing")
+    if _plain_tree_sha256(evaluated_root) != expected_tree_hash:
+        raise RuntimeError("observed_project_failure_candidate_tree_drift")
+    production_candidate = pathlib.Path(candidate_dir).resolve()
+    if (
+        not production_candidate.is_dir()
+        or candidate_materializer.candidate_source_hash(evaluated_root)
+        != candidate_materializer.candidate_source_hash(production_candidate)
+    ):
+        raise RuntimeError("observed_project_failure_production_candidate_mismatch")
+    failures = [
+        dict(item)
+        for item in evidence.get("failures", [])
+        if isinstance(item, dict)
+        and str(item.get("status", "FAIL")).upper() not in {"PASS", "NOT_APPLICABLE"}
+    ]
+    if not failures:
+        raise RuntimeError("observed_project_failure_has_no_failed_observation")
+    targets = list(
+        dict.fromkeys(
+            str(target).replace("\\", "/").strip()
+            for item in failures
+            for target in [
+                *item.get("affected_files", []),
+                *item.get("affected_work_nodes", []),
+            ]
+            if str(target).strip()
+        )
+    )
+    diagnosis = [
+        " | ".join(
+            part
+            for part in (
+                str(item.get("criterion_id", "")).strip(),
+                str(item.get("failure_category", "")).strip(),
+                str(item.get("observed_behavior", item.get("details", ""))).strip(),
+                str(item.get("failure_stack", "")).strip(),
+            )
+            if part
+        )[:4000]
+        for item in failures
+    ]
+    observable = {
+        "summary": str(evidence.get("summary", "Observed independent project failure")),
+        "diagnosis": diagnosis,
+        "guidance": [
+            "Repair only the owned files necessary to remove the observable failure; preserve unaffected PASS evidence and existing interfaces."
+        ],
+        "acceptance_checks": [
+            str(item.get("criterion_id", ""))
+            for item in failures
+            if str(item.get("criterion_id", "")).strip()
+        ],
+        "repair_targets": targets,
+        "scope": str(evidence.get("scope", "project")),
+        "checkpoint_id": str(evidence.get("evidence_id", "")),
+        "result_sha256": hashlib.sha256(
+            json.dumps(evidence, ensure_ascii=False, sort_keys=True).encode("utf-8")
+        ).hexdigest(),
+    }
+    preparation = prepare_supervision_provider_repair(
+        run_dir,
+        observable,
+        user_goal=user_goal,
+    )
+    pending_path = pathlib.Path(run_dir).resolve() / "artifacts" / "pending_repair_plan.json"
+    pending = load_json(pending_path)
+    pending.update(
+        {
+            "kind": "CGKNObservedProjectFailureProviderRepairPlan",
+            "observed_failure_evidence_sha256": observable["result_sha256"],
+            "observed_failure_evidence_id": str(evidence.get("evidence_id", "")),
+            "repair_round": repair_round,
+            "triggered_by_independent_failure": True,
+            "maximum_total_rounds": 2,
+            "preserve_unaffected_pass_evidence": True,
+            "formal_evidence_authorized": False,
+        }
+    )
+    for key in (
+        "supervision_scope",
+        "supervision_repair_targets",
+        "audit_result_sha256",
+        "checkpoint_id",
+    ):
+        pending.pop(key, None)
+    write_pending_repair_context(pending_path, pending)
+    evidence_path = (
+        pathlib.Path(run_dir).resolve()
+        / "artifacts"
+        / f"observed_project_failure_round_{repair_round}.json"
+    )
+    write_json(evidence_path, evidence)
+    provider_job_ids = sorted(
+        {
+            str(action.get("provider_job_id", "")).strip()
+            for action in pending.get("provider_actions", [])
+            if isinstance(action, dict) and str(action.get("provider_job_id", "")).strip()
+        }
+    )
+    return {
+        **preparation,
+        "kind": "CGKNObservedProjectFailureRepairPreparationReceipt",
+        "status": "pending_provider_repair",
+        "repair_round": repair_round,
+        "triggered_by_independent_failure": True,
+        "observed_failure_evidence_ref": str(evidence_path),
+        "observed_failure_evidence_sha256": observable["result_sha256"],
+        "provider_job_ids": provider_job_ids,
+        "affected_work_nodes": sorted(
+            {
+                str(node).strip()
+                for item in failures
+                for node in item.get("affected_work_nodes", [])
+                if str(node).strip()
+            }
+        ),
         "formal_evidence_authorized": False,
     }
 
@@ -29855,6 +31370,392 @@ def write_provider_long_context_artifacts(
     }
 
 
+def _requirements_probe_metrics(
+    *,
+    probe_name: str,
+    payload: dict[str, Any],
+    endpoint: str,
+    model: str,
+    timeout: int,
+    attempt: int,
+    status: str,
+    error: str = "",
+    transport_timing: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    messages = payload.get("messages", []) if isinstance(payload.get("messages", []), list) else []
+    system_chars = sum(
+        len(str(item.get("content", "")))
+        for item in messages if isinstance(item, dict) and item.get("role") == "system"
+    )
+    user_chars = sum(
+        len(str(item.get("content", "")))
+        for item in messages if isinstance(item, dict) and item.get("role") == "user"
+    )
+    request_body = json.dumps(payload, ensure_ascii=False)
+    timing = dict(transport_timing or {})
+    safe_error = provider_transport._redact(error)[:2000]
+    response_format = payload.get("response_format") if isinstance(payload.get("response_format"), dict) else {}
+    schema_value = response_format.get("json_schema", {}) if response_format else {}
+    schema_body = json.dumps(schema_value, ensure_ascii=False, sort_keys=True, separators=(",", ":")) if schema_value else ""
+    return {
+        "probe_name": probe_name,
+        "provider": "openai_compatible",
+        "model": model,
+        "endpoint_mode": "chat_completions",
+        "endpoint_host": re.sub(r"^(https?://[^/]+).*", r"\1", endpoint),
+        "request_body_bytes": len(request_body.encode("utf-8")),
+        "message_count": len(messages),
+        "system_chars": system_chars,
+        "user_chars": user_chars,
+        "total_prompt_chars": system_chars + user_chars,
+        "estimated_input_tokens": (system_chars + user_chars + 3) // 4,
+        "max_output_tokens": int(payload.get("max_tokens", payload.get("max_output_tokens", 0)) or 0),
+        "reasoning_effort": "none" if payload.get("enable_thinking") is False else "provider_default",
+        "enable_thinking": payload.get("enable_thinking"),
+        "response_format_present": bool(response_format),
+        "response_format_type": str(response_format.get("type", "")),
+        "schema_bytes": len(schema_body.encode("utf-8")),
+        "schema_sha256": hashlib.sha256(schema_body.encode("utf-8")).hexdigest() if schema_body else "",
+        "timeout_seconds": timeout,
+        "attempt": attempt,
+        "response_headers_received": bool(timing.get("response_headers_received", False)),
+        "response_headers_elapsed_ms": timing.get("response_headers_elapsed_ms"),
+        "response_body_received": bool(timing.get("response_body_received", False)),
+        "response_body_bytes": int(timing.get("response_body_bytes", 0) or 0),
+        "total_elapsed_ms": int(timing.get("total_elapsed_ms", 0) or 0),
+        "error_type": check_connectivity._provider_error_type(error) if error else "",
+        "error": safe_error,
+        "status": status,
+        "system_prompt_sha256": formal_model_contract.stable_hash(
+            [item.get("content", "") for item in messages if isinstance(item, dict) and item.get("role") == "system"]
+        ),
+        "user_payload_sha256": formal_model_contract.stable_hash(
+            [item.get("content", "") for item in messages if isinstance(item, dict) and item.get("role") == "user"]
+        ),
+        "request_body_sha256": hashlib.sha256(request_body.encode("utf-8")).hexdigest(),
+    }
+
+
+def requirements_planning_output_token_budget(context: dict[str, Any]) -> int:
+    """Return a deterministic bounded budget for one formal planning proposal."""
+    capabilities = context.get("capabilities", context.get("requested_capabilities", []))
+    workflows = context.get("workflows", context.get("key_workflows", []))
+    constraints = context.get("constraints", context.get("explicit_constraints", []))
+    item_count = sum(len(value) for value in (capabilities, workflows, constraints) if isinstance(value, list))
+    return max(1200, min(4096, 2048 + (item_count * 64)))
+
+
+def _minimal_requirements_probe_response_format() -> dict[str, Any]:
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "cgkn_requirements_planning_probe_v1",
+            "strict": True,
+            "schema": {
+                "type": "object",
+                "properties": {"cgkn_probe": {"type": "string", "const": "ok"}},
+                "required": ["cgkn_probe"],
+                "additionalProperties": False,
+            },
+        },
+    }
+
+
+def _provider_json_schema_unavailable(error: str) -> bool:
+    lowered = str(error or "").lower()
+    return bool(re.search(r"http\s+400\b", lowered)) and any(
+        marker in lowered for marker in ("response_format", "json_schema", "json schema", "schema")
+    )
+
+
+def requirements_planning_provider_preflight(
+    *,
+    messages: list[dict[str, str]],
+    requested_model: str,
+    timeout: int,
+    run_dir: pathlib.Path,
+    routing_policy: ProviderModelRoutingPolicy | None,
+    response_format: dict[str, Any],
+    max_output_tokens: int = 12000,
+) -> dict[str, Any]:
+    """Run one same-route tiny/structured probe and measure the real request."""
+    checkpoint_path = run_dir / "artifacts" / "provider_preflight_checkpoint.json"
+    metrics_path = run_dir / "artifacts" / "requirements_planning_request_metrics.json"
+    prompt_chars = sum(len(str(item.get("content", ""))) for item in messages if isinstance(item, dict))
+    route = choose_provider_model("requirements_planning", prompt_chars, requested_model, routing_policy)
+    model = assert_concrete_provider_model(str(route.get("selected_model") or requested_model))
+    creds = check_connectivity._resolve_api_credentials()
+    token = str(creds.get("api_key", "")).strip()
+    root = str(creds.get("base_url", "")).rstrip("/")
+    endpoint = check_connectivity._openai_compatible_endpoint(root, model=model)
+    probe_timeout = max(1, min(60, int(timeout)))
+    existing = load_json(checkpoint_path) if checkpoint_path.is_file() else {}
+    if (
+        existing.get("status") == "PASS"
+        and existing.get("schema_version") == "1.1"
+        and existing.get("classification") == "PROVIDER_STRUCTURED_BASELINE_AVAILABLE"
+        and existing.get("model") == model
+        and existing.get("endpoint_host") == re.sub(r"^(https?://[^/]+).*", r"\1", endpoint)
+    ):
+        return existing
+    if not token:
+        raise RuntimeError("provider_preflight_failed: PROVIDER_BASELINE_UNAVAILABLE missing provider credential")
+
+    probe_results: dict[str, Any] = {}
+    probe_specs = (
+        ("tiny", False, 32, None),
+        ("json_text", True, 128, None),
+        ("json_schema", True, 256, _minimal_requirements_probe_response_format()),
+    )
+    for probe_name, structured, output_cap, probe_response_format in probe_specs:
+        payload = check_connectivity._build_provider_probe_payload(
+            root,
+            model,
+            structured=structured,
+            max_output_tokens=output_cap,
+            response_format=probe_response_format,
+        )
+        doc, error = check_connectivity._post_json(endpoint, payload, token, probe_timeout)
+        text = check_connectivity._extract_text(doc or {}) if doc is not None else ""
+        valid = (
+            text.strip().lower() == "pong"
+            if not structured
+            else check_connectivity._structured_probe_valid(text)
+        )
+        status = "PASS" if doc is not None and valid else "FAIL"
+        metrics = _requirements_probe_metrics(
+            probe_name=probe_name,
+            payload=payload,
+            endpoint=endpoint,
+            model=model,
+            timeout=probe_timeout,
+            attempt=1,
+            status=status,
+            error=error or ("probe response contract failed" if not valid else ""),
+            transport_timing=check_connectivity.last_transport_timing(),
+        )
+        probe_results[probe_name] = metrics
+        if status != "PASS":
+            classification = "PROVIDER_BASELINE_UNAVAILABLE"
+            if probe_name == "json_text":
+                classification = "PROVIDER_STRUCTURED_REQUEST_UNAVAILABLE"
+            elif probe_name == "json_schema":
+                classification = (
+                    "PROVIDER_JSON_SCHEMA_UNAVAILABLE"
+                    if _provider_json_schema_unavailable(error)
+                    else "PROVIDER_STRUCTURED_SCHEMA_REJECTED"
+                )
+            checkpoint = {
+                "kind": "CGKNRequirementsPlanningProviderPreflight",
+                "schema_version": "1.1",
+                "formal_evidence_status": "NOT_EVALUATED",
+                "authority": "support_diagnostics_only",
+                "status": "BLOCKED_PROVIDER",
+                "classification": classification,
+                "model": model,
+                "endpoint_mode": "chat_completions",
+                "endpoint_host": metrics["endpoint_host"],
+                "tls_verify": check_connectivity._tls_verify_enabled(),
+                "probes": probe_results,
+            }
+            write_json(checkpoint_path, checkpoint)
+            raise RuntimeError(
+                f"provider_preflight_failed: {classification} "
+                f"[response_headers_received={str(metrics['response_headers_received']).lower()}, "
+                f"failure_phase=provider_preflight]"
+            )
+
+    request_values: dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.2,
+        "max_tokens": 512,
+        "response_format": response_format,
+    }
+    real_payload = check_connectivity._build_openai_compatible_payload(
+        root,
+        request_values,
+        model=model,
+        reasoning_effort=provider_reasoning_effort(root, model, "requirements_planning"),
+    )
+    real_doc: dict[str, Any] | None = None
+    real_error = ""
+    real_attempt_metrics: list[dict[str, Any]] = []
+    for real_attempt in range(1, 3):
+        real_doc, real_error = check_connectivity._post_json(endpoint, real_payload, token, probe_timeout)
+        real_metric = _requirements_probe_metrics(
+            probe_name="real_requirements_planning_512",
+            payload=real_payload,
+            endpoint=endpoint,
+            model=model,
+            timeout=probe_timeout,
+            attempt=real_attempt,
+            status="PASS" if real_doc is not None else "FAIL",
+            error=real_error,
+            transport_timing=check_connectivity.last_transport_timing(),
+        )
+        real_metric["finish_reason"] = provider_response_finish_reason(real_doc)
+        real_metric["transport_status"] = (
+            "TRANSPORT_PASS_OUTPUT_TRUNCATED"
+            if real_doc is not None and real_metric["finish_reason"] in {"length", "max_tokens", "max_output_tokens", "incomplete"}
+            else real_metric["status"]
+        )
+        real_attempt_metrics.append(real_metric)
+        if real_doc is not None:
+            break
+        retry_record = [{
+            "retryable": check_connectivity._error_is_retryable(item.get("error", "")),
+            "error_type": item.get("error_type", ""),
+            "response_headers_received": item.get("response_headers_received", False),
+        } for item in real_attempt_metrics]
+        if not provider_transport.should_retry_provider_attempt(retry_record):
+            break
+    measurement = _requirements_probe_metrics(
+        probe_name="real_requirements_planning_measurement",
+        payload=real_payload,
+        endpoint=endpoint,
+        model=model,
+        timeout=max(1, min(120, int(timeout))),
+        attempt=0,
+        status="PASS" if real_doc is not None else "FAIL",
+        error=real_error,
+        transport_timing=check_connectivity.last_transport_timing(),
+    )
+    measurement["attempts"] = real_attempt_metrics
+    measurement["finish_reason"] = provider_response_finish_reason(real_doc)
+    probe_results["real_512"] = measurement
+    if real_doc is None:
+        checkpoint = {
+            "kind": "CGKNRequirementsPlanningProviderPreflight",
+            "schema_version": "1.1",
+            "formal_evidence_status": "NOT_EVALUATED",
+            "authority": "support_diagnostics_only",
+            "status": "BLOCKED_PROVIDER",
+            "classification": "PROVIDER_REAL_PLANNING_TRANSPORT_UNSTABLE",
+            "model": model,
+            "endpoint_mode": "chat_completions",
+            "endpoint_host": measurement["endpoint_host"],
+            "tls_verify": check_connectivity._tls_verify_enabled(),
+            "probes": probe_results,
+        }
+        write_json(checkpoint_path, checkpoint)
+        raise RuntimeError("provider_preflight_failed: PROVIDER_REAL_PLANNING_TRANSPORT_UNSTABLE")
+    user_documents = [
+        str(item.get("content", ""))
+        for item in messages if isinstance(item, dict) and item.get("role") == "user"
+    ]
+    try:
+        planning_context = json.loads(user_documents[0]) if user_documents else {}
+    except (json.JSONDecodeError, TypeError):
+        planning_context = {}
+    goal_chars = len(str(planning_context.get("goal", ""))) if isinstance(planning_context, dict) else 0
+    metrics_receipt = {
+        "kind": "CGKNRequirementsPlanningRequestMetrics",
+        "schema_version": "1.1",
+        "formal_evidence_status": "NOT_EVALUATED",
+        "authority": "support_diagnostics_only",
+        "model": model,
+        "endpoint_mode": "chat_completions",
+        "request_body_bytes": measurement["request_body_bytes"],
+        "estimated_input_tokens": measurement["estimated_input_tokens"],
+        "system_chars": measurement["system_chars"],
+        "context_chars": measurement["user_chars"],
+        "goal_chars": goal_chars,
+        "deduplicated_chars": 0,
+        "trimmed_chars": 0,
+        "max_output_tokens": int(max_output_tokens),
+        "response_format_present": measurement["response_format_present"],
+        "response_format_type": measurement["response_format_type"],
+        "schema_bytes": measurement["schema_bytes"],
+        "schema_sha256": measurement["schema_sha256"],
+        "reasoning_effort": measurement["reasoning_effort"],
+        "enable_thinking": measurement["enable_thinking"],
+        "timeout": measurement["timeout_seconds"],
+        "attempts": [],
+        "first_header_ms": None,
+        "status": "MEASURED",
+        "hashes": {
+            "system_prompt_sha256": measurement["system_prompt_sha256"],
+            "user_payload_sha256": measurement["user_payload_sha256"],
+            "request_body_sha256": measurement["request_body_sha256"],
+        },
+    }
+    write_json(metrics_path, metrics_receipt)
+    checkpoint = {
+        "kind": "CGKNRequirementsPlanningProviderPreflight",
+        "schema_version": "1.1",
+        "formal_evidence_status": "NOT_EVALUATED",
+        "authority": "support_diagnostics_only",
+        "status": "PASS",
+        "classification": "PROVIDER_STRUCTURED_BASELINE_AVAILABLE",
+        "model": model,
+        "endpoint_mode": "chat_completions",
+        "endpoint_host": measurement["endpoint_host"],
+        "tls_verify": check_connectivity._tls_verify_enabled(),
+        "probes": probe_results,
+        "real_request_measurement": measurement,
+        "metrics_ref": str(metrics_path),
+    }
+    write_json(checkpoint_path, checkpoint)
+    return checkpoint
+
+
+def canonicalize_requirements_planning_response(
+    parsed: dict[str, Any],
+    *,
+    raw_response_sha256: str = "",
+) -> tuple[dict[str, Any] | None, dict[str, Any]]:
+    """Normalize only the one reviewed planning envelope before schema validation."""
+    parsed_identity = formal_model_contract.stable_hash(parsed)
+    audit: dict[str, Any] = {
+        "kind": "CGKNRequirementsPlanningCanonicalizationAudit",
+        "schema_version": "1.0",
+        "raw_response_sha256": str(raw_response_sha256),
+        "parsed_object_sha256": parsed_identity,
+        "decision": "",
+        "canonical_object_sha256": "",
+        "schema_validation_result": "NOT_EVALUATED",
+        "schema_validation_errors": [],
+        "semantic_fields_modified": False,
+    }
+    if "planning_proposal" in parsed:
+        if set(parsed) != {"planning_proposal"}:
+            audit.update(
+                decision="REJECT_AMBIGUOUS_ENVELOPE",
+                schema_validation_result="FAIL",
+                schema_validation_errors=["planning_proposal_envelope_must_be_the_only_top_level_field"],
+            )
+            return None, audit
+        canonical = parsed.get("planning_proposal")
+        if not isinstance(canonical, dict):
+            audit.update(
+                decision="REJECT_MALFORMED_KNOWN_ENVELOPE",
+                schema_validation_result="FAIL",
+                schema_validation_errors=["planning_proposal_envelope_value_must_be_object"],
+            )
+            return None, audit
+        if "planning_proposal" in canonical:
+            audit.update(
+                decision="REJECT_NESTED_ENVELOPE",
+                schema_validation_result="FAIL",
+                schema_validation_errors=["nested_planning_proposal_envelope_forbidden"],
+            )
+            return None, audit
+        audit["decision"] = "UNWRAP_KNOWN_PLANNING_PROPOSAL_ENVELOPE"
+    elif len(parsed) == 1 and isinstance(next(iter(parsed.values())), dict):
+        audit.update(
+            decision="REJECT_UNKNOWN_ENVELOPE",
+            schema_validation_result="FAIL",
+            schema_validation_errors=["unknown_single_object_envelope_forbidden"],
+        )
+        return None, audit
+    else:
+        canonical = parsed
+        audit["decision"] = "PASS_THROUGH_CANONICAL_FLAT_OBJECT"
+    audit["canonical_object_sha256"] = formal_model_contract.stable_hash(canonical)
+    return canonical, audit
+
+
 def provider_stage_checkpoint(
     *,
     provider_mode: str,
@@ -29862,6 +31763,8 @@ def provider_stage_checkpoint(
     context: dict[str, Any],
     run_dir: pathlib.Path,
     phase_log_path: pathlib.Path | str,
+    routing_policy: ProviderModelRoutingPolicy | None = None,
+    provider_preflight: bool = False,
 ) -> dict[str, Any]:
     """Parse, validate, and persist one non-live pre-build Provider artifact.
 
@@ -29882,14 +31785,18 @@ def provider_stage_checkpoint(
     if planning_stage:
         system_content = (
             "You are the formal Provider role for the bounded CGKN requirements_planning stage. "
-            "Return strict JSON only matching this proposal contract: "
-            + json.dumps(
-                canonical_goal_spec_compiler.planning_proposal_prompt_contract(),
-                ensure_ascii=False,
-                sort_keys=True,
-            )
-            + ". Ground every intended user, outcome, capability, workflow, workstream, explicit constraint, "
+            "Return only the PlanningProposal selected by the attached strict JSON Schema. "
+            "Treat EXISTING_VALID_PLANNING as the baseline and NEW_INFORMATION as a bounded change: preserve "
+            "all unaffected supported intent, modify only grounded affected elements, and never invent goals, "
+            "requirements, capabilities, constraints, or scope. REPLAN may restructure supported planning but "
+            "does not authorize semantic drift. "
+            "Ground every intended user, outcome, capability, workflow, workstream, explicit constraint, "
             "acceptance anchor, and forbidden substitution with an exact source_grounding row. "
+            "For proposed_workstreams grounding, source_grounding.value MUST equal the workstream's canonical id exactly; "
+            "never use its scope, title, description, or array index as identity. "
+            "Use stable snake_case capability IDs, and each proposed_workstreams.covers_capabilities entry MUST exactly equal "
+            "an ID present in proposed_core_capabilities or proposed_supporting_capabilities. "
+            "Use only schema-legal grounding targets and string items for necessary_inferences. "
             "Provider content is proposal-only and must not claim canonical, governance, acceptance, maturity, or release authority."
         )
     else:
@@ -29899,14 +31806,71 @@ def provider_stage_checkpoint(
             "decisions (array of strings), and risks (array of strings). "
             "Do not claim release authority or request CGKN kernel changes."
         )
+    outbound_context = context
+    if not planning_stage:
+        source_path = run_dir / "artifacts" / "provider_stage_artifacts" / f"{stage}.source_context.json"
+        write_json(source_path, context)
+
+        def project(value: Any, *, depth: int = 0) -> Any:
+            if depth >= 4:
+                return text_summary(json.dumps(value, ensure_ascii=False, sort_keys=True), 600)
+            if isinstance(value, dict):
+                priority = (
+                    "kind", "schema_version", "id", "domain", "status", "goal", "summary",
+                    "selected_requirement", "selected_project_direction", "constraints", "requirements",
+                    "entrypoints", "required_paths", "required_stage_artifacts", "required_artifact_fields",
+                    "required_pipeline_stages", "acceptance", "acceptance_checks", "capabilities", "components",
+                    "interfaces", "workflows", "artifacts", "paths", "refs", "hashes",
+                )
+                selected_keys = [key for key in priority if key in value]
+                selected_keys.extend(
+                    key for key in value
+                    if key not in selected_keys and (str(key).endswith("_ref") or str(key).endswith("_sha256"))
+                )
+                return {str(key): project(value[key], depth=depth + 1) for key in selected_keys[:40]}
+            if isinstance(value, list):
+                return [project(item, depth=depth + 1) for item in value[:32]]
+            if isinstance(value, str):
+                return value if len(value) <= 1200 else value[:1200]
+            return value
+
+        outbound_context = project(context)
+        outbound_context["source_evidence"] = {
+            "ref": str(source_path),
+            "sha256": hashlib.sha256(source_path.read_bytes()).hexdigest(),
+            "original_chars": len(json.dumps(context, ensure_ascii=False, sort_keys=True)),
+        }
+        append_provider_event_log(
+            phase_log_path,
+            {
+                "event": "provider_stage_context_bounded",
+                "stage": stage,
+                "original_chars": outbound_context["source_evidence"]["original_chars"],
+                "projected_chars": len(json.dumps(outbound_context, ensure_ascii=False, sort_keys=True)),
+                "source_evidence_ref": str(source_path),
+            },
+        )
     messages = [
         {
             "role": "system",
             "content": system_content,
         },
-        {"role": "user", "content": json.dumps(context, ensure_ascii=False, sort_keys=True)},
+        {"role": "user", "content": json.dumps(outbound_context, ensure_ascii=False, sort_keys=True)},
     ]
+    planning_output_budget = requirements_planning_output_token_budget(context) if planning_stage else 12000
+    if planning_stage and provider_mode == "live" and provider_preflight:
+        requirements_planning_provider_preflight(
+            messages=messages,
+            requested_model="surrogate-stage",
+            timeout=60,
+            run_dir=run_dir,
+            routing_policy=routing_policy,
+            response_format=canonical_goal_spec_compiler.planning_proposal_response_format(),
+            max_output_tokens=planning_output_budget,
+        )
     last_error = ""
+    last_errors: list[str] = []
+    rejected_proposal: Any = None
     for schema_attempt in range(2):
         active_messages = messages
         if schema_attempt:
@@ -29914,32 +31878,103 @@ def provider_stage_checkpoint(
                 *messages,
                 {
                     "role": "user",
-                    "content": (
-                        "SCHEMA_REPAIR_ATTEMPT_1: the prior response was invalid: "
-                        + last_error
-                        + ". Return only the required strict JSON object."
+                    "content": "SCHEMA_REPAIR_ATTEMPT_1\n" + json.dumps(
+                        canonical_goal_spec_compiler.planning_proposal_repair_contract(
+                            rejected_proposal,
+                            last_errors or [last_error],
+                            generation_context=context,
+                        ),
+                        ensure_ascii=False,
+                        sort_keys=True,
                     ),
                 },
             ]
-        raw = provider_text(
-            active_messages,
-            "surrogate-stage",
-            60,
-            max_attempts=1,
-            stage=stage,
-            component="design",
-            target_file=artifact_path.relative_to(run_dir).as_posix(),
-            phase_log_path=phase_log_path,
-        )
+        request_kwargs = {
+            "max_attempts": 1,
+            "stage": stage,
+            "component": "design",
+            "target_file": artifact_path.relative_to(run_dir).as_posix(),
+            "phase_log_path": phase_log_path,
+            "routing_policy": routing_policy,
+            "response_format": (
+                canonical_goal_spec_compiler.planning_proposal_response_format()
+                if planning_stage else None
+            ),
+            "request_metrics_path": (
+                run_dir / "artifacts" / "requirements_planning_request_metrics.json"
+                if planning_stage and provider_mode == "live" else None
+            ),
+        }
         try:
-            payload = json.loads(raw)
-            if not isinstance(payload, dict):
-                raise ValueError("object required")
+            raw = provider_text(
+                active_messages, "surrogate-stage", 60,
+                max_tokens=planning_output_budget if planning_stage else 12000,
+                **request_kwargs,
+            )
+        except ProviderOutputContractError as exc:
+            if not planning_stage or "OUTPUT_BUDGET_TOO_SMALL" not in str(exc) or planning_output_budget >= 4096:
+                raise
+            expanded_budget = min(4096, planning_output_budget * 2)
+            raw = provider_text(
+                active_messages, "surrogate-stage", 60,
+                max_tokens=expanded_budget,
+                **request_kwargs,
+            )
+        try:
+            parsed_payload = parse_json_object(raw)
+            payload = parsed_payload
             if planning_stage:
+                payload, canonicalization_audit = canonicalize_requirements_planning_response(
+                    parsed_payload,
+                    raw_response_sha256=formal_model_contract.stable_hash(raw),
+                )
+                canonicalization_audit.update(
+                    stage=stage,
+                    proposal_sequence=proposal_sequence,
+                    schema_attempt=schema_attempt + 1,
+                )
+                canonicalization_audit_path = artifact_path.with_name(
+                    f"{stage}.canonicalization.attempt-{proposal_sequence:04d}.schema-{schema_attempt + 1:02d}.json"
+                )
+                if payload is None:
+                    write_json(canonicalization_audit_path, canonicalization_audit)
+                    append_provider_event_log(
+                        phase_log_path,
+                        {
+                            "event": "provider_planning_response_canonicalization",
+                            **canonicalization_audit,
+                            "audit_ref": str(canonicalization_audit_path.resolve()),
+                        },
+                    )
+                    raise ValueError("; ".join(canonicalization_audit["schema_validation_errors"]))
+                rejected_proposal = payload
                 proposal_errors = canonical_goal_spec_compiler.validate_planning_proposal(payload)
                 if proposal_errors:
+                    canonicalization_audit["schema_validation_result"] = "FAIL"
+                    canonicalization_audit["schema_validation_errors"] = proposal_errors
+                    write_json(canonicalization_audit_path, canonicalization_audit)
+                    append_provider_event_log(
+                        phase_log_path,
+                        {
+                            "event": "provider_planning_response_canonicalization",
+                            **canonicalization_audit,
+                            "audit_ref": str(canonicalization_audit_path.resolve()),
+                        },
+                    )
+                    last_errors = proposal_errors
                     raise ValueError("; ".join(proposal_errors))
+                canonicalization_audit["schema_validation_result"] = "PASS"
+                write_json(canonicalization_audit_path, canonicalization_audit)
+                append_provider_event_log(
+                    phase_log_path,
+                    {
+                        "event": "provider_planning_response_canonicalization",
+                        **canonicalization_audit,
+                        "audit_ref": str(canonicalization_audit_path.resolve()),
+                    },
+                )
             else:
+                rejected_proposal = payload
                 if not isinstance(payload.get("summary"), str) or not payload["summary"].strip():
                     raise ValueError("summary must be a non-empty string")
                 if not all(
@@ -29948,8 +31983,20 @@ def provider_stage_checkpoint(
                     for key in ("decisions", "risks")
                 ):
                     raise ValueError("decisions and risks must be string arrays")
-        except (ValueError, TypeError, KeyError) as exc:
+        except (RuntimeError, ValueError, TypeError, KeyError) as exc:
             last_error = str(exc)
+            append_provider_event_log(
+                phase_log_path,
+                {
+                    "event": "provider_result_validation_failed",
+                    "stage": stage,
+                    "proposal_sequence": proposal_sequence,
+                    "schema_attempt": schema_attempt + 1,
+                    "response_hash": formal_model_contract.stable_hash(raw),
+                    "error": last_error,
+                    "admission_eligible": False,
+                },
+            )
             if schema_attempt == 0:
                 continue
             raise RuntimeError(
@@ -30046,6 +32093,19 @@ def provider_stage_checkpoint(
                 "schema_repair_attempts": schema_attempt,
             },
         )
+        append_provider_event_log(
+            phase_log_path,
+            {
+                "event": "provider_result_admitted",
+                "stage": stage,
+                "proposal_sequence": proposal_sequence,
+                "response_hash": formal_model_contract.stable_hash(raw),
+                "artifact_ref": str(materialized_artifact_path.resolve()),
+                "artifact_hash": str(artifact.get("artifact_hash") or artifact.get("payload_sha256") or ""),
+                "admission_eligible": True,
+                "used_in_formal_chain": True,
+            },
+        )
         return artifact
     raise AssertionError("unreachable provider stage parser state")
 
@@ -30064,6 +32124,7 @@ def run_canonical_requirement_planning(
     run_dir: pathlib.Path,
     phase_log_path: pathlib.Path | str,
     codex_plan_contract: dict[str, Any],
+    routing_policy: ProviderModelRoutingPolicy | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Compile requirements from accepted planning evidence with bounded same-run replan."""
     state_path = requirement_replan_state_path(run_dir)
@@ -30089,10 +32150,33 @@ def run_canonical_requirement_planning(
         sequence = 1
     while sequence <= MAX_REQUIREMENT_PLANNING_ATTEMPTS:
         feedback = state.get("feedback", {}) if isinstance(state.get("feedback"), dict) else {}
+        accepted_constraints = canonical_goal_spec_compiler.accepted_system_constraints(
+            codex_plan_contract.get("acceptance_checks", [])
+            if isinstance(codex_plan_contract.get("acceptance_checks", []), list)
+            else []
+        )
         planning_context: dict[str, Any] = {
             "goal": user_goal,
             "proposal_sequence": sequence,
+            "context_sections": {
+                "SEALED_INTENT": codex_plan_contract,
+                "EXISTING_VALID_PLANNING": {},
+                "NEW_INFORMATION": feedback,
+                "ALLOWED_EVIDENCE": [
+                    "RAW_GOAL",
+                    "CONVERSATION_CONTEXT",
+                    "NECESSARY_INFERENCE",
+                    "SYSTEM_POLICY",
+                ],
+            },
+            "sealed_intent": codex_plan_contract,
+            "accepted_system_constraints": accepted_constraints,
         }
+        if history:
+            previous_ref = pathlib.Path(str(history[-1].get("planning_artifact_ref", "")))
+            if previous_ref.is_file():
+                previous_artifact = load_json(previous_ref)
+                planning_context["context_sections"]["EXISTING_VALID_PLANNING"] = previous_artifact.get("proposal", {})
         if feedback:
             planning_context["requirement_replan_feedback"] = feedback
         planning_artifact = provider_stage_checkpoint(
@@ -30101,10 +32185,13 @@ def run_canonical_requirement_planning(
             context=planning_context,
             run_dir=run_dir,
             phase_log_path=phase_log_path,
+            routing_policy=routing_policy,
+            provider_preflight=True,
         )
         decision_context: dict[str, Any] = {
             "planning_artifact": planning_artifact,
             "conversation_context": {},
+            "system_constraints": planning_context["accepted_system_constraints"],
         }
         if codex_plan_contract:
             decision_context["codex_capability_plan_contract"] = codex_plan_contract
@@ -30113,6 +32200,21 @@ def run_canonical_requirement_planning(
             run_dir,
             context=decision_context,
         )
+        existing_planning = planning_context["context_sections"]["EXISTING_VALID_PLANNING"]
+        preservation_errors = canonical_goal_spec_compiler.validate_planning_preservation(
+            planning_artifact.get("proposal", {}),
+            existing_planning,
+            feedback,
+        )
+        if preservation_errors:
+            result["status"] = "NEEDS_REWORK"
+            result["ready_to_generate"] = False
+            result["requirement_replan"] = {
+                "status": "NEEDS_REWORK",
+                "candidate_repair": False,
+                "required_corrections": preservation_errors,
+                "reason": "EXISTING_PLANNING_NOT_PRESERVED",
+            }
         history_entry = {
             "attempt": sequence,
             "planning_artifact_ref": planning_artifact.get("artifact_ref", ""),
@@ -30175,6 +32277,30 @@ def run_canonical_requirement_planning(
     raise AssertionError("unreachable requirement planning loop")
 
 
+def source_identity_environment_blocker(
+    failure: dict[str, Any], *, run_dir: pathlib.Path, result_path: pathlib.Path,
+) -> dict[str, Any]:
+    blocker = {
+        "kind": "RuntimeExecutionResult",
+        "status": "BLOCKED_ENVIRONMENT",
+        "workflow_state": "source_identity_blocked",
+        "evidence_status": "BLOCKED_ENVIRONMENT",
+        "final_verdict": "BLOCKED_ENVIRONMENT",
+        "reason": "SOURCE_IDENTITY_GIT_TIMEOUT",
+        "source_identity_failure": failure,
+        "provider_api_call_count": 0,
+        "external_executor_discovery_status": "NOT_EVALUATED",
+        "candidate_materialized": False,
+        "final_delivery_allowed": False,
+        "generated_at": now(),
+        "run_dir": str(run_dir),
+        "project_dir": None,
+    }
+    write_json(run_dir / "artifacts" / "source_identity_blocker.json", blocker)
+    write_json(result_path, blocker)
+    return blocker
+
+
 def execute(args: argparse.Namespace) -> dict[str, Any]:
     production_started_at = now()
     production_started_monotonic = time.perf_counter()
@@ -30198,10 +32324,23 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         "project-" + hashlib.sha256(str(out_dir).encode("utf-8")).hexdigest()[:20]
     )
     run_id = "run-" + hashlib.sha256(str(run_dir).encode("utf-8")).hexdigest()[:20]
-    source_identity_report = source_identity.capture_once(
-        PROJECT_ROOT,
-        run_dir / "artifacts" / "source_identity_report.json",
-    )
+    try:
+        source_identity_report = source_identity.capture_once(
+            PROJECT_ROOT,
+            run_dir / "artifacts" / "source_identity_report.json",
+        )
+    except RuntimeError as exc:
+        try:
+            source_identity_failure = json.loads(str(exc))
+        except json.JSONDecodeError:
+            raise
+        if source_identity_failure.get("classification") != "GIT_COMMAND_TIMEOUT":
+            raise
+        return source_identity_environment_blocker(
+            source_identity_failure,
+            run_dir=run_dir,
+            result_path=result_path,
+        )
     source_sha = str(source_identity_report["source_identity_hash"]).split(":", 1)[-1]
     replay_value = str(getattr(args, "replay_dir", "") or "").strip()
     surrogate_provider_adapter.configure(
@@ -30382,12 +32521,34 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         phase_log_path=phase_log_path,
     )
     codex_plan_contract = codex_capability_plan_contract(codex_brief_projection)
+    if resume_run_dir and resume_pending_plan and provider_mode == "live":
+        pending_stage = str(resume_pending_plan.get("stage", "")).strip()
+        planning_stages = {
+            "requirements_planning",
+            "requirement_replan",
+            "WAITING_REQUIREMENT_REPLAN",
+        }
+        if pending_stage and pending_stage not in planning_stages:
+            checkpoint_path = run_dir / "artifacts" / "requirement_decision_checkpoint.json"
+            replan_state_path = requirement_replan_state_path(run_dir)
+            checkpoint = load_json(checkpoint_path) if checkpoint_path.is_file() else {}
+            replan_state = load_json(replan_state_path) if replan_state_path.is_file() else {}
+            checkpoint_result = checkpoint.get("result", {}) if isinstance(checkpoint, dict) else {}
+            if (
+                not isinstance(checkpoint_result, dict)
+                or checkpoint_result.get("status") != "PASS"
+                or replan_state.get("workflow_state") != "RESOLVED"
+            ):
+                raise RuntimeError(
+                    "RESUME_REQUIREMENT_CHECKPOINT_MISSING_OR_UNRESOLVED"
+                )
     requirement_decision_result, planning_stage = run_canonical_requirement_planning(
         provider_mode=provider_mode,
         user_goal=user_goal,
         run_dir=run_dir,
         phase_log_path=phase_log_path,
         codex_plan_contract=codex_plan_contract,
+        routing_policy=routing_policy,
     )
     if planning_stage:
         internal_context = (internal_context + "\n\nFormal Provider planning artifact:\n" + json.dumps(
@@ -30497,6 +32658,55 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         }
         write_json(result_path, blocked)
         return blocked
+
+    executor_discovery_checkpoint = run_dir / "artifacts" / "external_executor_discovery_checkpoint.json"
+    cached_executor_selection: dict[str, Any] = {}
+    if resume_run_dir and executor_discovery_checkpoint.is_file():
+        cached_executor_selection = load_json(executor_discovery_checkpoint).get("result", {})
+        if not isinstance(cached_executor_selection, dict):
+            raise RuntimeError("RESUME_EXTERNAL_EXECUTOR_DISCOVERY_CHECKPOINT_INVALID")
+    if cached_executor_selection and external_executor_discovery.discovery_result_trust_is_fresh(cached_executor_selection):
+        executor_selection = cached_executor_selection
+        append_provider_event_log(
+            phase_log_path,
+            {"event": "completed_stage_reused", "stage": "external_executor_discovery", "path": str(executor_discovery_checkpoint)},
+        )
+    else:
+        executor_selection = capability_execution.discover_goal_spec_executors(
+            goal_spec,
+            skill_root=PROJECT_ROOT / "skills",
+            allow_network=not bool(os.environ.get("PYTEST_CURRENT_TEST", "").strip()),
+        )
+        write_json(
+            executor_discovery_checkpoint,
+            {
+                "kind": "CGKNExternalExecutorDiscoveryCheckpoint",
+                "schema_version": "1.0",
+                "goal_sha256": hashlib.sha256(user_goal.encode("utf-8")).hexdigest(),
+                "result": executor_selection,
+            },
+        )
+        if cached_executor_selection:
+            append_provider_event_log(
+                phase_log_path,
+                {"event": "stale_external_executor_trust_rechecked", "stage": "external_executor_discovery", "path": str(executor_discovery_checkpoint)},
+            )
+    plan_doc["external_executor_selection"] = executor_selection
+    external_executor_contracts = external_executor_integration.build_integration_contracts(executor_selection)
+    write_json(
+        run_dir / "artifacts" / "external_executor_integration_contract.json",
+        {
+            "kind": "CGKNExternalExecutorIntegrationContractSet",
+            "schema_version": "1.0",
+            "contracts": external_executor_contracts,
+            "release_authority": False,
+            "formal_acceptance_authority": False,
+        },
+    )
+    plan_doc["external_executor_integration_contracts"] = external_executor_contracts
+    integration_projection = external_executor_integration.provider_projection(external_executor_contracts)
+    if integration_projection:
+        internal_context = (internal_context + "\n\n" + integration_projection).strip()
 
     product_stage = provider_stage_checkpoint(
         provider_mode=provider_mode,
@@ -30793,6 +33003,10 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
     component_pipeline = apply_codex_capability_supervision(
         component_pipeline,
         codex_brief_projection,
+    )
+    component_pipeline = external_executor_integration.attach_contracts_to_components(
+        component_pipeline,
+        external_executor_contracts,
     )
     technical_stage = provider_stage_checkpoint(
         provider_mode=provider_mode,
@@ -31290,6 +33504,17 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 decomposition_tree_doc=decomposition_tree_doc,
             )
             write_json(run_dir / "artifacts" / "post_build_issue_ledger_final.json", final_issue_ledger)
+            external_integration_receipt = external_executor_integration.validate_project_integration(
+                candidate_dir,
+                external_executor_contracts,
+            ) if external_executor_contracts else {
+                "kind": "CGKNExternalExecutorIntegrationReceipt",
+                "status": "NOT_EVALUATED",
+                "results": [],
+                "release_authority": False,
+                "formal_acceptance_authority": False,
+            }
+            write_json(run_dir / "artifacts" / "external_executor_integration_receipt.json", external_integration_receipt)
             final_bundle_exists = (candidate_dir / "final_project_bundle.zip").exists()
             delivery_manifest_exists = (candidate_dir / "delivery_manifest.json").exists()
             final_truth = final_delivery_truth.run_if_applicable(
@@ -31352,6 +33577,7 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
                 "candidate_record": post_build.get("candidate_record", first_candidate_record),
                 "initial_issue_ledger": initial_issue_ledger,
                 "final_issue_ledger": final_issue_ledger,
+                "external_executor_integration_receipt": external_integration_receipt,
                 "materialized": False,
                 "generated_files": generated_files,
                 "candidate_files_recovered_from_checkpoints": recovered_candidate_files,
@@ -31532,6 +33758,18 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         decomposition_tree_doc=decomposition_tree_doc,
     )
     write_json(run_dir / "artifacts" / "post_build_issue_ledger_final.json", final_issue_ledger)
+    external_integration_receipt = external_executor_integration.validate_project_integration(
+        out_dir,
+        external_executor_contracts,
+    ) if external_executor_contracts else {
+        "kind": "CGKNExternalExecutorIntegrationReceipt",
+        "status": "NOT_EVALUATED",
+        "results": [],
+        "release_authority": False,
+        "formal_acceptance_authority": False,
+    }
+    write_json(run_dir / "artifacts" / "external_executor_integration_receipt.json", external_integration_receipt)
+    external_integration_failed = bool(external_executor_contracts) and external_integration_receipt.get("status") != "PASS"
     agent_usage = post_build.get("agent_usage", {}) if isinstance(post_build.get("agent_usage"), dict) else {}
     candidate_index_path = candidate_store_dir / "candidate_versions.json"
     candidate_index = load_json(candidate_index_path) if candidate_index_path.is_file() else {"candidates": []}
@@ -31620,10 +33858,10 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         "kind": "RuntimeExecutionResult",
         **generation_only_success_boundary(),
         "workflow_state": "post_build_evaluation_complete",
-        "evidence_status": "NOT_EVALUATED" if not final_issue_ledger.get("issues") else "NEEDS_REWORK",
+        "evidence_status": "NOT_EVALUATED" if not final_issue_ledger.get("issues") and not external_integration_failed else "NEEDS_REWORK",
         "release_ready": False,
         "final_delivery_allowed": False,
-        "final_verdict": "NOT_EVALUATED" if not final_issue_ledger.get("issues") else "NEEDS_REWORK",
+        "final_verdict": "NOT_EVALUATED" if not final_issue_ledger.get("issues") and not external_integration_failed else "NEEDS_REWORK",
         "generated_at": now(),
         "production_started_at": production_started_at,
         "goal": user_goal,
@@ -31640,6 +33878,7 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
         "post_build_finalize": post_build,
         "initial_issue_ledger": initial_issue_ledger,
         "final_issue_ledger": final_issue_ledger,
+        "external_executor_integration_receipt": external_integration_receipt,
         "productivity": productivity,
         "online_input_examples": online_inputs,
         "market_research": market_research,

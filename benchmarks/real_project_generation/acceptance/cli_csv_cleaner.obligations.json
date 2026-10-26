@@ -1,0 +1,34 @@
+{
+  "case_id": "cli_csv_cleaner",
+  "kind": "CGKNHiddenAcceptanceObligationManifest",
+  "schema_version": "1.0",
+  "tests": [
+    {
+      "test_id": "ACCEPT-CSV-CLI-CONTRACT",
+      "obligation_ids": [
+        "OBL-CSV-INPUT-OUTPUT",
+        "OBL-CSV-HEADER-PRESERVATION",
+        "OBL-CSV-DEDUP-WHOLE-ROW",
+        "OBL-CSV-DEDUP-COLUMN",
+        "OBL-CSV-STABLE-ORDER",
+        "OBL-CSV-FILL-EMPTY",
+        "OBL-CSV-PREVIEW",
+        "OBL-CSV-PREVIEW-WRITES-OUTPUT",
+        "OBL-CSV-CLI-HELP",
+        "OBL-CSV-ERR-UNKNOWN-COLUMN",
+        "OBL-CSV-ERR-NONZERO"
+      ]
+    },
+    {
+      "test_id": "ACCEPT-CSV-PROJECT-CONTENTS",
+      "obligation_ids": [
+        "OBL-CSV-README",
+        "OBL-CSV-PUBLIC-TESTS",
+        "OBL-CSV-RUNTIME-STDLIB",
+        "OBL-CSV-TEST-PYTEST",
+        "OBL-CSV-NETWORK-OFFLINE"
+      ]
+    }
+  ],
+  "unspecified_behaviors": ["malformed_csv"]
+}

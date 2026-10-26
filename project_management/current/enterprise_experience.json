@@ -1,69 +1,55 @@
 {
-  "kind": "CGKNEnterpriseExperiencePack",
-  "schema_version": "1.0",
-  "organization": "CGKN",
-  "items": [
+  "kind": "CGKNEnterpriseExperience",
+  "schema_version": "2.0",
+  "lessons": [
     {
-      "id": "EXP-CGKN-QUALITY-001",
-      "title": "Separate planning, implementation, and delivery truth",
-      "situation": "Planning artifacts or generated files exist while canonical runtime, review, package, or delivery evidence may be incomplete.",
-      "action": "Evaluate each evidence layer independently and allow only canonical producers and inspectors to authorize formal gates.",
-      "outcome": "Progress remains visible without a false public delivery PASS.",
-      "applicable_when": ["CGKN planning, implementation, acceptance, and delivery work"],
-      "not_applicable_when": [],
-      "tags": ["cgkn", "quality", "evidence", "governance"],
-      "evidence_refs": ["docs/01_contract_registry.md", "tests/test_kernel_contract.py"],
-      "experience_state": "approved",
-      "usage_count": 42,
-      "successful_usage_count": 42,
-      "owner": "quality-management",
-      "supersedes": []
+      "id": "EXP-MVP-001",
+      "title": "Composition tree and execution DAG are different truths",
+      "statement": "Use a tree for incremental Agent composition and a DAG for executable dependencies, fan-out, fan-in, and reruns.",
+      "applies_when": ["planning capabilities", "editing project structure", "compiling execution"],
+      "avoid": ["treating parent-child hierarchy as execution order", "maintaining multiple execution graphs"]
     },
     {
-      "id": "EXP-CGKN-LIBRARIAN-001",
-      "title": "Use bounded artifact projections instead of whole-history context",
-      "situation": "A project has enough files or upstream evidence that copying complete context is noisy and expensive.",
-      "action": "Keep complete local lineage and provide each bounded module only its declared artifacts, projections, policy, and contract.",
-      "outcome": "Context remains traceable and unaffected checkpoints remain reusable.",
-      "applicable_when": ["Artifact-driven modules", "large Provider jobs", "incremental repair"],
-      "not_applicable_when": ["A tiny single-file change where the projection exceeds the source"],
-      "tags": ["cgkn", "artifact", "context", "librarian"],
-      "evidence_refs": ["docs/00_kernel_contract.md", "evidence/artifact-kernel/v0.3/verification_summary.json"],
-      "experience_state": "approved",
-      "usage_count": 27,
-      "successful_usage_count": 25,
-      "owner": "context-librarian",
-      "supersedes": []
+      "id": "EXP-MVP-002",
+      "title": "Roles are views, not kernel stages",
+      "statement": "PM, Developer, Tester, Researcher, Release, and Marketing should compose reusable capabilities without acquiring mandatory sequencing authority.",
+      "applies_when": ["building project-team UX", "adding a new department or role"],
+      "avoid": ["fixed virtual-team chains", "one expensive Agent call per role"]
     },
     {
-      "id": "EXP-CGKN-REPO-001",
-      "title": "Promote curated evidence instead of tracking raw runs",
-      "situation": "Reproducible runtime output accumulates in Git and obscures source, specs, and durable claims.",
-      "action": "Keep runs local and promote only claim, status, metrics, hashes, reproduction commands, and limitations.",
-      "outcome": "HEAD stays reviewable while important claims remain reproducible.",
-      "applicable_when": ["Repository evidence retention", "benchmark publication", "release summaries"],
-      "not_applicable_when": ["Canonical runtime storage during an active local run"],
-      "tags": ["cgkn", "repository", "evidence", "hygiene"],
-      "evidence_refs": ["docs/repository_guide.md", "scripts/promote_evidence.py"],
-      "experience_state": "approved",
-      "usage_count": 0,
-      "successful_usage_count": 0,
-      "owner": "repository-maintenance",
-      "supersedes": []
-    }
-  ],
-  "usage_receipts": [
+      "id": "EXP-MVP-003",
+      "title": "Cheap executors need bounded tasks, not the whole project conversation",
+      "statement": "Send each executor only its node goal, declared inputs, relevant direct dependencies, constraints, context, and acceptance condition.",
+      "applies_when": ["calling a cheap model", "calling a local model", "using an external API"],
+      "avoid": ["full-history replay", "executor-owned project planning", "unbounded context growth"]
+    },
     {
-      "experience_id": "EXP-CGKN-QUALITY-001",
-      "project_id": "cgkn",
-      "iteration_id": "ITER-076",
-      "applied": true,
-      "outcome": "successful",
-      "evidence_refs": [
-        "evidence/repository-layout-v1/repository_metrics_after.json",
-        "tests/test_repository_hygiene.py",
-        "tests/test_kernel_contract.py"
-      ]
+      "id": "EXP-MVP-004",
+      "title": "Functional proof precedes scale proof",
+      "statement": "One real project that composes, executes, tests, repairs locally, and finishes is more valuable than large DAG, concurrency, latency, or soak results before the substrate works.",
+      "applies_when": ["selecting the next benchmark", "reviewing readiness"],
+      "avoid": ["Fixed10 before one vertical slice", "stress tests as a substitute for product function"]
+    },
+    {
+      "id": "EXP-MVP-005",
+      "title": "Archive before physical deletion during authority migration",
+      "statement": "Move superseded source, tests, schemas, and documents together under a clearly non-active legacy path before later deletion, while Git history remains the final archive.",
+      "applies_when": ["removing an old authority", "cleaning architecture"],
+      "avoid": ["leaving active tests for removed modules", "keeping stale current documentation"]
+    },
+    {
+      "id": "EXP-MVP-006",
+      "title": "Self-growth is validated capability acquisition",
+      "statement": "A capability gap should trigger search, bounded trial, interface adaptation, tests, registry admission, and reuse; it should not trigger unrestricted kernel rewriting.",
+      "applies_when": ["learning a new tool", "integrating a library or service"],
+      "avoid": ["silent invariant changes", "unverified capability registration"]
+    },
+    {
+      "id": "EXP-MVP-007",
+      "title": "Repository and product evidence are separate",
+      "statement": "A commit, remote SHA, or CI pass proves repository state only; it does not prove that a real project was generated, executed, or accepted.",
+      "applies_when": ["publishing a branch", "reporting readiness"],
+      "avoid": ["raising product level from test count", "treating CI as runtime acceptance"]
     }
   ]
 }

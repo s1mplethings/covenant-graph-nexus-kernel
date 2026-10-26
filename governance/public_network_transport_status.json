@@ -1,0 +1,44 @@
+{
+  "kind": "CGKNPublicNetworkTransportStatus",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-PROXY-AWARE-RESEARCH-LEAF-019",
+  "source_commit": "03c296fa616483e8cf61024beea8bb591bc03a4d",
+  "modes": {
+    "DIRECT": {
+      "status": "PASS",
+      "destination_authority": "locally resolved addresses, all of which must be public",
+      "fake_ip_range": "198.18.0.0/15 remains blocked"
+    },
+    "TRUSTED_LOCAL_PROXY": {
+      "status": "REAL_SMOKE_PASS",
+      "activation": "explicit process-scoped configuration",
+      "proxy_endpoint_class": "EXPLICIT_LOOPBACK",
+      "proxy_endpoint": "127.0.0.1:7890",
+      "proxy_process": "FlClashCore",
+      "destination_authority": "public hostname delegated to the explicitly trusted loopback proxy",
+      "trade_off": "proxy mode cannot provide DIRECT mode's local DNS-level destination verification"
+    }
+  },
+  "shared_policy": {
+    "methods": ["GET", "HEAD"],
+    "max_redirects": 3,
+    "timeout_seconds_max": 10,
+    "response_bytes_max": 1048576,
+    "credentials": "FORBIDDEN",
+    "literal_private_reserved_targets": "FORBIDDEN",
+    "redirect_revalidation": "EVERY_HOP",
+    "text_like_responses_only": true
+  },
+  "diagnostic": {
+    "mode": "TRUSTED_LOCAL_PROXY",
+    "proxy_configured": true,
+    "direct_dns_result": ["198.18.0.24"],
+    "fake_ip_detected": true,
+    "public_fetch_possible": true,
+    "classification": "PASS"
+  },
+  "real_smoke": {"status": "PASS", "status_code": 200, "final_url": "https://example.com", "bytes_read": 577, "redirect_count": 0},
+  "security_tests": {"result": "PASS", "passed": 15, "failed": 0},
+  "unsafe_admissions": 0,
+  "contains_credentials": false
+}

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="340" viewBox="0 0 760 340" role="img" aria-labelledby="title desc">
+  <title id="title">Release 056 internal holdout success rates</title>
+  <desc id="desc">Bar chart: B0 80.56%, B1 63.89%, B2 20.83%, B3 68.06%, B4 66.67%.</desc>
+  <rect width="760" height="340" fill="#ffffff"/>
+  <text x="30" y="32" font-family="sans-serif" font-size="20" fill="#172033">Internal holdout success rate (n=72 each)</text>
+  <line x1="170" y1="55" x2="170" y2="305" stroke="#8a94a6"/>
+  <g font-family="sans-serif" font-size="14" fill="#172033">
+    <text x="28" y="90">B0 Direct Cheap</text><rect x="170" y="70" width="459" height="24" fill="#2878b5"/><text x="638" y="88">80.56%</text>
+    <text x="28" y="138">B1 Direct Strong</text><rect x="170" y="118" width="364" height="24" fill="#8795a8"/><text x="543" y="136">63.89%</text>
+    <text x="28" y="186">B2 Flat Context</text><rect x="170" y="166" width="119" height="24" fill="#cf6f57"/><text x="298" y="184">20.83%</text>
+    <text x="28" y="234">B3 Current CGNK</text><rect x="170" y="214" width="388" height="24" fill="#5b8f5b"/><text x="567" y="232">68.06%</text>
+    <text x="28" y="282">B4 Optimized CGNK</text><rect x="170" y="262" width="380" height="24" fill="#3c9b7a"/><text x="559" y="280">66.67%</text>
+  </g>
+  <text x="170" y="324" font-family="sans-serif" font-size="12" fill="#586174">Directional evidence; one execution per frozen task.</text>
+</svg>

@@ -1,0 +1,80 @@
+{
+  "kind": "CGKNSelfGrownCapabilityExpansion",
+  "schema_version": "1.0",
+  "iteration_id": "ITER-PROXY-AWARE-RESEARCH-LEAF-019",
+  "source_commit": "d131e358798af062dc80cf963ba05460fe610f19",
+  "baseline_parent": "BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001",
+  "status": "PASS",
+  "completion": "COMPLETE",
+  "provider_mode": "SINGLE_PROVIDER_MODE",
+  "provider_id": "grok",
+  "capabilities_checked": ["web.fetch.public@1", "github.repo.inspect.public@1", "release.notes.from_diff@1"],
+  "capabilities_admitted": ["web.fetch.public@1", "github.repo.inspect.public@1", "release.notes.from_diff@1"],
+  "web_fetch": {
+    "existing_package_reused": true,
+    "real_execution": "PASS",
+    "reuse_execution": "PASS",
+    "transport_mode": "TRUSTED_LOCAL_PROXY",
+    "growth_calls": 0,
+    "builder_calls": 0,
+    "admission_calls": 0
+  },
+  "github_repo_inspect": {
+    "build": "PASS",
+    "tests": "PASS_5_OF_5",
+    "admission": "ADMITTED",
+    "registry": "REGISTERED",
+    "real_execution": "PASS",
+    "reuse_execution": "PASS_WITH_ZERO_GROWTH",
+    "provider_calls": 1,
+    "repair_calls": 0,
+    "package_hash": "sha256:8556a53123b95278eecaed5d1b121cda9987ab38dba485473ccb7963240d3658"
+  },
+  "release_notes": {
+    "reuse_execution": "PASS",
+    "growth_calls": 0,
+    "builder_calls": 0
+  },
+  "composition": {
+    "result": "PASS",
+    "nodes": ["github.repo.inspect.public@1", "release.notes.from_diff@1", "compose.project_summary@local"],
+    "artifacts": ["repo_metadata", "release_notes", "project_summary"],
+    "growth_calls": 0,
+    "builder_calls": 0
+  },
+  "security_result": "PASS",
+  "manual_edits": 0,
+  "unsafe_admissions": 0,
+  "research_foundation": "AVAILABLE",
+  "release_foundation": "AVAILABLE",
+  "baseline_promotion": "BASELINE-SELF-GROWN-LEAVES-001",
+  "testing_efficiency": {
+    "public_network_micro_tests": 15,
+    "github_capability_micro_tests": 5,
+    "small_regression_tests": 33,
+    "small_regression_result": "PASS",
+    "real_provider_calls": 1,
+    "full_regression": "NOT_RUN_BY_POLICY"
+  },
+  "provider_budget": {
+    "actual_input_tokens": 2105,
+    "actual_output_tokens": 4403,
+    "actual_token_usage_complete": true,
+    "estimated_cost_usd": 0.030628,
+    "limit_calls": 2
+  },
+  "provider_status": {
+    "Grok": "READY",
+    "Qwen": "BLOCKED_ENVIRONMENT_NOT_RETESTED",
+    "DeepSeek": "BLOCKED_CREDENTIAL_NOT_RETESTED",
+    "adaptive_provider_selection": "BLOCKED_ENVIRONMENT_NOT_RETESTED"
+  },
+  "historical_evidence": "governance/iterations/ITER-SELF-GROWN-REAL-CAPABILITIES-018/self_grown_capability_expansion.json",
+  "known_limits": [
+    "authenticated GitHub, write-side network capabilities, external acquisition, broader Research composition, and Coordinator remain outside this increment",
+    "the application-wide receipt remains stale and was not re-signed",
+    "the Kernel receipt remains unchanged because L0-L5 were not modified"
+  ],
+  "kernel_receipt": "UNCHANGED_FROM_BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001",
+  "contains_credentials": false
+}

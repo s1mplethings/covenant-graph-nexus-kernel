@@ -5,8 +5,6 @@ import json
 import pytest
 
 from scripts import compose_local_pipeline, discovery_selection_lane, requirement_blueprint, requirement_decision_lane, run_local_pipeline_impl
-from scripts.agent_tree_planner import build_agent_tree_dag
-from scripts.agent_tree_shared_context import create_shared_context
 
 
 CASES = [
@@ -66,9 +64,7 @@ def test_goal_spec_and_project_plan_follow_product_goal(case: dict[str, object])
     goal = str(case["goal"])
     goal_spec = requirement_decision_lane.build_goal_spec(goal)
     project_plan = requirement_decision_lane.build_goal_project_plan(goal_spec)
-    shared_context = create_shared_context(str(case["name"]), goal)
-    dag = build_agent_tree_dag(shared_context)
-    combined = normalized({"goal_spec": goal_spec, "project_plan": project_plan, "dag": dag})
+    combined = normalized({"goal_spec": goal_spec, "project_plan": project_plan})
 
     assert goal_spec["status"] == "PASS"
     assert goal_spec["domain"] == case["domain"]
@@ -290,6 +286,48 @@ def test_goal_plan_workstream_relationships_become_leaf_dependencies_and_symbols
     ]
     assert by_path["app/main.py"]["dependencies"] == ["src/service.py"]
     assert by_path["app/main.py"]["expected_symbols"] == ["main"]
+
+
+def test_generic_direct_cli_keeps_reviewed_provider_dependency_graph() -> None:
+    manifest = [
+        {"path": "backend/repository.py", "dependencies": []},
+        {
+            "path": "backend/service.py",
+            "dependencies": ["backend/repository.py"],
+        },
+        {
+            "path": "main.py",
+            "dependencies": ["backend/repository.py", "backend/service.py"],
+        },
+    ]
+    component = {
+        "id": "backend",
+        "contract_slice": {"architecture_mode": "direct_cli_application"},
+        "canonical_goal_spec": {
+            "entities": ["Expense", "LedgerRepository", "ExpenseService"],
+            "capabilities": ["add_expense", "list_expenses", "summarize_expenses"],
+        },
+        "business_workstreams": [
+            {
+                "id": "application_entry",
+                "expected_outputs": ["main.py"],
+                "depends_on": [],
+            }
+        ],
+    }
+
+    normalized = run_local_pipeline_impl.normalize_goal_plan_manifest_dependency_contract(
+        manifest, component
+    )
+    by_path = {entry["path"]: entry for entry in normalized}
+
+    assert by_path["backend/service.py"]["dependencies"] == [
+        "backend/repository.py"
+    ]
+    assert by_path["main.py"]["dependencies"] == [
+        "backend/repository.py",
+        "backend/service.py",
+    ]
 
 
 def test_production_component_route_consumes_canonical_goal_plan() -> None:

@@ -1,0 +1,10 @@
+{
+  "kind":"CGKNBaselineReceipt","schema_version":"1.0","baseline_id":"BASELINE-INTERFACE-003","parent_baseline_id":"BASELINE-INTERFACE-002",
+  "source_commit":"d981ddcae9fefb020c594283440e919030ea4a90","source_tree_sha":"92a7308a63edfc4c710cbe0d1a57a3c8754909c4",
+  "core_source_hash":"sha256:f7339f27a3c41c78d9b050992affcc0d1b6ee19161f51330406bcd04c6ed75e6","kernel_receipt_hash":"sha256:fe14731d4fbfbecd7d3e5c20dc6b1e732317cd2527c2636cfea13b19137ec269","l6_receipt_hash":"sha256:afea892bb82fae7b2160b76773c16ebf1c6b893d816dc941e74e09bbcc645583","semantic_experiment_receipt_hash":"sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
+  "profiles":{"micro":"PASS","fast":"PASS","promotion":"PASS","full":"PASS","live-provider":"NOT_EVALUATED"},"test_counts":{"passed":2574,"failed":0,"errors":0,"skipped":351},
+  "known_blockers":["real DAG single is not yet evaluated","repeat is not authorized until real DAG single passes","semantic artifact winner is NONE"],
+  "protected_invariants":["kernel_foundation=COMPLETE","functional_readiness=LEVEL_4","L0-L5=COMPLETE","requirement_semantics=COMPLETE","obligation_compiler=COMPLETE","obligation_execution=COMPLETE","contract_test_compiler=COMPLETE","manual_candidate_edits=0","whole_project_repair_replans=0","accepted_interface_breakages=0","generation_readiness=GENERATION_LEVEL_0","semantic_artifact_winner=NONE"],
+  "inherits":"BASELINE-INTERFACE-002","added_guarantees":["one recursive application materializer handles mappings, tuples, lists, FrozenMapping, dataclasses, enums, and paths","WU-DOCS depends on the canonical CLI contract rather than WU-CORE implementation completion","Core repair preserves one Docs Provider call while downstream validation reruns","deterministic contract tests report actual source reuse"],
+  "unchanged_guarantees":["all protected invariants and guarantees from BASELINE-INTERFACE-002"],"removed_guarantees":[],"created_at":"2026-10-17T03:31:02Z","evidence_status":"PASS","baseline_hash":"sha256:abedfc9bfdb54d53372988be42e0521d89ae09d4cdd2e7d4e7c626def5bf031d"
+}

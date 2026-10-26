@@ -5,8 +5,12 @@ import pathlib
 import subprocess
 import sys
 
+import pytest
+
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+LEGACY_PROJECT_PACK = ROOT / "project_management" / "cgkn" / "project_management.json"
+requires_legacy_management = pytest.mark.skipif(not LEGACY_PROJECT_PACK.is_file(), reason="historical_asset: pre-current PMP self-hosting pack was retired")
 sys.path.insert(0, str(ROOT / "src"))
 
 from cgkn_project_management import (  # noqa: E402
@@ -42,6 +46,8 @@ def test_delivery_approach_is_tailored_from_uncertainty_and_criticality() -> Non
     )["delivery_approach"] == "hybrid"
 
 
+@pytest.mark.historical_asset
+@requires_legacy_management
 def test_cgkn_self_hosting_artifacts_pass_semantic_validation() -> None:
     project = load_json(ROOT / "project_management" / "cgkn" / "project_management.json")
     iteration = load_json(ROOT / "project_management" / "cgkn" / "iterations" / "ITER-001.json")
@@ -52,6 +58,8 @@ def test_cgkn_self_hosting_artifacts_pass_semantic_validation() -> None:
     assert validate_enterprise_experience_pack(experience)["status"] == "PASS"
 
 
+@pytest.mark.historical_asset
+@requires_legacy_management
 def test_experience_retrieval_is_bounded_relevant_and_reviewed() -> None:
     experience = load_json(ROOT / "project_management" / "enterprise_experience.json")
     candidate = next(row for row in experience["items"] if row["id"] == "EXP-CGKN-BOOTSTRAP-001")
@@ -69,6 +77,8 @@ def test_experience_retrieval_is_bounded_relevant_and_reviewed() -> None:
     )
 
 
+@pytest.mark.historical_asset
+@requires_legacy_management
 def test_experience_usage_records_outcome_without_promoting_state() -> None:
     experience = load_json(ROOT / "project_management" / "enterprise_experience.json")
     original = next(row for row in experience["items"] if row["id"] == "EXP-CGKN-QUALITY-001")
@@ -89,6 +99,8 @@ def test_experience_usage_records_outcome_without_promoting_state() -> None:
     assert updated["usage_receipts"][-1]["outcome"] == "successful"
 
 
+@pytest.mark.historical_asset
+@requires_legacy_management
 def test_iteration_inherits_backlog_acceptance_and_quality_metrics() -> None:
     project = load_json(ROOT / "project_management" / "cgkn" / "project_management.json")
     iteration = new_iteration(
@@ -146,6 +158,8 @@ def test_skill_helper_initializes_and_validates_a_project(tmp_path: pathlib.Path
     assert json.loads(validated.stdout)["status"] == "PASS"
 
 
+@pytest.mark.historical_asset
+@requires_legacy_management
 def test_skill_helper_runs_iteration_lifecycle(tmp_path: pathlib.Path) -> None:
     helper = ROOT / "skills" / "manage-pmp-agile-quality" / "scripts" / "manage_project.py"
     project_path = tmp_path / "project_management.json"

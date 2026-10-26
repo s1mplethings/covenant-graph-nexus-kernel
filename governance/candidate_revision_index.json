@@ -1,0 +1,24 @@
+{
+  "kind": "CandidateRevisionGovernanceIndex",
+  "schema_version": "1.0",
+  "iteration": "ITER-CANDIDATE-LIFECYCLE-REFRACTOR-024",
+  "source_commit": "2ec60f0a94a2b9e67457b8ffa5e0ac37debfaf96",
+  "revisions": [
+    {
+      "revision_id": "research-repo-brief-1.iter-023-r1-recovery.r0001",
+      "capability_ref": "research.repo.brief@1",
+      "revision_number": 1,
+      "parent_revision_id": null,
+      "source_hash": "sha256:1a1d0249683e482ba2a995d42103442b3531119d69fd577d4091b9cf4a6f2b5b",
+      "creation_reason": "RECOVERED_FROM_ITER_023_INITIAL_PROVIDER_OUTPUT",
+      "provider_id": "grok",
+      "provider_request_id": "6736b9676e774953ab51e46eb77f0e82",
+      "provenance": "ITER-023_INITIAL_PROVIDER_OUTPUT",
+      "validation": "PASS",
+      "admission": "ADMITTED",
+      "installed": true,
+      "manual_edits": 0
+    }
+  ],
+  "contains_credentials": false
+}

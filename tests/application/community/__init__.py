@@ -1,0 +1,1 @@
+"""Community Operator application tests."""

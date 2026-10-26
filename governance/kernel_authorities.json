@@ -1,0 +1,25 @@
+{
+  "kind": "CGKNKernelAuthorities",
+  "schema_version": "1.0",
+  "authorities": {
+    "product_direction": {"canonical": ["PRODUCT_GOAL.md", "MVP_SCOPE.md", "governance/product_invariants.json"], "adapters": [], "forbidden_alternatives": ["fixed project pipeline", "Provider-owned planning"], "owner_layer": "L0", "forbidden_parallel_authority": true},
+    "artifact": {"canonical": "cgkn.artifacts.models:ArtifactRef", "adapters": [], "forbidden_alternatives": [], "owner_layer": "L1", "forbidden_parallel_authority": true},
+    "component": {"canonical": "cgkn.component.spec:ComponentSpec", "adapters": ["cgkn.component.adapter:ModuleComponentAdapter"], "forbidden_alternatives": [], "owner_layer": "L2", "forbidden_parallel_authority": true},
+    "ports": {"canonical": "cgkn.component.ports:PortSpec", "adapters": [], "forbidden_alternatives": [], "owner_layer": "L2", "forbidden_parallel_authority": true},
+    "composition": {"canonical": "cgkn.orchestration.capability_tree:CapabilityTree", "adapters": [], "forbidden_alternatives": ["WorkNode", "AgentTree"], "owner_layer": "L3", "forbidden_parallel_authority": true},
+    "execution_graph": {"canonical": "cgkn.orchestration.execution_dag:ExecutionDAG", "adapters": [], "forbidden_alternatives": ["pipeline_manifest"], "owner_layer": "L3", "forbidden_parallel_authority": true},
+    "execution_envelope": {"canonical": "cgkn.execution.contracts:BlockExecutionRequest", "adapters": [], "forbidden_alternatives": [], "owner_layer": "L3", "forbidden_parallel_authority": true},
+    "state": {"canonical": "cgkn.state.store:FileRunStore", "adapters": [], "forbidden_alternatives": [], "owner_layer": "L3", "forbidden_parallel_authority": true},
+    "provider_boundary": {"canonical": "cgkn.providers.client:CompletionClient", "adapters": ["cgkn.providers.client:OpenAICompatibleClient"], "forbidden_alternatives": ["Provider project planner"], "owner_layer": "L3", "forbidden_parallel_authority": true},
+    "executor_resolution": {"canonical": "cgkn.executors.registry:ExecutorRegistry", "adapters": ["cgkn.executors.local:LocalActionExecutorAdapter"], "forbidden_alternatives": [], "owner_layer": "L4", "forbidden_parallel_authority": true},
+    "runtime": {"canonical": "cgkn.runtime.dag_runner:DAGRunner", "adapters": [], "forbidden_alternatives": [], "owner_layer": "L4", "forbidden_parallel_authority": true},
+    "recovery": {"canonical": "cgkn.orchestration.invalidation:downstream_closure", "adapters": [], "forbidden_alternatives": ["whole-project default regeneration"], "owner_layer": "L4", "forbidden_parallel_authority": true},
+    "capability_lifecycle": {"canonical": "cgkn.capabilities.registry:CapabilityRegistry", "adapters": [], "forbidden_alternatives": [], "owner_layer": "L3", "forbidden_parallel_authority": true},
+    "growth": {"canonical": "cgkn.growth.loop:GrowthLoop", "adapters": [], "forbidden_alternatives": ["unreviewed kernel self-modification"], "owner_layer": "L5", "forbidden_parallel_authority": true},
+    "growth_admission": {"canonical": "cgkn.growth.admission:CapabilityAdmissionReceipt", "adapters": [], "forbidden_alternatives": [], "owner_layer": "L5", "forbidden_parallel_authority": true},
+    "agent_decisions": {"canonical": "cgkn.agent.composer:AgentComposer", "adapters": [], "forbidden_alternatives": ["second planner"], "owner_layer": "L5", "forbidden_parallel_authority": true},
+    "project_loop": {"canonical": "cgkn.agent.project_loop:AgentProjectLoop", "adapters": [], "forbidden_alternatives": [], "owner_layer": "L5", "forbidden_parallel_authority": true},
+    "telemetry": {"canonical": "cgkn.telemetry.summary:RunTelemetry", "adapters": [], "forbidden_alternatives": ["second event store"], "owner_layer": "L5", "forbidden_parallel_authority": true}
+  },
+  "compatibility_entrypoints": ["scripts/codex_conversation.py", "scripts/run_codex_conversation_generation.py", "scripts/run_local_pipeline.py", "scripts/run_local_pipeline_impl.py"]
+}

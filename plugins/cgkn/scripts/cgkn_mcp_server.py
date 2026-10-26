@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import os
@@ -12,10 +13,11 @@ import re
 import shutil
 import subprocess
 import sys
+import uuid
 from typing import Any, Callable
 
 
-SERVER_VERSION = "0.2.0-rc.1"
+SERVER_VERSION = "0.2.0-rc.3"
 PROTOCOL_VERSION = "2025-06-18"
 GENERATION_CONFIRMATION = "RUN_REVIEWED_PROVIDER"
 PROVIDER_PROBE_CONFIRMATION = "RUN_PROVIDER_PROBE"
@@ -23,6 +25,7 @@ TEST_CONFIRMATION = "RUN_PROJECT_TESTS"
 PROVIDER_MODES = ("live", "codex_surrogate", "deterministic_replay")
 PROVIDER_KEY_ENV_NAMES = (
     "CGKN_OPENAI_API_KEY_OVERRIDE",
+    "QWEN_API_KEY",
     "CGKN_OPENAI_API_KEY",
     "OPENAI_API_KEY",
 )
@@ -124,6 +127,26 @@ TOOLS = [
         open_world=False,
     ),
     tool_definition(
+        "cgkn_conversation",
+        "Answer from CGKN evidence",
+        "Answer one read-only query from the existing CGKN knowledge authority with localized retrieval, auditable provenance, and honest no-evidence or Provider-unavailable behavior.",
+        object_schema(
+            {
+                **PROJECT,
+                "query": {"type": "string", "minLength": 1, "maxLength": 4000},
+                "thread_context_id": {"type": "string", "default": ""},
+                "knowledge_path": {"type": "string", "default": ".cgkn/project_knowledge_pack.json"},
+                "retrieval_constraints": {"type": "object", "additionalProperties": True},
+                "provider_mode": {"enum": ["auto", "disabled"], "default": "auto"},
+            },
+            ("project_root", "query"),
+        ),
+        object_schema({"ok": BOOLEAN, "response": JSON_OBJECT, "component_ref": STRING}, ("ok", "response", "component_ref")),
+        read_only=True,
+        open_world=True,
+        idempotent=False,
+    ),
+    tool_definition(
         "cgkn_init",
         "Initialize CGKN support",
         "Create project-local .cgkn Agent support state. This stores no provider secret.",
@@ -168,6 +191,7 @@ TOOLS = [
                 "goal": {"type": "string", "minLength": 1, "maxLength": 2000},
                 "model": {"type": "string", "default": "gpt-4.1"},
                 "provider_mode": {"enum": list(PROVIDER_MODES), "default": "live"},
+                "usage_beta": {"type": "boolean", "default": False},
                 "replay_dir": {"type": "string", "default": ""},
                 "allow_network": {"type": "boolean", "default": False},
             },
@@ -204,7 +228,7 @@ TOOLS = [
     tool_definition(
         "cgkn_generate",
         "Run reviewed CGKN Provider generation",
-        "Run the existing reviewed CGKN Provider route in explicit live, Codex surrogate, or deterministic replay mode. Codex surrogate safely pauses for canonical file-backed responses and never resolves a live credential.",
+        "Start one managed execution of the existing reviewed CGKN Provider route and return its durable run identity without waiting for generation completion. Repeated starts deduplicate a live job; observe progress with cgkn_status.",
         object_schema(
             {
                 **PROJECT,
@@ -212,6 +236,7 @@ TOOLS = [
                 "confirmation": {"const": GENERATION_CONFIRMATION},
                 "model": {"type": "string", "default": "gpt-4.1"},
                 "provider_mode": {"enum": list(PROVIDER_MODES), "default": "live"},
+                "usage_beta": {"type": "boolean", "default": False},
                 "replay_dir": {"type": "string", "default": ""},
                 "allow_network": {"type": "boolean", "default": False},
                 "timeout": {"type": "integer", "minimum": 30, "maximum": 7200, "default": 1800},
@@ -219,8 +244,8 @@ TOOLS = [
             ("project_root", "goal", "confirmation"),
         ),
         object_schema(
-            {"ok": BOOLEAN, "result_path": STRING, "result": JSON_OBJECT, "diagnosis": JSON_OBJECT},
-            ("ok", "result_path", "result", "diagnosis"),
+            {"ok": BOOLEAN, "started": BOOLEAN, "deduplicated": BOOLEAN, "run_id": STRING, "state": STRING, "job": JSON_OBJECT},
+            ("ok", "started", "deduplicated", "run_id", "state", "job"),
         ),
         read_only=False,
         open_world=True,
@@ -315,6 +340,8 @@ class CGKNPluginServer:
             raise RuntimeError(f"Not a compatible CGKN checkout: {self.cgkn_root}")
         source = self.cgkn_root / "tools" / "cgkn-agent-kit" / "src"
         sys.path.insert(0, str(source))
+        sys.path.insert(0, str(self.cgkn_root / "src"))
+        sys.path.insert(0, str(self.cgkn_root))
         scripts = self.cgkn_root / "scripts"
         sys.path.insert(0, str(scripts))
         from cgkn_agent_kit import core
@@ -332,6 +359,7 @@ class CGKNPluginServer:
         spec.loader.exec_module(self.supervisor)
         self.handlers: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
             "cgkn_doctor": self.doctor,
+            "cgkn_conversation": self.conversation,
             "cgkn_init": self.initialize,
             "cgkn_prepare": self.prepare,
             "cgkn_seal_brief": self.seal_brief,
@@ -344,6 +372,59 @@ class CGKNPluginServer:
             "cgkn_test_generated": self.test_generated,
             "cgkn_status": self.status,
         }
+
+    def conversation(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from cgkn.application.conversation import (
+            CONVERSATION_COMPONENT_SPEC, ConversationExecutor, ConversationService,
+        )
+        from cgkn.execution import BlockExecutionRequest, TaskContext
+        from cgkn.providers import CGKNModelRouting, GatewayCompletionClient, completion_client_from_environment
+
+        project = self._project(arguments["project_root"])
+        relative = str(arguments.get("knowledge_path") or ".cgkn/project_knowledge_pack.json")
+        knowledge_path = (project / relative).resolve()
+        try:
+            knowledge_path.relative_to(project)
+        except ValueError as exc:
+            raise ToolError("knowledge_path must stay within project_root") from exc
+        if not knowledge_path.is_file():
+            raise ToolError(f"Knowledge pack does not exist: {knowledge_path}")
+        provider_mode = str(arguments.get("provider_mode") or "auto")
+        client = None
+        config = None
+        run_id = f"conversation-{uuid.uuid4().hex[:12]}"
+        if provider_mode == "auto":
+            try:
+                client = completion_client_from_environment()
+                routing = CGKNModelRouting.load(self.cgkn_root / "config" / "provider_profiles" / "gateway_model_routing.json")
+                config = routing.worker
+                if isinstance(client, GatewayCompletionClient):
+                    client = client.bind_run(run_id, "conversation", budget_purpose="BENCHMARK")
+            except Exception:
+                client = None
+                config = None
+        service = ConversationService(client, config)
+        executor = ConversationExecutor(service)
+        request = BlockExecutionRequest(
+            project.name or "conversation", run_id, "attempt-1", "conversation.answer",
+            CONVERSATION_COMPONENT_SPEC.ref, executor.descriptor.executor_ref,
+            TaskContext("Answer one read-only evidence-grounded Conversation query."),
+            input_values={"request": {
+                "query": arguments["query"],
+                "thread_context_id": arguments.get("thread_context_id", ""),
+                "retrieval_constraints": arguments.get("retrieval_constraints", {}),
+                "knowledge_path": str(knowledge_path),
+                "provider_enabled": provider_mode == "auto",
+            }},
+            timeout_seconds=float((config.timeout_seconds if config else 45) + 30),
+            declared_effects=("provider.optional",),
+            metadata={"read_only": True},
+        )
+        result = executor.execute(request)
+        if not result.succeeded:
+            raise ToolError(result.error.message if result.error else "Conversation execution failed")
+        response = result.as_dict()["outputs"]["response"]
+        return {"ok": response["status"] != "INVALID_REQUEST", "response": response, "component_ref": CONVERSATION_COMPONENT_SPEC.ref}
 
     @staticmethod
     def _project(value: Any) -> pathlib.Path:
@@ -449,7 +530,7 @@ class CGKNPluginServer:
         return brief, brief_path, cgkn_root
 
     def _matching_resume_run_dir(self, project: pathlib.Path, goal: str) -> pathlib.Path | None:
-        _, _, _, artifact_dir = self._loaded(project)
+        _, _, cgkn_root, artifact_dir = self._loaded(project)
         result_path = artifact_dir / "generation_result.json"
         if result_path.is_file():
             try:
@@ -626,6 +707,30 @@ class CGKNPluginServer:
         pending_path = run_dir / "artifacts" / "pending_repair_plan.json"
         result = self._read_optional_json(result_path)
         pending = self._read_optional_json(pending_path)
+        job_path = self.core.generation_job_path(artifact_dir)
+        job_status = (
+            self.core.generation_job_status(artifact_dir)
+            if job_path.is_file()
+            else {"state": "NOT_STARTED"}
+        )
+        job_state = str(job_status.get("state", "") or "").upper()
+        external_wait = job_state in {"WAITING_SURROGATE_RESPONSE", "WAITING_REQUIREMENT_REPLAN"}
+        surrogate_report: dict[str, Any] = {}
+        if external_wait and str(job_status.get("run_dir", "") or "").strip():
+            try:
+                surrogate_report = self.core.surrogate_status(
+                    project,
+                    run_dir=pathlib.Path(str(job_status["run_dir"])),
+                )
+            except (self.core.AgentKitError, OSError, TypeError, ValueError):
+                surrogate_report = {}
+        submitted_unconsumed = [
+            item
+            for item in surrogate_report.get("requests", [])
+            if isinstance(item, dict)
+            and bool(item.get("responded"))
+            and not bool(item.get("consumed"))
+        ]
         events, log_truncated = self._read_jsonl_tail(phase_log_path)
         observed_status = str(result.get("status", "NOT_EVALUATED") or "NOT_EVALUATED").upper()
         has_failure = observed_status not in {"PASS", "PASS_WITH_LIMITS", "NOT_EVALUATED"}
@@ -792,13 +897,20 @@ class CGKNPluginServer:
 
         pending_goal = str(pending.get("raw_user_goal", "")).strip()
         result_goal = str(result.get("goal", "")).strip()
-        resume_available = bool(
+        response_ready = external_wait and bool(submitted_unconsumed)
+        resume_available = response_ready or bool(
             pending.get("status") == "pending"
             and pending.get("stage") in {"component_file_generation", "provider_semantic_repair"}
             and (not result_goal or pending_goal == result_goal)
         )
-        resume_safe = resume_available and (identity_bound_pending or not drift_components)
-        if resume_available and identity_bound_pending:
+        resume_safe = response_ready or (
+            resume_available and (identity_bound_pending or not drift_components)
+        )
+        if response_ready:
+            resume_reason = "submitted_unconsumed_surrogate_response"
+        elif external_wait:
+            resume_reason = "awaiting_identity_bound_surrogate_response"
+        elif resume_available and identity_bound_pending:
             resume_reason = "matching_identity_bound_pending_plan"
         elif drift_components:
             resume_reason = "checkpoint_identity_drift"
@@ -812,7 +924,11 @@ class CGKNPluginServer:
             "available": resume_available,
             "safe": resume_safe,
             "reason": resume_reason,
-            "run_dir": str(run_dir) if resume_available else "",
+            "run_dir": (
+                str(job_status.get("run_dir", "") or "")
+                if response_ready
+                else str(run_dir) if resume_available else ""
+            ),
         }
 
         provider_unavailable = bool(
@@ -824,7 +940,11 @@ class CGKNPluginServer:
                 "provider_usage_limit",
             }
         )
-        if not has_failure:
+        if response_ready:
+            action = "Resume the same production run; its identity-bound surrogate response is submitted and not yet consumed."
+        elif external_wait:
+            action = "Submit the identity-bound pending surrogate response, then resume the same production run."
+        elif not has_failure:
             action = "No blocked generation failure is recorded."
         elif provider_unavailable and resume_safe:
             action = "Resolve Provider authentication or account availability, then resume the matching safe pending plan through the reviewed Provider route."
@@ -839,7 +959,12 @@ class CGKNPluginServer:
         else:
             action = "Repair the primary failure through the reviewed Provider route before starting a new bounded run."
 
-        sources = [str(path) for path in (result_path, phase_log_path, pending_path) if path.exists()]
+        sources = [str(path) for path in (result_path, phase_log_path, pending_path, job_path) if path.exists()]
+        sources.extend(
+            str(item.get("response_path", "") or item.get("request_path", ""))
+            for item in submitted_unconsumed
+            if str(item.get("response_path", "") or item.get("request_path", "")).strip()
+        )
         return self._sanitize(
             {
                 "has_failure": has_failure,
@@ -848,6 +973,12 @@ class CGKNPluginServer:
                 "contributing_failures": contributing[:8],
                 "secondary_effects": secondary_effects[:8],
                 "resume": resume,
+                "external_wait": {
+                    "active": external_wait,
+                    "state": job_state if external_wait else "",
+                    "submitted_unconsumed_responses": len(submitted_unconsumed),
+                    "waiting_for": str(job_status.get("waiting_for", "") or ""),
+                },
                 "counts": {
                     "observed_events": len(events),
                     "leaf_failures": len(leaf_failures),
@@ -918,7 +1049,8 @@ class CGKNPluginServer:
             model=str(args.get("model", "gpt-4.1")),
             allow_network=bool(args.get("allow_network", False)),
             resume_run_dir=self._matching_resume_run_dir(project, goal),
-            provider_mode=str(args.get("provider_mode", "live")),
+            provider_mode=(str(args["provider_mode"]) if "provider_mode" in args else None),
+            usage_beta=bool(args.get("usage_beta", False)),
             replay_dir=pathlib.Path(str(args["replay_dir"])) if str(args.get("replay_dir", "")).strip() else None,
         )
         clean_argv = [self.core.redact(str(item)) for item in argv]
@@ -933,7 +1065,10 @@ class CGKNPluginServer:
     def generate(self, args: dict[str, Any]) -> dict[str, Any]:
         if args.get("confirmation") != GENERATION_CONFIRMATION:
             raise ToolError(f"Generation requires confirmation={GENERATION_CONFIRMATION}")
-        provider_mode = str(args.get("provider_mode", "live") or "live")
+        provider_mode = self.core.resolve_provider_mode(
+            str(args["provider_mode"]) if "provider_mode" in args else None,
+            usage_beta=bool(args.get("usage_beta", False)),
+        )
         if provider_mode == "live":
             credentials = self.connectivity._resolve_api_credentials()
             if not str(credentials.get("api_key", "")).strip():
@@ -942,8 +1077,6 @@ class CGKNPluginServer:
         goal = str(args["goal"]).strip()
         _, brief_path, cgkn_root = self._validated_brief(project)
         _, _, _, artifact_dir = self._loaded(project)
-        result_path = artifact_dir / "generation_result.json"
-        prior_result_identity = self._result_identity(result_path)
         argv = self.core.generation_command(
             project,
             goal=goal,
@@ -952,24 +1085,25 @@ class CGKNPluginServer:
             allow_network=bool(args.get("allow_network", False)),
             resume_run_dir=self._matching_resume_run_dir(project, goal),
             provider_mode=provider_mode,
+            usage_beta=bool(args.get("usage_beta", False)),
             replay_dir=pathlib.Path(str(args["replay_dir"])) if str(args.get("replay_dir", "")).strip() else None,
         )
         try:
-            self.core.run_generation(argv, cgkn_root=cgkn_root, timeout=int(args.get("timeout", 1800)))
+            job = self.core.start_generation_job(
+                argv,
+                cgkn_root=cgkn_root,
+                artifact_dir=artifact_dir,
+            )
         except self.core.AgentKitError as exc:
-            if self._result_identity(result_path) in {None, prior_result_identity}:
-                raise ToolError(str(exc)) from exc
-        if not result_path.is_file():
-            raise ToolError("CGKN generation returned without generation_result.json")
-        if self._result_identity(result_path) == prior_result_identity:
-            raise ToolError("CGKN generation returned without updating generation_result.json")
-        result = self._sanitize(self.core.read_json(result_path))
-        status = str(result.get("status", "")).upper()
+            raise ToolError(str(exc)) from exc
+        clean_job = self._sanitize(job)
         return {
-            "ok": status in {"PASS", "PASS_WITH_LIMITS", "WAITING_SURROGATE_RESPONSE", "WAITING_REQUIREMENT_REPLAN"},
-            "result_path": str(result_path),
-            "result": result,
-            "diagnosis": self._failure_diagnosis(project),
+            "ok": str(job.get("state", "")).upper() not in {"FAILED", "CANCELLED"},
+            "started": bool(job.get("started")),
+            "deduplicated": bool(job.get("deduplicated")),
+            "run_id": str(job.get("run_id", "")),
+            "state": str(job.get("state", "UNKNOWN")),
+            "job": clean_job,
         }
 
     def surrogate_status(self, args: dict[str, Any]) -> dict[str, Any]:
@@ -1034,6 +1168,12 @@ class CGKNPluginServer:
         value = str(source or "")
         if value == "CGKN_OPENAI_API_KEY_OVERRIDE":
             return "process_override"
+        if value == "QWEN_API_KEY(User)":
+            return "shared_qwen_user"
+        if value == "QWEN_API_KEY(Machine)":
+            return "shared_qwen_machine"
+        if value == "QWEN_API_KEY":
+            return "shared_qwen_process"
         if value == "CGKN_OPENAI_API_KEY(User)":
             return "canonical_user"
         if value == "CGKN_OPENAI_API_KEY(Machine)":
@@ -1065,6 +1205,11 @@ class CGKNPluginServer:
             "endpoint": str(result.get("endpoint", "")),
             "endpoint_mode": str(result.get("endpoint_mode", "")),
             "model": model,
+            "provider_name": "qwen" if model.lower().startswith("qwen") else "openai_compatible",
+            "credential_present": bool(result.get("configured")),
+            "credential_env_name": str(result.get("api_key_source", "")).split("(", 1)[0],
+            "base_url_host": self.connectivity._base_url_domain(str(result.get("base_url", ""))),
+            "free_tier_only": False,
             "attempts": int(result.get("attempts", 0) or 0),
             "tls_verify": bool(result.get("tls_verify", True)),
             "request_id": str(result.get("request_id", "")),
@@ -1183,6 +1328,22 @@ class CGKNPluginServer:
                 except self.core.AgentKitError as exc:
                     summary["read_error"] = str(exc)
             artifacts[name] = self._sanitize(summary)
+        artifacts["generation_job"] = self._sanitize(
+            self.core.generation_job_status(artifact_dir)
+        )
+        plugin_root = pathlib.Path(__file__).resolve().parents[1]
+        plugin_manifest = self.core.read_json(plugin_root / ".codex-plugin" / "plugin.json")
+        repository_revision = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=self.cgkn_root, capture_output=True,
+            text=True, encoding="utf-8", errors="replace", check=False,
+        )
+        artifacts["runtime_identity"] = {
+            "repository_root": str(self.cgkn_root),
+            "repository_revision": repository_revision.stdout.strip() if repository_revision.returncode == 0 else None,
+            "plugin_root": str(plugin_root),
+            "plugin_version": plugin_manifest.get("version"),
+            "server_sha256": hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest(),
+        }
         return {
             "ok": True,
             "initialized": True,

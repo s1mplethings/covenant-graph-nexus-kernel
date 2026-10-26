@@ -1,0 +1,42 @@
+{
+  "kind": "CGKNExecutionStrategyComparisonEvidence",
+  "schema_version": "1.0",
+  "iteration": "ITER-EXECUTABLE-INTERFACE-CONTRACT-013",
+  "source_commit": "d981ddcae9fefb020c594283440e919030ea4a90",
+  "source_tree_sha": "92a7308a63edfc4c710cbe0d1a57a3c8754909c4",
+  "case": "CLI CSV Cleaner",
+  "dag_single": {
+    "status": "PASS", "run_id": "csv-obligation-3fd7d276bf", "worker": "qwen3.7-flash",
+    "provider_calls": 3, "proposal_attempts": 3, "local_interface_guard_rejects": 0,
+    "tokens": 17884, "wall_time_ms": 65318, "repair_rounds": 1,
+    "public_pytest": "PASS", "oracle": "PASS", "hidden_acceptance": "PASS"
+  },
+  "dag_repeat": {
+    "runs": 3, "successes": 2, "success_rate": 0.6666666666666666,
+    "provider_calls": 9, "proposal_attempts": 9, "local_interface_guard_rejects": 0,
+    "tokens": 48867, "wall_time_ms": 156833, "repair_rounds": 3,
+    "manual_edits": 0, "whole_replans": 0, "accepted_interface_breaks": 0,
+    "results": [
+      {"run_id": "csv-obligation-3bc8210ffa", "status": "PASS", "provider_calls": 2, "tokens": 8474, "wall_time_ms": 40938, "repair_rounds": 0, "pytest": "PASS", "oracle": "PASS", "hidden": "PASS"},
+      {"run_id": "csv-obligation-2e8dacc2f1", "status": "FAIL", "provider_calls": 4, "tokens": 25247, "wall_time_ms": 73881, "repair_rounds": 2, "pytest": "FAIL", "oracle": "FAIL", "hidden": "FAIL", "failure_class": "SOURCE_IMPLEMENTATION_BLOCKER"},
+      {"run_id": "csv-obligation-778f10df6e", "status": "PASS", "provider_calls": 3, "tokens": 15146, "wall_time_ms": 42014, "repair_rounds": 1, "pytest": "PASS", "oracle": "PASS", "hidden": "PASS"}
+    ]
+  },
+  "direct_repeat": {
+    "model": "qwen3.8-max", "runs": 3, "successes": 3, "success_rate": 1.0,
+    "provider_calls": 3, "tokens": 20176, "wall_time_ms": 119988, "repair_rounds": 0,
+    "manual_edits": 0, "whole_replans": 0,
+    "results": [
+      {"run_id": "csv-direct-3e7dd9a23f", "status": "PASS", "provider_calls": 1, "tokens": 6701, "wall_time_ms": 40353},
+      {"run_id": "csv-direct-3fd213c703", "status": "PASS", "provider_calls": 1, "tokens": 6582, "wall_time_ms": 37917},
+      {"run_id": "csv-direct-fd6142e982", "status": "PASS", "provider_calls": 1, "tokens": 6893, "wall_time_ms": 41718}
+    ],
+    "comparison_limit": "Direct consumes canonical obligations, WorkUnit interface contract refs, canonical tests, Oracles, and hidden acceptance, but does not execute the DAG pre-commit Interface Guard."
+  },
+  "orchestration_value": "PASS_WITH_LIMITS",
+  "repeat_authorized": true,
+  "generation_readiness": "GENERATION_LEVEL_1",
+  "single_project_repeatability": "PASS_WITH_LIMITS",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "receipt_hash": "sha256:59c0c3f6daa68d4c61649bc5f57747314e6d1fecb45721292fe972e237edf8ce"
+}

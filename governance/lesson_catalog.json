@@ -1,0 +1,127 @@
+{
+  "catalog_hash": "sha256:51e1510074f521a7965d39f96b7bac63e06f3847a33bf05672322cccac105509",
+  "contains_credentials": false,
+  "iteration": "ITER-MULTI-PROJECT-REAL-USAGE-CAMPAIGN-026",
+  "kind": "LessonCatalog",
+  "lessons": [
+    {
+      "contradiction_count": 0,
+      "evidence_refs": [
+        "governance/grok_data_plane_status.json",
+        "governance/grok_timeout_authority_status.json"
+      ],
+      "injected_in_campaign": false,
+      "lesson_id": "lesson.1b78e27fb438770ee85a4756",
+      "revision": 1,
+      "scope": "grok",
+      "status": "PROMOTED_TO_POLICY",
+      "support_count": 1,
+      "trigger": "CATALOG_FAILURE"
+    },
+    {
+      "contradiction_count": 0,
+      "evidence_refs": [
+        "governance/capability_dependency_graph.json",
+        "governance/baselines/receipts/BASELINE-SELF-GROWN-LEAVES-001.json"
+      ],
+      "injected_in_campaign": false,
+      "lesson_id": "lesson.4e478d6f77bd4a17e0ba1554",
+      "revision": 1,
+      "scope": "capability.build+GENERATION",
+      "status": "VALIDATED",
+      "support_count": 1,
+      "trigger": "RAW_NETWORK_IN_COMPOSITE"
+    },
+    {
+      "contradiction_count": 0,
+      "evidence_refs": [
+        "governance/candidate_lifecycle_status.json",
+        "governance/validation_action_policy_status.json"
+      ],
+      "injected_in_campaign": false,
+      "lesson_id": "lesson.5caa279e149e1a9ed9280e49",
+      "revision": 1,
+      "scope": "GLOBAL",
+      "status": "PROMOTED_TO_POLICY",
+      "support_count": 1,
+      "trigger": "FRAMEWORK_VALIDATOR_DEFECT"
+    },
+    {
+      "contradiction_count": 0,
+      "evidence_refs": [
+        "governance/external_dependency_health_status.json",
+        "governance/validation_action_policy_status.json"
+      ],
+      "injected_in_campaign": false,
+      "lesson_id": "lesson.8094091fe7a2a123daf4de38",
+      "revision": 1,
+      "scope": "GLOBAL",
+      "status": "PROMOTED_TO_POLICY",
+      "support_count": 1,
+      "trigger": "EXTERNAL_DEPENDENCY_FAILURE"
+    },
+    {
+      "contradiction_count": 0,
+      "evidence_refs": [
+        "governance/baselines/receipts/BASELINE-OBLIGATION-004.json",
+        "governance/obligation_compiler_status.json"
+      ],
+      "injected_in_campaign": true,
+      "lesson_id": "lesson.8b9ec450388e3194ce6c7c9d",
+      "revision": 5,
+      "scope": "project.codegen+GENERATION",
+      "status": "VALIDATED",
+      "support_count": 5,
+      "trigger": "DEPENDENCY_DOMAIN_CONFUSION"
+    },
+    {
+      "contradiction_count": 0,
+      "evidence_refs": [
+        "governance/candidate_lifecycle_status.json",
+        "governance/capability_dependency_graph.json"
+      ],
+      "injected_in_campaign": false,
+      "lesson_id": "lesson.acfb007cf8352b8166245dc6",
+      "revision": 1,
+      "scope": "capability.build+GENERATION",
+      "status": "VALIDATED",
+      "support_count": 1,
+      "trigger": "CAPABILITY_DEPENDENCY_MISMATCH"
+    },
+    {
+      "contradiction_count": 0,
+      "evidence_refs": [
+        "governance/baselines/receipts/BASELINE-INTERFACE-001.json",
+        "governance/interface_contract_status.json"
+      ],
+      "injected_in_campaign": true,
+      "lesson_id": "lesson.be6c2bbccc9aafd6f5993723",
+      "revision": 5,
+      "scope": "project.codegen+GENERATION",
+      "status": "VALIDATED",
+      "support_count": 5,
+      "trigger": "CLI_INTERFACE_DRIFT"
+    },
+    {
+      "contradiction_count": 0,
+      "evidence_refs": [
+        "governance/candidate_lifecycle_status.json",
+        "governance/candidate_revision_index.json"
+      ],
+      "injected_in_campaign": false,
+      "lesson_id": "lesson.ea9c8ec5e0d37165a32a0510",
+      "revision": 1,
+      "scope": "GLOBAL",
+      "status": "PROMOTED_TO_POLICY",
+      "support_count": 1,
+      "trigger": "CANDIDATE_REPAIR"
+    }
+  ],
+  "new_candidate_count": 0,
+  "promoted_to_policy_count": 4,
+  "retired_count": 0,
+  "review_count": 0,
+  "schema_version": "1.0",
+  "status": "PASS",
+  "validated_count": 4
+}

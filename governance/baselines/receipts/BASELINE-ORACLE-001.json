@@ -1,0 +1,39 @@
+{
+  "kind": "CGKNBaselineReceipt",
+  "schema_version": "1.0",
+  "baseline_id": "BASELINE-ORACLE-001",
+  "parent_baseline_id": "BASELINE-OBLIGATION-006",
+  "source_commit": "c829ed9bdd91bc8a19b156693badd4b85bfcb415",
+  "source_tree_sha": "46e1138185aa638355f2818c13206080d6da4423",
+  "core_source_hash": "sha256:f7339f27a3c41c78d9b050992affcc0d1b6ee19161f51330406bcd04c6ed75e6",
+  "kernel_receipt_hash": "sha256:fe14731d4fbfbecd7d3e5c20dc6b1e732317cd2527c2636cfea13b19137ec269",
+  "l6_receipt_hash": "sha256:7807c8bd73fe8b148ba7f1e73dad314642162729611715b334d5c54424d6d1de",
+  "semantic_experiment_receipt_hash": "sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
+  "profiles": {"static":"PASS","unit":"PASS","boundary":"PASS","fault":"PASS","security":"PASS","local-functional":"PASS","full-core":"PASS","active-repository":"PASS","live-provider":"BLOCKED_ENVIRONMENT"},
+  "test_counts": {"passed":3099,"failed":0,"errors":0,"skipped":355},
+  "known_blockers": [
+    "CSV obligations are not yet compiled into OraclePlan",
+    "Oracle executors and evidence comparison are not yet implemented",
+    "semantic artifact winner is NONE",
+    "real CLI direct and DAG repeatability are not evaluated under an independent Oracle",
+    "generation readiness is GENERATION_LEVEL_0"
+  ],
+  "protected_invariants": [
+    "kernel_foundation=COMPLETE","functional_readiness=LEVEL_4","L0-L5=COMPLETE","L6=PARTIAL",
+    "obligation_compiler=COMPLETE","traceability_public_coverage=100%","public_test_traceability=100%","hidden_acceptance_traceability=100%",
+    "orphan_tests=0","harness_contract_gaps=0","seeded_repair_A_B_C=PASS","accepted_interface_breakages=0",
+    "whole_project_repair_replans=0","manual_candidate_edits=0","hidden_source_exposed=false","direct_agent_declared_route=true",
+    "execution_strategy_decided_before_run=true","fake_direct_dag=PASS","generation_readiness=GENERATION_LEVEL_0","semantic_artifact_winner=NONE"
+  ],
+  "inherits": "BASELINE-OBLIGATION-006",
+  "added_guarantees": [
+    "OracleSpec, OraclePlan, and OracleEvidence are immutable, versioned, round-trip safe, and deterministically hash-bound",
+    "the Oracle registry rejects duplicate identifiers, unknown obligations, dangling required Oracles, and mismatched evidence references",
+    "COMMAND, FILE, CSV, CLI, DEPENDENCY, STATIC_PYTHON, and DOCUMENTATION are the bounded first Oracle kinds"
+  ],
+  "unchanged_guarantees": ["all protected invariants and guarantees from BASELINE-OBLIGATION-006"],
+  "removed_guarantees": [],
+  "created_at": "2026-10-16T13:35:42.7923031Z",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "baseline_hash": "sha256:b44853682dbb8210741690468b7ecfaf8e62cb07521168d246e3624d0e1dd6ce"
+}

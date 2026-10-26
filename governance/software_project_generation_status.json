@@ -1,0 +1,30 @@
+{
+  "kind": "CGKNSoftwareProjectGenerationStatus",
+  "schema_version": "1.0",
+  "source_commit": "b078927711070cf12f7e58c7fc31bb624046efcc",
+  "semantic_artifact_interface": "PARTIAL",
+  "generation_readiness": "GENERATION_LEVEL_2",
+  "bundle_status": "COMPLETE",
+  "single_project": "PASS",
+  "repeatability": "PASS",
+  "multitype": "PASS",
+  "repair": "PASS_WITH_LIMITS",
+  "hidden_acceptance": "PASS",
+  "false_pass": "PASS",
+  "provider_validation": "PASS_WITH_LIMITS",
+  "repository_codegen": "COMPLETE",
+  "capability_builder": "COMPLETE",
+  "self_growth_v1": "COMPLETE",
+  "blockers": [
+    "adaptive Provider selection remains blocked because only Grok is eligible",
+    "Qwen workspace/credential and DeepSeek credential remain unavailable"
+  ],
+  "evidence": {
+    "kernel_receipt": "sha256:4ed5734ae753d4b613a01e822f5fbd78cd69f2259779bc0530c27cfb2432b7b9",
+    "application_receipt": "sha256:23ca0b3c1e9b48b3a50147571f48bb635ef84919a985b24ff651645200772071",
+    "provider_selection": "governance/provider_connections/selection_status.json",
+    "repository_codegen": "governance/repository_codegen_status.json",
+    "capability_builder": "governance/capability_builder_status.json",
+    "self_growth": "governance/self_growth_status.json"
+  }
+}

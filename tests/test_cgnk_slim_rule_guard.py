@@ -67,17 +67,15 @@ def test_delivery_gate_checks_present_and_ok() -> None:
         assert checks[name]["ok"], name
 
 
-def test_legacy_marking_checks_present_and_ok() -> None:
+def test_retired_generation_surfaces_are_absent() -> None:
     checks = _checks_by_name()
-    bridge_name = "legacy wrapper functions in the bridge are marked LEGACY ONLY"
+    bridge_name = "retired generation wrapper functions are absent from the bridge"
     assert bridge_name in checks
     assert checks[bridge_name]["ok"]
-    # File-level legacy markers (present only when the wrapper files exist).
-    for path, _markers in guard.LEGACY_WRAPPER_FILES:
-        if (ROOT / path).exists():
-            name = f"{path} is marked legacy-only"
-            assert name in checks, name
-            assert checks[name]["ok"], name
+    file_name = "superseded generation files are absent"
+    assert file_name in checks
+    assert checks[file_name]["ok"]
+    assert all(not (ROOT / path).exists() for path in guard.RETIRED_GENERATION_FILES)
 
 
 def test_public_suffix_whitelist_check() -> None:

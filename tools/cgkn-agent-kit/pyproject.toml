@@ -4,13 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cgkn-agent-kit"
-version = "0.2.0rc1"
-description = "Project-agnostic Agent supervision companion for the CGKN Provider mainline"
+version = "0.2.0rc3"
+description = "Project-agnostic Agent supervision companion for the CGNK Provider mainline"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "Proprietary"}
-authors = [{name = "CGKN"}]
+license = "Apache-2.0"
+authors = [{name = "CGNK contributors"}]
 dependencies = []
+
+[project.urls]
+Repository = "https://github.com/s1mplethings/covenant-graph-nexus-kernel"
 
 [project.scripts]
 cgkn-agent = "cgkn_agent_kit.cli:main"

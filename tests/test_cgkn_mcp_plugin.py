@@ -111,6 +111,7 @@ def test_mcp_protocol_lists_typed_tools_with_honest_annotations(client: MCPClien
     tools = client.request("tools/list")["result"]["tools"]
     assert {tool["name"] for tool in tools} == {
         "cgkn_doctor",
+        "cgkn_conversation",
         "cgkn_init",
         "cgkn_prepare",
         "cgkn_seal_brief",
@@ -129,6 +130,7 @@ def test_mcp_protocol_lists_typed_tools_with_honest_annotations(client: MCPClien
         assert tool["annotations"]["destructiveHint"] is False
         assert "api_key" not in json.dumps(tool["inputSchema"]).lower()
     generation = next(tool for tool in tools if tool["name"] == "cgkn_generate")
+    assert generation["inputSchema"]["properties"]["usage_beta"]["default"] is False
     assert generation["annotations"]["openWorldHint"] is True
     assert generation["inputSchema"]["properties"]["confirmation"]["const"] == "RUN_REVIEWED_PROVIDER"
     probe = next(tool for tool in tools if tool["name"] == "cgkn_probe_provider")
@@ -211,6 +213,34 @@ def test_mcp_end_to_end_init_prepare_seal_plan_and_status(client: MCPClient, tmp
     assert status["diagnosis"]["has_failure"] is False
 
 
+def test_mcp_conversation_exposes_read_only_evidence_surface(client: MCPClient, tmp_path: pathlib.Path) -> None:
+    project = tmp_path / "conversation"
+    knowledge_dir = project / ".cgkn"
+    knowledge_dir.mkdir(parents=True)
+    source = ROOT / "examples" / "project-generation" / "knowledge" / "cgkn_refactor.project_knowledge_pack.json"
+    target = knowledge_dir / "project_knowledge_pack.json"
+    target.write_bytes(source.read_bytes())
+    before = target.read_bytes()
+
+    grounded = client.tool(
+        "cgkn_conversation",
+        {"project_root": str(project), "query": "Is CGKN read-only?", "provider_mode": "disabled"},
+    )["structuredContent"]
+    assert grounded["ok"] is True
+    assert grounded["component_ref"] == "conversation.answer@1.0"
+    assert grounded["response"]["status"] == "EVIDENCE_ONLY"
+    assert grounded["response"]["answer_kind"] == "EVIDENCE_ONLY"
+    assert grounded["response"]["provenance"]
+    assert grounded["response"]["read_only"] is True
+
+    missing = client.tool(
+        "cgkn_conversation",
+        {"project_root": str(project), "query": "What is the lunar launch date?", "provider_mode": "disabled"},
+    )["structuredContent"]
+    assert missing["response"]["status"] == "INSUFFICIENT_EVIDENCE"
+    assert target.read_bytes() == before
+
+
 def test_mcp_prepare_round_trips_chinese_utf8_without_surrogates(
     client: MCPClient,
     tmp_path: pathlib.Path,
@@ -274,7 +304,7 @@ def test_tool_arguments_reject_secrets_and_generation_requires_confirmation(
     assert "Unsupported arguments fields" in wrong_type["structuredContent"]["error"]
 
 
-def test_generate_rejects_a_stale_result_when_runner_does_not_update_it(
+def test_generate_returns_managed_job_without_reusing_a_stale_result(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: pathlib.Path,
 ) -> None:
@@ -297,19 +327,28 @@ def test_generate_rejects_a_stale_result_when_runner_does_not_update_it(
     monkeypatch.setattr(server, "_validated_brief", lambda _project: ({}, brief_path, ROOT))
     monkeypatch.setattr(server, "_loaded", lambda _project: (project, {}, ROOT, artifact_dir))
     monkeypatch.setattr(server.core, "generation_command", lambda *args, **kwargs: ["runner"])
-    monkeypatch.setattr(server.core, "run_generation", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        server.core,
+        "start_generation_job",
+        lambda *args, **kwargs: {
+            "started": True, "deduplicated": False, "run_id": "production-fresh",
+            "state": "RUNNING", "job_alive": True,
+        },
+    )
 
-    with pytest.raises(module.ToolError, match="without updating generation_result.json"):
-        server.generate(
-            {
-                "project_root": str(project),
-                "goal": "Generate a sample",
-                "confirmation": module.GENERATION_CONFIRMATION,
-            }
-        )
+    result = server.generate(
+        {
+            "project_root": str(project),
+            "goal": "Generate a sample",
+            "confirmation": module.GENERATION_CONFIRMATION,
+        }
+    )
+    assert result["run_id"] == "production-fresh"
+    assert result["state"] == "RUNNING"
+    assert json.loads(result_path.read_text(encoding="utf-8"))["status"] == "BLOCKED"
 
 
-def test_generate_embeds_compact_failure_diagnosis(
+def test_generate_projects_managed_start_failure_state(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: pathlib.Path,
 ) -> None:
@@ -330,14 +369,13 @@ def test_generate_embeds_compact_failure_diagnosis(
     monkeypatch.setattr(server, "_loaded", lambda _project: (project, {}, ROOT, artifact_dir))
     monkeypatch.setattr(server.core, "generation_command", lambda *args, **kwargs: ["runner"])
 
-    def write_blocked_result(*_args: Any, **_kwargs: Any) -> None:
-        result_path.write_text('{"status":"BLOCKED","reason":"provider_fact_blocked"}\n', encoding="utf-8")
-
-    monkeypatch.setattr(server.core, "run_generation", write_blocked_result)
     monkeypatch.setattr(
-        server,
-        "_failure_diagnosis",
-        lambda _project: {"has_failure": True, "primary_failure": {"category": "provider_output_contract"}},
+        server.core,
+        "start_generation_job",
+        lambda *args, **kwargs: {
+            "started": True, "deduplicated": False, "run_id": "",
+            "state": "FAILED", "job_alive": False, "terminal_reason": "JOB_START_FAILED",
+        },
     )
 
     result = server.generate(
@@ -349,7 +387,75 @@ def test_generate_embeds_compact_failure_diagnosis(
     )
 
     assert result["ok"] is False
-    assert result["diagnosis"]["primary_failure"]["category"] == "provider_output_contract"
+    assert result["state"] == "FAILED"
+    assert result["job"]["terminal_reason"] == "JOB_START_FAILED"
+
+
+def test_fsv_001_diagnosis_reports_submitted_replan_response_as_safe_resume(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: pathlib.Path,
+) -> None:
+    module = load_server_module()
+    server = module.CGKNPluginServer(ROOT)
+    project = tmp_path / "waiting-replan"
+    artifact_dir = project / ".cgkn" / "agent-kit"
+    artifact_dir.mkdir(parents=True)
+    (project / server.core.CONFIG_PATH).parent.mkdir(parents=True, exist_ok=True)
+    (project / server.core.CONFIG_PATH).write_text("{}\n", encoding="utf-8")
+    run_dir = artifact_dir / "runs" / "production-replan"
+    run_dir.mkdir(parents=True)
+    response_path = run_dir / "response.json"
+    response_path.write_text("{}\n", encoding="utf-8")
+    server.core.write_json(
+        server.core.generation_job_path(artifact_dir),
+        {
+            "job_id": "generation-job-1",
+            "attempt_id": "generation-attempt-1",
+            "state": "WAITING_REQUIREMENT_REPLAN",
+            "run_dir": str(run_dir),
+            "process_id": 0,
+            "result_path": str(artifact_dir / "missing-result.json"),
+        },
+    )
+    monkeypatch.setattr(server, "_loaded", lambda _project: (project, {}, ROOT, artifact_dir))
+    monkeypatch.setattr(
+        server.core,
+        "generation_job_status",
+        lambda _artifact_dir: {
+            "state": "WAITING_REQUIREMENT_REPLAN",
+            "run_dir": str(run_dir),
+            "waiting_for": "requirement_replan",
+        },
+    )
+    monkeypatch.setattr(
+        server.core,
+        "surrogate_status",
+        lambda *_args, **_kwargs: {
+            "requests": [
+                {
+                    "job_id": "provider-job-2",
+                    "attempt_id": "attempt-2",
+                    "responded": True,
+                    "consumed": False,
+                    "response_path": str(response_path),
+                }
+            ]
+        },
+    )
+
+    diagnosis = server._failure_diagnosis(project)
+
+    assert diagnosis["has_failure"] is False
+    assert diagnosis["external_wait"] == {
+        "active": True,
+        "state": "WAITING_REQUIREMENT_REPLAN",
+        "submitted_unconsumed_responses": 1,
+        "waiting_for": "requirement_replan",
+    }
+    assert diagnosis["resume"]["safe"] is True
+    assert diagnosis["resume"]["reason"] == "submitted_unconsumed_surrogate_response"
+    assert "Resume the same production run" in diagnosis["recommended_next_action"]
+    assert str(response_path) in diagnosis["sources"]
 
 
 def test_failure_diagnosis_separates_root_cause_secondary_effects_and_unsafe_resume(

@@ -1,0 +1,1 @@
+{"kind":"ProviderConnectionReceiptV2","schema_version":"2.0","provider_id":"grok","actual_model":"grok-4.7","status":"READY","credential_present":true,"structured_schema_valid":true,"latency_ms":5304,"request_id":"320e7653-5110-9454-95bb-6c54d8653613","contains_credentials":false}

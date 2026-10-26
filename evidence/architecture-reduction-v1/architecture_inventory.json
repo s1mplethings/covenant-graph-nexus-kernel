@@ -1,0 +1,14 @@
+{
+  "kind": "CGKNArchitectureInventory",
+  "schema_version": "1.0",
+  "baseline_sha": "5358aa1f2b4e32a51715bd0edccb34d726df998c",
+  "production": ["codex_conversation provider mainline", "run_local_pipeline_impl ProviderJob executor", "provider_jobs contract", "decomposition_tree index", "canonical post-build evidence", "local_packager", "public delivery gate"],
+  "support": ["whiteboard and agent_session", "project management", "enterprise experience", "generation context librarian", "audit diagnostics"],
+  "experimental": ["cgkn/artifacts", "cgkn/compiler", "cgkn/runtime", "specs artifact-runtime definitions", "dynamic_pipeline_runner", "agent_conversation_loop"],
+  "legacy": ["legacy/deliver_product_studio.py", "legacy/generate_project_legacy.py", "legacy/run_product_studio.py", "legacy/status_adapter.py", "scripts/generate_project.py", "scripts/deliver_product_studio.py", "scripts/legacy_provider_pipeline.py"],
+  "duplicate_concepts": ["Leaf and ProviderJob both carry dependency/ownership/interface/acceptance", "decomposition nodes and leaf graphs overlap without one execution projection", "artifact flow nodes are a separate support lane that must not claim production authority"],
+  "agent_visible_concepts": ["Goal", "Requirement", "Project", "Component", "Leaf", "ProviderJob", "PatchSet", "Module", "Flow Node", "Pipeline Node", "Task", "Skill invocation", "Deterministic action", "Result", "Acceptance"],
+  "kernel_internal_concepts": ["candidate identity", "canonical evidence", "runtime evidence", "visual evidence", "user review binding", "package integrity", "delivery receipt", "artifact lineage", "False-Pass supervision"],
+  "metrics_before": {"production_like_entrypoints": 2, "legacy_entrypoints": 6, "planner_visible_concepts": 15, "agent_visible_schema_families": 11, "ordinary_leaf_context_sources": 9, "parallel_execution_abstractions": 3, "generation_routes": 1},
+  "measurement_notes": ["Counts represent agent-facing contract families, not every repository JSON schema.", "Classification follows executable imports and formal contract references rather than filenames."]
+}

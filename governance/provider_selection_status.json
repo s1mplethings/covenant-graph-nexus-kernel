@@ -1,0 +1,24 @@
+{
+  "kind": "CGKNProviderSelectionStatus",
+  "schema_version": "1.0",
+  "source_commit": "c7be884a047b37b8e50f5a21b94a95b55b854528",
+  "status": "PROVIDER_SELECTION_BLOCKED_ENVIRONMENT",
+  "minimum_required_eligible_providers": 2,
+  "eligible_provider_count": 0,
+  "decisions": [],
+  "task_class_winners": {
+    "agent.composition": "NOT_EVALUATED",
+    "worker.codegen": "NOT_EVALUATED",
+    "worker.repair": "NOT_EVALUATED",
+    "capability.build": "NOT_EVALUATED"
+  },
+  "routing_snapshot": "NOT_CREATED",
+  "fallback": "deny",
+  "baseline_created": false,
+  "blocked_successors": [
+    "Repository Codegen",
+    "Capability Builder",
+    "Self-Growth V1"
+  ],
+  "contains_credentials": false
+}

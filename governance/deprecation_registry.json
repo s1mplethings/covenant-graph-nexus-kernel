@@ -1,0 +1,40 @@
+{
+  "kind": "CGKNDeprecationRegistry",
+  "schema_version": "1.0",
+  "items": [
+    {
+      "id": "legacy-status-reader",
+      "state": "COMPAT_ONLY",
+      "responsibility": "Interpret historical non-canonical evidence status labels",
+      "replacement": "docs/01_contract_registry.md canonical EvidenceStatus vocabulary",
+      "deprecated_in": "0.2.0-rc.2",
+      "remove_in": "0.4.0",
+      "paths": ["legacy/status_adapter.py"],
+      "allowed_consumers": ["historical artifact import and migration"],
+      "allowed_operations": ["read", "decode", "migrate"],
+      "canonical_outputs": [],
+      "new_production_forbidden": true
+    },
+    {
+      "id": "legacy-question-projections",
+      "state": "COMPAT_ONLY",
+      "responsibility": "Project canonical requirement signals into blocking_questions and decision_blockers fields for old readers",
+      "replacement": "GoalSpec signals plus understanding_readiness",
+      "deprecated_in": "0.2.0-rc.2",
+      "remove_in": "0.4.0",
+      "paths": [
+        "scripts/requirement_decision_lane.py",
+        "scripts/codex_conversation.py",
+        "scripts/backend_dialogue_loop.py"
+      ],
+      "allowed_consumers": [
+        "legacy session projection",
+        "public narration compatibility",
+        "migration and compatibility tests"
+      ],
+      "allowed_operations": ["read", "project"],
+      "canonical_outputs": [],
+      "new_production_forbidden": true
+    }
+  ]
+}

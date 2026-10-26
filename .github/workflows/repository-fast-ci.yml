@@ -1,0 +1,26 @@
+name: Repository Fast CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  repository-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Product direction gate
+        run: python scripts/product_direction_gate.py
+      - name: Compile current MVP substrate
+        run: python -m compileall -q cgkn scripts/product_direction_gate.py
+      - name: MVP tree, DAG, component, and benchmark contracts
+        run: python -m pytest -q tests/test_kernel_contract.py tests/test_product_direction_guard.py tests/test_capability_tree_mvp.py tests/test_mvp_decision_efficiency_contract.py tests/component tests/execution tests/state tests/executors tests/runtime tests/capabilities
+      - name: Repository publication safety
+        run: python -m pytest -q tests/test_source_identity.py tests/test_canonical_repo_publish.py

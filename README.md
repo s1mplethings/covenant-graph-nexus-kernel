@@ -1,103 +1,188 @@
-# CGKN Codex Edition
+# CGNK
 
-CGKN Codex Edition is operated only through the Codex conversation in this
-workspace. There is no standalone chat listener, polling service, secondary
-customer UI, or external messaging delivery adapter.
+CGNK (Covenant Graph Nexus Kernel) is a composable autonomous project-team kernel.
 
-## Use
+CGNK is the public project name. The current Python package namespace remains
+`cgkn` for backward compatibility.
 
-Open this repository in Codex and describe the project or change you want. The
-active Codex task is the sole user-facing interaction surface. Uploaded files,
-status updates, review decisions, previews, and final local artifact links all
-remain in that task.
+CGNK-owned source and documentation are available under the
+[Apache License 2.0](LICENSE). Third-party dependencies, benchmark datasets,
+and separately deployed services retain their own licenses; see
+[Third-party licenses and provenance](docs/THIRD_PARTY_LICENSES.md).
 
-The production generation route remains:
+This repository is a **Research Preview**. The 0.2.0-rc.3 release has a clean
+install reproduction, 3,001 passing tests, and a preregistered cross-domain
+evaluation. It is not a claim of production readiness or benchmark SOTA. See
+[Architecture](docs/ARCHITECTURE.md), [Benchmarks](docs/BENCHMARKS.md), and
+[Reproducibility](docs/REPRODUCIBILITY.md).
+
+## Install the Research Preview
+
+Create an isolated Python 3.10+ environment, then install the checkout:
+
+```bash
+python -m pip install -e .
+python scripts/product_direction_gate.py
+```
+
+Optional media, YAML, browser, and test dependencies are kept in separate
+extras, for example `python -m pip install -e ".[test]"`. No package registry
+publication is implied by this repository release.
+
+## MVP target
 
 ```text
-Codex conversation
--> requirements and whiteboard/agent_session state
--> Provider Planner API and minimal ProviderJob DAG
--> parallel isolated Provider work, ownership check, deterministic merge
--> Provider integration/semantic repair
--> Provider output validation
--> post-build finalization
--> canonical test/runtime/visual evidence as applicable
--> sparse read-only Codex False-Pass audit at positive checkpoints
--> user review in the active Codex task when required
--> local_packager
--> public_delivery_gate
--> delivery_manifest.json and conversation-bound delivery receipt
--> Codex result with local artifact links
+User Goal
+  -> high-capability Agent
+  -> CapabilityTree
+  -> ExecutionDAG
+  -> Component / Block
+  -> replaceable bounded Executor
+  -> Result / Test / Artifact
+  -> Project State
+  -> Agent checkpoint
 ```
 
-`local_packager` is the only delivery exit. `pipeline_manifest` and
-`dynamic_pipeline_runner` remain support/experimental planning components and
-must not become a second production or delivery route.
+The high-capability Agent owns project-level decisions and composition. Cheap models, local models, APIs, search, scripts, browsers, and test tools execute bounded node work; they do not redefine project intent.
 
-## Artifact-driven pipeline kernel (v0.3 capability)
+The current software-project MVP uses that same coordinator to design and freeze one minimal `ProjectBlueprint`, then compiles cohesive blueprint units into the existing CapabilityTree/DAG. Workers use exact-owns `FileBundle` generation and file-unique `PatchBundle` v2 repair over a non-empty owned subset. Deterministic code owns failure stage/origin/owner attribution, baseline-gated retry-versus-repair routing, scope, syntax, interface guards, atomic application, evidence, and affected-only continuity.
 
-CGKN includes an additive local artifact-runtime lane for typed, incremental
-module execution. Feed-forward means that a validated output
-`ArtifactInstance` becomes a downstream module's typed input; replaying the
-whole conversation is not feed-forward.
+Roles such as Project Manager, Developer, Tester, Researcher, Release, or Marketing are optional capability bundles/views over the same tree and DAG, not mandatory pipeline stages.
 
-The reference flow is `flow.artifact_driven_project_refactor@1`. It provides
-immutable artifact history and `ArtifactRef` identities, deterministic hashes
-and provenance, module-scoped context projections and budgets, local execution
-fingerprints and cache, lineage, stale marking, affected-only invalidation,
-effect cardinality, and ref-only checkpoints.
+## Current implementation state
 
-```text
-python scripts/demo_artifact_recompute.py --run-dir runs/artifact-v03-demo --json
-python scripts/artifact_lineage.py --run-dir runs/artifact-v03-demo --artifact ai.delivery-judgment.002
-python scripts/explain_flow.py --flow flow.artifact_driven_project_refactor@1
+The Component, CapabilityTree, ExecutionDAG, bounded executor, file-backed
+state, and deterministic DAG runtime substrate now owns an isolated real
+vertical slice. It supports resume, explicit retry, affected-subgraph rerun,
+controlled tree edits, and a versioned Capability Registry. It has **not**
+replaced the default compatibility project-generation runtime.
+
+Self-Growth V0 can now discover the allowlisted Python standard-library
+`json.loads` implementation for a missing `json.parse@1` capability, run a
+bounded local trial, issue an admission receipt, persist the registry, resume
+the original DAG, and reuse the admitted capability in a later run. It cannot
+modify kernel files and makes no Provider or network calls.
+
+The LEVEL 4 Agent MVP adds a sparse high-capability composition loop and a
+separately configured low-cost LLM executor. Agent outputs are validated
+TreeEdits; worker outputs are restricted to read/list/write/patch proposals
+that deterministic code applies. A real Provider run repaired a broken Python
+function and passed real pytest through the existing Block, DAG, registry, and
+FileRunStore authorities. Run it with `python scripts/run_agent_mvp.py
+--run-root <isolated-dir> --benchmark --json`.
+
+The remaining compatibility entrypoints are:
+
+- `scripts/codex_conversation.py`
+- `scripts/run_codex_conversation_generation.py`
+- `scripts/run_local_pipeline.py`
+- `scripts/run_local_pipeline_impl.py`
+
+They remain callable only to preserve existing behavior while the new runtime is implemented. They are not the MVP planning or composition authority.
+
+The L6 application bundle lives under `cgkn/application/software_project/`.
+It assembles the existing Agent, tree, DAG, executor, state, and test
+authorities to generate isolated stdlib-only projects with cohesive workers,
+incremental staged materialization, deterministic snapshots, and external
+acceptance. Current frozen evidence records real generation, repair, and CSV
+repeatability as passing, while the broader product remains a Research Preview.
+
+The replacement L6 adapter in `cgkn/application/project_blueprint.py` and
+`cgkn/application/project_loop.py` now accepts a minimal semantic design
+payload and deterministically supplies executor metadata, scope limits,
+compile/pytest/runtime/acceptance checks, protected paths, and timeouts. The
+versioned API Lab raw-defer route preserves Provider text and transport
+metadata while CGNK remains the sole structured-answer selector. A failed unit
+generation is retried as generation until it establishes a hash-bound materialized
+baseline; only later compile, test, runtime, or acceptance failures may enter
+repair. Fresh live generation and repair receipts remain required before the MVP
+status can advance. Run the bounded profiles through `python
+scripts/run_project_mvp.py`.
+
+The read-only Conversation product surface in
+`cgkn/application/conversation/` consumes the existing `cgnk_knowledge`
+store and retrieval authority through the common Component/Block boundary.
+It performs localized retrieval, bounded raw-evidence drill-down when exact
+details are required, and returns model answers separately from evidence and
+provenance. Provider failure degrades to `EVIDENCE_ONLY`; absent evidence is
+reported as `INSUFFICIENT_EVIDENCE`. The `cgkn_conversation` MCP tool exposes
+this capability without writing memory or creating another retrieval store.
+
+Knowledge growth now uses the same `ProjectKnowledgePack` authority through
+`knowledge.internalize@1.0`. Raw evidence remains byte-faithful and
+provenance-bound; deterministic hot-path updates classify relations and mark
+only actual dependent abstractions stale. Derived summaries refresh explicitly
+on demand or in a batch rather than rebuilding globally on every write. See
+`docs/KNOWLEDGE_GROWTH_INTERNALIZATION.md` and run the 100/1000/5000-entry
+comparison with `python scripts/run_knowledge_growth_evaluation.py --profile final --json`.
+
+Promotion Studio in `cgkn/application/promotion/` is a local-first capability
+branch over the same kernel authorities. It projects explicit public-safe
+evidence into approved claims, detects material signals, produces bounded
+platform drafts and deterministic PNG/FFmpeg media, and records exact-hash
+approval-bound publication plans and receipts. Publication is `DRAFT_ONLY` by
+default; credentials remain opaque local references and browser click
+automation is unsupported. Run the offline qualification with `python
+scripts/run_promotion_studio.py --profile promotion-evaluate --json`.
+
+Community Operator in `cgkn/application/community/` adds bounded public
+discussion discovery, thread normalization, precision-first opportunity
+ranking, separate engage/project-mention decisions, evidence-grounded reply
+drafting, exact-hash `APPROVED_TO_REPLY`, idempotent official-API transport,
+follow-up tracking, and moderation suppression. Public thread text is always
+untrusted data. Unknown community rules fail closed to human review, and every
+external reply still requires explicit approval. Run the offline evaluation
+with `python scripts/run_community_operator.py --profile evaluate --json`; the
+`real-read` profile performs bounded public API reads and never posts.
+
+Cleanup status and the exact migration boundary are recorded in:
+
+- `docs/MVP_RUNTIME_MIGRATION_BOUNDARY.md`
+- `governance/mvp_cleanup_boundary.json`
+
+## Current release increment
+
+`ITER-056` consolidates the core, audits the original retrieval/context design, profiles
+retrieval and context assembly, freezes a cross-domain holdout, preserves
+negative results, and publishes reproducibility and provenance material. Fixed
+routing remains the default; Multi-Agent Runtime and autonomous external writes
+remain disabled.
+
+## Current reusable substrate
+
+- `cgkn/component/` — component, port, execution, and result contracts
+- `cgkn/orchestration/` — CapabilityTree and ExecutionDAG structures
+- `cgkn/artifacts/` — artifact identity and materialization
+- `cgkn/runtime/` — deterministic component/artifact runtime
+- `cgkn/execution/` — bounded Block request/result envelopes
+- `cgkn/state/` — project/run state, attempt history, and event log
+- `cgkn/executors/` — replaceable executor protocol, registry, and local adapters
+- `cgkn/capabilities/` — versioned capability lifecycle registry
+- `cgkn/growth/` — local gap, discovery, sandbox trial, admission, and reuse loop
+- `cgkn/application/conversation/` — evidence-grounded read-only Conversation surface
+- `cgkn/application/knowledge_growth/` — local-lazy ProjectKnowledgePack update capability
+- `cgkn/application/promotion/` — evidence-grounded promotion, media, approval, and publishing capabilities
+- `cgkn/application/community/` — policy-safe community discovery, ranking, reply, follow-up, and experience capabilities
+- `scripts/local_agent_actions.py` — bounded deterministic action compatibility adapter
+- `scripts/provider_jobs.py` — Provider execution/PatchSet compatibility adapter
+- `scripts/real_test_execution.py` — real test/runtime support
+- `scripts/local_packager.py` — packaging support
+- `scripts/canonical_repo_publish.py` — guarded repository publication
+
+## Authority and verification
+
+Product authority lives in `PRODUCT_GOAL.md`, `MVP_SCOPE.md`, `governance/product_invariants.json`, and `governance/current_architecture.json`.
+
+Run the direction gate with:
+
+```bash
+python scripts/product_direction_gate.py
 ```
 
-The Todo demo shows an unchanged project snapshot cache hit while
-requirement-dependent descendants recompute. This lane does not replace the
-reviewed Provider generation mainline, canonical evidence producers,
-`local_packager`, or the public delivery gate. See
-`docs/artifact-driven-migration.md` for migration and compatibility details.
+The runtime foundation passes the local direction gate, focused Component,
+execution, state, executor, DAG runtime, capability registry, publication, and
+kernel-contract checks. The deterministic vertical slice and local repair path
+are `PASS`; replacement of the compatibility mainline and full production
+readiness remain `NOT_EVALUATED`.
 
-## Important files
-
-- `cgkn/` — typed Artifact Kernel source: artifact models, compiler, and runtime.
-- `specs/` — authoritative machine-readable Artifact, Module, Flow, Policy,
-  Migration, and Context Pack registry.
-- `schemas/` and `contracts/` — JSON schemas and stable interface contracts.
-- `examples/` — small human-readable inputs and expected summaries only.
-- `evidence/` — curated claims, metrics, hashes, reproduction commands, and
-  known limits; raw runs are excluded.
-- `tests/fixtures/` — small deterministic test-only fixtures.
-- `scripts/codex_conversation.py` — import-only conversation orchestration,
-  generation entry, guarded replies, evidence gates, and delivery handoff.
-- `scripts/provider_jobs.py` — minimal deterministic DAG executor and PatchSet ownership boundary.
-- `scripts/cgkn_runtime_supervisor.py` — persistent read-only False-Pass Auditor host.
-- `scripts/cgkn_supervision_router.py` — deterministic project/evidence/kernel routing.
-- `scripts/governed_kernel_repair.py` — isolated allowlisted kernel-repair execution.
-- `scripts/local_packager.py` — sole package and delivery exit.
-- `docs/00_kernel_contract.md` — kernel invariants.
-- `docs/01_contract_registry.md` — authoritative formal artifact registry.
-- `docs/14_codex_cgkn_runtime_supervision_baseline.md` — runtime ownership.
-
-## Verification
-
-```powershell
-python scripts/kernel_contract_check.py
-python scripts/validate_bundle.py --root . --schema
-python scripts/repository_hygiene.py
-python -m pytest tests/test_kernel_contract.py tests/test_codex_conversation.py tests/test_codex_public_delivery_gate.py -q
-```
-
-Local output belongs under ignored `runs/`, `artifacts/`, `generated/`, or
-`workspaces/`. Promote a durable claim with `scripts/promote_evidence.py`; do
-not commit complete run workspaces or live `.cgkn` state. See
-`docs/repository_guide.md` for the retention model.
-
-Provider credentials are used only by the reviewed Provider route. No
-conversation transport credential is required.
-
-`CGKN_PROVIDER_PARALLELISM` defaults to 4. Normal Provider leaves, retries, and
-test failures do not invoke Codex. Project problems return to Provider,
-evidence problems rerun canonical verification, and only demonstrated CGKN
-bugs can enter the separate governed Codex kernel-repair path.
+Historical Fixed10, role-driven validation, Agent Tree/Growth experiments, stress/soak/scale gates, commercial-readiness gates, and superseded fixed-flow contracts remain available in Git history only and must not return as MVP authority.

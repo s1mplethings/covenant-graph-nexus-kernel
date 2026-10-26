@@ -1,0 +1,34 @@
+{
+  "kind": "CGKNRelease056StatisticalSummary",
+  "schema_version": "1.0",
+  "seed": 56025,
+  "bootstrap_resamples": 10000,
+  "analysis_hash": "sha256:bd36a84a07ca2a9e138e3d567bf10afa0d9436551a137129b1c1a917c2bfe91c",
+  "comparisons": {
+    "B4_vs_B3": {
+      "success_difference": -0.013888888888888888,
+      "ci95": [-0.041666666666666664, 0.0],
+      "mcnemar_p_two_sided": 1.0,
+      "conclusion": "QUALITY_NON_INFERIOR_DIRECTIONALLY_NO_GAIN"
+    },
+    "B4_vs_B2": {
+      "success_difference": 0.4583333333333333,
+      "ci95": [0.3472222222222222, 0.5694444444444444],
+      "mcnemar_p_two_sided": 2.3283064365386963e-10,
+      "median_context_reduction": 0.9826555895642035,
+      "conclusion": "LOCALIZED_CONTEXT_SUPPORTED"
+    },
+    "B1_vs_B0": {
+      "success_difference": -0.16666666666666666,
+      "ci95": [-0.2916666666666667, -0.041666666666666664],
+      "mcnemar_p_two_sided": 0.01690053939819336,
+      "conclusion": "STRONG_ROUTE_HARMFUL_UNDER_FROZEN_BUDGET"
+    }
+  },
+  "limitations": [
+    "one execution per task",
+    "provider nondeterminism not estimated",
+    "unknown usage produces null cost",
+    "internal project-authored holdout"
+  ]
+}

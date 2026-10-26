@@ -1,0 +1,14 @@
+{
+  "kind": "CGKNLocalEvidenceRelocation",
+  "schema_version": "1.0",
+  "reason": "Canonical repository publication forbids binary files; validated media remain in excluded local CGKN state.",
+  "local_root": ".cgkn/promotion_artifacts/ITER-053/self-growth-v1",
+  "artifacts": [
+    {"name": "campaign-fbb37de10adab103-card-1200x675.png", "content_hash": "sha256:6338a7283dacaffb61c4f42e496a25920464fb266024fa13980aa1a835508898"},
+    {"name": "campaign-fbb37de10adab103-card-1080x1080.png", "content_hash": "sha256:87406eac90a27de3d4f5160317ff4bddcca70e046b9d0120314f958a04c2075a"},
+    {"name": "campaign-fbb37de10adab103-card-764x400.png", "content_hash": "sha256:170e9fc865cd807f4c11bc17b4d510217f8a94137a6b1c668e1bfec9e5135511"},
+    {"name": "campaign-fbb37de10adab103-card-640x640.png", "content_hash": "sha256:c9b495698d6a752e0aedda3a847ded9b682fcc49bab29b5d25245d2a04606533"},
+    {"name": "campaign-fbb37de10adab103-720x1280.mp4", "content_hash": "sha256:df25da70ac47666e5f16d4ab4b66dfa321e249b6808bd8121669000efb3e0302"},
+    {"name": "campaign-fbb37de10adab103-640x360.mp4", "content_hash": "sha256:edfa029a9ace1736630287eb47bfd6b772c57c5ca9acd52db0457994901150b2"}
+  ]
+}

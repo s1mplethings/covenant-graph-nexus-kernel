@@ -1,0 +1,10 @@
+{
+  "kind":"CGKNBaselineReceipt","schema_version":"1.0","baseline_id":"BASELINE-MVP-PROJECT2-001","parent_baseline_id":"BASELINE-INTERFACE-004",
+  "source_commit":"b90f114589bae3639367f07a62ddc3ab67d3f270","source_tree_sha":"6be790682f4b9166779f56c4570d0c0a9dea85fb",
+  "core_source_hash":"sha256:f7339f27a3c41c78d9b050992affcc0d1b6ee19161f51330406bcd04c6ed75e6","kernel_receipt_hash":"sha256:fe14731d4fbfbecd7d3e5c20dc6b1e732317cd2527c2636cfea13b19137ec269","l6_receipt_hash":"sha256:ae320da037c5666970c200a8a8fd997407ddb3b83ee3c5b4c7164a126ec33893","semantic_experiment_receipt_hash":"sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
+  "profiles":{"micro":"PASS","fast":"PASS","promotion":"PASS","full":"NOT_EVALUATED","live-provider":"NOT_EVALUATED"},"test_counts":{"passed":95,"failed":0,"errors":0,"skipped":0},
+  "known_blockers":["fake Provider matrix and real Provider evidence remain required"],
+  "protected_invariants":["kernel_foundation=COMPLETE","functional_readiness=LEVEL_4","L0-L5=COMPLETE","notes_obligations=17","notes_hidden_coverage=1.0","manual_candidate_edits=0","whole_project_repair_replans=0","generation_readiness=GENERATION_LEVEL_1"],
+  "inherits":"BASELINE-INTERFACE-004","added_guarantees":["local_json_notes obligations, interfaces, stateful Oracles, canonical tests, and hidden acceptance are deterministic","CSV critical generation regressions remain green"],
+  "unchanged_guarantees":["all protected guarantees from BASELINE-INTERFACE-004"],"removed_guarantees":[],"created_at":"2026-10-17T05:05:00Z","evidence_status":"PASS","baseline_hash":"sha256:232864abb9e671800162b6e09a2f09813bf50743fc870eb58e779053e784079e"
+}

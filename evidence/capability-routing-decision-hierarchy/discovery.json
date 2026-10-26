@@ -1,0 +1,749 @@
+{
+  "benchmark_hash": "sha256:fb7a9e6e1d42f21d5e199066fa602baebb186d22815016fa23a6068a2a7ee773",
+  "benchmark_version": "capability-routing-discovery-v1",
+  "contains_credentials": false,
+  "decision": {
+    "case_count": 24,
+    "case_hash": "sha256:4728f2cef0dd1e07946b5d92bfef9beaa432e89dcf8c75999b9fbf3b89ca4b48",
+    "discovery_only": true,
+    "groups": {
+      "D0": {
+        "cases": [
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "deterministic-1",
+            "correct": false,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "deterministic-2",
+            "correct": false,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "deterministic-3",
+            "correct": false,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "deterministic-4",
+            "correct": false,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "deterministic-5",
+            "correct": false,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "deterministic-6",
+            "correct": false,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "cheap-1",
+            "correct": false,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "cheap-2",
+            "correct": false,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "cheap-3",
+            "correct": false,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "cheap-4",
+            "correct": false,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "cheap-5",
+            "correct": false,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "cheap-6",
+            "correct": false,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "cheap-7",
+            "correct": false,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "cheap-8",
+            "correct": false,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "strong-1",
+            "correct": true,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "strong-2",
+            "correct": true,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "strong-3",
+            "correct": true,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "strong-4",
+            "correct": true,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "strong-5",
+            "correct": true,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "strong-6",
+            "correct": true,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L3_HUMAN_STOP",
+            "case_id": "critical-1",
+            "correct": true,
+            "expected": "L3_HUMAN_STOP"
+          },
+          {
+            "actual": "L3_HUMAN_STOP",
+            "case_id": "critical-2",
+            "correct": true,
+            "expected": "L3_HUMAN_STOP"
+          },
+          {
+            "actual": "L3_HUMAN_STOP",
+            "case_id": "critical-3",
+            "correct": true,
+            "expected": "L3_HUMAN_STOP"
+          },
+          {
+            "actual": "L3_HUMAN_STOP",
+            "case_id": "critical-4",
+            "correct": true,
+            "expected": "L3_HUMAN_STOP"
+          }
+        ],
+        "cheap": 0,
+        "cost_metrics": "NOT_EVALUATED_DISCOVERY_ONLY",
+        "critical_stop_correctness": 1.0,
+        "deterministic": 0,
+        "false_escalations": 14,
+        "formal_live_evidence": false,
+        "human_stop": 4,
+        "missed_escalations": 0,
+        "routing_accuracy": 0.4166666666666667,
+        "strong": 20,
+        "token_metrics": "NOT_EVALUATED_DISCOVERY_ONLY"
+      },
+      "D1": {
+        "cases": [
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "deterministic-1",
+            "correct": false,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "deterministic-2",
+            "correct": false,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "deterministic-3",
+            "correct": false,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "deterministic-4",
+            "correct": false,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "deterministic-5",
+            "correct": false,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "deterministic-6",
+            "correct": false,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-1",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-2",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-3",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-4",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-5",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-6",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-7",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-8",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "strong-1",
+            "correct": false,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "strong-2",
+            "correct": false,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "strong-3",
+            "correct": false,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "strong-4",
+            "correct": false,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "strong-5",
+            "correct": false,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "strong-6",
+            "correct": false,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L3_HUMAN_STOP",
+            "case_id": "critical-1",
+            "correct": true,
+            "expected": "L3_HUMAN_STOP"
+          },
+          {
+            "actual": "L3_HUMAN_STOP",
+            "case_id": "critical-2",
+            "correct": true,
+            "expected": "L3_HUMAN_STOP"
+          },
+          {
+            "actual": "L3_HUMAN_STOP",
+            "case_id": "critical-3",
+            "correct": true,
+            "expected": "L3_HUMAN_STOP"
+          },
+          {
+            "actual": "L3_HUMAN_STOP",
+            "case_id": "critical-4",
+            "correct": true,
+            "expected": "L3_HUMAN_STOP"
+          }
+        ],
+        "cheap": 20,
+        "cost_metrics": "NOT_EVALUATED_DISCOVERY_ONLY",
+        "critical_stop_correctness": 1.0,
+        "deterministic": 0,
+        "false_escalations": 0,
+        "formal_live_evidence": false,
+        "human_stop": 4,
+        "missed_escalations": 6,
+        "routing_accuracy": 0.5,
+        "strong": 0,
+        "token_metrics": "NOT_EVALUATED_DISCOVERY_ONLY"
+      },
+      "D2": {
+        "cases": [
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "deterministic-1",
+            "correct": false,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "deterministic-2",
+            "correct": false,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "deterministic-3",
+            "correct": false,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "deterministic-4",
+            "correct": false,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "deterministic-5",
+            "correct": false,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "deterministic-6",
+            "correct": false,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-1",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-2",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-3",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-4",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-5",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-6",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-7",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-8",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "strong-1",
+            "correct": true,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "strong-2",
+            "correct": true,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "strong-3",
+            "correct": true,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "strong-4",
+            "correct": true,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "strong-5",
+            "correct": true,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "strong-6",
+            "correct": true,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L3_HUMAN_STOP",
+            "case_id": "critical-1",
+            "correct": true,
+            "expected": "L3_HUMAN_STOP"
+          },
+          {
+            "actual": "L3_HUMAN_STOP",
+            "case_id": "critical-2",
+            "correct": true,
+            "expected": "L3_HUMAN_STOP"
+          },
+          {
+            "actual": "L3_HUMAN_STOP",
+            "case_id": "critical-3",
+            "correct": true,
+            "expected": "L3_HUMAN_STOP"
+          },
+          {
+            "actual": "L3_HUMAN_STOP",
+            "case_id": "critical-4",
+            "correct": true,
+            "expected": "L3_HUMAN_STOP"
+          }
+        ],
+        "cheap": 8,
+        "cost_metrics": "NOT_EVALUATED_DISCOVERY_ONLY",
+        "critical_stop_correctness": 1.0,
+        "deterministic": 0,
+        "false_escalations": 6,
+        "formal_live_evidence": false,
+        "human_stop": 4,
+        "missed_escalations": 0,
+        "routing_accuracy": 0.75,
+        "strong": 12,
+        "token_metrics": "NOT_EVALUATED_DISCOVERY_ONLY"
+      },
+      "D3": {
+        "cases": [
+          {
+            "actual": "L0_DETERMINISTIC",
+            "case_id": "deterministic-1",
+            "correct": true,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L0_DETERMINISTIC",
+            "case_id": "deterministic-2",
+            "correct": true,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L0_DETERMINISTIC",
+            "case_id": "deterministic-3",
+            "correct": true,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L0_DETERMINISTIC",
+            "case_id": "deterministic-4",
+            "correct": true,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L0_DETERMINISTIC",
+            "case_id": "deterministic-5",
+            "correct": true,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L0_DETERMINISTIC",
+            "case_id": "deterministic-6",
+            "correct": true,
+            "expected": "L0_DETERMINISTIC"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-1",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-2",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-3",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-4",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-5",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-6",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-7",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L1_CHEAP_MODEL",
+            "case_id": "cheap-8",
+            "correct": true,
+            "expected": "L1_CHEAP_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "strong-1",
+            "correct": true,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "strong-2",
+            "correct": true,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "strong-3",
+            "correct": true,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "strong-4",
+            "correct": true,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "strong-5",
+            "correct": true,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L2_STRONG_MODEL",
+            "case_id": "strong-6",
+            "correct": true,
+            "expected": "L2_STRONG_MODEL"
+          },
+          {
+            "actual": "L3_HUMAN_STOP",
+            "case_id": "critical-1",
+            "correct": true,
+            "expected": "L3_HUMAN_STOP"
+          },
+          {
+            "actual": "L3_HUMAN_STOP",
+            "case_id": "critical-2",
+            "correct": true,
+            "expected": "L3_HUMAN_STOP"
+          },
+          {
+            "actual": "L3_HUMAN_STOP",
+            "case_id": "critical-3",
+            "correct": true,
+            "expected": "L3_HUMAN_STOP"
+          },
+          {
+            "actual": "L3_HUMAN_STOP",
+            "case_id": "critical-4",
+            "correct": true,
+            "expected": "L3_HUMAN_STOP"
+          }
+        ],
+        "cheap": 8,
+        "cost_metrics": "NOT_EVALUATED_DISCOVERY_ONLY",
+        "critical_stop_correctness": 1.0,
+        "deterministic": 6,
+        "false_escalations": 0,
+        "formal_live_evidence": false,
+        "human_stop": 4,
+        "missed_escalations": 0,
+        "routing_accuracy": 1.0,
+        "strong": 6,
+        "token_metrics": "NOT_EVALUATED_DISCOVERY_ONLY"
+      }
+    }
+  },
+  "decision_policy_hash": "sha256:7f6359036dec0511dbc34ff4017c176c90f9ab81bd9081207cb5319b747aae51",
+  "escalation_policy_hash": "sha256:b8a912249623073a640466025df0e53e15b5fd677f35162905d191b73fb23b45",
+  "formal_d0_d3_required_on_integrated_source": true,
+  "kind": "CapabilityRoutingDiscoveryReceipt",
+  "model_config_hash": "sha256:d0daac2d3b9b166870ae0fd4f0ca33ac157cc9059631702dabca77c980f80f7e",
+  "schema_version": "1.0",
+  "search": {
+    "real_registry": {
+      "benefit": "NOT_YET_NEEDED_AT_CURRENT_SCALE",
+      "capability_count": 10,
+      "cases": [
+        {
+          "candidate_count": 3,
+          "eligible_count": 3,
+          "expected": "workspace.inspect@1",
+          "false_candidate_rate": 0.666667,
+          "full_registry_context_tokens": 1318,
+          "index_hash": "sha256:b54811bf80b92e934f5a34b93dac0decfb58a90051ae85c370bf23a1cbe543a7",
+          "latency_ms": 0.4164,
+          "policy_hash": "sha256:b91019b8cf9a08dfb7862d91fd3ed8b01177e04d0386ceaf8b883cb0c77ddeba",
+          "retrieval_pool_count": 3,
+          "selected": "workspace.inspect@1",
+          "top1": true,
+          "top3": true,
+          "topk_context_tokens": 264
+        },
+        {
+          "candidate_count": 3,
+          "eligible_count": 3,
+          "expected": "project.file.patch@1",
+          "false_candidate_rate": 0.666667,
+          "full_registry_context_tokens": 1318,
+          "index_hash": "sha256:b54811bf80b92e934f5a34b93dac0decfb58a90051ae85c370bf23a1cbe543a7",
+          "latency_ms": 0.2434,
+          "policy_hash": "sha256:b91019b8cf9a08dfb7862d91fd3ed8b01177e04d0386ceaf8b883cb0c77ddeba",
+          "retrieval_pool_count": 3,
+          "selected": "project.file.patch@1",
+          "top1": true,
+          "top3": true,
+          "topk_context_tokens": 264
+        },
+        {
+          "candidate_count": 1,
+          "eligible_count": 4,
+          "expected": "project.python.pytest@1",
+          "false_candidate_rate": 0.0,
+          "full_registry_context_tokens": 1318,
+          "index_hash": "sha256:b54811bf80b92e934f5a34b93dac0decfb58a90051ae85c370bf23a1cbe543a7",
+          "latency_ms": 0.1681,
+          "policy_hash": "sha256:b91019b8cf9a08dfb7862d91fd3ed8b01177e04d0386ceaf8b883cb0c77ddeba",
+          "retrieval_pool_count": 1,
+          "selected": "project.python.pytest@1",
+          "top1": true,
+          "top3": true,
+          "topk_context_tokens": 90
+        }
+      ],
+      "top1_accuracy": 1.0,
+      "top3_recall": 1.0
+    },
+    "synthetic": {
+      "100": {
+        "context_reduction_ratio": 0.979411,
+        "full_registry_context_tokens": 12774,
+        "index_hash": "sha256:a55d1175b7be80c4854f3cbfb9d50490fcae96898e2c7a8127fe2cd2ac8fa824",
+        "max_candidate_count": 3,
+        "median_false_candidate_rate": 0.666667,
+        "median_latency_ms": 1.2478,
+        "runs": 5,
+        "top1_accuracy": 1.0,
+        "top3_recall": 1.0,
+        "topk_context_tokens": 263
+      },
+      "1000": {
+        "context_reduction_ratio": 0.99795,
+        "full_registry_context_tokens": 128755,
+        "index_hash": "sha256:fe68a297ce9125e0e7ca5df54ae158f3afac619fb8e0669e6a83fef6df6210f7",
+        "max_candidate_count": 3,
+        "median_false_candidate_rate": 0.666667,
+        "median_latency_ms": 10.4574,
+        "runs": 5,
+        "top1_accuracy": 1.0,
+        "top3_recall": 1.0,
+        "topk_context_tokens": 264
+      },
+      "500": {
+        "context_reduction_ratio": 0.995896,
+        "full_registry_context_tokens": 64321,
+        "index_hash": "sha256:ec389dfdb16ee5853873f05201ca8b89ae132fb014c197747b15e8541d2b21c8",
+        "max_candidate_count": 3,
+        "median_false_candidate_rate": 0.666667,
+        "median_latency_ms": 5.2181,
+        "runs": 5,
+        "top1_accuracy": 1.0,
+        "top3_recall": 1.0,
+        "topk_context_tokens": 264
+      }
+    },
+    "synthetic_is_product_evidence": false
+  },
+  "search_policy_version": "capability-search-v2"
+}

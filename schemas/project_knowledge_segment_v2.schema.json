@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cgnk.local/schemas/project_knowledge_segment_v2.schema.json",
+  "title": "ProjectKnowledgeAuthoritySegmentV2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "format_version", "segment_id", "pack_id", "sequence_start", "sequence_end", "record_count", "previous_authority_root_hash", "authority_root_hash", "records", "content_checksum"],
+  "properties": {
+    "kind": {"const": "ProjectKnowledgeAuthoritySegment"},
+    "format_version": {"const": "2.0"},
+    "segment_id": {"type": "string"},
+    "pack_id": {"type": "string"},
+    "sequence_start": {"type": "integer", "minimum": 1},
+    "sequence_end": {"type": "integer", "minimum": 1},
+    "record_count": {"type": "integer", "minimum": 1},
+    "previous_authority_root_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "authority_root_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "records": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/record"}},
+    "content_checksum": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  },
+  "$defs": {
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "format_version", "sequence", "operation", "target_identity", "target_item_ids", "payload", "provenance", "record_hash"],
+      "properties": {
+        "kind": {"const": "ProjectKnowledgeMutation"},
+        "format_version": {"const": "2.0"},
+        "sequence": {"type": "integer", "minimum": 1},
+        "operation": {"enum": ["INITIALIZE", "UPSERT_ITEMS", "ARCHIVE", "DISCARD", "REFRESH"]},
+        "target_identity": {"type": "string"},
+        "target_item_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+        "payload": {"type": "object"},
+        "provenance": {"type": "object"},
+        "record_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    }
+  }
+}

@@ -53,6 +53,11 @@ SOURCE_KIND_TO_PROVENANCE = {
     "NECESSARY_INFERENCE": "NECESSARY_INFERENCE",
     "SYSTEM_POLICY": "SYSTEM_POLICY",
 }
+PLANNING_PROPOSAL_SCHEMA_PATH = (
+    pathlib.Path(__file__).resolve().parents[1]
+    / "contracts"
+    / "requirements_planning_proposal_v1.schema.json"
+)
 ALLOWED_PROVENANCE = {
     "USER_EXPLICIT",
     "USER_CONTEXT",
@@ -61,6 +66,11 @@ ALLOWED_PROVENANCE = {
     "SYSTEM_POLICY",
     "UNGROUNDED",
 }
+DEFAULT_SYSTEM_CONSTRAINTS = (
+    "Preserve the original user goal and explicit constraints.",
+    "Provider planning output has proposal authority only.",
+    "Do not add unrequested cloud processing or replace semantic outcomes with easier proxies.",
+)
 
 
 # ASCII-safe canonical marker definitions.  Unicode escapes keep Windows patch
@@ -112,6 +122,23 @@ def _string_list(value: Any) -> list[str]:
     if not isinstance(value, list):
         return []
     return list(dict.fromkeys(_text(item) for item in value if _text(item)))
+
+
+def canonicalize_assumptions(*sources: Any) -> list[str]:
+    """The sole canonical assembly point for GoalSpec assumptions."""
+    return list(
+        dict.fromkeys(
+            item
+            for source in sources
+            for item in _string_list(source)
+            if item
+        )
+    )
+
+
+def accepted_system_constraints(values: Any = None) -> list[str]:
+    """Return the single bounded policy set shared by generation and validation."""
+    return list(dict.fromkeys([*DEFAULT_SYSTEM_CONSTRAINTS, *_string_list(values)]))
 
 
 def _contains_any(text: str, markers: tuple[str, ...]) -> bool:
@@ -201,6 +228,102 @@ def planning_proposal_prompt_contract() -> dict[str, Any]:
             }
         ],
     }
+
+
+def planning_proposal_json_schema() -> dict[str, Any]:
+    """Return the checked-in canonical schema used to guide Provider output."""
+    schema = json.loads(PLANNING_PROPOSAL_SCHEMA_PATH.read_text(encoding="utf-8"))
+    if not isinstance(schema, dict):
+        raise RuntimeError("canonical PlanningProposal schema must be an object")
+    return schema
+
+
+def planning_proposal_response_format() -> dict[str, Any]:
+    """Build the OpenAI-compatible strict structured-output contract."""
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "cgkn_requirements_planning_proposal_v1",
+            "strict": True,
+            "schema": planning_proposal_json_schema(),
+        },
+    }
+
+
+def planning_proposal_repair_contract(
+    rejected_proposal: Any,
+    validation_errors: list[str],
+    *,
+    generation_context: dict[str, Any],
+) -> dict[str, Any]:
+    """Describe one representation-only repair using canonical constraints."""
+    schema = planning_proposal_json_schema()
+    rejected = rejected_proposal if isinstance(rejected_proposal, dict) else {}
+    workstream_ids = [
+        _text(item.get("id"))
+        for item in rejected.get("proposed_workstreams", [])
+        if isinstance(item, dict) and _text(item.get("id"))
+    ]
+    return {
+        "operation": "SCHEMA_REPAIR",
+        "invariants": [
+            "preserve every schema-valid semantic decision",
+            "change only fields required by the reported validation errors",
+            "do not add, remove, or restyle planning content unless required for schema validity",
+            "do not invent goals, requirements, capabilities, constraints, or grounding",
+        ],
+        "validation_errors": list(validation_errors),
+        "rejected_proposal": rejected_proposal,
+        "legal_source_grounding_targets": sorted(GROUNDED_FIELDS),
+        "necessary_inferences_item_schema": schema["$defs"]["strings"]["items"],
+        "legal_proposed_workstream_ids": workstream_ids,
+        "workstream_grounding_rule": "source_grounding.value must equal the canonical proposed_workstreams[].id, never scope or display text",
+        "provider_schema": schema,
+        "identity": {
+            "proposal_sequence": generation_context.get("proposal_sequence"),
+            "sealed_brief_sha256": generation_context.get("sealed_intent", {}).get("brief_sha256", "")
+            if isinstance(generation_context.get("sealed_intent"), dict)
+            else "",
+        },
+    }
+
+
+def validate_planning_preservation(
+    proposal: dict[str, Any],
+    existing_planning: dict[str, Any] | None,
+    required_corrections: Any = None,
+) -> list[str]:
+    """Reject loss of unaffected supported planning during PATCH or REPLAN.
+
+    A correction may explicitly name a field or value that must change.  All
+    other baseline semantic values remain required; ordering and wording of
+    unrelated container structure are not compared byte-for-byte.
+    """
+    baseline = existing_planning if isinstance(existing_planning, dict) else {}
+    if not baseline:
+        return []
+    correction_text = _norm(canonical_json(required_corrections or {}))
+    errors: list[str] = []
+    semantic_fields = tuple(field for field in PROPOSAL_LIST_FIELDS if field != "source_grounding")
+    def equivalent(left: str, right: str) -> bool:
+        if _norm(left) == _norm(right):
+            return True
+        left_tokens = set(re.findall(r"[a-z0-9]+|[\u4e00-\u9fff]", _text(left).lower()))
+        right_tokens = set(re.findall(r"[a-z0-9]+|[\u4e00-\u9fff]", _text(right).lower()))
+        union = left_tokens | right_tokens
+        return bool(union) and len(left_tokens & right_tokens) / len(union) >= 0.8
+
+    for field in semantic_fields:
+        before = _string_list(baseline.get(field))
+        after = _string_list(proposal.get(field))
+        for value in before:
+            normalized = _norm(value)
+            if any(equivalent(value, candidate) for candidate in after):
+                continue
+            if normalized in correction_text:
+                continue
+            errors.append(f"preservation_missing:{field}:{value}")
+    return sorted(set(errors))
 
 
 def build_planning_artifact(
@@ -334,7 +457,13 @@ def _grounding_index(
         elif valid and source_kind == "CONVERSATION_CONTEXT":
             valid = _norm(excerpt) in _norm(context_text)
         elif valid and source_kind == "SYSTEM_POLICY":
-            valid = _norm(excerpt) in _norm(policy_text)
+            excerpt_norm = _norm(excerpt)
+            valid = any(
+                constraint_norm
+                and (constraint_norm in excerpt_norm or excerpt_norm in constraint_norm)
+                for constraint in system_constraints
+                if (constraint_norm := _norm(constraint))
+            )
         elif valid and source_kind == "NECESSARY_INFERENCE":
             valid = len(_text(row.get("rationale"))) >= 8
         if not valid:
@@ -446,11 +575,7 @@ def compile_goal_spec(
 ) -> dict[str, Any]:
     raw_goal = _text(raw_goal)
     conversation_context = dict(conversation_context or {})
-    system_constraints = _string_list(system_constraints or [
-        "Preserve the original user goal and explicit constraints.",
-        "Provider planning output has proposal authority only.",
-        "Do not add unrequested cloud processing or replace semantic outcomes with easier proxies.",
-    ])
+    system_constraints = accepted_system_constraints(system_constraints)
     artifact_errors = validate_planning_artifact(planning_artifact, raw_goal)
     proposal = planning_artifact.get("proposal", {}) if isinstance(planning_artifact, dict) else {}
     proposal = proposal if isinstance(proposal, dict) else {}
@@ -558,11 +683,11 @@ def compile_goal_spec(
     fast_path_profile = dict(fast_path_profile or {})
     domain = _text(fast_path_profile.get("domain")) or "custom_local_application"
     capabilities = list(dict.fromkeys([*core_capabilities, *supporting_capabilities]))
-    assumptions = list(dict.fromkeys([
-        *raw_fields["assumptions"],
-        *_string_list(proposal.get("necessary_inferences")),
-        *_string_list(fast_path_profile.get("assumptions")),
-    ]))
+    assumptions = canonicalize_assumptions(
+        raw_fields["assumptions"],
+        proposal.get("necessary_inferences"),
+        fast_path_profile.get("assumptions"),
+    )
     open_questions = raw_fields["open_questions"]
     provenance_by_field["normalized_goal"] = [
         {"value": raw_goal, "provenance": ["USER_EXPLICIT"], "accepted": True, "source_refs": [raw_goal]}

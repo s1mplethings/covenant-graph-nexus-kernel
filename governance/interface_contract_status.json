@@ -1,0 +1,65 @@
+{
+  "kind": "CGKNExecutableInterfaceContractStatus",
+  "schema_version": "1.0",
+  "iteration": "ITER-EXECUTABLE-INTERFACE-CONTRACT-013",
+  "source_commit": "d981ddcae9fefb020c594283440e919030ea4a90",
+  "source_tree_sha": "92a7308a63edfc4c710cbe0d1a57a3c8754909c4",
+  "status": "COMPLETE",
+  "evidence_status": "PASS",
+  "contract_set": {
+    "contract_ids": ["INTERFACE-CSV-MODULE-001", "INTERFACE-CSV-CLEAN-FUNCTION-001", "INTERFACE-CSV-CLI-001"],
+    "source": "ObligationSet",
+    "deterministic": true,
+    "immutable": true,
+    "versioned": true,
+    "round_trip": "PASS"
+  },
+  "cli_contract": {
+    "entrypoint": ["python", "-m", "csv_cleaner"],
+    "positionals": ["input", "output"],
+    "options": ["--dedupe-column", "--fill", "--preview", "--help"],
+    "forbidden": ["-o", "--output"]
+  },
+  "guard_cases": {
+    "correct_positional": "PASS",
+    "positional_to_optional": "FAIL_AS_EXPECTED",
+    "forbidden_alias": "FAIL_AS_EXPECTED",
+    "missing_positional": "FAIL_AS_EXPECTED",
+    "dynamic_argparse": "UNRESOLVED_AS_EXPECTED"
+  },
+  "staging": {
+    "proposal_committed_before_guard": false,
+    "fake_attempt_1": "POSITIONAL_TO_OPTIONAL",
+    "fake_attempt_2": "PASS",
+    "workspace_polluted_by_rejected_attempt": false
+  },
+  "p1_repairs": {
+    "deep_recursive_materialization": "PASS",
+    "docs_depends_on_canonical_cli_contract": true,
+    "docs_provider_calls_during_core_repair": 1,
+    "contract_tests_reused": true
+  },
+  "real_single": {
+    "run_id": "csv-obligation-3fd7d276bf",
+    "worker": "qwen3.7-flash",
+    "status": "PASS",
+    "provider_calls": 3,
+    "proposal_attempts": 3,
+    "local_interface_guard_rejects": 0,
+    "tokens": 17884,
+    "wall_time_ms": 65318,
+    "dag_repair_rounds": 1,
+    "public_pytest": "PASS",
+    "oracle": "PASS",
+    "hidden_acceptance": "PASS",
+    "manual_edits": 0,
+    "whole_replans": 0,
+    "accepted_interface_breaks": 0
+  },
+  "known_limits": [
+    "the first release supports argparse plus PYTHON_MODULE, PYTHON_FUNCTION, and CLI only",
+    "Direct repeat consumes interface contract refs but does not run the DAG pre-commit interface guard",
+    "Provider-call totals are reconstructed from durable attempt request_ids because ObligationDAGResult reports zero for a non-recording client"
+  ],
+  "receipt_hash": "sha256:727bbbd5fd28d65398e24e62ebfcca140ea43c3bb6da9fb7a41a886416421181"
+}

@@ -14,6 +14,13 @@ import pathlib
 from dataclasses import dataclass
 from typing import Any, Mapping
 
+from scripts.work_nodes import (
+    WorkNode,
+    dependency_cycle_nodes,
+    ownership_conflicts,
+    validate_work_nodes,
+)
+
 
 def _hash(value: Any) -> str:
     return hashlib.sha256(
@@ -131,32 +138,44 @@ def validate_jobs(jobs: list[ProviderJob]) -> list[str]:
                 errors.append(f"provider_job.unknown_dependency:{job.id}:{dependency}")
             if dependency == job.id:
                 errors.append(f"provider_job.self_dependency:{job.id}")
-    for index, left in enumerate(jobs):
-        for right in jobs[index + 1 :]:
-            for left_owner in left.owns:
-                for right_owner in right.owns:
-                    if left_owner == right_owner or (
-                        left_owner.endswith("/") and right_owner.startswith(left_owner)
-                    ) or (right_owner.endswith("/") and left_owner.startswith(right_owner)):
-                        errors.append(f"provider_job.ownership_conflict:{left.id}:{right.id}:{left_owner}:{right_owner}")
-    visiting: set[str] = set()
-    visited: set[str] = set()
-
-    def visit(job_id: str) -> None:
-        if job_id in visiting:
-            errors.append(f"provider_job.cycle:{job_id}")
-            return
-        if job_id in visited or job_id not in by_id:
-            return
-        visiting.add(job_id)
-        for dependency in by_id[job_id].depends_on:
-            visit(dependency)
-        visiting.remove(job_id)
-        visited.add(job_id)
-
-    for job_id in sorted(by_id):
-        visit(job_id)
+    for left_id, right_id, left_owner, right_owner in ownership_conflicts(
+        (job.id, job.owns) for job in jobs
+    ):
+        errors.append(
+            f"provider_job.ownership_conflict:{left_id}:{right_id}:{left_owner}:{right_owner}"
+        )
+    for job_id in dependency_cycle_nodes(
+        by_id, {job.id: job.depends_on for job in jobs if job.id}
+    ):
+        errors.append(f"provider_job.cycle:{job_id}")
     return sorted(set(errors))
+
+
+def provider_job_from_work_node(node: WorkNode, **repair: Any) -> ProviderJob:
+    """Adapt canonical planning data to the existing Provider executor contract."""
+    if node.executor_type != "agent":
+        raise ValueError(f"provider_job.executor_type:{node.id}:{node.executor_type}")
+    return ProviderJob(
+        id=node.id,
+        goal=node.goal,
+        depends_on=node.depends_on,
+        owns=node.owns,
+        interfaces=node.interfaces,
+        acceptance=node.acceptance,
+        **repair,
+    )
+
+
+def work_node_from_provider_job(job: ProviderJob) -> WorkNode:
+    return WorkNode(
+        id=job.id,
+        goal=job.goal,
+        depends_on=job.depends_on,
+        interfaces=job.interfaces,
+        executor_type="agent",
+        owns=job.owns,
+        acceptance=job.acceptance,
+    )
 
 
 def validate_repair_job_contract(value: ProviderJob | Mapping[str, Any]) -> list[str]:
@@ -200,7 +219,7 @@ def validate_patch_set(job: ProviderJob, value: PatchSet | Mapping[str, str]) ->
 
 
 def provider_jobs_from_leaf_graph(component_id: str, graph: Mapping[str, Any]) -> list[ProviderJob]:
-    jobs: list[ProviderJob] = []
+    nodes: list[WorkNode] = []
     path_to_id: dict[str, str] = {}
     for leaf in graph.get("leaves", []):
         if not isinstance(leaf, Mapping):
@@ -222,8 +241,8 @@ def provider_jobs_from_leaf_graph(component_id: str, graph: Mapping[str, Any]) -
             path for path in (_normalize_path(item) for item in raw_paths) if path
         )
         primary_path = paths[0] if paths else ""
-        jobs.append(
-            ProviderJob(
+        nodes.append(
+            WorkNode(
                 id=str(leaf.get("leaf_id", "")),
                 goal=str(leaf.get("purpose", "")) or f"Build {primary_path} for {component_id}",
                 depends_on=tuple(
@@ -237,7 +256,15 @@ def provider_jobs_from_leaf_graph(component_id: str, graph: Mapping[str, Any]) -
                 owns=paths,
                 interfaces=tuple(str(item) for item in leaf.get("expected_symbols", []) if str(item).strip()),
                 acceptance=tuple(str(item) for item in leaf.get("acceptance_checks", []) if str(item).strip()),
-                tree_node_id=f"file.{_normalize_path(primary_path).replace('/', '_').replace('.', '_').replace('-', '_').lower()}",
             )
         )
-    return jobs
+    errors = validate_work_nodes(nodes)
+    if errors:
+        raise ValueError(";".join(errors))
+    return [
+        provider_job_from_work_node(
+            node,
+            tree_node_id=f"file.{_normalize_path(node.owns[0] if node.owns else '').replace('/', '_').replace('.', '_').replace('-', '_').lower()}",
+        )
+        for node in nodes
+    ]

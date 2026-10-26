@@ -1,0 +1,12 @@
+{
+  "kind": "FunctionalCheckpointSupervisedMultitype",
+  "schema_version": "1.0",
+  "checkpoint_id": "FUNCTIONAL-CHECKPOINT-SUPERVISED-MULTITYPE-PRODUCTION-001",
+  "status": "NOT_ESTABLISHED",
+  "functional_level": "LEVEL_3_MULTI_TYPE_PROJECT_GENERATION_NEEDS_REWORK",
+  "reason": "production canaries passed 1/4; simple mandatory route failed; project phase correctly gated",
+  "permanent_baseline": "BASELINE-SELF-GROWN-LEAVES-001",
+  "permanent_baseline_unchanged": true,
+  "full_closure": "PENDING",
+  "contains_credentials": false
+}

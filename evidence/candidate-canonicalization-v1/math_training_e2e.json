@@ -1,0 +1,75 @@
+{
+  "kind": "CGKNMathTrainingE2E",
+  "status": "PASS",
+  "project": "Calculus Ink Lab",
+  "run_id": "math-run-e47f5f298e6c47e8b97d8a0d29e90cd0",
+  "candidate_id": "math-candidate-e47f5f298e6c47e8b97d8a0d29e90cd0",
+  "candidate_hash": "sha256:b2ebea81654768e12a9e97a1068e00bd84e883b5331359d4fbe22b549d3b14bb",
+  "capabilities": [
+    "handwriting_input",
+    "formula_recognition",
+    "problem_model",
+    "grading",
+    "error_explanation",
+    "question_generation",
+    "progress_tracking",
+    "local_storage",
+    "user_interface"
+  ],
+  "interfaces_validated": true,
+  "iterations": [
+    {
+      "id": 1,
+      "vertical_slice": [
+        "handwriting_input",
+        "formula_recognition",
+        "grading",
+        "user_interface"
+      ],
+      "status": "PASS"
+    },
+    {
+      "id": 2,
+      "vertical_slice": [
+        "error_explanation",
+        "question_generation",
+        "progress_tracking",
+        "recognizer_replacement"
+      ],
+      "status": "PASS",
+      "state_change": "recognizer executor replaced without grading change"
+    }
+  ],
+  "reuse_decisions": [
+    {
+      "capability_id": "formula_recognition",
+      "selected_source": {
+        "type": "internal",
+        "ref": "project:LocalRecognitionAdapter"
+      },
+      "adapter_required": false,
+      "reason": "compatible reusable executor",
+      "provenance": {},
+      "rejected": []
+    }
+  ],
+  "runtime": {
+    "status": "PASS",
+    "real_http_process": true,
+    "customer_actions": 4
+  },
+  "visual": {
+    "status": "PASS",
+    "screenshot": "math_training_screenshot.png",
+    "bytes": 23198
+  },
+  "production_candidate": "PASS",
+  "package": "PASS",
+  "delivery_gate": {
+    "status": "PASS",
+    "decision": "DELIVER_WITH_WARNINGS",
+    "delivery_allowed": true
+  },
+  "delivery_receipt": "PASS",
+  "formal_release_authority": false
+}

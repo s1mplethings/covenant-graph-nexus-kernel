@@ -53,6 +53,7 @@ import visual_evidence
 import product_studio_reply
 import project_memory_md
 import production_candidate_provenance
+import provider_transport
 import public_narration
 import product_design_depth_governance
 import surrogate_provider_adapter
@@ -181,6 +182,38 @@ def write_json(path: pathlib.Path, doc: dict[str, Any]) -> None:
             if attempt == 4:
                 raise
             time.sleep(0.05 * (attempt + 1))
+
+
+def write_timeout_failure_result(args: argparse.Namespace, timeout: int, result_path: pathlib.Path) -> dict[str, Any]:
+    """Persist an explainable fail-closed result when managed generation times out."""
+    project_slug = str(getattr(args, "project_slug", "") or "").strip()
+    run_dir = ROOT / "examples" / "runtime_runs" / project_slug
+    phase_path = run_dir / "artifacts" / "generation_phase_log.jsonl"
+    recent: list[dict[str, Any]] = []
+    if phase_path.is_file():
+        for line in phase_path.read_text(encoding="utf-8", errors="replace").splitlines()[-20:]:
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(row, dict):
+                recent.append(row)
+    diagnostics = read_json(run_dir / "agent_usage" / "usage_planning_diagnostics.json", {})
+    result = {
+        "kind": "CGKNConversationGenerationResult",
+        "status": "BLOCKED",
+        "formal_evidence_status": "BLOCKED_ENVIRONMENT",
+        "reason": "generation subprocess exceeded total timeout",
+        "timeout_seconds": int(timeout),
+        "last_known_phase": str((recent[-1] if recent else {}).get("phase", "unknown")),
+        "recent_phase_events": recent,
+        "timeout_diagnostics": diagnostics,
+        "missing_artifacts": ["generation_result.json", "delivery_manifest.json", "final_project_bundle.zip"],
+        "can_retry": True,
+        "created_at": now(),
+    }
+    write_json(pathlib.Path(result_path), result)
+    return result
 
 
 def append_jsonl(path: pathlib.Path, doc: dict[str, Any]) -> None:
@@ -4949,135 +4982,6 @@ def project_delivery_facts(result: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-# LEGACY ONLY. Codex conversation formal generation must not call this.
-def build_generation_args(
-    conversation_id: int | str,
-    requirement: str,
-    log_dir: pathlib.Path,
-    model: str,
-    timeout: int,
-    generation_mode: str = "api",
-) -> argparse.Namespace:
-    import legacy_provider_pipeline
-
-    return legacy_provider_pipeline.build_generation_args(
-        conversation_id,
-        requirement,
-        log_dir,
-        model,
-        timeout,
-        generation_mode,
-        root=ROOT,
-        safe_id_fn=safe_id,
-    )
-
-
-# LEGACY ONLY. Codex conversation formal generation must not call this.
-def phase_log_path_for_project(project_slug: str) -> pathlib.Path:
-    import legacy_provider_pipeline
-
-    return legacy_provider_pipeline.phase_log_path_for_project(project_slug, root=ROOT)
-
-
-# LEGACY ONLY. Codex conversation formal generation must not call this.
-def last_known_phase(phase_log_path: pathlib.Path) -> str:
-    import legacy_provider_pipeline
-
-    return legacy_provider_pipeline.last_known_phase(phase_log_path)
-
-
-# LEGACY ONLY. Codex conversation formal generation must not call this.
-def recent_phase_events(phase_log_path: pathlib.Path, limit: int = 8) -> list[dict[str, Any]]:
-    import legacy_provider_pipeline
-
-    return legacy_provider_pipeline.recent_phase_events(phase_log_path, limit)
-
-
-# LEGACY ONLY. Codex conversation formal generation must not call this.
-def read_timeout_diagnostics(project_slug: str) -> dict[str, Any]:
-    import legacy_provider_pipeline
-
-    return legacy_provider_pipeline.read_timeout_diagnostics(project_slug, root=ROOT)
-
-
-# LEGACY ONLY. Codex conversation formal generation must not call this.
-def artifact_inventory(project_slug: str, result_path: pathlib.Path, phase_log_path: pathlib.Path) -> tuple[list[str], list[str]]:
-    import legacy_provider_pipeline
-
-    return legacy_provider_pipeline.artifact_inventory(project_slug, result_path, phase_log_path, root=ROOT)
-
-
-# LEGACY ONLY. Codex conversation formal generation must not call this.
-def write_timeout_failure_result(legacy_args: argparse.Namespace, timeout_seconds: int, result_path: pathlib.Path) -> dict[str, Any]:
-    import legacy_provider_pipeline
-
-    return legacy_provider_pipeline.write_timeout_failure_result(
-        legacy_args,
-        timeout_seconds,
-        result_path,
-        root=ROOT,
-        now_fn=now,
-        write_json_fn=write_json,
-    )
-
-
-# LEGACY ONLY. Codex conversation formal generation must not call this.
-def run_generation_subprocess(legacy_args: argparse.Namespace, log_dir: pathlib.Path) -> dict[str, Any]:
-    import legacy_provider_pipeline
-
-    return legacy_provider_pipeline.run_generation_subprocess(
-        legacy_args,
-        log_dir,
-        root=ROOT,
-        append_jsonl_fn=append_jsonl,
-        now_fn=now,
-        write_json_fn=write_json,
-        total_timeout_seconds=GENERATION_TOTAL_TIMEOUT_SECONDS,
-    )
-
-
-# LEGACY ONLY. Codex conversation formal generation must not call this.
-def safe_generation_failure_facts(requirement: str, exc: Exception) -> dict[str, Any]:
-    import legacy_provider_pipeline
-
-    return legacy_provider_pipeline.safe_generation_failure_facts(requirement, exc)
-
-
-# LEGACY ONLY. Codex conversation formal generation must not call this.
-def generation_progress_text(elapsed_seconds: int) -> str:
-    import legacy_provider_pipeline
-
-    return legacy_provider_pipeline.generation_progress_text(elapsed_seconds)
-
-
-# LEGACY ONLY. Codex conversation formal generation must not call this.
-def run_generation_job(
-    client: CodexConversation,
-    conversation_id: int | str,
-    session_dir: pathlib.Path,
-    log_dir: pathlib.Path,
-    model: str,
-    timeout: int,
-    announce_start: bool = False,
-    control_id: str = "",
-    generation_mode: str = "api",
-) -> None:
-    import legacy_provider_pipeline
-
-    legacy_provider_pipeline.run_generation_job(
-        sys.modules[__name__],
-        client,
-        conversation_id,
-        session_dir,
-        log_dir,
-        model,
-        timeout,
-        announce_start=announce_start,
-        control_id=control_id,
-        generation_mode=generation_mode,
-    )
-
-
 def _provider_runtime_path(value: Any) -> pathlib.Path | None:
     path = pathlib.Path(str(value or ""))
     if path.exists() and path.is_file():
@@ -6323,6 +6227,7 @@ def run_provider_execute_with_retries(
     max_attempts: int = 5,
 ) -> dict[str, Any]:
     last_error: BaseException | None = None
+    retry_attempts: list[dict[str, Any]] = []
     for attempt in range(1, max_attempts + 1):
         try:
             return provider_project_pipeline.execute(args)
@@ -6330,19 +6235,39 @@ def run_provider_execute_with_retries(
             last_error = exc
             retryable = provider_error_is_retryable(exc)
             error_type = provider_error_type(exc)
+            error_text = str(exc)
+            headers_match = re.search(
+                r"response_headers_received=(true|false)", error_text, flags=re.I
+            )
+            headers_received = (
+                headers_match.group(1).lower() == "true" if headers_match else None
+            )
+            retry_attempts.append({
+                "attempt": attempt,
+                "retryable": retryable,
+                "error_type": error_type,
+                "response_headers_received": headers_received,
+            })
+            retry_allowed = provider_transport.should_retry_provider_attempt(
+                retry_attempts,
+                max_pre_header_attempts=2,
+                max_response_header_attempts=3,
+            )
             event = {
                 "kind": "provider_retry",
                 "attempt": attempt,
                 "max_attempts": max_attempts,
                 "retryable": retryable,
                 "provider_error_type": error_type,
-                "http_client_rebuilt_for_next_attempt": bool(retryable and attempt < max_attempts),
+                "response_headers_received": headers_received,
+                "retry_policy_allows_next_attempt": retry_allowed,
+                "http_client_rebuilt_for_next_attempt": bool(retry_allowed and attempt < max_attempts),
                 "error": str(exc),
                 "stage": "api_provider_project_generation",
             }
             append_agent_session_event(session_dir, conversation_id, {"role": "tool", **event})
             write_provider_phase_event(phase_log_path, event)
-            if not retryable or attempt >= max_attempts:
+            if not retry_allowed or attempt >= max_attempts:
                 break
             partial = provider_partial_artifacts(pathlib.Path(str(getattr(args, "out_dir", ""))))
             if partial:
@@ -6637,6 +6562,8 @@ def run_provider_generation_job(
         if isinstance(session.get("generation"), dict)
         else {}
     )
+    generation_model = str(prior_generation.get("generation_model", model) or model).strip()
+    repair_model = str(prior_generation.get("repair_model", "") or "").strip()
     provider_mode = str(prior_generation.get("provider_mode", "live") or "live").strip().lower()
     replay_dir = str(prior_generation.get("replay_dir", "") or "").strip()
     identity = production_generation_identity(conversation_id, session)
@@ -6664,6 +6591,8 @@ def run_provider_generation_job(
         "project_dir": str(project_dir),
         "provider_run_dir": str(run_dir),
         "provider_mode": provider_mode,
+        "generation_model": generation_model,
+        "repair_model": repair_model,
         "replay_dir": replay_dir,
     }
     if formal_entry:
@@ -6700,23 +6629,35 @@ def run_provider_generation_job(
             out_dir=str(provider_staging_dir),
             run_dir=str(run_dir),
             result=str(result_path),
-            model=model,
+            model=generation_model,
             timeout=timeout,
             allow_network=provider_mode == "live",
             allow_provider=provider_mode == "live",
             use_api=True,
             allow_model_usage_planning=False,
             phase_log_path=str(phase_log_path),
-            codex_capability_brief="",
+            codex_capability_brief=str(
+                session.get("codex_capability_brief", "") or ""
+            ),
             provider_mode=provider_mode,
             project_id=identity["candidate_id"],
             replay_dir=replay_dir,
-            small_model=model,
-            large_model=model,
-            repair_model=model,
+            small_model=generation_model,
+            large_model=generation_model,
+            repair_model=repair_model,
             resume_run_dir=(
                 str(run_dir)
-                if provider_mode != "live" and (run_dir / surrogate_provider_adapter.HANDSHAKE_DIR / "provider_mode_state.json").is_file()
+                if (
+                    (run_dir / "artifacts" / "pending_repair_plan.json").is_file()
+                    or (
+                        provider_mode != "live"
+                        and (
+                            run_dir
+                            / surrogate_provider_adapter.HANDSHAKE_DIR
+                            / "provider_mode_state.json"
+                        ).is_file()
+                    )
+                )
                 else ""
             ),
         )
@@ -6730,7 +6671,7 @@ def run_provider_generation_job(
             run_dir=run_dir,
             result_path=result_path,
             identity=identity,
-            model=model,
+            model=generation_model,
             formal_entry=formal_entry,
         )
 
@@ -6862,7 +6803,7 @@ def run_provider_generation_job(
         finalize: dict[str, Any] = {}
 
         def finalize_once() -> dict[str, Any]:
-            nonlocal finalize, provider_result
+            nonlocal finalize, provider_result, round_state
             provider_result = round_state["provider_result"]
             runtime_artifacts = materialize_provider_runtime_artifacts(project_dir, provider_result)
             finalize = post_build_finalize_provider_project(
@@ -6907,8 +6848,9 @@ def run_provider_generation_job(
                 production_run_dir=run_dir,
             )
 
+        initial_final_audit = finalize_once()
         final_recovery = run_supervision_recovery_cycle(
-            finalize_once(),
+            initial_final_audit,
             reaudit=finalize_once,
             handlers={
                 "rework_project": repair_provider_before_final,
@@ -8086,8 +8028,10 @@ def start_generation_from_income(
     reason: str,
     generation_mode: str = "api",
     provider_mode: str = "live",
+    repair_model: str = "",
     replay_dir: str | pathlib.Path | None = None,
     background: bool = True,
+    on_started: Callable[[dict[str, Any]], None] | None = None,
 ) -> bool:
     generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
     status = str(generation.get("status", "idle")).lower()
@@ -8142,6 +8086,8 @@ def start_generation_from_income(
             entry_receipt
         ),
         "provider_mode": str(provider_mode or "live").strip().lower(),
+        "generation_model": str(model or "").strip(),
+        "repair_model": str(repair_model or "").strip(),
         "replay_dir": str(pathlib.Path(replay_dir).resolve()) if replay_dir else "",
     }
     append_agent_session_event(
@@ -8157,6 +8103,8 @@ def start_generation_from_income(
         },
     )
     save_session(session_dir, session)
+    if on_started is not None:
+        on_started(dict(session["generation"]))
     start_kwargs: dict[str, Any] = {"announce_start": False, "reason": reason}
     if not background:
         start_kwargs["background"] = False
@@ -8850,6 +8798,35 @@ def handle_text(
             timeout=timeout,
             reason="project_update",
         )
+    completed_candidate_statuses = {
+        "ready",
+        "ready_with_warnings",
+        "completed",
+        "delivered",
+        "delivered_with_warnings",
+        "final_delivered",
+    }
+    if generation_status in completed_candidate_statuses:
+        direct_text, _ = reject_off_topic_public_reply(
+            session_dir,
+            conversation_id,
+            session,
+            str(turn.get("reply", "")),
+            source=str(turn.get("source", "customer_service_reply")),
+        )
+        send_customer_reply(
+            client,
+            conversation_id,
+            session_dir,
+            session,
+            event="model_frontdesk_reply",
+            source=str(turn.get("source", "customer_service_reply")),
+            direct_text=direct_text,
+        )
+        record_provider_design_scope(
+            client, conversation_id, session_dir, log_dir, session
+        )
+        return
     auto_start, start_reason = should_auto_start_generation(session, analysis, text)
     if not auto_start:
         record_generation_start_waiting(session_dir, conversation_id, session, analysis, start_reason)
@@ -9080,15 +9057,32 @@ def handle_attachment_message(
 # renders returned text or local artifact links in the active task.
 
 
+FORMAL_RESTARTABLE_FAILURE_STATUSES = {
+    "blocked",
+    "error",
+    "failed",
+    "rework_blocked",
+}
+
+
+def formal_generation_requires_new_run(status: object) -> bool:
+    """Return whether a terminal failed formal turn needs a fresh production identity."""
+    return str(status or "").strip().lower() in FORMAL_RESTARTABLE_FAILURE_STATUSES
+
+
 def run_formal_generation_once(
     project_root: str | pathlib.Path,
     *,
     goal: str,
     provider_mode: str = "live",
     model: str = "gpt-4.1",
+    repair_model: str = "",
     timeout: int = 1800,
     replay_dir: str | pathlib.Path | None = None,
     result_path: str | pathlib.Path | None = None,
+    codex_capability_brief: str | pathlib.Path | None = None,
+    observed_failure: str | pathlib.Path | None = None,
+    on_started: Callable[[dict[str, Any]], None] | None = None,
 ) -> dict[str, Any]:
     """Run/resume one production conversation generation turn synchronously.
 
@@ -9105,8 +9099,17 @@ def run_formal_generation_once(
     ).hexdigest()[:20]
     path = session_path(session_dir, conversation_id)
     client = CodexConversation()
+    brief_path = (
+        pathlib.Path(codex_capability_brief).expanduser().resolve()
+        if codex_capability_brief
+        else None
+    )
+    if brief_path is not None and (not brief_path.is_file() or brief_path.is_symlink()):
+        raise ValueError("codex_capability_brief must be an existing regular file")
     if not path.is_file():
         session = default_session(conversation_id)
+        if brief_path is not None:
+            session["codex_capability_brief"] = str(brief_path)
         session["messages"].append({"role": "user", "text": goal, "created_at": now()})
         session["whiteboard"].update(
             {
@@ -9127,16 +9130,82 @@ def run_formal_generation_once(
             session,
             reason="agent_kit_formal_generation",
             provider_mode=provider_mode,
+            repair_model=repair_model,
             replay_dir=replay_dir,
             background=False,
+            on_started=on_started,
         )
     else:
         session = load_session(session_dir, conversation_id)
+        stored_brief = str(session.get("codex_capability_brief", "") or "")
+        if brief_path is not None and stored_brief and pathlib.Path(stored_brief).resolve() != brief_path:
+            raise ValueError("codex_capability_brief cannot change while resuming a production run")
+        if brief_path is not None and not stored_brief:
+            session["codex_capability_brief"] = str(brief_path)
+            save_session(session_dir, session)
         generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
         stored_mode = str(generation.get("provider_mode", provider_mode) or provider_mode)
         if stored_mode != provider_mode:
             raise ValueError("provider_mode cannot change while resuming a production run")
-        if str(generation.get("status", "")).lower() in {"waiting_surrogate_response", "waiting_requirement_replan"}:
+        stored_generation_model = str(generation.get("generation_model", model) or model)
+        stored_repair_model = str(generation.get("repair_model", "") or "")
+        if stored_generation_model != str(model or ""):
+            raise ValueError("generation model cannot change while resuming a production run")
+        if stored_repair_model != str(repair_model or ""):
+            raise ValueError("repair model cannot change while resuming a production run")
+        observed_repair_handled = False
+        if observed_failure is not None:
+            observed_path = pathlib.Path(observed_failure).expanduser().resolve()
+            if not observed_path.is_file() or observed_path.is_symlink():
+                raise ValueError("observed_failure must be an existing regular file")
+            observed_doc = json.loads(observed_path.read_text(encoding="utf-8"))
+            if not isinstance(observed_doc, dict):
+                raise ValueError("observed_failure must contain a JSON object")
+            provider_run_dir = pathlib.Path(
+                str(generation.get("provider_run_dir", ""))
+            ).resolve()
+            project_dir = pathlib.Path(str(generation.get("project_dir", ""))).resolve()
+            if not provider_run_dir.is_dir() or not project_dir.is_dir():
+                raise RuntimeError("observed_failure_generation_identity_missing")
+            preparation = (
+                provider_project_pipeline.prepare_observed_project_failure_provider_repair(
+                    provider_run_dir,
+                    observed_doc,
+                    user_goal=goal,
+                    candidate_dir=project_dir,
+                )
+            )
+            session["observed_failure_repair"] = preparation
+            append_agent_session_event(
+                session_dir,
+                conversation_id,
+                {
+                    "kind": "observed_project_failure_repair_prepared",
+                    "role": "tool",
+                    "result": preparation,
+                },
+            )
+            save_session(session_dir, session)
+            observed_repair_handled = True
+            if str(preparation.get("status", "")) == "pending_provider_repair":
+                if on_started is not None:
+                    on_started(dict(generation))
+                start_agent_generation(
+                    client,
+                    conversation_id,
+                    session_dir,
+                    log_dir,
+                    model,
+                    timeout,
+                    announce_start=False,
+                    reason="agent_kit_observed_failure_provider_repair",
+                    background=False,
+                )
+        if observed_repair_handled:
+            pass
+        elif str(generation.get("status", "")).lower() in {"waiting_surrogate_response", "waiting_requirement_replan"}:
+            if on_started is not None:
+                on_started(dict(generation))
             start_agent_generation(
                 client,
                 conversation_id,
@@ -9148,6 +9217,36 @@ def run_formal_generation_once(
                 reason="agent_kit_surrogate_resume",
                 background=False,
             )
+        elif formal_generation_requires_new_run(generation.get("status")):
+            start_generation_from_income(
+                client,
+                conversation_id,
+                session_dir,
+                log_dir,
+                model,
+                timeout,
+                session,
+                reason="agent_kit_terminal_failure_revalidation",
+                provider_mode=provider_mode,
+                repair_model=repair_model,
+                replay_dir=replay_dir,
+                background=False,
+                on_started=on_started,
+            )
+        elif str(generation.get("status", "")).lower() in ACTIVE_GENERATION_STATUSES:
+            if on_started is not None:
+                on_started(dict(generation))
+                start_agent_generation(
+                    client,
+                    conversation_id,
+                    session_dir,
+                    log_dir,
+                    model,
+                    timeout,
+                    announce_start=False,
+                    reason="agent_kit_managed_worker_resume",
+                    background=False,
+                )
     session = load_session(session_dir, conversation_id)
     generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
     status = str(generation.get("status", "NOT_EVALUATED"))
@@ -9174,6 +9273,10 @@ def run_formal_generation_once(
         "workflow_state": str(generation.get("workflow_state") or generation.get("canonical_finalization_state", {}).get("state") or normalized_status),
         "formal_evidence_status": formal_evidence_status,
         "provider_mode": str(generation.get("provider_mode", provider_mode)),
+        "execution_mode": "external_api" if str(generation.get("provider_mode", provider_mode)) == "live" else str(generation.get("provider_mode", provider_mode)),
+        "generation_model": str(generation.get("generation_model", model)),
+        "repair_model": str(generation.get("repair_model", "") or generation.get("generation_model", model)),
+        "repair_model_escalation_configured": bool(str(generation.get("repair_model", "")).strip()),
         "real_provider_calls": int(generation.get("real_provider_calls", 0) or 0),
         "network_attempts": int(generation.get("network_attempts", 0) or 0),
         "provider_schedulers": int(generation.get("provider_schedulers", 1) or 1),
@@ -9201,6 +9304,7 @@ def run_formal_generation_once(
         "promotion_manifest": generation.get("promotion_manifest", {}),
         "user_review_policy": generation.get("user_review_policy", {}),
         "product_maturity": generation.get("product_maturity", {}),
+        "observed_failure_repair": session.get("observed_failure_repair", {}),
         "conversation_session_path": str(path.resolve()),
         "public_messages": client.messages,
         "public_artifacts": client.artifacts,

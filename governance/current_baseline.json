@@ -1,0 +1,53 @@
+{
+  "kind": "CGKNBaselineReceipt",
+  "schema_version": "1.0",
+  "baseline_id": "BASELINE-SELF-GROWN-LEAVES-001",
+  "parent_baseline_id": "BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001",
+  "source_commit": "d131e358798af062dc80cf963ba05460fe610f19",
+  "source_tree_sha": "bf11250ea43459ebc944e96120a6d7493f6cd7e9",
+  "core_source_hash": "sha256:e9cbb2c8a88d002a0ad899f21880352f620c187d5b9e2f786278eb9604158c2e",
+  "kernel_receipt_hash": "sha256:4ed5734ae753d4b613a01e822f5fbd78cd69f2259779bc0530c27cfb2432b7b9",
+  "l6_receipt_hash": "sha256:23ca0b3c1e9b48b3a50147571f48bb635ef84919a985b24ff651645200772071",
+  "semantic_experiment_receipt_hash": "sha256:389e08be8216c2c703d8193397b756ae353f375e61e5276719e48d40f726f47d",
+  "profiles": {
+    "micro": "PASS",
+    "small_regression": "PASS",
+    "promotion": "PASS_TARGETED_POLICY",
+    "full": "NOT_RUN_BY_POLICY",
+    "live-provider": "PASS"
+  },
+  "test_counts": {"passed": 56, "failed": 0, "errors": 0, "skipped": 0},
+  "known_blockers": [
+    "adaptive Provider selection remains BLOCKED_ENVIRONMENT because only Grok is eligible",
+    "Qwen requires a workspace-recognized credential and DeepSeek requires a credential",
+    "authenticated GitHub and write-side public network capabilities remain outside this baseline"
+  ],
+  "protected_invariants": [
+    "kernel_foundation=COMPLETE",
+    "functional_readiness=LEVEL_4",
+    "L0-L5=COMPLETE",
+    "generation_readiness=GENERATION_LEVEL_2",
+    "mvp_readiness=READY",
+    "fallback=deny",
+    "routing_frozen_per_run=true",
+    "manual_candidate_edits=0",
+    "unsafe_admissions=0",
+    "198.18.0.0/15_remains_blocked_as_destination=true",
+    "provider_gateway_and_public_proxy_are_separate=true"
+  ],
+  "inherits": "BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001",
+  "added_guarantees": [
+    "READ_ONLY_PUBLIC_NETWORK supports an explicit trusted loopback proxy without weakening DIRECT SSRF policy",
+    "web.fetch.public@1 executes through the trusted proxy and reuses without growth",
+    "github.repo.inspect.public@1 is self-built with a hash-recorded web.fetch.public@1 dependency",
+    "github.repo.inspect.public@1 executes and reuses without growth",
+    "release.notes.from_diff@1 remains reusable without growth",
+    "cross-capability composition executes with a deterministic adapter and without growth",
+    "unsafe admission and manual generated-candidate edits remain zero"
+  ],
+  "unchanged_guarantees": ["all protected guarantees from BASELINE-SELF-GROWTH-SINGLE-PROVIDER-001"],
+  "removed_guarantees": [],
+  "created_at": "2026-10-18T11:53:00+08:00",
+  "evidence_status": "PASS_WITH_LIMITS",
+  "baseline_hash": "sha256:490af47b443cc0fd6bc370849f12f2e0ef9d3bbd400a448aba0c5fa8a7d1555a"
+}

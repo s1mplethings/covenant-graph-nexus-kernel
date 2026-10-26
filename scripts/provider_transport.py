@@ -7,6 +7,7 @@ import re
 import ssl
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from typing import Any, Callable
@@ -57,6 +58,13 @@ def _is_gptsapi_base_url(value: str) -> bool:
     }
 
 
+def _is_alibaba_model_studio_base_url(value: str) -> bool:
+    hostname = str(urllib.parse.urlparse(str(value or "").strip()).hostname or "").lower()
+    return hostname in {"dashscope.aliyuncs.com", "dashscope-intl.aliyuncs.com"} or hostname.endswith(
+        ".maas.aliyuncs.com"
+    )
+
+
 def normalize_provider_api_method(value: str | None) -> str:
     text = str(value or "").strip().lower().replace("-", "_")
     aliases = {
@@ -78,7 +86,7 @@ def select_provider_api_method(base_url: str, model: str, requested_method: str 
     if requested:
         return requested
     del model
-    if _is_gptsapi_base_url(base_url):
+    if _is_gptsapi_base_url(base_url) or _is_alibaba_model_studio_base_url(base_url):
         return PROVIDER_API_CHAT_COMPLETIONS
     return PROVIDER_API_RESPONSES
 
@@ -180,6 +188,36 @@ def classify_provider_error(error: str) -> str:
     if "non-json response" in lowered or "response is not object" in lowered:
         return "PROVIDER_INVALID_RESPONSE"
     return "PROVIDER_UNKNOWN_ERROR"
+
+
+def should_retry_provider_attempt(
+    attempts: list[dict[str, Any]],
+    *,
+    max_pre_header_attempts: int = 2,
+    max_response_header_attempts: int = 3,
+) -> bool:
+    """Apply one deterministic retry budget without changing request identity."""
+    if not attempts:
+        return True
+    latest = attempts[-1]
+    if not bool(latest.get("retryable")):
+        return False
+    headers_received = latest.get("response_headers_received")
+    if headers_received is True:
+        return len(attempts) < max(1, int(max_response_header_attempts))
+    if headers_received is False:
+        error_type = str(latest.get("error_type") or "")
+        consecutive = 0
+        for item in reversed(attempts):
+            if (
+                item.get("response_headers_received") is False
+                and str(item.get("error_type") or "") == error_type
+            ):
+                consecutive += 1
+            else:
+                break
+        return consecutive < max(1, int(max_pre_header_attempts))
+    return len(attempts) < max(1, int(max_response_header_attempts))
 
 
 def post_json_once(

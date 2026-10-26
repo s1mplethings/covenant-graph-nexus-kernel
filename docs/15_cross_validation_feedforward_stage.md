@@ -1,4 +1,4 @@
-# CGKN Cross-Validation and Feedforward Stage
+# CGNK Cross-Validation and Feedforward Stage
 
 ## Outcome
 

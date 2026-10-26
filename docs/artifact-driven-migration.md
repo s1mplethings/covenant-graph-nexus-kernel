@@ -2,7 +2,7 @@
 
 ## Purpose
 
-CGKN v0.3 adds an artifact-driven execution lane without breaking
+CGNK v0.3 adds an artifact-driven execution lane without breaking
 `flow.project_generation@1`, `flow.project_refactor@1`, or
 `flow.modular_project_generation@1`. Those flows may continue to use their
 existing phase/checkpoint conventions while modules migrate incrementally.

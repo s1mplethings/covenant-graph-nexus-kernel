@@ -1,0 +1,7 @@
+{
+  "schema_version": "1.0",
+  "case_id": "local_web_notes",
+  "tests": {
+    "test_local_web_notes.py::test_notes_runtime_and_persistence": ["public-requirement-1", "public-requirement-2", "public-requirement-3", "public-requirement-4", "public-requirement-5"]
+  }
+}
