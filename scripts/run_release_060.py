@@ -19,6 +19,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from cgkn.providers import CGKNModelRouting, GatewayCompletionClient, ModelRoleConfig, completion_client_from_environment
+from experiments.release_060.analysis import analyze, write_analysis_assets
 from experiments.release_060.contracts import ArchitectureBaseline, EvaluationPolicy, canonical_hash
 from experiments.release_060.leakage import check_family_leakage
 from experiments.release_060.runner import SYSTEM_PROMPT, file_bundle_schema, run_family
@@ -149,7 +150,7 @@ def _preflight(artifact_root: pathlib.Path, policy: EvaluationPolicy, api_lab_ro
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("manifest", "preflight", "development", "formal", "resume", "summarize"))
+    parser.add_argument("command", choices=("manifest", "preflight", "development", "formal", "resume", "summarize", "analyze"))
     parser.add_argument("--artifact-root", type=pathlib.Path, default=pathlib.Path(r"F:\CGKN-ITER-060"))
     parser.add_argument("--corpus-root", type=pathlib.Path)
     parser.add_argument("--api-lab-root", type=pathlib.Path)
@@ -168,6 +169,11 @@ def main() -> int:
         receipts = [json.loads(path.read_text(encoding="utf-8")) for path in sorted((artifact_root / "runs" / "receipts").glob("*.json"))]
         result = {"attempts": len(receipts), "status_counts": {status: sum(row.get("status") == status for row in receipts) for status in ("PASS", "FAIL", "ABORTED")}, "provider_calls": sum(int(row.get("provider_calls", 0)) for row in receipts), "receipt_hashes": [row.get("receipt_hash") for row in receipts]}
         result["summary_hash"] = canonical_hash(result); print(json.dumps(result, ensure_ascii=False, sort_keys=True, indent=2)); return 0
+    if args.command == "analyze":
+        receipts = [json.loads(path.read_text(encoding="utf-8")) for path in sorted((artifact_root / "runs" / "receipts").glob("*.json"))]
+        result = analyze(receipts, source_version=args.source_version or _git("rev-parse", "HEAD"))
+        write_analysis_assets(result, artifact_root / "analysis")
+        print(json.dumps({"status":"PASS","analysis_hash":result["analysis_hash"],"attempt_count":result["attempt_count"],"family_count":result["family_count"],"claim_ledger":result["claim_ledger"]}, ensure_ascii=False, sort_keys=True, indent=2)); return 0
 
     formal = args.command == "formal" or args.command == "resume" and (artifact_root / "formal-freeze.json").is_file()
     families = formal_families() if formal else development_families()
