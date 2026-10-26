@@ -5,8 +5,8 @@
   "project_id": "cgnk",
   "goal": "Build a local-first, content-addressed, versioned, searchable, replayable Project Corpus that preserves success, failure, partial, and repair history without becoming a second Knowledge or runtime authority.",
   "backlog_item_ids": ["PB-034"],
-  "workflow_state": "active",
-  "evidence_status": "NOT_EVALUATED",
+  "workflow_state": "closed",
+  "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
     "all project outcomes, including failed and aborted attempts, can be captured",
     "source snapshots reconstruct with byte fidelity and content-hash integrity",
@@ -43,13 +43,31 @@
     "research/release-059/technical_report.md"
   ],
   "review": {
-    "outcome": "pending",
-    "feedback": [],
-    "accepted_backlog_item_ids": []
+    "outcome": "accepted_with_limits",
+    "feedback": [
+      "all 14 preregistered hard gates passed",
+      "historical backfill is classified by recoverability and not overstated",
+      "real corpus contents remain local",
+      "full CGNK architecture benefit remains NOT_PROVEN"
+    ],
+    "accepted_backlog_item_ids": ["PB-034"]
   },
   "retrospective": {
-    "worked": [],
-    "did_not_work": [],
-    "experiments": []
+    "worked": [
+      "immutable objects plus versioned manifests made catalog rebuild deterministic",
+      "application-level best-effort capture preserved project outcome isolation",
+      "family-level split assignment made leakage checks straightforward",
+      "formal repair-chain dogfood exposed the evidence needed for future repair benchmarks"
+    ],
+    "did_not_work": [
+      "the initial final regression retained a pre-rc.5 plugin identity expectation and required a source-only test alignment",
+      "historical artifacts were not uniformly recoverable and required explicit FULLY_RECOVERED, SOURCE_ONLY, or PARTIAL_METADATA_ONLY labels"
+    ],
+    "experiments": [
+      "10-family formal corpus with success, failure, partial, repaired, and quarantined outcomes",
+      "1,000-snapshot and 10,000-reference deterministic scale evaluation",
+      "portable repair-family export/import and byte-faithful reconstruction",
+      "6,284-blob release history compliance scan"
+    ]
   }
 }

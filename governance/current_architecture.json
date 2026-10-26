@@ -28,7 +28,7 @@
     "decision_hierarchy": "EVALUATED_NOT_ADOPTED_PARTIAL_DIRECTIONAL",
     "knowledge_persistence_v2": "DEFAULT_FOR_NEW_PACKS_CHECKPOINT_QUALIFIED_AT_250K",
     "functional_readiness": "LEVEL_4",
-    "project_corpus": "LOCAL_FIRST_APPLICATION_INFRASTRUCTURE_IMPLEMENTED_PENDING_FORMAL_EVALUATION"
+    "project_corpus": "PROJECT_CORPUS_BENCHMARK_READY"
   },
   "product_authority": ["PRODUCT_GOAL.md", "MVP_SCOPE.md", "governance/product_invariants.json"],
   "state_authority": ["governance/current_architecture.json", "docs/00_kernel_contract.md", "project_management/current/active_iteration.json"],

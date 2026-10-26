@@ -1,0 +1,49 @@
+{
+  "kind": "ITER059ReleaseClaimLedger",
+  "schema_version": "1.0",
+  "source_closure": "a6c9414f687a9e44e4370112b709b8662907796f",
+  "claims": [
+    {
+      "claim": "Project Corpus v1 hard gates pass on the frozen source closure",
+      "status": "SUPPORTED",
+      "evidence": "research/release-059/formal_evaluation.json",
+      "scope": "14 deterministic integrity, privacy, lineage, split, replay, import/export, scale, and failure-isolation gates"
+    },
+    {
+      "claim": "A FAIL to REPAIR to PASS chain is recoverable",
+      "status": "SUPPORTED",
+      "evidence": "formal_evaluation.repair_chain",
+      "scope": "deterministic dogfood with five snapshots, failure evidence, patch evidence, and before/after tests"
+    },
+    {
+      "claim": "Snapshot reconstruction is byte-faithful",
+      "status": "SUPPORTED",
+      "evidence": "formal_evaluation.reconstruction",
+      "scope": "captured source objects in the frozen evaluation"
+    },
+    {
+      "claim": "The catalog scales to 1,000 snapshots and 10,000 file references",
+      "status": "SUPPORTED",
+      "evidence": "formal_evaluation.scale",
+      "scope": "deterministic repeated-content CAS/catalog workload; not representative of real-world corpus diversity"
+    },
+    {
+      "claim": "Historical backfill recovered six live Provider projects",
+      "status": "NOT_CLAIMED",
+      "evidence": "formal_evaluation.historical_backfill",
+      "scope": "two fully recovered repository examples, three source-only examples, and one metadata-only example"
+    },
+    {
+      "claim": "Project Corpus proves the full CGNK architecture is beneficial",
+      "status": "NOT_CLAIMED",
+      "evidence": "governance/current_architecture.json",
+      "scope": "ITER-059 is substrate evidence and does not reinterpret ITER-056, ITER-057, or ITER-058"
+    },
+    {
+      "claim": "The repository publishes a Project Corpus dataset",
+      "status": "NOT_CLAIMED",
+      "evidence": "docs/BENCHMARK_DATA_GOVERNANCE.md",
+      "scope": "real corpus contents stay local; this release contains implementation, schemas, documentation, and sanitized aggregate evidence"
+    }
+  ]
+}

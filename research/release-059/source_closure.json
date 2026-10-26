@@ -1,0 +1,21 @@
+{
+  "kind": "ITER059SourceClosure",
+  "schema_version": "1.0",
+  "status": "FROZEN",
+  "source_commit": "a6c9414f687a9e44e4370112b709b8662907796f",
+  "source_tree": "a0fe7cd93cb4f593864210c973d89d6f11b42024",
+  "base_branch": "main",
+  "base_commit": "8a7bdd7d1a719d7e9a8b182ae47c515908ba63a7",
+  "work_branch": "codex/project-corpus-foundation-20261026",
+  "schema_hashes": {
+    "corpus_entry": "sha256:f03b63337c3308ab77648a622b18bde0c69b8d10ecdee4ed22b4c545c8af47e3",
+    "snapshot_manifest": "sha256:669a323066829d76d6b40184200a89fe53f1af6716749611f5bc7dfb0079388f",
+    "benchmark_manifest": "sha256:f2cc51bf5afb1901670078acfc91f2163f9ddc02c1d1d6a0702e7d78cdf97875"
+  },
+  "policy_hash": "sha256:925c3ce1952694ae4df2449372ea756c54d16dd76b92d7d4c01ba8144da67399",
+  "api_lab_dependency": "7c15f2546ec007cc7e601fa62ae4d88b9ba12f80",
+  "notes": [
+    "Project Corpus is application/evaluation infrastructure and not a Knowledge, planner, runtime, DAG, project-state, or Git authority.",
+    "The final source-only commit changed the rc.5 deployment-identity expectation after the prior source closure; the Project Corpus implementation and schemas were unchanged."
+  ]
+}

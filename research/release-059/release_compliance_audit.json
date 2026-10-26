@@ -1,0 +1,1060 @@
+{
+  "kind": "CGKNReleaseComplianceAudit",
+  "schema_version": "1.0",
+  "public_project_name": "CGNK",
+  "legacy_machine_identifier": "CGKN",
+  "generated_at": "2026-10-26T14:53:47.393879+00:00",
+  "repository_head": "a6c9414f687a9e44e4370112b709b8662907796f",
+  "history_included": true,
+  "history_scope_commit": "a6c9414f687a9e44e4370112b709b8662907796f",
+  "history_blob_count": 6284,
+  "history_scope_unique_blob_count": 6284,
+  "audit_policy": {
+    "history_reachability": "unique named blobs reachable from history_scope_commit",
+    "maximum_text_blob_bytes": 8388608,
+    "binary_blobs_secret_scanned": false,
+    "duplicate_blob_oids_scanned_once": true
+  },
+  "inventory": {
+    "binary_assets": [
+      "evidence/architecture-reduction-v1/e2e/math_training_screenshot.png",
+      "evidence/candidate-canonicalization-v1/math_training_screenshot.png"
+    ],
+    "benchmark_file_count": 36
+  },
+  "finding_count": 147,
+  "p0_count": 0,
+  "status": "PASS",
+  "findings": [
+    {
+      "gate": "privacy_current",
+      "severity": "P1",
+      "location": "scripts/release_compliance_audit.py:44",
+      "fingerprint": "fa4a37eb1a05299b",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_current",
+      "severity": "P2",
+      "location": "tests/application/persona/test_persona_contracts.py:45",
+      "fingerprint": "b2df041459767e8a",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_current",
+      "severity": "P2",
+      "location": "tests/application/persona/test_persona_contracts.py:45",
+      "fingerprint": "90bde77f37a806d0",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "secret_current",
+      "severity": "P1",
+      "location": "tests/application/project_corpus/test_project_corpus.py:138",
+      "fingerprint": "693f5072f49dad8d",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "privacy_current",
+      "severity": "P2",
+      "location": "tests/application/project_corpus/test_project_corpus.py:54",
+      "fingerprint": "7eb0e2d9539a6152",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_current",
+      "severity": "P2",
+      "location": "tests/application/project_corpus/test_project_corpus.py:137",
+      "fingerprint": "33df11e65390c00c",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_current",
+      "severity": "P2",
+      "location": "tests/application/promotion/test_promotion_pipeline.py:17",
+      "fingerprint": "7b6944f64018bcaa",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_current",
+      "severity": "P2",
+      "location": "tests/application/software_project/test_scope.py:81",
+      "fingerprint": "9f32509509fedae9",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "secret_current",
+      "severity": "P1",
+      "location": "tests/providers/test_structured_output_selector.py:96",
+      "fingerprint": "6f514b94dbe6c20e",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "secret_current",
+      "severity": "P1",
+      "location": "tests/test_canonical_repo_publish.py:112",
+      "fingerprint": "baa60285dd98d380",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "secret_current",
+      "severity": "P1",
+      "location": "tests/test_cgkn_mcp_plugin.py:500",
+      "fingerprint": "d5bf0384937615fa",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "secret_current",
+      "severity": "P1",
+      "location": "tests/test_codex_capability_supervisor.py:43",
+      "fingerprint": "bb2e393ff41d1519",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "secret_current",
+      "severity": "P1",
+      "location": "tests/test_formal_provider_fallback.py:11226",
+      "fingerprint": "b4108cde217de62e",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "secret_current",
+      "severity": "P1",
+      "location": "tests/test_formal_provider_fallback.py:11236",
+      "fingerprint": "b4108cde217de62e",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "secret_current",
+      "severity": "P1",
+      "location": "tests/test_provider_credentials.py:73",
+      "fingerprint": "6787160ef1c5a79f",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "secret_current",
+      "severity": "P1",
+      "location": "tests/test_provider_credentials.py:119",
+      "fingerprint": "6787160ef1c5a79f",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "secret_current",
+      "severity": "P1",
+      "location": "tests/test_provider_transport.py:146",
+      "fingerprint": "34ad57019f88fe76",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "secret_current",
+      "severity": "P1",
+      "location": "tests/test_provider_transport.py:226",
+      "fingerprint": "20eacdf476da37b8",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "secret_current",
+      "severity": "P1",
+      "location": "tests/test_release_compliance_audit.py:19",
+      "fingerprint": "38750363110a3eda",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "privacy_current",
+      "severity": "P2",
+      "location": "tests/test_release_compliance_audit.py:37",
+      "fingerprint": "cef28150ae21f7ea",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "31098c41f834230e74bc163271c25c053e0da4ee:scripts/release_compliance_audit.py:44",
+      "fingerprint": "fa4a37eb1a05299b",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P2",
+      "location": "5a3a06c0612293ad24a4b143a964b4cb45ffcf22:tests/application/persona/test_persona_contracts.py:45",
+      "fingerprint": "b2df041459767e8a",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P2",
+      "location": "5a3a06c0612293ad24a4b143a964b4cb45ffcf22:tests/application/persona/test_persona_contracts.py:45",
+      "fingerprint": "90bde77f37a806d0",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "secret_history",
+      "severity": "P1",
+      "location": "78e7e0a0e9f6de56b089de269875f818a9199098:tests/application/project_corpus/test_project_corpus.py:138",
+      "fingerprint": "693f5072f49dad8d",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P2",
+      "location": "78e7e0a0e9f6de56b089de269875f818a9199098:tests/application/project_corpus/test_project_corpus.py:54",
+      "fingerprint": "7eb0e2d9539a6152",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P2",
+      "location": "78e7e0a0e9f6de56b089de269875f818a9199098:tests/application/project_corpus/test_project_corpus.py:137",
+      "fingerprint": "33df11e65390c00c",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P2",
+      "location": "2a2a30dfffd22ff5c43ab1da17a00a236cbba49b:tests/application/promotion/test_promotion_pipeline.py:17",
+      "fingerprint": "7b6944f64018bcaa",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P2",
+      "location": "71ce56edce42608fa66dbff372e3990d1a4af0e9:tests/application/software_project/test_scope.py:81",
+      "fingerprint": "9f32509509fedae9",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "secret_history",
+      "severity": "P1",
+      "location": "7e30aec54cd8d98348a5151416e014410d4766d2:tests/providers/test_structured_output_selector.py:96",
+      "fingerprint": "6f514b94dbe6c20e",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "secret_history",
+      "severity": "P1",
+      "location": "08a2f732e8c2f1da6d6fa61136edf27a58ea8215:tests/test_canonical_repo_publish.py:112",
+      "fingerprint": "baa60285dd98d380",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "secret_history",
+      "severity": "P1",
+      "location": "5e09d1779b3a4c6a224028c9559d0eee0cffbd31:tests/test_cgkn_mcp_plugin.py:500",
+      "fingerprint": "d5bf0384937615fa",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "secret_history",
+      "severity": "P1",
+      "location": "0b0d0f24671d2d293aa9d67d3270adae3340ce8d:tests/test_codex_capability_supervisor.py:43",
+      "fingerprint": "bb2e393ff41d1519",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "secret_history",
+      "severity": "P1",
+      "location": "4f0009c5e9a1b8514603d330dd3cea32361aa816:tests/test_formal_provider_fallback.py:11226",
+      "fingerprint": "b4108cde217de62e",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "secret_history",
+      "severity": "P1",
+      "location": "1286d09e79a63f61fe9a3a910bad397aacd27789:tests/test_provider_credentials.py:73",
+      "fingerprint": "6787160ef1c5a79f",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "secret_history",
+      "severity": "P1",
+      "location": "cecdc5b9fef88f1db7cccf487070098e05d0ad84:tests/test_provider_transport.py:146",
+      "fingerprint": "34ad57019f88fe76",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "secret_history",
+      "severity": "P1",
+      "location": "cecdc5b9fef88f1db7cccf487070098e05d0ad84:tests/test_provider_transport.py:226",
+      "fingerprint": "20eacdf476da37b8",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "secret_history",
+      "severity": "P1",
+      "location": "5a6da581d3db2094e58e1e35764e3d03f277a662:tests/test_release_compliance_audit.py:19",
+      "fingerprint": "38750363110a3eda",
+      "detail": "openai_token; test fixture candidate"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P2",
+      "location": "5a6da581d3db2094e58e1e35764e3d03f277a662:tests/test_release_compliance_audit.py:37",
+      "fingerprint": "cef28150ae21f7ea",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "secret_history",
+      "severity": "P1",
+      "location": "5997fa0ec85c7e61cde16f1156559462186046e8:tests/test_provider_credentials.py:39",
+      "fingerprint": "00592a2c934eb1e0",
+      "detail": "assigned_secret; test fixture candidate"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "ed8f9df76286fa6ee75cff842ad33f5abb1c0ca0:artifacts/artifacts_before_agent_led_rebalance.patch:655",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "ed8f9df76286fa6ee75cff842ad33f5abb1c0ca0:artifacts/artifacts_before_agent_led_rebalance.patch:1231",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "d2f9d214f967cfb55cb13edc8dee69aeb94ce349:artifacts/complexity_scale_run_summary.json:945",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "eb84d79b742a24c4fc51027f44540ab6fa47dfa5:artifacts/customer_agent_long_journey_runs/20260625T211423353196Z-ffea489a7a11/customer_agent_long_journey_trial.json:612",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "dd227fc36168fd767ca0551d3644b33152f4bc06:artifacts/customer_agent_long_journey_runs/20260625T211423422214Z-8c90a5c2b007/customer_agent_long_journey_trial.json:612",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "4ceaeaa563dfdd942b6da332bd5371127a557cd1:artifacts/customer_agent_long_journey_runs/20260625T211432816297Z-f9203bc86cdb/customer_agent_long_journey_trial.json:550",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "20332d1c55994e26a583d000c67218f15868873d:artifacts/customer_agent_long_journey_runs/20260626T011020139014Z-2a7e65a70f8a/customer_agent_long_journey_trial.json:612",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "1401fbb9d0d419a9008c8c02b7a8ca05e3cdd8e6:artifacts/customer_agent_long_journey_runs/20260626T011247301049Z-74d180e99dcf/customer_agent_long_journey_trial.json:550",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "d0be6f2609abc1476150e10c247d5149229f62fa:artifacts/feasibility_live_smoke/artifacts/candidate_post_build_finalize.json:258",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "86d34ec77fba9fd5cb7c08c44602bab9f9792d71:artifacts/feasibility_live_smoke/artifacts/post_build_repair_history.json:324",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "42bf0163b2e46df6250751c9da9c5d7da44d45a3:artifacts/feasibility_live_smoke/artifacts/test_environment_report.json:32",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "2be14857cce90ca7acb0378630f6bc080c00eb56:artifacts/feasibility_live_smoke_result.json:1382",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "7b6b43daaacdaff1b26efd537175b412b23fc0f4:artifacts/formal_live_delivery_closure/20260627T051130Z/formal_live_delivery_closure_report.json:126",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "7edb636122d3a2410720f4e34d60b343784f074c:artifacts/new_key_feasibility_live/artifacts/candidate_post_build_finalize.json:258",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "2f3b011f3dbf426f36b48adbff23c5dd28068e72:artifacts/new_key_feasibility_live/artifacts/post_build_repair_history.json:324",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "471de8a3b541a5f1da4266cb01135c0ba2d00ddd:artifacts/new_key_feasibility_live/artifacts/test_environment_report.json:32",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "a76647d7bea6a5b5b7f807f169efb2faea223600:artifacts/new_key_feasibility_live_result.json:1390",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "395beace4126272b06da3abcd3291e13111278e4:artifacts/reference_answer_project_trial_runs/20260625T211423355032Z-eb3d9be63ea9/delivery_evidence/delivery_smoke_command.json:4",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "7fe726117ec48a01e4a1bbd7c10c6c64fc999497:artifacts/reference_answer_project_trial_runs/20260625T211423355032Z-eb3d9be63ea9/generated_project/local_media_operations_workspace/README.md:10",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "d04fd878f7382653b3e2063319f9303c7f7e3a57:artifacts/reference_answer_project_trial_runs/20260625T211423355032Z-eb3d9be63ea9/generated_project/local_media_operations_workspace/TEST_REPORT.md:5",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "446473704c8fa220f2484ee9b3fb617c1ac0488d:artifacts/reference_answer_project_trial_runs/20260625T211423355032Z-eb3d9be63ea9/generated_project/local_media_operations_workspace/delivery_manifest.json:357",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "d9e79b9b37db47ff60916c6e3facddd4349b372f:artifacts/reference_answer_project_trial_runs/20260625T211423355032Z-eb3d9be63ea9/generated_project/local_media_operations_workspace/delivery_status_page.html:7",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "6ce6c8c99633c646f0849eaf7b05cf7e64adb452:artifacts/reference_answer_project_trial_runs/20260625T211423423028Z-58698fe7b6a1/delivery_evidence/delivery_smoke_command.json:4",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "45a8d67a63a7878edbb0976cd0f1707d7bbcb4b5:artifacts/reference_answer_project_trial_runs/20260625T211423423028Z-58698fe7b6a1/generated_project/local_media_operations_workspace/DELIVERY_NOTES.md:39",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "48818dbb9a055a639cd19a49904af00c16844a87:artifacts/reference_answer_project_trial_runs/20260625T211423423028Z-58698fe7b6a1/generated_project/local_media_operations_workspace/README.md:10",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "3b3084d3f940ea95c24a381348c15512085a325f:artifacts/reference_answer_project_trial_runs/20260625T211423423028Z-58698fe7b6a1/generated_project/local_media_operations_workspace/TEST_REPORT.md:5",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "aacd1167a8a414b187719c524235718aaa6f08e4:artifacts/reference_answer_project_trial_runs/20260625T211423423028Z-58698fe7b6a1/generated_project/local_media_operations_workspace/asr_multi_sample_report.json:36",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "1fd1c2960393fc9d9b34e4c74be864ff91e258b0:artifacts/reference_answer_project_trial_runs/20260625T211423423028Z-58698fe7b6a1/generated_project/local_media_operations_workspace/capability_manifest.json:148",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "38699b242bb9da08b38e179c099d874454ea54ed:artifacts/reference_answer_project_trial_runs/20260625T211423423028Z-58698fe7b6a1/generated_project/local_media_operations_workspace/delivery_manifest.json:158",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "18df75cf7e6f4cf1e8ba92844b425611bc54a314:artifacts/reference_answer_project_trial_runs/20260625T211423423028Z-58698fe7b6a1/generated_project/local_media_operations_workspace/delivery_status_page.html:7",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "ca5d6f5161475e3ddd288d49fc2790bbd598289b:artifacts/reference_answer_project_trial_runs/20260625T211432817018Z-5380970cd7f1/delivery_evidence/delivery_smoke_command.json:4",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "8a7f5a73db00d55056a3e95f99e4c36626c070dd:artifacts/reference_answer_project_trial_runs/20260625T211432817018Z-5380970cd7f1/generated_project/local_media_operations_workspace/DELIVERY_NOTES.md:39",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "a8c8846a98a1fd96771e59bcffc9520c6dbe585b:artifacts/reference_answer_project_trial_runs/20260625T211432817018Z-5380970cd7f1/generated_project/local_media_operations_workspace/README.md:10",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "d8b2ca5915b4b8bd068823b06b6dfc1202e98865:artifacts/reference_answer_project_trial_runs/20260625T211432817018Z-5380970cd7f1/generated_project/local_media_operations_workspace/TEST_REPORT.md:5",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "a9fef9e29f9e8ab5f5de2563add10016b880c41d:artifacts/reference_answer_project_trial_runs/20260625T211432817018Z-5380970cd7f1/generated_project/local_media_operations_workspace/asr_multi_sample_report.json:36",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "a754aaea6617bebf2e7da64af27536fb9d5ca4f8:artifacts/reference_answer_project_trial_runs/20260625T211432817018Z-5380970cd7f1/generated_project/local_media_operations_workspace/capability_manifest.json:148",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "a114b0ec8add1d85f01799d44433bc21180ab445:artifacts/reference_answer_project_trial_runs/20260625T211432817018Z-5380970cd7f1/generated_project/local_media_operations_workspace/delivery_manifest.json:8",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "bdebfce2a6df5b8eaa968debb066f1ac40ddcdab:artifacts/reference_answer_project_trial_runs/20260625T211432817018Z-5380970cd7f1/generated_project/local_media_operations_workspace/packaged_evidence/START_HERE.txt:3",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "57bc2ff0831d8b34ca9426df02010dbc457f186b:artifacts/reference_answer_project_trial_runs/20260625T211432817018Z-5380970cd7f1/generated_project/local_media_operations_workspace/packaged_evidence/delivery_manifest.json:8",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "e9c22b56123190ab5f6e5caa575575bda03cc3fd:artifacts/reference_answer_project_trial_runs/20260625T211446148319Z-8cba6518ed80/delivery_evidence/delivery_smoke_command.json:4",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "4c165b320a9156cf5eb406da2462838d5798e7ee:artifacts/reference_answer_project_trial_runs/20260625T211446148319Z-8cba6518ed80/generated_project/local_media_operations_workspace/README.md:10",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "2bbf4d18e9641fabf7379c2a6046b5fa7d2d7d5a:artifacts/reference_answer_project_trial_runs/20260625T211446148319Z-8cba6518ed80/generated_project/local_media_operations_workspace/TEST_REPORT.md:5",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "52914353eb69f4eb2166b5a46cb6db3c2d037265:artifacts/reference_answer_project_trial_runs/20260625T211446148319Z-8cba6518ed80/generated_project/local_media_operations_workspace/delivery_manifest.json:357",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "37ba37c330310548633999e7b29af465c0be18c4:artifacts/reference_answer_project_trial_runs/20260625T211446220389Z-6e83edd661de/delivery_evidence/delivery_smoke_command.json:4",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "2b8dc39512b1b05d18076978e88a572627535135:artifacts/reference_answer_project_trial_runs/20260625T211446220389Z-6e83edd661de/generated_project/local_media_operations_workspace/DELIVERY_NOTES.md:39",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "e63a57cf2ec612ed167c45ff899051817640b65d:artifacts/reference_answer_project_trial_runs/20260625T211446220389Z-6e83edd661de/generated_project/local_media_operations_workspace/README.md:10",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "39c7eb4b6259ed51ada7ff98fddff4aff484f68d:artifacts/reference_answer_project_trial_runs/20260625T211446220389Z-6e83edd661de/generated_project/local_media_operations_workspace/TEST_REPORT.md:5",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "7414a5824395ba0b7e7ceda76fa204d9a288e959:artifacts/reference_answer_project_trial_runs/20260625T211446220389Z-6e83edd661de/generated_project/local_media_operations_workspace/asr_multi_sample_report.json:36",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "387a0618e9ab84a32d2b0863e3d97a43cf60c1f3:artifacts/reference_answer_project_trial_runs/20260625T211446220389Z-6e83edd661de/generated_project/local_media_operations_workspace/capability_manifest.json:148",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "34be4184819d5c890ca73943b5f9ed3c33e459b0:artifacts/reference_answer_project_trial_runs/20260625T211446220389Z-6e83edd661de/generated_project/local_media_operations_workspace/delivery_manifest.json:158",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "4a4324033cd4f5c32532ea58efae36d8a332aafb:artifacts/reference_answer_project_trial_runs/20260626T011020139999Z-2e9cfac0b5a5/delivery_evidence/delivery_smoke_command.json:4",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "edd71adadeb2c85099576c99ab6e7fa3b4795b46:artifacts/reference_answer_project_trial_runs/20260626T011020139999Z-2e9cfac0b5a5/generated_project/local_media_operations_workspace/README.md:10",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "47fc6aafec0838f7014197f9e4aa3afd6b0f2526:artifacts/reference_answer_project_trial_runs/20260626T011020139999Z-2e9cfac0b5a5/generated_project/local_media_operations_workspace/TEST_REPORT.md:5",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "49b30d4c94c85ae9f944689f24ac6e663ddcd88f:artifacts/reference_answer_project_trial_runs/20260626T011020139999Z-2e9cfac0b5a5/generated_project/local_media_operations_workspace/delivery_manifest.json:357",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "034665ff235d371fed8a0a264dff23463f6effbf:artifacts/reference_answer_project_trial_runs/20260626T011247301796Z-c378ee9b7470/delivery_evidence/delivery_smoke_command.json:4",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "803ca51f199831cdd3dee9b529360fb213d2a157:artifacts/reference_answer_project_trial_runs/20260626T011247301796Z-c378ee9b7470/generated_project/local_media_operations_workspace/DELIVERY_NOTES.md:39",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "962a460331deed7628b19dd91bf44512becf9023:artifacts/reference_answer_project_trial_runs/20260626T011247301796Z-c378ee9b7470/generated_project/local_media_operations_workspace/README.md:10",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "03f96e00789c3f7552db40feb35e253375893c81:artifacts/reference_answer_project_trial_runs/20260626T011247301796Z-c378ee9b7470/generated_project/local_media_operations_workspace/TEST_REPORT.md:5",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "d833504422e9502df2d42144304264cb6efd2789:artifacts/reference_answer_project_trial_runs/20260626T011247301796Z-c378ee9b7470/generated_project/local_media_operations_workspace/asr_multi_sample_report.json:36",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "f851fcc024ace7b924fd67560aaebbfb0983efd0:artifacts/reference_answer_project_trial_runs/20260626T011247301796Z-c378ee9b7470/generated_project/local_media_operations_workspace/capability_manifest.json:148",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "444a0b2c9d09bf5ada03736d79a4624d78acd6e2:artifacts/reference_answer_project_trial_runs/20260626T011247301796Z-c378ee9b7470/generated_project/local_media_operations_workspace/delivery_manifest.json:8",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "061b31665cb5f31615daea1e66759520f2a17ef8:artifacts/reference_answer_project_trial_runs/20260626T011247301796Z-c378ee9b7470/generated_project/local_media_operations_workspace/packaged_evidence/delivery_manifest.json:8",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "697c855c0760fd55afc36316cf069f1fece0e2a9:artifacts/reference_answer_project_trial_runs/20260626T011306101573Z-6dffc39af478/delivery_evidence/delivery_smoke_command.json:4",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "72c5b2df12e97347aba0e9750bdd58dad2fa9dfd:artifacts/reference_answer_project_trial_runs/20260626T011306101573Z-6dffc39af478/generated_project/local_media_operations_workspace/README.md:10",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "9da32b1c0354fcb7dfb9544db2a3f6bb75cb7704:artifacts/reference_answer_project_trial_runs/20260626T011306101573Z-6dffc39af478/generated_project/local_media_operations_workspace/TEST_REPORT.md:5",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "8ac2a3d35422fa43285295cca58ad952eee42da8:artifacts/reference_answer_project_trial_runs/20260626T011306101573Z-6dffc39af478/generated_project/local_media_operations_workspace/delivery_manifest.json:357",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "e0362602005eb0cbb4970a8e4bd1f63c06791060:artifacts/reference_answer_project_trial_runs/20260626T011306616228Z-ce4d26f69490/delivery_evidence/delivery_smoke_command.json:4",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "e394f58d63eba3de6a6d283b76efe7533090a0c9:artifacts/reference_answer_project_trial_runs/20260626T011306616228Z-ce4d26f69490/generated_project/local_media_operations_workspace/DELIVERY_NOTES.md:39",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "25fa9b193bbe39552afb5d801e14bbfdb09949ab:artifacts/reference_answer_project_trial_runs/20260626T011306616228Z-ce4d26f69490/generated_project/local_media_operations_workspace/README.md:10",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "6cf35ffa23cb9d47dd93605c5f54dcd5297b281f:artifacts/reference_answer_project_trial_runs/20260626T011306616228Z-ce4d26f69490/generated_project/local_media_operations_workspace/TEST_REPORT.md:5",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "a73fd89f941f1c4a6bedbc1fdd3547ad55020e6f:artifacts/reference_answer_project_trial_runs/20260626T011306616228Z-ce4d26f69490/generated_project/local_media_operations_workspace/asr_multi_sample_report.json:36",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "f2f086260ca0b2eb74c69b12e8166c3f18ff0ef2:artifacts/reference_answer_project_trial_runs/20260626T011306616228Z-ce4d26f69490/generated_project/local_media_operations_workspace/capability_manifest.json:148",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "924db438163a31ad8fbdccbe96b7c7038a1ca8fa:artifacts/reference_answer_project_trial_runs/20260626T011306616228Z-ce4d26f69490/generated_project/local_media_operations_workspace/delivery_manifest.json:158",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "63efb0f8703cedbe6f6d4a63fd80d5ebd837f512:artifacts/reference_answer_trial.json:222",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "daa0a90369f519bda49d66e22ca24309fc715826:artifacts/reference_answer_trial_summary.md:13",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "51cbc66d5b33cf0da10282f438b93baddb209a5c:examples/local_studio/conversations/chat-e2e-pipeline/active_project.json:6",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "62e14384d8d4c810bef70068a50eb4862d28e248:examples/local_studio/conversations/chat-fallback-e2e/active_project.json:6",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "a51fcd5ea80b4305277a382f6ebb14f5ce1557df:examples/local_studio/conversations/chat-fallback/active_project.json:6",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "571c5081fbc26ad9438f0fc1a4975e19778bca4f:examples/local_studio/conversations/chat-pipeline/active_project.json:6",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "e074c732370613bba92caba93ee0b11372dff54c:examples/project_memory/candidate-message/project_memory.artifact.json:35",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "124154fdba668a6fdbc87f9ff033655590aaf239:examples/project_memory/candidate-review/project_memory.artifact.json:35",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "269a1d332b9dccd51c4990b8e7c98ec2e4f04cfd:examples/project_memory/chat-4/project_memory.artifact.json:43",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "62c1d012838b812faa682c01b01630add7abd4fb:examples/project_memory/chat-attachment/PROJECT_MEMORY.md:30",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "eabcbf3a0bfa43f77ec68808bf9975a9e0028f21:examples/project_memory/chat-attachment/project_memory.artifact.json:14",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "cab951c28748f5186ad77aa93abf8ee51e89fbcf:examples/project_memory/chat-b/project_memory.artifact.json:49",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "f434eb71c4bfb5e75fe2020073057e54e1bdbabd:examples/project_memory/chat-block/project_memory.artifact.json:90",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "a86572e02198c39e56de9632921e008fb72f1aa2:examples/project_memory/chat-c/project_memory.artifact.json:48",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "1fdf00604d52da80124b56e1fba9e0f476c52454:examples/project_memory/chat-control/project_memory.artifact.json:64",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "9269c841d23c5234c3701e3f081fa11773c60188:examples/project_memory/chat-decision/project_memory.artifact.json:35",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "f27f41502ab889e76733525cec850b5f02609d35:examples/project_memory/chat-e2e-pipeline/project_memory.artifact.json:48",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "a07691c6808a309d034afd0e5d4a9d2b3c31706e:examples/project_memory/chat-e2e/project_memory.artifact.json:49",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "7da38524981023cbfcf9cc02fba72d87e0e59160:examples/project_memory/chat-fail-rework/project_memory.artifact.json:30",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "5be05b1acc53946d9112d5188f9c962dd0f1baa4:examples/project_memory/chat-fallback-e2e/project_memory.artifact.json:48",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "d4fde017a87b60b36e4a1aaeb44cc57b345b1121:examples/project_memory/chat-fallback/project_memory.artifact.json:31",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "b36af9c95748b5d133f283204bfd4747f69397bb:examples/project_memory/chat-manifest/project_memory.artifact.json:31",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "83437e387247ddf5b55252a3408c2baa2aca7a54:examples/project_memory/chat-no-api/project_memory.artifact.json:49",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "b138a22174b41d2a08897f1e5feba5f917c3a03c:examples/project_memory/chat-non-pass/project_memory.artifact.json:29",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "e900794553f35798d9e1c415919a48f7c41e947d:examples/project_memory/chat-partial-no-deliver/project_memory.artifact.json:34",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "d4035a07678202ac4b0286de85bcd319d4f9cd39:examples/project_memory/chat-pipeline/project_memory.artifact.json:31",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "d6f5a2cdb25b4d5a758ce4e3a9b6abdcb4544ebe:examples/project_memory/chat-retry-fail/project_memory.artifact.json:34",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "e77ea01737691a2e009509e26f454fe2fc0048ba:examples/project_memory/chat-retry-pass/project_memory.artifact.json:31",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "153b6c261e982644331318c45b01bfbe710b543e:examples/project_memory/chat-revise/project_memory.artifact.json:75",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "18582c2bf363c9ab14a1b87c6270d258c6a7cffe:examples/project_memory/chat-stage-resume/project_memory.artifact.json:31",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "09a68ae6bfc51b87223ccd80ca5658df282a895f:project_management/cgkn/iterations/ITER-030_RUNTIME_EVIDENCE.md:8",
+      "fingerprint": "73ea2b32f5053ed7",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "1d1e80f77d3b95c9b365a67ab2405ab22b047593:artifacts/continuous_generation_iterations.jsonl:141",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "a2048a4748c15c025f7531b2c95dd9e7eb823416:README.md:158",
+      "fingerprint": "04e47b907c035b67",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "28f852ad282d892f0732bf53e98bffb20afd9b59:examples/runtime_runs/modular-project-testing/test_execution_report.json:19",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    },
+    {
+      "gate": "privacy_history",
+      "severity": "P1",
+      "location": "91c73ad2663920d67b22dcae590bb20cc0894155:examples/test_results/test_pipeline_execution_result.json:22",
+      "fingerprint": "f7b0e3589e6b4fe1",
+      "detail": "user-home absolute path"
+    }
+  ],
+  "result_hash": "sha256:6a6bffff68b8fd9e3f9e9eb5423b092b723618096938a57dd2513d20f287af05"
+}

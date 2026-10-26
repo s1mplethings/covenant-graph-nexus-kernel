@@ -1,0 +1,19 @@
+{
+  "attempts": 10,
+  "complexity": {
+    "LOW": 10
+  },
+  "dedup_ratio": 1.003782,
+  "families": 10,
+  "logical_bytes": 21498,
+  "object_references": 23,
+  "objects": 20,
+  "physical_bytes": 21417,
+  "snapshots": 17,
+  "statuses": {
+    "FAIL": 1,
+    "PARTIAL": 2,
+    "PASS": 6,
+    "QUARANTINED": 1
+  }
+}
