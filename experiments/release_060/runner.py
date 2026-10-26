@@ -47,6 +47,14 @@ def _write_json(path: pathlib.Path, value: Mapping[str, Any]) -> None:
     os.replace(temporary, path)
 
 
+def _json_plain(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {str(key): _json_plain(item) for key, item in value.items()}
+    if isinstance(value, (tuple, list)):
+        return [_json_plain(item) for item in value]
+    return value
+
+
 def _usage_totals(records: list[CallRecord]) -> dict[str, int]:
     totals: dict[str, int] = {}
     for record in records:
@@ -192,7 +200,7 @@ class FamilyMaterializer:
             "recovery": {"failure": dict(failure or {}), "smallest_affected_episode": self.memory.family.episodes[episode_index].episode_id if failure else None},
         }
         if baseline is ArchitectureBaseline.FULL_CGNK:
-            structured["dependency_results"] = dict(dependency_results)
+            structured["dependency_results"] = _json_plain(dependency_results)
             structured["execution_authority"] = "CapabilityTree->ExecutionDAG->DAGRunner"
             structured["project_blueprint"] = dict(self.memory.architecture_contract)
         else:

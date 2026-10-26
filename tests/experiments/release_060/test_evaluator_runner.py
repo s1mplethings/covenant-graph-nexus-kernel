@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import json
 import pathlib
+from types import MappingProxyType
 
 import pytest
 
 from cgkn.providers import ModelRoleConfig, ProviderCompletion
 from experiments.release_060.contracts import ArchitectureBaseline, EvaluationPolicy
 from experiments.release_060.evaluator import evaluate_family
-from experiments.release_060.runner import file_bundle_schema, run_family
+from experiments.release_060.runner import _json_plain, file_bundle_schema, run_family
 from experiments.release_060.specs import formal_families
 
 
@@ -77,6 +78,12 @@ def test_dynamic_file_bundle_schema_is_exact() -> None:
     schema = file_bundle_schema("unit", ("a.py", "b.py"))
     assert schema["properties"]["files"]["maxItems"] == 2
     assert schema["properties"]["files"]["items"]["properties"]["path"]["enum"] == ["a.py", "b.py"]
+
+
+def test_dag_dependency_results_are_thawed_for_json_prompt() -> None:
+    frozen = MappingProxyType({"node": MappingProxyType({"paths": ("a.py", "b.py")})})
+    assert _json_plain(frozen) == {"node": {"paths": ["a.py", "b.py"]}}
+    json.dumps(_json_plain(frozen))
 
 
 @pytest.mark.parametrize("baseline", [ArchitectureBaseline.DIRECT_CHEAP.value, ArchitectureBaseline.MINIMAL_CGNK.value, ArchitectureBaseline.FULL_CGNK.value])
