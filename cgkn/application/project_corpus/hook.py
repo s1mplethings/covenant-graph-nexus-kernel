@@ -47,6 +47,8 @@ class ProjectCorpusCaptureHook:
         generator_version: str,
         public_packet: Mapping[str, Any],
         metadata: Mapping[str, Any],
+        private_evaluator_packet: Mapping[str, Any] | None = None,
+        split: str | None = None,
     ):
         self.root = os.environ.get("CGNK_PROJECT_CORPUS_ROOT", "").strip()
         self.workspace = workspace
@@ -57,6 +59,8 @@ class ProjectCorpusCaptureHook:
         self.generator_version = generator_version
         self.public_packet = dict(public_packet)
         self.metadata = dict(metadata)
+        self.private_evaluator_packet = dict(private_evaluator_packet) if private_evaluator_packet is not None else None
+        self.split = split
         self.snapshots: list[dict[str, Any]] = []
         self.events: list[dict[str, Any]] = []
         self.tests: list[dict[str, Any]] = []
@@ -125,4 +129,6 @@ class ProjectCorpusCaptureHook:
             tests=self.tests,
             failures=self.failures,
             repairs=self.repairs,
+            private_evaluator_packet=self.private_evaluator_packet,
+            split=self.split,
         )
