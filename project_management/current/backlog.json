@@ -16,7 +16,7 @@
       "id": "PB-032",
       "title": "Normalize release hygiene and gate simple architecture admission",
       "priority": 32,
-      "state": "active",
+      "state": "done_with_limits",
       "value": "Make the public release internally consistent and avoid routing simple tasks through architecture that cannot improve them.",
       "acceptance": [
         "CGNK is the canonical public name and cgkn remains compatible",
@@ -25,14 +25,14 @@
         "the paired oracle gate precedes any Router implementation",
         "a negative oracle result stops Router development"
       ],
-      "evidence_status": "NOT_EVALUATED"
+      "evidence_status": "PASS_ROUTER_REJECTED_BY_ORACLE_GATE"
     },
     {
       "id": "PB-031",
       "title": "Build transparent evidence-backed Project Digital Persona",
       "priority": 31,
       "state": "done_with_limits",
-      "value": "Give the CGKN public project identity durable, auditable continuity across interactions without human impersonation or weaker external-write governance.",
+      "value": "Give the CGNK public project identity durable, auditable continuity across interactions without human impersonation or weaker external-write governance.",
       "acceptance": [
         "governed Identity Constitution cannot be silently rewritten",
         "episodes, relationships, commitments, reflections, and SelfModel changes remain evidence-backed",
@@ -47,7 +47,7 @@
       "title": "Build policy-safe Community Operator capability branch",
       "priority": 30,
       "state": "done_with_limits",
-      "value": "Find a small number of public technical discussions where CGKN can contribute real value, draft grounded non-spam replies, and preserve human authority over every external reply.",
+      "value": "Find a small number of public technical discussions where CGNK can contribute real value, draft grounded non-spam replies, and preserve human authority over every external reply.",
       "acceptance": [
         "60 opportunity cases meet precision-first engagement and project-mention gates",
         "community rules, standalone value, claim grounding, disclosure, and spam risk fail closed",
@@ -350,7 +350,7 @@
       "title": "Integrate the independent local multi-model Provider gateway",
       "priority": 18,
       "state": "done_with_limits",
-      "value": "Route high-capability Agent and bounded Worker calls through independently managed Qwen, DeepSeek, or Grok providers without moving credentials or authority into CGKN.",
+      "value": "Route high-capability Agent and bounded Worker calls through independently managed Qwen, DeepSeek, or Grok providers without moving credentials or authority into CGNK.",
       "acceptance": [
         "GatewayCompletionClient preserves the CompletionClient contract and the old client remains the default",
         "one immutable run snapshot routes Agent to qwen and Worker to deepseek with fallback denied",
@@ -429,7 +429,7 @@
       "title": "Validate bounded capability internalization",
       "priority": 25,
       "state": "done_with_limits",
-      "value": "Test whether CGKN can accumulate qualified reusable capabilities through search, composition, sandboxed creation, and later reuse without changing production authority.",
+      "value": "Test whether CGNK can accumulate qualified reusable capabilities through search, composition, sandboxed creation, and later reuse without changing production authority.",
       "acceptance": [
         "reuse, parameterization, and bounded composition precede creation",
         "only true capability gaps enter proposal and candidate lifecycle",

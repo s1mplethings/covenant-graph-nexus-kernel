@@ -1,0 +1,31 @@
+{
+  "kind": "CGNKRelease057RegressionSummary",
+  "schema_version": "1.0",
+  "source_commit": "7b81a3dde5823dd9ccc31839441bffc6b6acfe98",
+  "source_tree": "5c08929a2ba660aea7bd53bbfe5c286307015cb2",
+  "collection": {
+    "collected": 3370,
+    "status": "PASS"
+  },
+  "profiles": {
+    "static": {"status": "PASS", "duration_ms": 25966},
+    "unit": {"status": "PASS", "passed": 482, "skipped": 1, "failed": 0, "errors": 0, "duration_ms": 286355},
+    "boundary": {"status": "PASS", "passed": 325, "skipped": 1, "failed": 0, "errors": 0, "duration_ms": 201980},
+    "fault": {"status": "PASS", "passed": 80, "skipped": 0, "failed": 0, "errors": 0, "duration_ms": 10670},
+    "security": {"status": "PASS", "passed": 119, "skipped": 1, "failed": 0, "errors": 0, "duration_ms": 149044},
+    "local-functional": {"status": "PASS", "passed": 6, "skipped": 0, "failed": 0, "errors": 0, "duration_ms": 25377},
+    "full-core": {"status": "PASS", "passed": 482, "skipped": 1, "failed": 0, "errors": 0, "duration_ms": 297076},
+    "active-repository": {"status": "PASS", "passed": 3007, "skipped": 363, "failed": 0, "errors": 0, "duration_ms": 1868667}
+  },
+  "targeted_domains": {
+    "domains": ["Knowledge", "Conversation", "Capability", "Routing", "Self-Growth", "Promotion", "Community", "Persona"],
+    "passed": 420,
+    "skipped": 6,
+    "failed": 0,
+    "errors": 0,
+    "duration_seconds": 63.0,
+    "status": "PASS"
+  },
+  "receipt_freshness": "PASS",
+  "overall": "PASS"
+}

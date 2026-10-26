@@ -133,7 +133,7 @@
       "title": "Decision efficiency is not yet better than a direct high-model call on tiny tasks",
       "probability": "high",
       "impact": "medium",
-      "signal": "The one-file baseline succeeds in one high-model call while CGKN uses compose and finish checkpoints.",
+      "signal": "The one-file baseline succeeds in one high-model call while CGNK uses compose and finish checkpoints.",
       "response": "Do not degrade the baseline; evaluate larger repair tasks and reduce high-model checkpoints only when evidence shows authority and recovery remain intact.",
       "owner": "MVP evaluation"
     },

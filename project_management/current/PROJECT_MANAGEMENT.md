@@ -20,12 +20,12 @@ The remaining compatibility runtime is intentionally retained:
 
 Further cleanup inside that cluster now requires a working replacement path.
 
-## Active increment
+## Latest closed increment
 
-`ITER-057` normalizes public CGNK naming, makes history-audit scope explicit,
-and evaluates whether any architecture-admission Router is justified. The
-paired ITER-056 oracle is a hard anti-overengineering gate: if architecture
-adds no unique successes, Router implementation stops.
+`ITER-057` normalized public CGNK naming, made history-audit scope explicit,
+and evaluated whether any architecture-admission Router was justified. The
+paired ITER-056 oracle found no architecture-only successes, so Router
+implementation stopped at the anti-overengineering gate.
 
 ## Roadmap after the active increment
 

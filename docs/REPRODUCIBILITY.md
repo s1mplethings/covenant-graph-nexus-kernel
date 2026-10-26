@@ -2,9 +2,9 @@
 
 ## Release identity
 
-- Version: `0.2.0-rc.2`
-- Source closure: `c495738556ac1ee288df232a2b372a8294968051`
-- Evidence base: `2ad4c6508fd0ce2b4074770cd2b857925dc2ffd2`
+- Version: `0.2.0-rc.3`
+- Source closure: `7b81a3dde5823dd9ccc31839441bffc6b6acfe98`
+- Evidence base: `f9a0f4197d73e8e82654c78268988cb5b8d13a7f`
 - API Lab dependency: `999dff096afe45f058fe67016aee28a73912d5d4`
 - Python: 3.10 or newer
 
@@ -36,8 +36,28 @@ python -m pytest --collect-only -q
 python -m pytest -q
 ```
 
-The final active-repository result was 3,001 passed, 363 skipped, 0 failed, and
+The final active-repository result was 3,007 passed, 363 skipped, 0 failed, and
 0 errors. Network/provider tests remain skipped unless explicitly configured.
+
+## Release hygiene and routing oracle
+
+```bash
+python scripts/release_compliance_audit.py \
+  --history \
+  --scope-commit 7b81a3dde5823dd9ccc31839441bffc6b6acfe98 \
+  --output history-audit.json
+
+python scripts/run_release_057_oracle.py \
+  --direct /path/to/release-056/direct/index.json \
+  --architecture /path/to/release-056/optimized-cgnk/index.json \
+  --output oracle-analysis.json \
+  --json
+```
+
+The history audit scans unique named text blobs of at most 8 MiB that are
+reachable from the explicit scope commit. The routing oracle is development
+evidence derived from already-observed ITER-056 outcomes; it is not a fresh
+holdout.
 
 ## Offline benchmark smoke
 
