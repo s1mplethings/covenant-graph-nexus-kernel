@@ -1,0 +1,49 @@
+{
+  "kind": "CGKNReleaseClaimLedger",
+  "schema_version": "1.0",
+  "release": "0.2.0-rc.2",
+  "claims": [
+    {
+      "claim_id": "CLM-001",
+      "claim": "Localized context reduced median context by 98.27% versus flat context on the frozen internal holdout.",
+      "status": "SUPPORTED",
+      "evidence": "report/statistics.json:B4_vs_B2",
+      "scope": "internal 72-task holdout"
+    },
+    {
+      "claim_id": "CLM-002",
+      "claim": "Optimized indexed retrieval was quality-non-inferior to the previous CGKN path.",
+      "status": "SUPPORTED_DIRECTIONALLY",
+      "evidence": "report/statistics.json:B4_vs_B3",
+      "scope": "one run per paired internal task"
+    },
+    {
+      "claim_id": "CLM-003",
+      "claim": "CGKN improves success over direct cheap-model execution.",
+      "status": "REFUTED_ON_THIS_HOLDOUT",
+      "evidence": "report/main_results.csv",
+      "scope": "B4 48/72 versus B0 58/72"
+    },
+    {
+      "claim_id": "CLM-004",
+      "claim": "CGKN generalizes across public benchmarks.",
+      "status": "NOT_EVALUATED",
+      "evidence": "benchmark_manifest.json",
+      "scope": "public benchmark environments blocked"
+    },
+    {
+      "claim_id": "CLM-005",
+      "claim": "Bounded self-growth converges without production-registry mutation in the 500-task simulation.",
+      "status": "SUPPORTED_EXPERIMENTALLY",
+      "evidence": "self_growth_longevity_report.md",
+      "scope": "offline synthetic longevity run"
+    },
+    {
+      "claim_id": "CLM-006",
+      "claim": "The repository is production-ready.",
+      "status": "PROHIBITED",
+      "evidence": "report/technical_report.md",
+      "scope": "release is a Research Preview"
+    }
+  ]
+}

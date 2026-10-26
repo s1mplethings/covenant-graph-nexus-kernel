@@ -1,0 +1,40 @@
+{
+  "kind": "CGKNRelease056ResearchSummary",
+  "schema_version": "1.0",
+  "release_version": "0.2.0-rc.2",
+  "source_commit": "c495738556ac1ee288df232a2b372a8294968051",
+  "evidence_base_commit": "2ad4c6508fd0ce2b4074770cd2b857925dc2ffd2",
+  "api_lab_commit": "999dff096afe45f058fe67016aee28a73912d5d4",
+  "models": {"cheap": "deepseek-flash", "strong": "qwen3.8-max"},
+  "main_metrics": {
+    "optimized_success_rate": 0.6666666666666666,
+    "direct_cheap_success_rate": 0.8055555555555556,
+    "flat_context_success_rate": 0.20833333333333334,
+    "median_context_reduction_vs_flat": 0.9826555895642035,
+    "full_regression_passed": 3001,
+    "full_regression_skipped": 363
+  },
+  "status_labels": {
+    "core_release_status": "RELEASE_RESEARCH_PREVIEW",
+    "knowledge_status": "CORE_QUALIFIED",
+    "retrieval_status": "PROVEN_DIRECTIONALLY_FOR_CONTEXT_LOCALIZATION",
+    "capability_status": "CORE_QUALIFIED_SEARCH_BENEFIT_NOT_YET_NEEDED_AT_CURRENT_SCALE",
+    "routing_status": "FIXED_PRODUCTION_ROUTING",
+    "repair_status": "QUALIFIED",
+    "persistence_status": "QUALIFIED",
+    "self_growth_status": "EXPERIMENTAL_PROVEN_DIRECTIONALLY",
+    "persona_status": "EXPERIMENTAL_PROVEN_DIRECTIONALLY",
+    "community_status": "PASS_WITH_ENVIRONMENT_LIMIT_APPROVAL_REQUIRED",
+    "promotion_status": "PASS_WITH_ENVIRONMENT_LIMIT_DRAFT_ONLY",
+    "public_benchmark_status": "ENVIRONMENT_BLOCKED",
+    "generalization_status": "GENERALIZATION_NOT_YET_PROVEN",
+    "reproducibility_status": "PASS_CLEAN_CLONE",
+    "academic_report_status": "COMPLETE"
+  },
+  "limitations": [
+    "public benchmark formal scores unavailable",
+    "one provider execution per holdout task",
+    "strong-route cost incomplete after timeout/budget exhaustion",
+    "Multi-Agent Runtime not recommended"
+  ]
+}

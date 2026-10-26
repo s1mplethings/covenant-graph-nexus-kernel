@@ -7,6 +7,12 @@ CGKN-owned source and documentation are available under the
 and separately deployed services retain their own licenses; see
 [Third-party licenses and provenance](docs/THIRD_PARTY_LICENSES.md).
 
+This repository is a **Research Preview**. The 0.2.0-rc.2 release has a clean
+install reproduction, 3,001 passing tests, and a preregistered cross-domain
+evaluation. It is not a claim of production readiness or benchmark SOTA. See
+[Architecture](docs/ARCHITECTURE.md), [Benchmarks](docs/BENCHMARKS.md), and
+[Reproducibility](docs/REPRODUCIBILITY.md).
+
 ## Install the Research Preview
 
 Create an isolated Python 3.10+ environment, then install the checkout:
@@ -71,14 +77,12 @@ The remaining compatibility entrypoints are:
 
 They remain callable only to preserve existing behavior while the new runtime is implemented. They are not the MVP planning or composition authority.
 
-The compatibility L6 application bundle lives under `cgkn/application/software_project/`.
+The L6 application bundle lives under `cgkn/application/software_project/`.
 It assembles the existing Agent, tree, DAG, executor, state, and test
-authorities to generate isolated stdlib-only projects with file-scoped workers,
-deterministic snapshots, and external acceptance. Its deterministic contract
-and harness tests pass, but the bounded real-Provider Stage 1 run did not reach
-a final project PASS after two application repair rounds. The bundle therefore
-remains `PARTIAL` at `GENERATION_LEVEL_0`; this does not change LEVEL 4 product
-readiness or the completed L0-L5 kernel foundation.
+authorities to generate isolated stdlib-only projects with cohesive workers,
+incremental staged materialization, deterministic snapshots, and external
+acceptance. Current frozen evidence records real generation, repair, and CSV
+repeatability as passing, while the broader product remains a Research Preview.
 
 The replacement L6 adapter in `cgkn/application/project_blueprint.py` and
 `cgkn/application/project_loop.py` now accepts a minimal semantic design
@@ -133,12 +137,13 @@ Cleanup status and the exact migration boundary are recorded in:
 - `docs/MVP_RUNTIME_MIGRATION_BOUNDARY.md`
 - `governance/mvp_cleanup_boundary.json`
 
-## Current feature increment
+## Current release increment
 
-`ITER-054` is the active isolated increment. It qualifies Community Operator
-contracts, policy/value/claim gates, approval-bound fake reply lifecycles,
-official adapter contracts, and real read-only dogfood without modifying
-production routing, Registry, Knowledge, Runtime, DAG, or scheduler authority.
+`ITER-056` consolidates the core, audits the original retrieval/context design, profiles
+retrieval and context assembly, freezes a cross-domain holdout, preserves
+negative results, and publishes reproducibility and provenance material. Fixed
+routing remains the default; Multi-Agent Runtime and autonomous external writes
+remain disabled.
 
 ## Current reusable substrate
 

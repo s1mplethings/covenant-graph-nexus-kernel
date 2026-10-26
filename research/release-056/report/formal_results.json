@@ -1,0 +1,19 @@
+{
+  "kind": "CGKNRelease056FormalResultIndex",
+  "schema_version": "1.0",
+  "source_commit": "c495738556ac1ee288df232a2b372a8294968051",
+  "evidence_base_commit": "2ad4c6508fd0ce2b4074770cd2b857925dc2ffd2",
+  "source_tree": "e76a64286a260fbd1ea13c0117b765c98526634d",
+  "analysis_hash": "sha256:bd36a84a07ca2a9e138e3d567bf10afa0d9436551a137129b1c1a917c2bfe91c",
+  "manual_intervention_count": 0,
+  "task_count_per_baseline": 72,
+  "baselines": {
+    "B0_DIRECT_CHEAP": {"batch_id": "cross-domain-b0-direct-cheap-6b2da9ee37", "successes": 58, "success_rate": 0.8055555555555556},
+    "B1_DIRECT_STRONG": {"batch_id": "cross-domain-b1-direct-strong-db3d8ed3e6", "successes": 46, "success_rate": 0.6388888888888888, "usage_known": false},
+    "B2_FLAT_CONTEXT_CHEAP": {"batch_id": "cross-domain-b2-flat-context-cheap-e7d62e251f", "successes": 15, "success_rate": 0.20833333333333334},
+    "B3_CURRENT_CGNK_BASELINE": {"batch_id": "cross-domain-b3-current-cgnk-baseline-6fb240f82d", "successes": 49, "success_rate": 0.6805555555555556},
+    "B4_OPTIMIZED_CGNK_RC": {"batch_id": "cross-domain-b4-optimized-cgnk-rc-9d11af56fe", "successes": 48, "success_rate": 0.6666666666666666}
+  },
+  "raw_results": "retained outside Git; request IDs and raw provider text are not redistributed",
+  "statistical_claim": "DIRECTIONAL_EVIDENCE"
+}
