@@ -15,6 +15,7 @@ from cgkn.application.software_project.scope import CommitFailure
 from cgkn.execution import BlockExecutionRequest, BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode, TaskContext
 from cgkn.orchestration import compile_tree
 from cgkn.providers import GatewayCompletionError, ModelRoleConfig, ProviderCompletion
+from cgkn.application.project_corpus import ProjectCorpus
 
 
 class QueueClient:
@@ -1127,3 +1128,64 @@ def test_harness_mapping_unavailable_stops_without_attribution_call(tmp_path: pa
     assert report.failure_type == "HARNESS_ATTRIBUTION_UNAVAILABLE"
     assert report.attribution_status == "UNAVAILABLE" and report.recovery_action == FailureAction.STOP.value
     assert fake.calls == []
+
+
+def test_project_loop_automatically_captures_failure_repair_pass_chain(
+    tmp_path: pathlib.Path, monkeypatch,
+) -> None:
+    corpus_root = tmp_path / "corpus"
+    monkeypatch.setenv("CGNK_PROJECT_CORPUS_ROOT", str(corpus_root))
+    monkeypatch.setenv("CGNK_SOURCE_VERSION", "source-closure-test")
+    units = (
+        BlueprintUnit(
+            "core", "math implementation", "implementation", ("math_utils.py",),
+            executor_ref="llm.cheap@1", instruction="implement add", required_interfaces=("add",),
+            acceptance=("addition",), allowed_effects=("filesystem.write",),
+        ),
+    )
+    checks = (
+        BlueprintCheck("pytest", "verification", (sys.executable, "-m", "pytest", "-q"), ("core",), ("public tests",)),
+        BlueprintCheck("accept", "acceptance", (), ("pytest",), get_case("seeded_repair").public_acceptance),
+    )
+    blueprint = ProjectBlueprint("1.0", "seeded_repair", 1, "repair arithmetic", ("smallest change",), units, checks).freeze()
+    client = QueueClient([
+        _bundle("core", {"math_utils.py": "def add(a, b):\n    return a - b\n"}),
+        _patch("core", "math_utils.py", "return a - b", "return a + b"),
+    ])
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "test_math_utils.py").write_text(
+        "from math_utils import add\ndef test_add(): assert add(2,3)==5\n", encoding="utf-8",
+    )
+
+    outcome = MinimalProjectLoop(
+        pathlib.Path(__file__).parents[2], tmp_path / "runs", client, *_configs(),
+    ).run(blueprint, workspace, case_id="seeded_repair")
+
+    assert outcome.status == "SUCCEEDED"
+    corpus = ProjectCorpus(corpus_root)
+    rows = corpus.list_attempts()
+    assert len(rows) == 1 and rows[0]["status"] == "PASS"
+    manifest = corpus.show(rows[0]["entry_id"])
+    stages = [item["stage"] for item in manifest["snapshot_refs"]]
+    assert stages == ["INPUT", "POST_MATERIALIZATION", "FAILED_TEST", "PRE_REPAIR", "POST_REPAIR", "FINAL"]
+    assert manifest["failures"][0]["failure_type"] == "TEST_FAILURE"
+    assert manifest["repairs"][0]["status"] == "FIXED"
+    assert corpus.verify()["status"] == "PASS"
+
+
+def test_corpus_capture_failure_cannot_fail_project_run(tmp_path: pathlib.Path, monkeypatch) -> None:
+    impossible_root = tmp_path / "not-a-directory"
+    impossible_root.write_text("occupied", encoding="utf-8")
+    monkeypatch.setenv("CGNK_PROJECT_CORPUS_ROOT", str(impossible_root))
+    client = QueueClient([
+        _bundle("core", {"csv_cleaner/__init__.py": "from .core import clean_file, clean_rows\n__all__=['clean_file','clean_rows']\n", "csv_cleaner/__main__.py": MAIN, "csv_cleaner/core.py": CORE}),
+        _bundle("docs", {"README.md": "# CSV Cleaner\n\nUsage documented.\n"}),
+        _bundle("tests", {"tests/test_csv_cleaner.py": "def test_ok():\n    assert True\n"}),
+    ])
+    outcome = MinimalProjectLoop(
+        pathlib.Path(__file__).parents[2], tmp_path / "runs", client, *_configs(),
+    ).run(_csv_blueprint(), tmp_path / "workspace", case_id="cli_csv_cleaner")
+    receipt = json.loads((outcome.run_root / "corpus_capture.json").read_text(encoding="utf-8"))
+    assert outcome.status == "SUCCEEDED"
+    assert receipt["status"] == "CAPTURE_FAILED"

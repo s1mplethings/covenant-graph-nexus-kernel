@@ -1,7 +1,7 @@
 {
   "kind": "CGKNCurrentArchitecture",
   "schema_version": "1.3",
-  "product_version": "0.2.0-rc.4",
+  "product_version": "0.2.0-rc.5",
   "architecture_generation": "capability-tree-mvp-runtime-foundation",
   "supersedes": [],
   "authorities": {
@@ -27,7 +27,8 @@
     "capability_retrieval": "PASS_DERIVED_REBUILDABLE_REAL_10_SYNTHETIC_TO_1000",
     "decision_hierarchy": "EVALUATED_NOT_ADOPTED_PARTIAL_DIRECTIONAL",
     "knowledge_persistence_v2": "DEFAULT_FOR_NEW_PACKS_CHECKPOINT_QUALIFIED_AT_250K",
-    "functional_readiness": "LEVEL_4"
+    "functional_readiness": "LEVEL_4",
+    "project_corpus": "LOCAL_FIRST_APPLICATION_INFRASTRUCTURE_IMPLEMENTED_PENDING_FORMAL_EVALUATION"
   },
   "product_authority": ["PRODUCT_GOAL.md", "MVP_SCOPE.md", "governance/product_invariants.json"],
   "state_authority": ["governance/current_architecture.json", "docs/00_kernel_contract.md", "project_management/current/active_iteration.json"],
@@ -66,7 +67,8 @@
   "derived_services": {
     "capability_search": "cgkn/application/capability_routing/search.py:CapabilitySearchIndex",
     "decision_routing": "cgkn/application/capability_routing/decision.py:DecisionRouter",
-    "knowledge_checkpoint": "derived rebuildable segmented-v2 checkpoint; authoritative segments remain the source of truth"
+    "knowledge_checkpoint": "derived rebuildable segmented-v2 checkpoint; authoritative segments remain the source of truth",
+    "project_corpus_catalog": "derived rebuildable SQLite catalog over immutable content objects and versioned manifests; not a Knowledge, project-state, planner, DAG, or runtime authority"
   },
   "architecture_convergence": {
     "iteration": "ITER-CGNK-PARALLEL-ARCHITECTURE-CONVERGENCE-050",
@@ -85,7 +87,7 @@
   },
   "compatibility_entrypoints": ["scripts/codex_conversation.py", "scripts/run_codex_conversation_generation.py", "scripts/run_local_pipeline.py", "scripts/run_local_pipeline_impl.py"],
   "compatibility_rule": "Compatibility entrypoints remain callable and are not the MVP planning or composition authority. The isolated MVP runtime has not replaced them.",
-  "next_feature_increment": {"id": "PB-027", "name": "Improve evidence-backed strong escalation without new authority", "migration_target": "Reduce incomplete-usage uncertainty and test stronger escalation thresholds on bounded workloads before considering any default routing or role collapse."},
+  "next_feature_increment": {"id": "PB-034", "name": "Project Corpus foundation", "migration_target": "Preserve success, failure, partial, repair, lineage, and reproducibility evidence in a local-first content-addressed corpus without adding a kernel authority."},
   "forbidden_parallel_authorities": true,
   "verification": {"github_actions": "NOT_EVALUATED", "product_direction_gate": "PASS", "focused_tests": "PASS", "deterministic_vertical_slice": "PASS", "resume_and_local_repair": "PASS", "self_growth_v0": "PASS", "agent_cheap_executor_fake_integration": "PASS", "agent_cheap_executor_real_provider": "PASS", "decision_efficiency_benchmark": "PASS_WITH_LIMITS", "architecture_convergence": "PASS_WITH_LIMITS", "self_growth_v1": "NOT_EVALUATED", "full_pytest": "PASS_2828_SKIP_357_0_FAILED_0_ERRORS"}
 }

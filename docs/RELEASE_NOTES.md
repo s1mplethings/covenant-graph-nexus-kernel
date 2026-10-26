@@ -1,34 +1,53 @@
-# CGNK 0.2.0-rc.4 Research Preview
+# CGNK 0.2.0-rc.5 Research Preview
 
 CGNK is a composable capability kernel for evidence-grounded agentic project
-work. This boundary release safely removes the Knowledge store/persistence/
-internalization import cycle and publishes a preregistered necessity study.
+work. This candidate introduces a local-first Project Corpus so the system can
+retain successful, failed, partial, repaired, and aborted project attempts as
+auditable material.
 
-## Boundary and evaluation highlights
+## Project Corpus highlights
 
-- Knowledge cyclic SCCs fell from one to zero with no schema, public signature,
-  authority, persistence-format, or recovery change.
-- Frozen formal results: B0 Direct Cheap 18/18, B1 Flat State 17/18, B2 CGNK
-  18/18 chains; B0 versus B2 has zero discordant chains.
-- B2 reduced measured rework 18.5% versus B0 but added 7.2% context and 0.9%
-  estimated Provider cost. Full architecture benefit is not proven.
-- All 270 formal calls completed with reported usage and no transport failure.
-- Router remains not adopted; Multi-Agent remains not recommended.
+- SHA-256 content-addressed objects deduplicate unchanged files across
+  snapshots, attempts, and project families.
+- Versioned attempt, snapshot, and benchmark manifests separate immutable
+  evidence from the rebuildable SQLite/FTS catalog.
+- The minimal project loop can capture generation, failed-test, pre/post-repair,
+  final, and aborted stages when `CGNK_PROJECT_CORPUS_ROOT` is configured.
+- Capture failure is isolated from project execution and never changes project
+  success, repair, or scheduling.
+- Public project packets and private evaluator packets are physically separated;
+  private packets are not searched or included in portable family exports.
+- Family-level deterministic splits and leakage checks keep attempts, repairs,
+  extensions, and variants together.
+- `cgkn corpus` provides initialization, inspection, search, integrity checks,
+  reconstruction, import/export, catalog rebuild, and seeded sampling.
+
+## Architecture boundary
+
+Project Corpus is application/evaluation infrastructure. It is not a second
+ProjectKnowledgePack, planner, runtime, DAG, ProjectBlueprint, FileRunStore, or
+Git authority. The existing Agent -> CapabilityTree -> ExecutionDAG -> bounded
+Executor -> Result/Test/Artifact -> Project State -> Agent checkpoint path is
+unchanged.
+
+## Data and security boundary
+
+Real corpus data remains outside Git. Secret-bearing source and unknown or
+unlicensed provenance are quarantined. Portable imports reject traversal,
+symlinks, oversized members, unsafe compression ratios, hash mismatches,
+missing objects, and manifest conflicts. No corpus dataset, PyPI package,
+container image, Zenodo record, arXiv paper, leaderboard submission, or social
+announcement is published by this release.
 
 ## Known limitations
 
-The 18-chain sample is directional and has one run per route/chain, so it is not
-a statistical-significance or Provider-reliability claim. Public benchmark
-formal runs remain environment-blocked.
+This release does not implement vector search, semantic near-duplicate
+detection, Provider-call replay, model training, automatic garbage collection,
+or cross-machine environment reproduction. Historical backfill is limited to
+evidence actually present in the repository and is labeled as full, source-only,
+or metadata-only rather than inferred.
 
-## Compatibility and migration
-
-The release does not introduce another planner, runtime, state store, or public
-delivery route. Existing compatibility entrypoints remain present. Repository
-users should review `docs/ARCHITECTURE.md`, `docs/REPRODUCIBILITY.md`, and the technical
-report before treating an experimental application surface as qualified.
-
-## Security, license, and citation
+## License and citation
 
 CGNK-owned work is Apache-2.0. Third-party assets retain their own licenses; see
 `docs/THIRD_PARTY_LICENSES.md`. Report vulnerabilities through `SECURITY.md`.

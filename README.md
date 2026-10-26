@@ -10,13 +10,12 @@ CGNK-owned source and documentation are available under the
 and separately deployed services retain their own licenses; see
 [Third-party licenses and provenance](docs/THIRD_PARTY_LICENSES.md).
 
-This repository is a **Research Preview**. The 0.2.0-rc.4 release has 3,022
-passing tests and a preregistered 18-chain necessity-boundary evaluation. B0
-Direct Cheap and B2 CGNK both passed 18/18 chains: current evidence does not
-show that full CGNK improves final success over a fair direct baseline. CGNK
-did reduce measured repeated evidence work by 18.5%, concentrated in knowledge
-supersession and mixed long-horizon chains. It is not a claim of production
-readiness, statistical significance, or benchmark SOTA. See
+This repository is a **Research Preview**. The 0.2.0-rc.5 candidate adds a
+local-first, content-addressed Project Corpus while preserving the rc.4
+necessity-boundary result: current evidence does not show that full CGNK
+improves final success over a fair direct baseline. The corpus release is not a
+public dataset, training claim, production-readiness claim, statistical result,
+or benchmark SOTA claim. See
 [Architecture](docs/ARCHITECTURE.md), [Benchmarks](docs/BENCHMARKS.md), and
 [Reproducibility](docs/REPRODUCIBILITY.md).
 
@@ -91,6 +90,15 @@ incremental staged materialization, deterministic snapshots, and external
 acceptance. Current frozen evidence records real generation, repair, and CSV
 repeatability as passing, while the broader product remains a Research Preview.
 
+Project Corpus in `cgkn/application/project_corpus/` is a local-first,
+content-addressed material library for successful, failed, partial, repaired,
+and aborted project attempts. It is evaluation infrastructure—not a second
+Knowledge or project-state authority—and real corpus contents remain outside
+Git. Configure `CGNK_PROJECT_CORPUS_ROOT`, then use `cgkn corpus init`, `cgkn
+corpus stats`, and `cgkn corpus verify`. See
+[Project Corpus](docs/PROJECT_CORPUS.md) for storage, privacy, replay, and
+benchmark-split rules.
+
 The replacement L6 adapter in `cgkn/application/project_blueprint.py` and
 `cgkn/application/project_loop.py` now accepts a minimal semantic design
 payload and deterministically supplies executor metadata, scope limits,
@@ -146,11 +154,11 @@ Cleanup status and the exact migration boundary are recorded in:
 
 ## Current release increment
 
-`ITER-056` consolidates the core, audits the original retrieval/context design, profiles
-retrieval and context assembly, freezes a cross-domain holdout, preserves
-negative results, and publishes reproducibility and provenance material. Fixed
-routing remains the default; Multi-Agent Runtime and autonomous external writes
-remain disabled.
+`ITER-059` adds the local-first Project Corpus, deterministic family-level
+benchmark splits, replayable snapshots, failure/repair lineage, and derived
+search. Fixed routing remains the default; Multi-Agent Runtime, corpus-driven
+training, public dataset publication, and autonomous external writes remain
+disabled.
 
 ## Current reusable substrate
 
@@ -167,6 +175,7 @@ remain disabled.
 - `cgkn/application/knowledge_growth/` — local-lazy ProjectKnowledgePack update capability
 - `cgkn/application/promotion/` — evidence-grounded promotion, media, approval, and publishing capabilities
 - `cgkn/application/community/` — policy-safe community discovery, ranking, reply, follow-up, and experience capabilities
+- `cgkn/application/project_corpus/` — local content-addressed project-attempt capture, replay, search, and benchmark sampling
 - `scripts/local_agent_actions.py` — bounded deterministic action compatibility adapter
 - `scripts/provider_jobs.py` — Provider execution/PatchSet compatibility adapter
 - `scripts/real_test_execution.py` — real test/runtime support

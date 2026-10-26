@@ -2,9 +2,9 @@
 
 ## Release identity
 
-- Version: `0.2.0-rc.4`
-- Source closure: `a2c7720fb176ba8aa913016dd166e98221282afd`
-- Evidence closure: the commit containing `research/release-058/technical_report.md`
+- Version: `0.2.0-rc.5`
+- Source closure: recorded in `research/release-059/source_closure.json`
+- Evidence closure: recorded in `research/release-059/evidence_closure.json`
 - API Lab dependency: `7c15f2546ec007cc7e601fa62ae4d88b9ba12f80`
 - Python: 3.10 or newer
 
@@ -36,8 +36,25 @@ python -m pytest --collect-only -q
 python -m pytest -q
 ```
 
-The final active-repository result was 3,022 passed, 363 skipped, 0 failed, and
-0 errors. Network/provider tests remain skipped unless explicitly configured.
+The exact rc.5 active-repository totals are recorded in the ITER-059 technical
+report and test receipt. Network/provider tests remain skipped unless explicitly
+configured.
+
+## ITER-059 Project Corpus evaluation
+
+```bash
+python scripts/run_project_corpus_evaluation.py \
+  --output-root /absolute/external/iter-059-formal \
+  --source-version <source-closure-sha> \
+  --clean
+```
+
+The deterministic profile backfills six explicit repository example roots,
+runs success/failure-repair/partial dogfoods, verifies privacy quarantine,
+reconstruction, portable import/export, catalog rebuild, split isolation,
+search/sampling, and evaluates 1,000 snapshots with at least 10,000 file
+references. Real corpus contents stay outside the repository; only aggregate,
+secret-safe evidence is retained under `research/release-059/`.
 
 ## Release hygiene and routing oracle
 

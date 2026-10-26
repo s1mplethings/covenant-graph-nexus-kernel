@@ -1,0 +1,19 @@
+{
+  "kind": "CGNKProjectCorpusStatus",
+  "schema_version": "1.0",
+  "iteration": "ITER-059",
+  "corpus_core_status": "IMPLEMENTED_NOT_FORMALLY_EVALUATED",
+  "corpus_capture_status": "IMPLEMENTED_NOT_FORMALLY_EVALUATED",
+  "corpus_integrity_status": "NOT_EVALUATED",
+  "corpus_replay_status": "NOT_EVALUATED",
+  "corpus_search_status": "NOT_EVALUATED",
+  "corpus_lineage_status": "NOT_EVALUATED",
+  "corpus_privacy_status": "NOT_EVALUATED",
+  "corpus_split_status": "NOT_EVALUATED",
+  "corpus_backfill_status": "NOT_EVALUATED",
+  "corpus_future_benchmark_readiness": "NOT_EVALUATED",
+  "source_closure": null,
+  "evidence_closure": null,
+  "release": null,
+  "blockers": []
+}

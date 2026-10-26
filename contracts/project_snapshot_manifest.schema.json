@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/s1mplethings/covenant-graph-nexus-kernel/contracts/project_snapshot_manifest.schema.json",
+  "title": "CGNK Project Snapshot Manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kind", "schema_version", "snapshot_id", "family_id", "attempt_id", "stage", "created_at", "parent_snapshot_id", "files", "metadata", "snapshot_hash"],
+  "properties": {
+    "kind": {"const": "CGNKProjectSnapshotManifest"},
+    "schema_version": {"const": "1.0"},
+    "snapshot_id": {"type": "string"},
+    "family_id": {"type": "string"},
+    "attempt_id": {"type": "string"},
+    "stage": {"enum": ["INPUT", "INITIAL_GENERATION", "POST_MATERIALIZATION", "PRE_TEST", "FAILED_TEST", "PRE_REPAIR", "POST_REPAIR", "FINAL", "ABORTED"]},
+    "created_at": {"type": "string"},
+    "parent_snapshot_id": {"type": ["string", "null"]},
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["path", "content_hash", "size", "mode", "file_type", "language"],
+        "properties": {
+          "path": {"type": "string", "pattern": "^(?!/)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"},
+          "content_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+          "size": {"type": "integer", "minimum": 0},
+          "mode": {"type": "integer", "minimum": 0, "maximum": 511},
+          "file_type": {"type": "string"},
+          "language": {"type": "string"}
+        }
+      }
+    },
+    "metadata": {"type": "object"},
+    "snapshot_hash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+  }
+}

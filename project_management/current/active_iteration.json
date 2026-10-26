@@ -1,55 +1,47 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-058",
+  "iteration_id": "ITER-059",
   "project_id": "cgnk",
-  "goal": "Identify the tasks on which CGNK adds value beyond direct cheap-model execution and safely decompose the Knowledge store/persistence/internalization dependency cycle without changing authority or public behavior.",
-  "backlog_item_ids": ["PB-033"],
-  "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "goal": "Build a local-first, content-addressed, versioned, searchable, replayable Project Corpus that preserves success, failure, partial, and repair history without becoming a second Knowledge or runtime authority.",
+  "backlog_item_ids": ["PB-034"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "12 development and 18 frozen formal scenario chains compare Direct Cheap, Direct Cheap with Flat State, and current CGNK using the same cheap model and underlying facts",
-    "formal results report paired chain outcomes and family-specific necessity verdicts without treating episodes as independent",
-    "the Knowledge conceptual SCC is either safely removed with unchanged schema/API/authority/recovery behavior or explicitly retained",
-    "Router and Multi-Agent remain unimplemented",
+    "all project outcomes, including failed and aborted attempts, can be captured",
+    "source snapshots reconstruct with byte fidelity and content-hash integrity",
+    "private evaluator packets, secrets, machine paths, and quarantined material never enter normal search or benchmark packets",
+    "family-level split governance prevents sibling and near-duplicate leakage",
+    "a real FAIL to REPAIR to PASS chain is fully recoverable",
     "full repository regression finishes with zero failures and zero errors before release"
   ],
   "quality_metrics": [
-    {"id": "QM-058-NECESSITY", "measure": "paired formal chain outcomes", "target": "honest family-specific verdicts", "method": "18-chain frozen holdout"},
-    {"id": "QM-058-PROVENANCE", "measure": "episode provenance accuracy", "target": "reported by baseline", "method": "hidden evidence-ID evaluator"},
-    {"id": "QM-058-SCC", "measure": "Knowledge cyclic SCC count", "target": "0 without public/schema/authority change", "method": "deterministic architecture audit and compatibility tests"},
-    {"id": "QM-058-REGRESSION", "measure": "repository failures/errors", "target": "0/0", "method": "required gates, profiles, and full pytest"}
+    {"id": "QM-059-INTEGRITY", "measure": "snapshot reconstruction and hash verification", "target": "100% byte fidelity; 0 corrupt references", "method": "reconstruction, verification, and catalog rebuild tests"},
+    {"id": "QM-059-PRIVACY", "measure": "secret, private evaluator, and absolute-path leakage", "target": "0 leaked items", "method": "quarantine and adversarial security tests"},
+    {"id": "QM-059-LINEAGE", "measure": "family split leakage", "target": "0 sibling or near-duplicate cross-split cases", "method": "deterministic family split and leakage checker"},
+    {"id": "QM-059-RESILIENCE", "measure": "atomic capture and crash recovery", "target": "0 false COMPLETE entries and project outcome unaffected", "method": "fault injection and best-effort hook tests"},
+    {"id": "QM-059-REGRESSION", "measure": "repository failures/errors", "target": "0/0", "method": "required gates, domain suites, and full pytest"}
   ],
   "quality_activities": {
-    "prevention": ["freeze formal holdout before Source Closure", "keep gold out of model packets", "preserve one Knowledge authority"],
-    "assurance": ["paired baseline tests", "migration and replay tests", "SCC audit", "full regression"],
-    "control": ["canonical repository publisher", "no force push", "no Router or Multi-Agent implementation", "formal source immutability"],
-    "improvement": ["fix evaluator defects only on development data", "remove the conceptual SCC through a pure projection boundary"]
+    "prevention": ["project-relative paths only", "public/private packet separation", "family-level split assignment", "secret and provenance gates"],
+    "assurance": ["reconstruction and failure replay", "fault injection", "scale and dedup tests", "full regression"],
+    "control": ["canonical repository publisher", "local-only real corpus", "immutable objects", "report-only garbage collection"],
+    "improvement": ["use captured failure chains to prepare future complexity benchmarks without training or changing generation behavior"]
   },
   "interface_expectations": [
     "ProjectKnowledgePack remains the Knowledge authority",
-    "segmented-v2 persistence, checkpoints, recovery, and v1 migration remain compatible",
-    "Direct baselines receive the same underlying public facts and model as CGNK",
-    "cgkn package and public delivery route remain unchanged"
+    "CapabilityTree, ExecutionDAG, FileRunStore, and ProjectBlueprint remain canonical authorities",
+    "Corpus capture is an application-level best-effort observer and cannot change project outcomes",
+    "real corpus content remains external and local; Git contains only code, schemas, docs, and sanitized examples"
   ],
   "evidence_refs": [
-    "research/release-058/preregistration.md",
-    "research/release-058/knowledge_boundary_audit.md",
-    "research/release-058/development_summary.json",
-    "research/release-058/public_benchmark_preflight.json",
-    "research/release-058/formal_summary.json",
-    "research/release-058/statistical_analysis.json",
-    "research/release-058/claim_ledger.json",
-    "research/release-058/technical_report.md"
+    "research/release-059/preregistration.md",
+    "research/release-059/corpus_profile.json",
+    "research/release-059/formal_evaluation.json",
+    "research/release-059/security_audit.json",
+    "research/release-059/claim_ledger.json",
+    "research/release-059/technical_report.md"
   ],
-  "review": {
-    "outcome": "accepted_with_limits",
-    "feedback": ["Formal B0 and B2 both passed 18/18 chains, so full CGNK necessity is not proven; SCC decomposition and localized rework benefit are accepted."],
-    "accepted_backlog_item_ids": ["PB-033"]
-  },
-  "retrospective": {
-    "worked": ["Development-only evaluator audit removed three false-failure mechanisms before formal freeze."],
-    "did_not_work": ["The first regression retained an architecture test that required the known SCC to remain unchanged."],
-    "experiments": ["Formal B0=18/18, B1=17/18, B2=18/18; B2 reduced rework 18.5% without a success gain over B0. Keep Router dormant and investigate a smaller supersession/mixed-chain state substrate before adding architecture."]
-  }
+  "review": null,
+  "retrospective": null
 }
