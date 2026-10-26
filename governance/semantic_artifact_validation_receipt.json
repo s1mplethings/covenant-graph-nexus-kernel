@@ -1,8 +1,8 @@
 {
   "kind": "CGKNSemanticArtifactValidationReceipt",
   "schema_version": "1.0",
-  "source_commit": "56cba0c04abb659f53eadef406c23388fd1cc891",
-  "source_tree": "8104de0173ae11aa7a603cf099b1536728b8705c",
+  "source_commit": "4be15918637374d713868575ad527ceb98a8a113",
+  "source_tree": "49ddc8626ac14c722790531acfdf2d45fa9c63a9",
   "experiment_boundary_hash": "sha256:bfb5486385411b49e899342f93417d9c58650d9875417a505a212fb13e341431",
   "evidence_status": "NEEDS_REWORK",
   "semantic_artifact_interface": "PARTIAL",
@@ -80,11 +80,11 @@
     "receipt_freshness": "PASS_AFTER_RELEASE_056_RC6_BOUNDARY_REFRESH",
     "unit_profile": "PASS_482_SKIP_1",
     "remaining_profiles": "PASS_STATIC_BOUNDARY_FAULT_SECURITY_LOCAL_FUNCTIONAL_FULL_CORE_ACTIVE_REPOSITORY",
-    "active_repository": "PASS_3001_SKIP_363",
-    "collection": "PASS_3364",
+    "active_repository": "PASS_3065_SKIP_364",
+    "collection": "PASS_3429",
     "failed": 0,
     "errors": 0,
-    "note": "Application and experiment source boundaries passed 738 tests with two skips on the frozen ITER-060 source. The first active-repository diagnostic passed 3,064 tests and exposed only the expected stale boundary-receipt gate; authoritative zero-failure rerun is pending this evidence refresh."
+    "note": "Application and experiment source boundaries passed 738 tests with two skips on the frozen ITER-060 source. The authoritative active-repository run passed 3,065 tests with 364 skips, zero failures, and zero errors after the expected receipt refresh."
   },
   "stop_condition": "B"
 }

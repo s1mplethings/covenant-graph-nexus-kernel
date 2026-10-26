@@ -4,6 +4,7 @@
   "iteration_id": "ITER-060",
   "project_id": "cgnk",
   "goal": "Determine the project-complexity frontier where direct, flat-state, minimal-CGNK, and full-CGNK execution differ in success, repair, context, token, and cost behavior.",
+  "backlog_item_ids": ["PB-035"],
   "workflow_state": "closed",
   "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
@@ -12,6 +13,24 @@
     "formal attempts are captured in the local Project Corpus with private evaluator separation",
     "aggregate results identify benefits, neutral effects, failures, and unsupported claims without changing default architecture",
     "full repository regression has zero failures and zero errors"
+  ],
+  "quality_metrics": [
+    {"id": "QM-060-COVERAGE", "measure": "formal project-family coverage", "target": "24 families, eight types, three complexity tiers, four matched baselines", "method": "frozen formal manifest and aggregate matrix"},
+    {"id": "QM-060-FAIRNESS", "measure": "route and contract parity", "target": "one model, fixed budgets, identical family contracts", "method": "preflight hashes and attempt receipts"},
+    {"id": "QM-060-INTEGRITY", "measure": "corpus and evidence integrity", "target": "all attempts captured; zero corrupt or unreferenced objects", "method": "Project Corpus verify and rebuild"},
+    {"id": "QM-060-REGRESSION", "measure": "repository failures/errors", "target": "0/0", "method": "required gates, profiles, and full pytest"}
+  ],
+  "quality_activities": {
+    "prevention": ["preregister hypotheses and stop rules", "freeze source, route, schemas, contracts, and budgets", "keep private evaluator packets outside Git"],
+    "assurance": ["run matched four-baseline attempts", "verify and rebuild the Project Corpus", "run full repository regression and security/provenance audits"],
+    "control": ["use canonical repository publisher", "publish only sanitized aggregate evidence", "keep Router and Multi-Agent gates closed"],
+    "improvement": ["test optional orchestration on deterministic complexity signals", "add a dedicated cross-family capability reuse study"]
+  },
+  "interface_expectations": [
+    "Agent, CapabilityTree, ExecutionDAG, Project State, and public-delivery authorities remain unchanged",
+    "all formal baselines use the same qualified Provider model and public/hidden contracts",
+    "Project Corpus remains local application/evaluation infrastructure and never becomes a planning or execution authority",
+    "aggregate evidence may inform a future optional-orchestration study but cannot silently change the default runtime"
   ],
   "evidence_refs": [
     "research/release-060/preregistration.md",
@@ -30,7 +49,8 @@
       "direct execution was the aggregate cost/token Pareto route",
       "full orchestration benefit was neutral at the tested scale",
       "the result supports optional-orchestration research but not a default architecture change"
-    ]
+    ],
+    "accepted_backlog_item_ids": ["PB-035"]
   },
   "retrospective": {
     "worked": [

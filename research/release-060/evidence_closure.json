@@ -1,0 +1,54 @@
+{
+  "kind": "ITER060EvidenceClosure",
+  "schema_version": "1.0",
+  "status": "PASS_WITH_LIMITS",
+  "evidence_commit": "SELF",
+  "release_candidate_commit": "4be15918637374d713868575ad527ceb98a8a113",
+  "source_closure": "56cba0c04abb659f53eadef406c23388fd1cc891",
+  "source_tree": "8104de0173ae11aa7a603cf099b1536728b8705c",
+  "formal_evaluation": {
+    "status": "PASS_WITH_LIMITS",
+    "families": 24,
+    "attempts": 96,
+    "passed": 92,
+    "failed": 4,
+    "discordant_families": 0,
+    "formal_summary_hash": "sha256:fd21954bc908b2dda09289fdc3aaeaf455faeb5b7fe0d95236e7c19df0048661",
+    "analysis_hash": "sha256:d680a9ad50f25c4fdcda74770ef57a9dfb801d5ea0ee61fc30eb0e919a8cb475"
+  },
+  "claim_ledger": {
+    "COMPLEXITY_FRONTIER": "PROVEN_DIRECTIONALLY",
+    "CORPUS_DIVERSITY_STATUS": "PROVEN",
+    "DIRECT_LOW_COMPLEXITY_BENEFIT": "PROVEN_DIRECTIONALLY",
+    "MINIMAL_CGNK_BENEFIT": "NEUTRAL",
+    "FULL_CGNK_BENEFIT": "NEUTRAL",
+    "EVIDENCE_STATE_BENEFIT": "NEUTRAL",
+    "DAG_BENEFIT": "NEUTRAL",
+    "REPAIR_ORCHESTRATION_BENEFIT": "NEUTRAL",
+    "CAPABILITY_REUSE_BENEFIT": "INSUFFICIENT_EVIDENCE"
+  },
+  "regression": {"passed": 3065, "skipped": 364, "failed": 0, "errors": 0},
+  "security": {"status": "PASS", "p0_findings": 0, "history_blobs_reviewed": 6319},
+  "license_and_provenance": {"status": "PASS", "unresolved_items": 0, "dataset_redistributed": false},
+  "release": {
+    "version": "0.2.0-rc.6",
+    "tag": "v0.2.0-rc.6",
+    "repository_visibility": "PUBLIC",
+    "public_corpus_released": false,
+    "external_package_or_paper_publication": false
+  },
+  "architecture_decision": {
+    "default_changed": false,
+    "router_admitted": false,
+    "multi_agent_admitted": false,
+    "next_direction": "OPTIONAL_ORCHESTRATION_SIMPLIFICATION_RESEARCH"
+  },
+  "limitations": [
+    "The sample is directional and does not establish statistical significance.",
+    "Only one formally qualified cheap Provider model was used.",
+    "The family set did not provide enough cross-family reuse evidence.",
+    "One HIGH-complexity family failed identically under all four baselines.",
+    "Real Project Corpus contents remain local-only."
+  ],
+  "p0_release_blockers": []
+}

@@ -1,8 +1,8 @@
 {
   "kind": "CGKNSoftwareProjectGenerationReceipt",
   "schema_version": "1.0",
-  "source_commit": "56cba0c04abb659f53eadef406c23388fd1cc891",
-  "source_tree_sha": "8104de0173ae11aa7a603cf099b1536728b8705c",
+  "source_commit": "4be15918637374d713868575ad527ceb98a8a113",
+  "source_tree_sha": "49ddc8626ac14c722790531acfdf2d45fa9c63a9",
   "application_boundary_hash": "sha256:07ef7494441f3066eeeb7c47c5455af767252d7f20cde139f101c15377953e89",
   "suite_result": "PASS_CURRENT_SOURCE_BOUNDARY_WITH_RETAINED_LIVE_QUALIFICATION",
   "formal_final_suite": "PASS_CURRENT_SOURCE_BOUNDARY",
@@ -14,9 +14,9 @@
     "targeted_failed": 0,
     "targeted_errors": 0,
     "targeted_skipped": 2,
-    "full_repository_status": "PASS_EXCEPT_EXPECTED_STALE_BOUNDARY_RECEIPT_PENDING_REFRESH",
-    "full_repository_passed": 3064,
-    "full_repository_failed": 1,
+    "full_repository_status": "PASS",
+    "full_repository_passed": 3065,
+    "full_repository_failed": 0,
     "full_repository_errors": 0,
     "full_repository_skipped": 364,
     "collection_count": 3429,
@@ -100,5 +100,5 @@
     "memory_hallucination_rate": 0.0,
     "external_writes": 0
   },
-  "receipt_hash": "sha256:a0fd94c6855bf23c48801f6200ea4cef7a19594c7240a6d862a724824babfa1d"
+  "receipt_hash": "sha256:61cc641eac86daaa9318d17e9193c908ec5373b05703572ea26571d6b605f484"
 }
