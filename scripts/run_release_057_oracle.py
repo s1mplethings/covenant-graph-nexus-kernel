@@ -11,7 +11,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from experiments.release_057.oracle_analysis import analyze_oracle, canonical_hash  # noqa: E402
+from scripts.release_057_oracle_analysis import analyze_oracle, canonical_hash  # noqa: E402
 
 
 def _read_index(path: pathlib.Path, expected_baseline: str) -> dict:

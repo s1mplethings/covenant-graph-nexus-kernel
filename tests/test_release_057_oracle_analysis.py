@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from experiments.release_057.oracle_analysis import analyze_oracle
+from scripts.release_057_oracle_analysis import analyze_oracle
 
 
 def row(case_id: str, success: bool) -> dict[str, object]:

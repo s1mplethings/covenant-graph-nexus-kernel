@@ -37,5 +37,15 @@
     "research/release-057/oracle_analysis.json",
     "research/release-057/history_audit_summary.json",
     "project_management/summaries/ITER-057-release-hygiene-simple-routing.md"
-  ]
+  ],
+  "review": {
+    "outcome": "pending",
+    "feedback": [],
+    "accepted_backlog_item_ids": []
+  },
+  "retrospective": {
+    "worked": [],
+    "did_not_work": [],
+    "experiments": []
+  }
 }
