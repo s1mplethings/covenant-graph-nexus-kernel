@@ -62,6 +62,8 @@ def test_evaluator_passes_and_private_failures_are_opaque(tmp_path: pathlib.Path
     assert hidden.status == "FAIL"
     assert hidden.public_failure is None
     assert hidden.private_failure_hash.startswith("sha256:")
+    public = evaluate_family(tmp_path, family, private=False)
+    assert str(tmp_path) not in json.dumps(public.as_dict())
 
 
 def test_forbidden_network_import_fails_static_gate(tmp_path: pathlib.Path) -> None:

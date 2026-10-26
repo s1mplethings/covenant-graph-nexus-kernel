@@ -17,7 +17,7 @@ from cgkn.application.project_corpus import ProjectCorpusCaptureHook
 from cgkn.execution import BlockExecutionRequest, BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode
 from cgkn.executors import ExecutorDescriptor, ExecutorRegistry
 from cgkn.orchestration import CapabilityNode, CapabilityTree, compile_tree
-from cgkn.providers import CompletionClient, ModelRoleConfig, parse_json_object
+from cgkn.providers import CompletionClient, GatewayCompletionError, ModelRoleConfig, parse_json_object
 from cgkn.runtime import DAGRunner
 from cgkn.state import FileRunStore
 
@@ -143,8 +143,10 @@ class CallRecord:
     response_chars: int
     request_id: str
     actual_model: str
-    transport_attempts: int
+    transport_attempts: int | None
     usage: Mapping[str, Any]
+    usage_status: str
+    finish_reason: str | None
     selection_receipt_hash: str
     status: str
     elapsed_ms: int
@@ -241,12 +243,19 @@ class FamilyMaterializer:
                 if bundle.unit_id != episode.episode_id or not returned.issubset(set(episode.required_paths)):
                     raise ValueError("FileBundle identity or scope mismatch")
                 _atomic_candidate(self.memory.workspace, bundle)
-                record = CallRecord(call_id, episode.episode_id, purpose, len(SYSTEM_PROMPT) + len(user), len(completion.text), completion.request_id, completion.model, completion.attempts, dict(completion.usage), canonical_hash(dict(completion.selection_receipt)) if completion.selection_receipt else "", "COMPLETED", int((time.perf_counter() - started) * 1000))
+                finish_reason = completion.transport_metadata.get("finish_reason")
+                record = CallRecord(call_id, episode.episode_id, purpose, len(SYSTEM_PROMPT) + len(user), len(completion.text), completion.request_id, completion.model, completion.attempts, dict(completion.usage), "REPORTED" if completion.usage else "NOT_REPORTED", str(finish_reason) if finish_reason is not None else None, canonical_hash(dict(completion.selection_receipt)) if completion.selection_receipt else "", "COMPLETED", int((time.perf_counter() - started) * 1000))
                 self.memory.call_records.append(record)
                 self.memory.hook.record_event({"event": "PROVIDER_CALL", **record.as_dict()})
                 self.memory.hook.observe("INITIAL_GENERATION" if attempt == 0 else "POST_REPAIR", metadata={"episode_id": episode.episode_id, "call_id": call_id, "returned_paths": sorted(returned)})
             except Exception as exc:
-                record = CallRecord(call_id, episode.episode_id, purpose, len(SYSTEM_PROMPT) + len(user), 0, "", "", 0, {}, "", "FAILED", int((time.perf_counter() - started) * 1000), type(exc).__name__)
+                evidence = dict(exc.evidence) if isinstance(exc, GatewayCompletionError) else {}
+                attempts_detail = evidence.get("transport_attempts_detail")
+                transport_attempts = len(attempts_detail) if isinstance(attempts_detail, list) else (None if isinstance(exc, GatewayCompletionError) and exc.outcome_unknown else 0)
+                finish_reason = evidence.get("finish_reason")
+                usage = {"input_tokens": None, "output_tokens": None, "cached_tokens": None, "reasoning_tokens": None}
+                error_type = exc.category if isinstance(exc, GatewayCompletionError) else type(exc).__name__
+                record = CallRecord(call_id, episode.episode_id, purpose, len(SYSTEM_PROMPT) + len(user), 0, str(evidence.get("request_id") or ""), str(evidence.get("model") or ""), transport_attempts, usage, "UNKNOWN_AFTER_TRANSPORT_FAILURE" if isinstance(exc, GatewayCompletionError) else "NOT_AVAILABLE", str(finish_reason) if finish_reason is not None else None, "", "FAILED", int((time.perf_counter() - started) * 1000), error_type)
                 self.memory.call_records.append(record)
                 failure = {"failure_class": "PROVIDER_OR_BUNDLE_FAILURE", "error_type": type(exc).__name__}
                 self.memory.last_failures[episode.episode_id] = dict(failure)
@@ -393,7 +402,7 @@ def run_family(
         hook.observe("FINAL" if status == "PASS" else "ABORTED", metadata={"status": status, "private_status": private.status})
         provisional_usage = _usage_totals(memory.call_records)
         hook.metadata.update({
-            "logical_provider_calls": len(memory.call_records), "transport_attempts": sum(item.transport_attempts for item in memory.call_records),
+            "logical_provider_calls": len(memory.call_records), "transport_attempts": sum(item.transport_attempts or 0 for item in memory.call_records),
             "usage_totals": provisional_usage, "estimated_cost_usd": _token_cost_usd(provisional_usage),
             "latency_ms": sum(item.elapsed_ms for item in memory.call_records),
             "route": "api-lab.raw-defer->CGKN.StructuredAnswerSelector", "repair_rounds": sum(item.purpose == "PUBLIC_REPAIR" for item in memory.call_records),
@@ -403,6 +412,13 @@ def run_family(
     except BaseException as exc:
         hook.record_failure({"failure_class": "RUNNER_EXCEPTION", "error_type": type(exc).__name__})
         hook.observe("ABORTED", metadata={"error_type": type(exc).__name__})
+        provisional_usage = _usage_totals(memory.call_records)
+        hook.metadata.update({
+            "logical_provider_calls": len(memory.call_records), "transport_attempts": sum(item.transport_attempts or 0 for item in memory.call_records),
+            "usage_totals": provisional_usage, "estimated_cost_usd": _token_cost_usd(provisional_usage),
+            "latency_ms": sum(item.elapsed_ms for item in memory.call_records), "route": "api-lab.raw-defer->CGKN.StructuredAnswerSelector",
+            "repair_rounds": sum(item.purpose == "PUBLIC_REPAIR" for item in memory.call_records), "architecture_receipt": architecture_receipt,
+        })
         capture = hook.finalize("ABORTED")
         status = "ABORTED"
         architecture_receipt["runner_error"] = {"type": type(exc).__name__, "message": str(exc)[:1000]}

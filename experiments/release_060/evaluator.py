@@ -79,7 +79,8 @@ def _run_case(workspace: pathlib.Path, package: str, case: Mapping[str, Any], ca
             return False, {"failure_class": "TIMEOUT", "step": step_index}
         expected_code = int(step.get("code", 0))
         if completed.returncode != expected_code:
-            return False, {"failure_class": "EXIT_CODE", "step": step_index, "expected": expected_code, "observed": completed.returncode, "stderr": completed.stderr[-1200:]}
+            stderr = completed.stderr[-1200:].replace(str(case_root), "<PROJECT>").replace(str(case_root.resolve()), "<PROJECT>")
+            return False, {"failure_class": "EXIT_CODE", "step": step_index, "expected": expected_code, "observed": completed.returncode, "stderr": stderr}
         file_json = step.get("file_json")
         if file_json:
             output = case_root / str(file_json["path"])
