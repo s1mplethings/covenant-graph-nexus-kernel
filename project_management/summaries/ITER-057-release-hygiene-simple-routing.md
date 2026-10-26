@@ -2,8 +2,8 @@
 
 ## 1. Executive Summary
 
-CGNK release hygiene is complete on Source Closure
-`7b81a3dde5823dd9ccc31839441bffc6b6acfe98`. The public name is CGNK, the
+CGNK release hygiene is complete on final `main` Source Closure
+`f2e5f73f6c917b630c657a1730a783fe7af516cb`. The public name is CGNK, the
 `cgkn` Python namespace remains compatible, scope-bound current/history audits
 have zero P0 findings, and all required regression profiles pass. The routing
 oracle equals Always Direct Cheap at 58/72 and contains zero CGNK-only
@@ -13,12 +13,14 @@ successes. Router V1 was therefore not implemented.
 
 - Repository: `s1mplethings/covenant-graph-nexus-kernel`
 - Base evidence: `f9a0f4197d73e8e82654c78268988cb5b8d13a7f`
-- Branch: `codex/cgnk-simple-routing-20261026`
-- Source Closure: `7b81a3dde5823dd9ccc31839441bffc6b6acfe98`
-- Source tree: `5c08929a2ba660aea7bd53bbfe5c286307015cb2`
-- `main` migration: release tree is identical to Evidence Closure `8ef106c5…`
-  and prepared as a normal fast-forward commit from `3df1110d…`; remote and
-  default-branch verification are recorded by the final main evidence commit.
+- Canonical branch: `main`
+- Development branch: `codex/cgnk-simple-routing-20261026`
+- Source Closure: `f2e5f73f6c917b630c657a1730a783fe7af516cb`
+- Source tree: `251b2c8a21d73448f4b91cce56c6aaa402a9dd07`
+- Development Evidence Closure: `8ef106c54150a7792e9f033328fe1e4ee22062b3`
+- Evidence Closure: the commit containing this final evidence update.
+- `main` migration: PASS; remote Source Closure SHA verified and GitHub default
+  branch is `main`.
 - Force push: no. PR: none.
 
 ## 3. Public Release Hygiene
@@ -41,25 +43,27 @@ variables, and serialized machine identifiers remain compatible. No destructive
 
 ## 6. History Audit Scope
 
-History audit at Source Closure `7b81a3dde5823dd9ccc31839441bffc6b6acfe98`
-scanned 7,605 unique named text blobs of at most 8 MiB reachable from that
+History audit at Source Closure `f2e5f73f6c917b630c657a1730a783fe7af516cb`
+scanned 6,184 unique named text blobs of at most 8 MiB reachable from that
 commit. Status: PASS; P0: 0; result hash:
-`sha256:8d8d719f2d92c47cb42ad2c0892e7702031b59f43b538128ea5384934f8cb597`.
+`sha256:cd567f2a2d00eee3dc9a9be8c7e41f9e0211ae14f8aec1c3fa03ed6bd7deb00e`.
 
 ## 7. Blob Count Reconciliation
 
 The 7,726 scan at `2ad4c650…` and 7,744 scan at `f9a0f419…` used the old
 `git rev-list --objects --all` policy, whose input changes with visible local and
-remote refs. Both were valid for their different scan-time ref sets. ITER-057
-replaces that ambiguous scope with one explicit commit and reports the exact
-policy and hash.
+remote refs. Both were valid for their different scan-time ref sets. The 7,605
+feature-branch scan and 6,184 final-main scan are also valid for different
+reachable histories: the canonical publisher migrated the reviewed release tree
+as one fast-forward commit without importing feature-only ancestry. The explicit
+final `main` Source Closure scope is authoritative.
 
 ## 8. Default Branch Migration
 
-The release tree is prepared on the exact remote `main` baseline and will be
-published as a normal fast-forward commit. The old release branch remains
-preserved. GitHub default-branch verification is recorded after canonical
-publication; no force push or remote history rewrite is used.
+The release tree was published from the exact remote `main` baseline as a normal
+fast-forward commit. Remote Source Closure SHA is `f2e5f73f…`; GitHub reports
+`main` as the default branch and `PUBLIC` visibility. The old release branch
+remains preserved. No force push or remote history rewrite was used.
 
 ## 9. Previous ITER-056 Results
 
@@ -166,7 +170,8 @@ broader migration/recovery revalidation, so status is `P1_FUTURE_NO_CHANGE`.
 
 ## 29. Security
 
-Current-tree and Source-Closure history audits report zero P0 findings. Postiz
+Current-tree audit result `sha256:50a8dd4f…` and Source-Closure history audit
+result `sha256:cd567f2a…` report zero P0 findings. Postiz
 remains an independent AGPL service boundary; no implementation was imported.
 No Provider call, secret exposure, external write, force push, or approval
 bypass occurred.
@@ -175,7 +180,9 @@ bypass occurred.
 
 All profiles PASS: static, unit (482/1 skip), boundary (325/1 skip), fault
 (80), security (119/1 skip), local-functional (6), full-core (482/1 skip), and
-active-repository (3,007/363 skips). Collection found 3,370 tests. The separate
+active-repository (3,007/363 skips). The final `main` Source Closure additionally
+passed full pytest with 3,011 passed, 363 skipped, 0 failed, and 0 errors;
+collection found 3,374 tests. The separate
 Knowledge/Conversation/Capability/Routing/Self-Growth/Promotion/Community/
 Persona set passed 420 with 6 skips. Failed=0; errors=0.
 
@@ -192,8 +199,9 @@ new execution admission behavior was adopted.
 
 ## 33. GitHub Release
 
-Prepared as an rc.3 Research Preview prerelease. The final URL and verified tag
-SHA are recorded after GitHub publication.
+Approved as an rc.3 Research Preview prerelease targeting the final Evidence
+Closure. Release URL:
+`https://github.com/s1mplethings/covenant-graph-nexus-kernel/releases/tag/v0.2.0-rc.3`.
 
 ## 34. Remaining P0/P1/P2
 
@@ -208,18 +216,20 @@ SHA are recorded after GitHub publication.
 
 - `16b7d710…` — `chore: normalize CGNK release hygiene and audit scope`.
 - `7b81a3dd…` — `fix: preserve experiment receipt boundary in release analysis`.
-- Evidence and main migration commits are appended after canonical publication.
+- `8ef106c5…` — `docs: record ITER-057 release hygiene evidence`.
+- `f2e5f73f…` — `chore: establish CGNK release tree on main`.
+- The final Evidence Closure is the commit containing this report update.
 
 ## 36. Final Verdict
 
 - `release_hygiene_status=PASS`
 - `canonical_name_status=PASS_CGNK`
 - `history_audit_status=PASS_SCOPE_BOUND`
-- `default_branch_status=PREPARED`
+- `default_branch_status=PASS_MAIN`
 - `router_oracle_opportunity=LOW`
 - `router_status=INSUFFICIENT_EVIDENCE`
 - `router_overhead_status=NOT_EVALUATED`
 - `router_generalization_status=NOT_EVALUATED_STOP_GATE`
 - `router_production_adoption=NOT_ADOPTED`
 - `knowledge_cycle_status=P1_FUTURE_NO_CHANGE`
-- `release_status=READY_FOR_MAIN_MIGRATION`
+- `release_status=READY_FOR_RC3_TAG_AND_RELEASE`

@@ -1,23 +1,23 @@
 {
   "kind": "CGNKHistoryAuditSummary",
   "schema_version": "1.0",
-  "history_audit_scope_commit": "7b81a3dde5823dd9ccc31839441bffc6b6acfe98",
-  "source_tree": "5c08929a2ba660aea7bd53bbfe5c286307015cb2",
-  "command": "python scripts/release_compliance_audit.py --history --scope-commit 7b81a3dde5823dd9ccc31839441bffc6b6acfe98 --output history.json",
+  "history_audit_scope_commit": "f2e5f73f6c917b630c657a1730a783fe7af516cb",
+  "source_tree": "251b2c8a21d73448f4b91cce56c6aaa402a9dd07",
+  "command": "python scripts/release_compliance_audit.py --history --scope-commit f2e5f73f6c917b630c657a1730a783fe7af516cb --output history.json",
   "policy": {
     "reachability": "unique named blobs reachable from the explicit scope commit",
     "maximum_text_blob_bytes": 8388608,
     "binary_blobs_secret_scanned": false,
     "duplicate_blob_oids_scanned_once": true
   },
-  "unique_scannable_text_blob_count": 7605,
+  "unique_scannable_text_blob_count": 6184,
   "p0_count": 0,
   "status": "PASS",
-  "result_hash": "sha256:8d8d719f2d92c47cb42ad2c0892e7702031b59f43b538128ea5384934f8cb597",
+  "result_hash": "sha256:cd567f2a2d00eee3dc9a9be8c7e41f9e0211ae14f8aec1c3fa03ed6bd7deb00e",
   "current_tree_audit": {
     "p0_count": 0,
     "status": "PASS",
-    "result_hash": "sha256:1a7e438055a831cfade60f08aa84cd06cdd09d031f53c7aad3f7daf597ac4146"
+    "result_hash": "sha256:50a8dd4f859b5ac59ecf13298bb590f4375e58957d657071f44a2e6aeef2bdfb"
   },
   "prior_count_reconciliation": [
     {
@@ -31,7 +31,13 @@
       "repository_head": "f9a0f4197d73e8e82654c78268988cb5b8d13a7f",
       "scope": "all refs visible at scan time",
       "explicit_scope_commit": null
+    },
+    {
+      "reported_count": 7605,
+      "repository_head": "7b81a3dde5823dd9ccc31839441bffc6b6acfe98",
+      "scope": "feature-branch Source Closure ancestry",
+      "explicit_scope_commit": "7b81a3dde5823dd9ccc31839441bffc6b6acfe98"
     }
   ],
-  "reconciliation": "BOTH_WERE_VALID_FOR_DIFFERENT_MUTABLE_ALL_REF_SCOPES; the release authority is now the explicit Source Closure scope above"
+  "reconciliation": "COUNTS_REFER_TO_DIFFERENT_REACHABLE_HISTORIES; the release authority is the explicit main Source Closure scope above, whose single-commit migration intentionally does not import feature-branch-only ancestry"
 }

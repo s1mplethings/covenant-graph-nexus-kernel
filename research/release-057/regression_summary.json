@@ -1,10 +1,10 @@
 {
   "kind": "CGNKRelease057RegressionSummary",
   "schema_version": "1.0",
-  "source_commit": "7b81a3dde5823dd9ccc31839441bffc6b6acfe98",
-  "source_tree": "5c08929a2ba660aea7bd53bbfe5c286307015cb2",
+  "source_commit": "f2e5f73f6c917b630c657a1730a783fe7af516cb",
+  "source_tree": "251b2c8a21d73448f4b91cce56c6aaa402a9dd07",
   "collection": {
-    "collected": 3370,
+    "collected": 3374,
     "status": "PASS"
   },
   "profiles": {
@@ -25,6 +25,14 @@
     "errors": 0,
     "duration_seconds": 63.0,
     "status": "PASS"
+  },
+  "final_main_full_pytest": {
+    "status": "PASS",
+    "passed": 3011,
+    "skipped": 363,
+    "failed": 0,
+    "errors": 0,
+    "authority": "canonical publisher post-commit verification"
   },
   "receipt_freshness": "PASS",
   "overall": "PASS"

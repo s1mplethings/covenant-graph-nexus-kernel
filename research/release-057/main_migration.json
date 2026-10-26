@@ -2,14 +2,16 @@
   "kind": "CGNKMainBranchMigration",
   "schema_version": "1.0",
   "previous_main_sha": "3df1110d31d33f14ab2a07ba3b6dc966f656d348",
-  "release_source_commit": "7b81a3dde5823dd9ccc31839441bffc6b6acfe98",
-  "release_evidence_commit": "8ef106c54150a7792e9f033328fe1e4ee22062b3",
+  "release_source_commit": "f2e5f73f6c917b630c657a1730a783fe7af516cb",
+  "release_evidence_binding": "containing final evidence commit",
   "release_tree_match": "PASS",
   "migration_method": "canonical single-commit fast-forward from origin/main",
   "history_rewritten": false,
   "force_push": false,
   "old_release_branch_preserved": true,
-  "remote_main_sha": null,
-  "github_default_branch": "codex/cgnk-core-optimization-release-20261025",
-  "status": "READY_FOR_CANONICAL_MAIN_PUBLICATION"
+  "source_closure_remote_main_sha": "f2e5f73f6c917b630c657a1730a783fe7af516cb",
+  "github_default_branch": "main",
+  "repository_visibility": "PUBLIC",
+  "verified_on": "2026-10-26",
+  "status": "PASS"
 }
