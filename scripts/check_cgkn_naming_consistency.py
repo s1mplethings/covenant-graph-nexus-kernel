@@ -8,15 +8,34 @@ from dataclasses import dataclass
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-REPORT_PATH = ROOT / "artifacts" / "cgkn_naming_consistency_report.md"
+REPORT_PATH = ROOT / "artifacts" / "cgnk_naming_consistency_report.md"
 
-# legacy compatibility: these tokens may exist in historical code, but not as
-# current formal project branding in new CGKN outputs.
-LEGACY_COMPATIBILITY_TERMS = ["CGNK", "CTCP", "ACFV"]  # legacy compatibility tokens
+# Legacy machine identifiers may remain in frozen schemas, Python paths, and
+# historical evidence, but they are not the current public project name.
+LEGACY_COMPATIBILITY_TERMS = ["CGKN", "CTCP", "ACFV"]  # legacy compatibility tokens
 
 STRICT_PATTERNS = [
     "README.md",
     "AGENTS.md",
+    "PRODUCT_GOAL.md",
+    "MVP_SCOPE.md",
+    "CHANGELOG.md",
+    "CITATION.cff",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "docs/ARCHITECTURE.md",
+    "docs/BENCHMARKS.md",
+    "docs/RELEASE_NOTES.md",
+    "docs/REPRODUCIBILITY.md",
+    "docs/THIRD_PARTY_LICENSES.md",
+    "research/release-056/README.md",
+    "research/release-056/RELEASE_CLAIM_LEDGER.json",
+    "research/release-056/research_summary.json",
+    "research/release-056/report/references.bib",
+    "research/release-056/report/reproduction.md",
+    "research/release-056/report/success_rate.svg",
+    "research/release-056/report/technical_report.md",
+    "project_management/summaries/ITER-056_FINAL_REPORT.md",
     "docs/requirement_decision_first.md",
     "docs/requirement_decision_lane.md",
     "docs/continuous_verified_generation_loop.md",
@@ -27,7 +46,7 @@ STRICT_PATTERNS = [
     "artifacts/release_candidate_*.json",
     "artifacts/continuous_generation_*.md",
     "artifacts/continuous_generation_iterations.jsonl",
-    "artifacts/cgkn_naming_consistency_report.md",
+    "artifacts/cgnk_naming_consistency_report.md",
     "artifacts/stale_test_update_report.md",
     "artifacts/requirement_decision_benchmark_summary.md",
     "artifacts/requirement_decision_benchmark.json",
@@ -95,7 +114,14 @@ def strict_files(root: pathlib.Path = ROOT) -> list[pathlib.Path]:
 
 def line_is_legacy_context(line: str) -> bool:
     lowered = line.lower()
-    return "legacy compatibility" in lowered or "historical compatibility" in lowered
+    return (
+        "legacy compatibility" in lowered
+        or "historical compatibility" in lowered
+        or "legacy machine identifier" in lowered
+        or "legacy_machine_identifier" in lowered
+        or '"kind": "cgkn' in lowered
+        or "cgkn_" in lowered
+    )
 
 
 def scan_file(path: pathlib.Path) -> list[NamingFinding]:
@@ -125,13 +151,13 @@ def write_report(result: dict[str, object], report_path: pathlib.Path = REPORT_P
     findings = result.get("findings", [])
     files = result.get("files_scanned", [])
     lines = [
-        "# CGKN Naming Consistency Report",
+        "# CGNK Naming Consistency Report",
         "",
         f"- status: `{result.get('status')}`",
         f"- strict files scanned: `{len(files) if isinstance(files, list) else 0}`",
-        "- formal project name: `CGKN`",
-        "- rule: new docs, reports, benchmarks, tests, prompts, and artifacts must use CGKN as the formal project name.",
-        "- legacy compatibility: historical markers may exist only when explicitly marked as compatibility, not as current branding.",
+        "- formal project name: `CGNK` (Covenant Graph Nexus Kernel)",
+        "- rule: current public docs, reports, benchmarks, prompts, and artifacts use CGNK as the public project name.",
+        "- legacy machine identifier: `CGKN` may remain only in frozen schemas, package/API compatibility surfaces, and explicitly historical evidence.",
         "",
     ]
     if findings:
@@ -158,7 +184,7 @@ def main() -> int:
 
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
-        print(f"CGKN_NAMING_CONSISTENCY: {result['status']}")
+        print(f"CGNK_NAMING_CONSISTENCY: {result['status']}")
         print(f"report: {args.report}")
     return 0 if result["status"] == "PASS" else 2
 

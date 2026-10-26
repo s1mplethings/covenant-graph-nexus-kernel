@@ -1,9 +1,10 @@
 # Local Provider gateway integration
 
-CGKN can use the independent `cgkn-provider-api-lab` loopback gateway without
+CGNK can use the independent `cgkn-provider-api-lab` loopback gateway without
 reading Qwen, DeepSeek, or Grok credentials. The existing
 `OpenAICompatibleClient` remains the default. Gateway mode is selected only
-when `CGKN_PROVIDER_GATEWAY_ENABLED=1` is present in the CGKN process.
+when the legacy compatibility environment variable
+`CGKN_PROVIDER_GATEWAY_ENABLED=1` is present in the CGNK process.
 
 ## Route configuration
 
@@ -25,7 +26,7 @@ injects the ephemeral gateway token only into the child process environment:
 Set-Location D:\cgkn-provider-api-lab
 .\.venv\Scripts\cgkn-provider-lab.exe launch-agent-mvp-gateway `
   --agent qwen --worker deepseek `
-  --cgkn-root D:\CGKN --run-root D:\cgkn-runs\first `
+  --cgkn-root <repository-root> --run-root <run-root> `
   --max-api-calls 4 --max-input-tokens 100000 --max-output-tokens 30000 `
   --max-estimated-cost 5 `
   --input-cost-per-million 1 --output-cost-per-million 2
@@ -41,7 +42,7 @@ price estimates are missing.
 No credential or paid call is needed for the supported end-to-end checks:
 
 ```powershell
-Set-Location D:\CGKN
+Set-Location <repository-root>
 python -m pytest -q `
   tests\agent\test_agent_mvp_gateway_cli.py `
   tests\application\software_project\test_gateway_e2e.py `

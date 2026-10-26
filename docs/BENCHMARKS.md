@@ -11,8 +11,8 @@ statistical significance.
 | B0 Direct Cheap | 58/72 (80.56%) | 16,854 | 119 | USD 0.006833 |
 | B1 Direct Strong | 46/72 (63.89%) | 29,782 known | 119 | Not evaluated: incomplete usage |
 | B2 Flat Context Cheap | 15/72 (20.83%) | 164,071 | 6,861 | USD 0.007371 |
-| B3 Current CGKN | 49/72 (68.06%) | 16,752 | 119 | USD 0.006731 |
-| B4 Optimized CGKN | 48/72 (66.67%) | 16,716 | 119 | USD 0.006688 |
+| B3 Current CGNK | 49/72 (68.06%) | 16,752 | 119 | USD 0.006731 |
+| B4 Optimized CGNK | 48/72 (66.67%) | 16,716 | 119 | USD 0.006688 |
 
 B4 reduced median context by 98.27% relative to B2 and improved paired success
 by 45.83 percentage points. Against B3, B4 changed success by -1.39 percentage

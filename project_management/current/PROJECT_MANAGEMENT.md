@@ -1,4 +1,4 @@
-# CGKN current project management
+# CGNK current project management
 
 Current project management follows the product authority in `PRODUCT_GOAL.md`, `MVP_SCOPE.md`, `governance/product_invariants.json`, and `governance/current_architecture.json`.
 
@@ -20,20 +20,12 @@ The remaining compatibility runtime is intentionally retained:
 
 Further cleanup inside that cluster now requires a working replacement path.
 
-## Latest feature increment
+## Active increment
 
-`ITER-054` closed with limits after adding a Community Operator application capability branch over the
-existing Component, Registry, Runtime, Knowledge, Promotion validation, and
-approval boundaries. It does not add a Community runtime, scheduler, planner,
-Knowledge authority, or public-delivery route.
-
-The active increment discovers bounded public discussions, normalizes thread
-context, ranks opportunities with precision-first policy gates, drafts
-claim-grounded replies, and keeps every external reply behind an exact-hash
-`APPROVED_TO_REPLY` decision. Discovery and drafting may run automatically;
-unknown rules, high spam risk, and every public write fail closed to human
-review. Real dogfood is read-only unless a self-owned test target, official API,
-credentials, and explicit approval are all present.
+`ITER-057` normalizes public CGNK naming, makes history-audit scope explicit,
+and evaluates whether any architecture-admission Router is justified. The
+paired ITER-056 oracle is a hard anti-overengineering gate: if architecture
+adds no unique successes, Router implementation stops.
 
 ## Roadmap after the active increment
 

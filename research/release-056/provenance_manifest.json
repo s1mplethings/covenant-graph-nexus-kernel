@@ -1,12 +1,12 @@
 {
   "kind": "CGKNReleaseProvenanceManifest",
   "schema_version": "1.0",
-  "project": "CovenantGraph Nexus Kernel (CGKN)",
+  "project": "Covenant Graph Nexus Kernel (CGNK)",
   "project_license": "Apache-2.0",
   "repository": "https://github.com/s1mplethings/covenant-graph-nexus-kernel",
   "copyright_holder_basis": {
     "status": "NO_VERIFIED_PERSON_OR_ORGANIZATION",
-    "metadata_identity": "CGKN contributors",
+    "metadata_identity": "CGNK contributors",
     "reason": "Repository metadata does not verify a legal person or organization; no identity was inferred."
   },
   "separate_services": [
@@ -37,43 +37,43 @@
   "benchmark_materials": [
     {
       "path_prefix": "benchmarks/community_v1/",
-      "origin": "CGKN-authored synthetic connectivity fixtures and evaluator",
+      "origin": "CGNK-authored synthetic connectivity fixtures and evaluator",
       "license": "Apache-2.0",
       "redistribution": "ALLOWED"
     },
     {
       "path_prefix": "benchmarks/knowledge_persistence_productionization/",
-      "origin": "CGKN-authored deterministic synthetic benchmark",
+      "origin": "CGNK-authored deterministic synthetic benchmark",
       "license": "Apache-2.0",
       "redistribution": "ALLOWED"
     },
     {
       "path_prefix": "benchmarks/knowledge_persistence_scaling/",
-      "origin": "CGKN-authored deterministic synthetic benchmark",
+      "origin": "CGNK-authored deterministic synthetic benchmark",
       "license": "Apache-2.0",
       "redistribution": "ALLOWED"
     },
     {
       "path_prefix": "benchmarks/mvp_decision_efficiency/",
-      "origin": "CGKN-authored experiment contract",
+      "origin": "CGNK-authored experiment contract",
       "license": "Apache-2.0",
       "redistribution": "ALLOWED"
     },
     {
       "path_prefix": "benchmarks/promotion_v1/",
-      "origin": "CGKN-authored synthetic connectivity fixtures and evaluator",
+      "origin": "CGNK-authored synthetic connectivity fixtures and evaluator",
       "license": "Apache-2.0",
       "redistribution": "ALLOWED"
     },
     {
       "path_prefix": "benchmarks/real_project_generation/",
-      "origin": "CGKN-authored tasks, fixtures, and hidden evaluator contracts",
+      "origin": "CGNK-authored tasks, fixtures, and hidden evaluator contracts",
       "license": "Apache-2.0",
       "redistribution": "ALLOWED"
     },
     {
       "path_prefix": "benchmarks/self_growth_v1/",
-      "origin": "CGKN-authored fixture with cited public pricing sources",
+      "origin": "CGNK-authored fixture with cited public pricing sources",
       "license": "Apache-2.0",
       "redistribution": "ALLOWED"
     }

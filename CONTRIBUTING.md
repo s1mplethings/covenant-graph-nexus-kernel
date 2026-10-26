@@ -1,6 +1,6 @@
-# Contributing to CGKN
+# Contributing to CGNK
 
-CGKN accepts changes that preserve the authority boundaries in
+CGNK accepts changes that preserve the authority boundaries in
 `PRODUCT_GOAL.md`, `MVP_SCOPE.md`, and `governance/product_invariants.json`.
 
 ## Development workflow

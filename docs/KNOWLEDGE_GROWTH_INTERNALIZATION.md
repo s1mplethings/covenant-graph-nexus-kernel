@@ -1,6 +1,6 @@
 # Knowledge Growth and Internalization
 
-CGKN uses `ProjectKnowledgePack` as its only knowledge authority. Internalization
+CGNK uses `ProjectKnowledgePack` as its only knowledge authority. Internalization
 does not create another graph or database. It adds deterministic lifecycle,
 relationship, dependency, invalidation, and derived-cache semantics to that
 pack while preserving raw evidence and existing Conversation provenance.

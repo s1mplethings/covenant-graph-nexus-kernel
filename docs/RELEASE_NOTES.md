@@ -1,30 +1,26 @@
-# CGKN 0.2.0-rc.2 Research Preview
+# CGNK 0.2.0-rc.3 Research Preview
 
-CGKN is a composable capability kernel for evidence-grounded agentic project
-work. This release consolidates the single-Agent/CapabilityTree/ExecutionDAG
-architecture, adds Apache-2.0 release metadata, improves indexed knowledge
-retrieval and bounded context projection, and publishes a preregistered
-cross-domain evaluation with negative results intact.
+CGNK is a composable capability kernel for evidence-grounded agentic project
+work. This hygiene release establishes the canonical public name, retains the
+`cgkn` Python namespace for compatibility, scopes history audits to an exact
+commit, and records a negative Architecture Router feasibility result.
 
-## Highlights
+## Hygiene and feasibility highlights
 
-- 3,001 tests passed, 363 skipped, 0 failed/errors.
-- Clean-clone installation and offline benchmark smoke passed.
-- Optimized CGKN reduced median context by 98.27% versus flat context.
-- Optimized and previous CGKN paths had similar success (48/72 vs 49/72).
-- Direct Cheap achieved the highest holdout success (58/72); the report does
-  not claim CGKN improves quality over direct execution.
-- Stable dependency prompt projection removes timing, usage, and receipt-only
-  metadata from downstream workers.
-- Current and 7,726-blob history compliance audits found zero P0 issues.
+- Public branding is CGNK: Covenant Graph Nexus Kernel.
+- The Python namespace remains `cgkn`; `CGKN...` legacy machine identifiers
+  remain stable for schema compatibility.
+- The paired ITER-056 oracle achieved 58/72, exactly the Direct Cheap result,
+  with zero CGNK-only successes and therefore did not authorize Router V1.
+- The history audit reports an explicit Source Closure and unique-blob scope.
+- Direct Cheap's 58/72 result remains visible and unchanged.
 
 ## Known limitations
 
-Public CRAG, LongMemEval-V2, BFCL V4, TUA-Bench, and SWE-bench Pro V2 formal
-runs were environment-blocked. Strong-route cost is incomplete after a timeout
-and frozen budget exhaustion. Self-Growth, Persona, Community, and Promotion
-retain their experimental or approval-required boundaries. Multi-Agent Runtime
-is not recommended or enabled.
+The Router result is diagnostic because the same 72 tasks were previously
+observed; no fresh holdout was run after the oracle stop gate. Public benchmark
+formal runs remain environment-blocked. Multi-Agent Runtime is not recommended
+or enabled.
 
 ## Compatibility and migration
 
@@ -35,6 +31,6 @@ report before treating an experimental application surface as qualified.
 
 ## Security, license, and citation
 
-CGKN-owned work is Apache-2.0. Third-party assets retain their own licenses; see
+CGNK-owned work is Apache-2.0. Third-party assets retain their own licenses; see
 `docs/THIRD_PARTY_LICENSES.md`. Report vulnerabilities through `SECURITY.md`.
 Citation metadata is in `CITATION.cff`.

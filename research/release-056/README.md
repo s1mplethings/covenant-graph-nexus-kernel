@@ -1,4 +1,7 @@
-# CGKN Release 056 Research Package
+# CGNK Release 056 Research Package
+
+CGNK is the public project name. Frozen `CGKN...` legacy machine identifiers in
+this package are retained for receipt compatibility.
 
 This directory is the source-controlled research record for the release-candidate evaluation. Raw provider responses, benchmark datasets, environment images, secrets, and machine-local paths are never committed. Large or restricted artifacts stay in an external evidence root and are represented here only by sanitized manifests and hashes.
 

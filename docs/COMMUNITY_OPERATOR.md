@@ -1,6 +1,6 @@
-# CGKN Community Operator
+# CGNK Community Operator
 
-Community Operator answers a narrow question: where can the CGKN project team
+Community Operator answers a narrow question: where can the CGNK project team
 contribute useful technical context without becoming a promotion bot?
 
 ## Authority and flow
@@ -33,7 +33,7 @@ flag, links, persona, and revision. Any change invalidates approval.
 
 - Unknown community rules become `HUMAN_REVIEW`.
 - Insufficient project knowledge becomes `IGNORE` or `DRAFT_ONLY`.
-- Engaging does not imply mentioning CGKN; mentioning does not imply linking.
+- Engaging does not imply mentioning CGNK; mentioning does not imply linking.
 - A reply with no value after removing project promotion is rejected.
 - Project facts require an approved Promotion claim; general technical
   reasoning remains separately labeled.

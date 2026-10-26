@@ -1,6 +1,6 @@
-# CGKN Slimming and Rule Guard
+# CGNK Slimming and Rule Guard
 
-This document freezes the subtraction direction for CGKN without weakening the Codex conversation delivery path.
+This document freezes the subtraction direction for CGNK without weakening the Codex conversation delivery path.
 
 ## One Default Route
 

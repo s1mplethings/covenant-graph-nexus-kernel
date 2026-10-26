@@ -54,3 +54,13 @@ def test_release_metadata_and_provenance_are_complete() -> None:
         "evidence/architecture-reduction-v1/e2e/math_training_screenshot.png",
         "evidence/candidate-canonicalization-v1/math_training_screenshot.png",
     ]
+
+
+def test_history_scope_commit_is_resolved_explicitly() -> None:
+    resolved = AUDIT.resolve_commit("HEAD")
+    assert len(resolved) == 40
+    assert resolved == AUDIT.run_git("rev-parse", "HEAD").decode().strip()
+
+
+def test_canonical_hash_is_order_independent() -> None:
+    assert AUDIT.canonical_hash({"a": 1, "b": 2}) == AUDIT.canonical_hash({"b": 2, "a": 1})

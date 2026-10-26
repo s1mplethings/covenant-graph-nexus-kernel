@@ -1,24 +1,24 @@
-# CGKN 0.2.0-rc.2: A Governed Capability Kernel Research Preview
+# CGNK 0.2.0-rc.2: A Governed Capability Kernel Research Preview
 
 ## 1. Abstract
 
-CGKN is an agent architecture that separates project-level decisions from
+CGNK is an agent architecture that separates project-level decisions from
 bounded execution, localizes evidence before model reasoning, and records
 state-changing work through typed contracts and receipts. This report evaluates
 whether those mechanisms improve reliability or efficiency across a frozen
 72-task, twelve-domain holdout. The optimized configuration achieved 48/72
-(66.67%) success, statistically indistinguishable from the previous CGKN
+(66.67%) success, statistically indistinguishable from the previous CGNK
 configuration at 49/72 (68.06%), while reducing median context by 98.27% versus
 a flat-context ablation. A direct cheap-model baseline achieved the best success
 rate, 58/72 (80.56%). The evidence supports context localization, not a general
-claim that CGKN improves task success. We release the system as a Research
+claim that CGNK improves task success. We release the system as a Research
 Preview with negative results and environment blocks preserved.
 
 ## 2. Problem Statement
 
 Agent systems commonly conflate project planning, tool selection, model calls,
 state, and evidence. This makes failures broad, prompts large, and claims hard
-to audit. CGKN tests whether a single Agent authority, compositional tree,
+to audit. CGNK tests whether a single Agent authority, compositional tree,
 execution DAG, bounded executors, localized knowledge, and explicit receipts
 can provide a more inspectable substrate.
 
@@ -45,7 +45,7 @@ intent and composition. Executors cannot become project planners. Tree and DAG,
 state, and publication each have one authority. Application roles are views,
 not mandatory stages.
 
-## 6. Original RAG/CTCP Parity
+## 6. Historical Compatibility: Original RAG/CTCP Parity
 
 The historical parity audit found bottom-up and local retrieval, branch/path
 convergence, abstraction navigation, raw drill-down, contradiction and
@@ -117,8 +117,8 @@ identity and one logical provider call. There are no manual task edits.
 ## 15. Baselines
 
 B0 is direct cheap-model execution. B1 is direct strong-model execution. B2
-supplies complete flat context to the cheap model. B3 is the previous CGKN
-retrieval path. B4 is the optimized indexed CGKN path. B3/B4 use the same
+supplies complete flat context to the cheap model. B3 is the previous CGNK
+retrieval path. B4 is the optimized indexed CGNK path. B3/B4 use the same
 DeepSeek route; B0/B2 use the same cheap route; B1 uses the frozen Qwen strong
 route. The comparison is paired by case.
 
@@ -150,7 +150,7 @@ The B2 result establishes that sending all evidence is harmful here. B3/B4
 shows the new index does not improve quality at this task scale, though
 development profiling establishes latency scaling benefits. B0 shows that the
 holdout often needs little architecture. Therefore gains cannot be attributed
-to “CGKN overall”; the supported mechanism is localized context.
+to “CGNK overall”; the supported mechanism is localized context.
 
 ## 19. Quality/Cost Frontier
 
@@ -198,7 +198,7 @@ included in release artifacts.
 
 ## 24. Licensing and Provenance
 
-CGKN-owned source and documentation use Apache-2.0. Dependency, benchmark,
+CGNK-owned source and documentation use Apache-2.0. Dependency, benchmark,
 snippet, fixture, media, and service provenance were audited separately.
 Postiz code is not imported. Public benchmark data is referenced by official
 revision and reproduction instructions rather than redistributed.
@@ -236,9 +236,9 @@ should remain off until a current structure demonstrates a measurable benefit.
 
 ## 29. Conclusion
 
-CGKN's clearest supported contribution is disciplined localization: it can
+CGNK's clearest supported contribution is disciplined localization: it can
 reduce irrelevant context by roughly 98% relative to flat evidence while
 preserving far higher success. The optimized index is quality-non-inferior to
-the previous CGKN path but not more successful. A direct cheap model remains
+the previous CGNK path but not more successful. A direct cheap model remains
 better on this holdout. The release is therefore useful as a reproducible,
 governed research substrate—not evidence that added architecture always helps.

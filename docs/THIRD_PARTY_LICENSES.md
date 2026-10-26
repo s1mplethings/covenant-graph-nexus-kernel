@@ -1,6 +1,6 @@
 # Third-party licenses and provenance
 
-CGKN-owned source and documentation are licensed under Apache-2.0. This does
+CGNK-owned source and documentation are licensed under Apache-2.0. This does
 not relicense dependencies, separately deployed services, benchmark datasets,
 model outputs, or external assets.
 
@@ -21,22 +21,22 @@ reproducibility artifacts; this table is not a substitute for upstream terms.
 
 ## Postiz
 
-Postiz is an independent AGPL-3.0 service and transport boundary. CGKN may use
+Postiz is an independent AGPL-3.0 service and transport boundary. CGNK may use
 an API, MCP, or CLI bridge to a separately installed Postiz deployment, but no
 Postiz implementation source is copied into this Apache-2.0 source tree. The
 current repository contains a transport adapter and offline tests only.
 
 ## Public benchmarks
 
-Benchmark code and data retain their upstream licenses. CGKN commits only thin
+Benchmark code and data retain their upstream licenses. CGNK commits only thin
 adapters, task identifiers, manifests, sanitized result metadata, and download
 or reproduction instructions unless redistribution is explicitly permitted.
-Restricted or non-commercial datasets are never bundled into a CGKN package.
+Restricted or non-commercial datasets are never bundled into a CGNK package.
 
 The ITER-056 benchmark manifest records exact upstream repository commits,
 dataset versions, licenses, network policies, evaluators, and access dates
 before formal evaluation. Gold answers and hidden tests remain evaluator-only
-and are never persisted as CGKN knowledge.
+and are never persisted as CGNK knowledge.
 
 ## Repository assets and copied code audit
 

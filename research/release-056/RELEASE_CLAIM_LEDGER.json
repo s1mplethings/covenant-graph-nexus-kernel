@@ -12,21 +12,21 @@
     },
     {
       "claim_id": "CLM-002",
-      "claim": "Optimized indexed retrieval was quality-non-inferior to the previous CGKN path.",
+      "claim": "Optimized indexed retrieval was quality-non-inferior to the previous CGNK path.",
       "status": "SUPPORTED_DIRECTIONALLY",
       "evidence": "report/statistics.json:B4_vs_B3",
       "scope": "one run per paired internal task"
     },
     {
       "claim_id": "CLM-003",
-      "claim": "CGKN improves success over direct cheap-model execution.",
+      "claim": "CGNK improves success over direct cheap-model execution.",
       "status": "REFUTED_ON_THIS_HOLDOUT",
       "evidence": "report/main_results.csv",
       "scope": "B4 48/72 versus B0 58/72"
     },
     {
       "claim_id": "CLM-004",
-      "claim": "CGKN generalizes across public benchmarks.",
+      "claim": "CGNK generalizes across public benchmarks.",
       "status": "NOT_EVALUATED",
       "evidence": "benchmark_manifest.json",
       "scope": "public benchmark environments blocked"

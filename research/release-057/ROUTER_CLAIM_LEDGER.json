@@ -1,0 +1,37 @@
+{
+  "kind": "CGNKArchitectureRouterClaimLedger",
+  "schema_version": "1.0",
+  "claims": [
+    {
+      "claim_id": "ROUTER_ORACLE_OPPORTUNITY",
+      "status": "REFUTED",
+      "value": "LOW",
+      "evidence": "oracle_analysis.json",
+      "detail": "Oracle 58/72 equals Always Direct Cheap 58/72; architecture-only successes = 0."
+    },
+    {
+      "claim_id": "ROUTER_FORMAL_SUCCESS",
+      "status": "NOT_EVALUATED",
+      "value": null,
+      "detail": "Formal Router evaluation was correctly skipped after the oracle stop gate."
+    },
+    {
+      "claim_id": "ROUTER_COST",
+      "status": "NOT_EVALUATED",
+      "value": null,
+      "detail": "No Router was implemented or called."
+    },
+    {
+      "claim_id": "ROUTER_OVERHEAD",
+      "status": "NOT_EVALUATED",
+      "value": null,
+      "detail": "No production Router exists."
+    },
+    {
+      "claim_id": "ROUTER_ADOPTION_STATUS",
+      "status": "REFUTED",
+      "value": "NOT_ADOPTED",
+      "detail": "The anti-overengineering gate prohibits Router V1 for this increment."
+    }
+  ]
+}

@@ -16,4 +16,4 @@ Public benchmark repositories must be checked out at the commits in
 `../benchmark_manifest.json`. Install and run them according to their official
 instructions. If Docker, Python, credentials, data, storage, or licensing is
 missing, record the exact `BLOCKED_*` status; do not substitute a smaller task
-and label it as the official benchmark. Do not copy their datasets into CGKN.
+and label it as the official benchmark. Do not copy their datasets into CGNK.

@@ -1,4 +1,4 @@
-# CGKN MVP Scope
+# CGNK MVP Scope
 
 ## Purpose
 
@@ -58,6 +58,6 @@ The L6 software-project slice projects this mainline as: Goal -> coordinating Ag
 
 ## MVP benchmark
 
-Compare the same real task with and without CGKN and record task success, high-capability Agent calls, cheap executor calls, deterministic tool calls, tokens when available, wall time, retries, affected-subgraph reruns, and final functional result.
+Compare the same real task with and without CGNK and record task success, high-capability Agent calls, cheap executor calls, deterministic tool calls, tokens when available, wall time, retries, affected-subgraph reruns, and final functional result.
 
 The primary optimization target is fewer high-capability decision calls per successful task, not merely fewer tokens per API call.

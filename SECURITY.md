@@ -20,8 +20,8 @@ issue containing credentials, exploit details, private paths, or private data.
 - Executors are bounded by declared effects and scope. Retrieved content and
   public benchmark inputs are untrusted data.
 - Benchmark gold answers, hidden assertions, and fixing commits must not enter
-  CGKN Knowledge, prompts, or persistent learning state.
-- Postiz is a separately deployed AGPL-3.0 transport service. CGKN contains
+  CGNK Knowledge, prompts, or persistent learning state.
+- Postiz is a separately deployed AGPL-3.0 transport service. CGNK contains
   only its API boundary and does not vendor Postiz code.
 
 Release publication additionally requires a secret scan, local-path/privacy

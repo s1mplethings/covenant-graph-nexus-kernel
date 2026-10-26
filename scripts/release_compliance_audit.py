@@ -113,8 +113,13 @@ def scan_current(paths: Iterable[pathlib.Path]) -> list[Finding]:
     return findings
 
 
-def history_blobs() -> Iterator[tuple[str, str, bytes]]:
-    object_lines = run_git("rev-list", "--objects", "--all").decode("utf-8", "replace").splitlines()
+def resolve_commit(scope_commit: str) -> str:
+    return run_git("rev-parse", "--verify", f"{scope_commit}^{{commit}}").decode().strip()
+
+
+def history_blobs(scope_commit: str) -> Iterator[tuple[str, str, bytes]]:
+    scope_sha = resolve_commit(scope_commit)
+    object_lines = run_git("rev-list", "--objects", scope_sha).decode("utf-8", "replace").splitlines()
     names: dict[str, str] = {}
     for line in object_lines:
         oid, _, path = line.partition(" ")
@@ -155,11 +160,11 @@ def history_blobs() -> Iterator[tuple[str, str, bytes]]:
         raise RuntimeError(f"git cat-file failed: {stderr}")
 
 
-def scan_history() -> tuple[list[Finding], int]:
+def scan_history(scope_commit: str) -> tuple[list[Finding], int]:
     findings: list[Finding] = []
     count = 0
     seen: set[str] = set()
-    for oid, path, data in history_blobs():
+    for oid, path, data in history_blobs(scope_commit):
         count += 1
         for finding in scan_bytes(data, f"{oid}:{path}", history=True):
             key = f"{finding.gate}:{finding.fingerprint}:{path}"
@@ -172,7 +177,8 @@ def scan_history() -> tuple[list[Finding], int]:
 def metadata_findings() -> list[Finding]:
     findings: list[Finding] = []
     license_path = ROOT / "LICENSE"
-    if not license_path.is_file() or sha256(license_path.read_bytes()) != LICENSE_SHA256:
+    license_bytes = license_path.read_bytes().replace(b"\r\n", b"\n") if license_path.is_file() else b""
+    if not license_path.is_file() or sha256(license_bytes) != LICENSE_SHA256:
         findings.append(Finding("license", "P0", "LICENSE", "apache-text", "Apache-2.0 text mismatch"))
     for rel in (pathlib.Path("pyproject.toml"), pathlib.Path("tools/cgkn-agent-kit/pyproject.toml")):
         try:
@@ -231,7 +237,13 @@ def provenance_findings(paths: Iterable[pathlib.Path]) -> tuple[list[Finding], d
     return findings, {"binary_assets": actual, "benchmark_file_count": len(benchmark_paths)}
 
 
-def audit(*, include_history: bool) -> dict:
+def canonical_hash(value: object) -> str:
+    raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return "sha256:" + hashlib.sha256(raw.encode("utf-8")).hexdigest()
+
+
+def audit(*, include_history: bool, scope_commit: str = "HEAD") -> dict:
+    scope_sha = resolve_commit(scope_commit)
     paths = tracked_paths()
     for required in (pathlib.Path("LICENSE"), PROVENANCE, pathlib.Path("pyproject.toml"), pathlib.Path("CITATION.cff")):
         if required not in paths and (ROOT / required).exists():
@@ -241,30 +253,45 @@ def audit(*, include_history: bool) -> dict:
     findings.extend(provenance)
     history_blob_count = 0
     if include_history:
-        historical, history_blob_count = scan_history()
+        historical, history_blob_count = scan_history(scope_sha)
         findings.extend(historical)
     blockers = [finding for finding in findings if finding.severity == "P0"]
-    return {
+    report = {
         "kind": "CGKNReleaseComplianceAudit",
         "schema_version": "1.0",
+        "public_project_name": "CGNK",
+        "legacy_machine_identifier": "CGKN",
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "repository_head": run_git("rev-parse", "HEAD").decode().strip(),
         "history_included": include_history,
+        "history_scope_commit": scope_sha if include_history else None,
         "history_blob_count": history_blob_count,
+        "history_scope_unique_blob_count": history_blob_count,
+        "audit_policy": {
+            "history_reachability": "unique named blobs reachable from history_scope_commit",
+            "maximum_text_blob_bytes": TEXT_LIMIT,
+            "binary_blobs_secret_scanned": False,
+            "duplicate_blob_oids_scanned_once": True,
+        },
         "inventory": inventory,
         "finding_count": len(findings),
         "p0_count": len(blockers),
         "status": "PASS" if not blockers else "PUBLIC_RELEASE_BLOCKED_LICENSE_OR_PROVENANCE",
         "findings": [asdict(item) for item in findings],
     }
+    report["result_hash"] = canonical_hash({
+        key: value for key, value in report.items() if key not in {"generated_at", "result_hash"}
+    })
+    return report
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--history", action="store_true", help="scan all reachable Git blobs")
+    parser.add_argument("--history", action="store_true", help="scan unique Git blobs reachable from the scope commit")
+    parser.add_argument("--scope-commit", default="HEAD", help="commit whose reachable history is audited")
     parser.add_argument("--output", type=pathlib.Path)
     args = parser.parse_args()
-    report = audit(include_history=args.history)
+    report = audit(include_history=args.history, scope_commit=args.scope_commit)
     rendered = json.dumps(report, ensure_ascii=False, indent=2) + "\n"
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)

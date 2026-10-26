@@ -24,7 +24,7 @@ write paths are `DRAFT_ONLY` or `MANUAL_ONLY`.
 ## Read/draft-only defaults
 
 - Reddit has official comment APIs, but developer access, Reddit terms, and
-  subreddit rules all apply. No CGKN account or approval is qualified, so v1 is
+  subreddit rules all apply. No CGNK account or approval is qualified, so v1 is
   `DRAFT_ONLY`.
 - Hacker News has an official Firebase read API but no official write API;
   therefore replies remain manual.

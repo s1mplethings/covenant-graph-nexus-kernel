@@ -1,15 +1,15 @@
 cff-version: 1.2.0
-message: "If you use CGKN in research, please cite the software and its release report."
-title: "CovenantGraph Nexus Kernel (CGKN)"
+message: "If you use CGNK in research, please cite the software and its release report."
+title: "Covenant Graph Nexus Kernel (CGNK)"
 type: software
-version: 0.2.0-rc.2
+version: 0.2.0-rc.3
 authors:
-  - name: "CGKN contributors"
+  - name: "CGNK contributors"
 repository-code: "https://github.com/s1mplethings/covenant-graph-nexus-kernel"
 url: "https://github.com/s1mplethings/covenant-graph-nexus-kernel"
 license: Apache-2.0
 abstract: >-
-  CGKN is a composable capability kernel for evidence-grounded agentic
+  CGNK is a composable capability kernel for evidence-grounded agentic
   project work with localized knowledge, bounded executors, persistent state,
   deterministic validation, and governed capability growth.
 keywords:

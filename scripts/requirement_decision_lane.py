@@ -489,7 +489,7 @@ def detect_understanding_signals(raw_goal: str) -> list[dict[str, str]]:
         signals.append(
             {
                 "kind": "missing_required_credential",
-                "reason": "The requested live integration requires a credential or authority that CGKN cannot infer.",
+                "reason": "The requested live integration requires a credential or authority that CGNK cannot infer.",
                 "resolution": "A later interaction authority must obtain approved secret-channel authorization or remove the live integration.",
             }
         )
@@ -543,7 +543,7 @@ LEGACY_SIGNAL_QUESTIONS = {
     "missing_required_credential": "Provide the required credential through the approved secret channel or remove the live integration from v1.",
     "missing_critical_external_fact": "Provide the referenced private rule, schema, or catalog needed to freeze the ProjectSpec.",
     "irreversible_user_decision_required": "Confirm the exact irreversible action and its authorization boundary before implementation.",
-    "explicit_user_owned_decision_pending": "Provide the decision you reserved before CGKN freezes the ProjectSpec.",
+    "explicit_user_owned_decision_pending": "Provide the decision you reserved before CGNK freezes the ProjectSpec.",
 }
 
 
@@ -1996,7 +1996,7 @@ def generate_need_interpretations(raw_goal: str, context: dict[str, Any] | None 
             "customer_problem": "The raw goal may be underspecified and could otherwise collapse into a small demo.",
             "target_user": "The customer or internal operator who needs a clear first version.",
             "evidence_from_goal": goal[:600],
-            "interpretation_notes": ["CGKN should choose a deliverable MVP and expose non-goals."],
+            "interpretation_notes": ["CGNK should choose a deliverable MVP and expose non-goals."],
             "risk_if_wrong": "low",
         }
     )
@@ -2310,7 +2310,7 @@ def customer_goal_brief(raw_goal: str, interpretations: dict[str, Any]) -> str:
             "",
             f"Raw customer goal: {raw_goal}",
             "",
-            f"CGKN interpretation: {primary.get('need', 'The customer needs a clearer product requirement before implementation.')}",
+            f"CGNK interpretation: {primary.get('need', 'The customer needs a clearer product requirement before implementation.')}",
             "",
             "Known constraints:",
             "- Requirement decision must precede implementation.",
@@ -2321,7 +2321,7 @@ def customer_goal_brief(raw_goal: str, interpretations: dict[str, Any]) -> str:
             "- That cloud APIs or live models are available.",
             "- That generated code can pass without requirement alignment.",
             "",
-            "CGKN autonomous decisions needed:",
+            "CGNK autonomous decisions needed:",
             "- Choose the best first product requirement.",
             "- Freeze MVP scope, non-goals, and acceptance criteria.",
         ]

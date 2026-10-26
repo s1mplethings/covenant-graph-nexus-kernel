@@ -1,7 +1,7 @@
 {
   "kind": "CGKNCurrentArchitecture",
   "schema_version": "1.3",
-  "product_version": "0.2.0-rc.2",
+  "product_version": "0.2.0-rc.3",
   "architecture_generation": "capability-tree-mvp-runtime-foundation",
   "supersedes": [],
   "authorities": {

@@ -1,4 +1,4 @@
-# CGKN Kernel Contract
+# CGNK Kernel Contract
 
 This contract is intentionally small. Historical project-studio, role-driven validation, Fixed10, stress, and long-horizon contracts are not current MVP authority.
 
@@ -10,7 +10,7 @@ PRODUCT_GOAL.md, MVP_SCOPE.md, governance/product_invariants.json, and governanc
 
 The high-capability Agent owns project-level understanding, decomposition choices, capability selection, and cross-node replanning.
 
-CGKN owns stable state, composition validation, DAG compilation, deterministic dependency handling, execution bookkeeping, bounded context projection, and result/test recording.
+CGNK owns stable state, composition validation, DAG compilation, deterministic dependency handling, execution bookkeeping, bounded context projection, and result/test recording.
 
 Executors own bounded work only. An executor may be a cheap model, local model, API, provider, browser/search tool, script, test runner, or other adapter. Executors cannot silently redefine user intent or create a competing canonical project plan.
 
@@ -20,7 +20,7 @@ ComponentSpec and PortSpec are the reusable executable boundary. CapabilityTree 
 
 ## 4. One execution graph
 
-CGKN must not maintain competing production task graphs. ProviderJob, WorkNode, module contracts, and future adapters may project to or from the canonical capability/DAG substrate, but they must not create a second project-level composition authority.
+CGNK must not maintain competing production task graphs. ProviderJob, WorkNode, module contracts, and future adapters may project to or from the canonical capability/DAG substrate, but they must not create a second project-level composition authority.
 
 ## 5. Context rule
 

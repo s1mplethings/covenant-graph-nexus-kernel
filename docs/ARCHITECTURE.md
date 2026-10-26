@@ -1,6 +1,8 @@
-# CGKN Architecture
+# CGNK Architecture
 
-CGKN is a composable capability kernel for evidence-grounded project work.
+CGNK is a composable capability kernel for evidence-grounded project work.
+CGNK is the public project name. The current Python package namespace remains
+`cgkn` for backward compatibility.
 Its canonical execution path is:
 
 ```text

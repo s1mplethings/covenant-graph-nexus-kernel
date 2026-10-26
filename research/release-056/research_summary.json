@@ -1,6 +1,8 @@
 {
   "kind": "CGKNRelease056ResearchSummary",
   "schema_version": "1.0",
+  "public_project_name": "CGNK",
+  "legacy_machine_identifier": "CGKN",
   "release_version": "0.2.0-rc.2",
   "source_commit": "c495738556ac1ee288df232a2b372a8294968051",
   "evidence_base_commit": "2ad4c6508fd0ce2b4074770cd2b857925dc2ffd2",

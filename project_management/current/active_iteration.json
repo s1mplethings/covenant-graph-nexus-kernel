@@ -1,70 +1,41 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-055",
-  "project_id": "cgkn",
-  "goal": "Build and evaluate a transparent evidence-backed CGKN Project Digital Persona with durable identity, episodic references, relationships, commitments, bounded reflection, situation awareness, and precision-first attention.",
-  "backlog_item_ids": ["PB-031"],
-  "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "iteration_id": "ITER-057",
+  "project_id": "cgnk",
+  "goal": "Normalize the public CGNK release identity, bind history audits to an explicit Source Closure, and use the ITER-056 paired oracle as an anti-overengineering gate before any architecture admission Router implementation.",
+  "backlog_item_ids": ["PB-032"],
+  "workflow_state": "active",
+  "evidence_status": "NOT_EVALUATED",
   "acceptance_criteria": [
-    "Identity Constitution remains immutable without a governed amendment and public affiliation remains transparent",
-    "episode, relationship, commitment, reflection, and SelfModel updates require real evidence references",
-    "Situation and precision-first Attention correctly choose action, silence, follow-up, commitment fulfillment, or human review",
-    "localized Persona context reduces context by at least 40% without identity, relationship, or behavior regression",
-    "a frozen 100-episode P0/P1/P2/P3 benchmark demonstrates durable continuity without hallucination or severe drift",
-    "Community and Promotion approval boundaries remain unchanged and no unapproved external write occurs",
-    "formal evaluation runs from one clean Source Closure and full repository regression passes"
+    "public branding consistently uses CGNK while the cgkn Python namespace and legacy machine identifiers remain compatible",
+    "history audit reports the exact scope commit, unique reachable blob count, policy, and result hash",
+    "main advances from the validated release lineage without force push or history rewrite and becomes the GitHub default branch",
+    "the ITER-056 B0/B4 paired oracle is reproduced before any Router implementation",
+    "Router V1 is implemented only if the frozen opportunity gate authorizes it",
+    "full repository regression finishes with zero failures and zero errors before release"
   ],
   "quality_metrics": [
-    {"id": "QM-PERSONA-IDENTITY", "measure": "identity consistency and unapproved drift", "target": "100% consistency and zero drift", "method": "100 frozen episodes"},
-    {"id": "QM-PERSONA-MEMORY", "measure": "episodic precision and hallucination", "target": "100% precision and zero hallucination", "method": "recurring-identity benchmark"},
-    {"id": "QM-PERSONA-SOCIAL", "measure": "relationship, commitment, attention, disclosure, and outsider correctness", "target": ">=80% each with zero severe event", "method": "P0-P3 and controlled relationship replay"},
-    {"id": "QM-PERSONA-CONTEXT", "measure": "localized versus full Persona context", "target": ">=40% character reduction without correctness regression", "method": "per-action context ledger"}
+    {"id": "QM-057-NAME", "measure": "strict public naming findings", "target": "0", "method": "deterministic naming audit"},
+    {"id": "QM-057-AUDIT", "measure": "release-blocking compliance findings", "target": "0 P0", "method": "scope-bound current/history audit"},
+    {"id": "QM-057-ORACLE", "measure": "oracle gain over Always Direct Cheap", "target": ">=5pp to authorize Router V1", "method": "paired 72-task analysis"},
+    {"id": "QM-057-REGRESSION", "measure": "repository failures/errors", "target": "0/0", "method": "required profiles and full pytest"}
   ],
   "quality_activities": {
-    "prevention": ["immutable governed identity", "evidence-only episode and reflection admission", "explicit commitment source", "no sensitive inference", "localized context"],
-    "assurance": ["contract and security tests", "100-episode P0-P3 replay", "30 social rehearsals", "controlled relationship replay", "real read-only dogfood", "full regression"],
-    "control": ["Community and Promotion approval unchanged", "sandbox advisory only", "atomic Persona state", "bounded memory", "canonical repository publication"],
-    "improvement": ["retain only evidence-backed derived lessons", "prefer silence over false-positive engagement", "remove Persona layers if P3 adds no benefit over P2"]
+    "prevention": ["preserve the rc.2 tag", "do not rename the Python package", "freeze machine identifiers", "run oracle before implementation"],
+    "assurance": ["naming tests", "audit-scope tests", "paired oracle reproduction", "full regression"],
+    "control": ["canonical repository publisher", "no force push", "no new authority", "no Router after a failed opportunity gate"],
+    "improvement": ["make audit scope explicit", "keep architecture opt-in only when evidence supports it"]
   },
   "interface_expectations": [
-    "CapabilityRegistry remains the sole capability authority",
-    "Persona is an application capability branch, not a new Knowledge, retrieval, planning, runtime, DAG, or project-state authority",
-    "Persona state stores evidence references and derived continuity, never duplicate project facts",
-    "Community remains discovery, policy, reply transport, and follow-up authority",
-    "Promotion remains claim, approval, and publication authority",
-    "public writes remain exact-approval guarded and production routing remains fixed"
+    "CGNK is the public name and cgkn remains the compatibility package namespace",
+    "legacy CGKN schema kinds remain stable machine identifiers",
+    "an admission policy, if authorized, may choose an execution level but cannot plan or change business behavior",
+    "CapabilityTree, ExecutionDAG, Knowledge, Registry, Runtime, State, and public-delivery authorities remain unchanged"
   ],
   "evidence_refs": [
-    "experiments/persona_digital_self/README.md",
-    "experiments/persona_digital_self/runner.py",
-    "scripts/run_persona_digital_self.py",
-    "tests/application/persona"
-  ],
-  "review": {
-    "outcome": "accepted_with_limits",
-    "feedback": [
-      "The frozen 100-episode comparison supports retaining the full Persona directionally.",
-      "Deterministic sandbox labels must not be represented as human review.",
-      "Public writes remain approval-bound; controlled live reply is still environment-blocked."
-    ],
-    "accepted_backlog_item_ids": ["PB-031"]
-  },
-  "retrospective": {
-    "worked": [
-      "immutable identity plus evidence references prevented drift and fabricated history",
-      "situation-aware localized context reduced context characters by 93.83% without measured regression",
-      "P0/P1/P2/P3 isolated identity, memory/relationship, and full-Persona benefits",
-      "read-only Community dogfood preserved zero external writes"
-    ],
-    "did_not_work": [
-      "human rubric validation could not be completed without independent human labels",
-      "a controlled self-owned live reply target and approval were not available"
-    ],
-    "experiments": [
-      "P3 outperformed P2 on attention, goals, reflection, generic reply rate, unique contribution, and outsider mismatch",
-      "the next evidence step is human calibration and one controlled approved reply, not Multi-Agent Runtime"
-    ]
-  }
+    "research/release-057/oracle_analysis.json",
+    "research/release-057/history_audit_summary.json",
+    "project_management/summaries/ITER-057-release-hygiene-simple-routing.md"
+  ]
 }

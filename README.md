@@ -1,13 +1,16 @@
-# CGKN
+# CGNK
 
-CGKN is a composable autonomous project-team kernel.
+CGNK (Covenant Graph Nexus Kernel) is a composable autonomous project-team kernel.
 
-CGKN-owned source and documentation are available under the
+CGNK is the public project name. The current Python package namespace remains
+`cgkn` for backward compatibility.
+
+CGNK-owned source and documentation are available under the
 [Apache License 2.0](LICENSE). Third-party dependencies, benchmark datasets,
 and separately deployed services retain their own licenses; see
 [Third-party licenses and provenance](docs/THIRD_PARTY_LICENSES.md).
 
-This repository is a **Research Preview**. The 0.2.0-rc.2 release has a clean
+This repository is a **Research Preview**. The 0.2.0-rc.3 release has a clean
 install reproduction, 3,001 passing tests, and a preregistered cross-domain
 evaluation. It is not a claim of production readiness or benchmark SOTA. See
 [Architecture](docs/ARCHITECTURE.md), [Benchmarks](docs/BENCHMARKS.md), and
@@ -89,7 +92,7 @@ The replacement L6 adapter in `cgkn/application/project_blueprint.py` and
 payload and deterministically supplies executor metadata, scope limits,
 compile/pytest/runtime/acceptance checks, protected paths, and timeouts. The
 versioned API Lab raw-defer route preserves Provider text and transport
-metadata while CGKN remains the sole structured-answer selector. A failed unit
+metadata while CGNK remains the sole structured-answer selector. A failed unit
 generation is retried as generation until it establishes a hash-bound materialized
 baseline; only later compile, test, runtime, or acceptance failures may enter
 repair. Fresh live generation and repair receipts remain required before the MVP

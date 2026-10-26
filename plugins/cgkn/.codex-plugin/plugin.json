@@ -1,11 +1,11 @@
 {
   "name": "cgkn",
-  "version": "0.2.0-rc.2+codex.20261001183500",
-  "description": "Plan, generate, test, diagnose, and inspect local projects through the reviewed CGKN Provider mainline, including auditable Codex surrogate pause/submit/resume.",
+  "version": "0.2.0-rc.3+codex.20261026080000",
+  "description": "Plan, generate, test, diagnose, and inspect local projects through the reviewed CGNK Provider mainline, including auditable Codex surrogate pause/submit/resume.",
   "author": {
-    "name": "CGKN"
+    "name": "CGNK"
   },
-  "license": "Proprietary",
+  "license": "Apache-2.0",
   "keywords": [
     "cgkn",
     "project-generation",
@@ -15,20 +15,20 @@
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
-    "displayName": "CGKN",
-    "shortDescription": "Plan, generate, diagnose, and test with CGKN",
+    "displayName": "CGNK",
+    "shortDescription": "Plan, generate, diagnose, and test with CGNK",
     "longDescription": "Use controlled local MCP tools to initialize a project, prepare and seal bounded Agent guidance, choose live, Codex surrogate, or deterministic replay Provider transport, safely pause/submit/resume surrogate jobs, run the reviewed generation route and generated-project tests, and inspect honest status evidence.",
-    "developerName": "CGKN",
+    "developerName": "CGNK",
     "category": "Developer Tools",
     "capabilities": [
       "Interactive",
       "Write"
     ],
     "defaultPrompt": [
-      "Use CGKN to plan and generate this project",
-      "Check this project's CGKN status and test evidence",
-      "Prepare bounded Agent guidance for CGKN",
-      "Directly diagnose this project's latest CGKN failure"
+      "Use CGNK to plan and generate this project",
+      "Check this project's CGNK status and test evidence",
+      "Prepare bounded Agent guidance for CGNK",
+      "Directly diagnose this project's latest CGNK failure"
     ],
     "brandColor": "#3157D5"
   }

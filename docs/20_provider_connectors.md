@@ -1,6 +1,6 @@
 # Provider connectors
 
-CGKN uses one canonical structured-completion contract and a lookup-only
+CGNK uses one canonical structured-completion contract and a lookup-only
 connector registry. Vendor-specific authentication, endpoints, probes, request
 translation, structured-output strategy, response parsing, and error
 classification live in separate `QwenConnector`, `GrokConnector`, and

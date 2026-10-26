@@ -40,7 +40,7 @@ introduced.
 
 ## 9. License Decision
 
-CGKN-owned source and documentation are licensed under Apache-2.0.
+CGNK-owned source and documentation are licensed under Apache-2.0.
 
 ## 10. License File
 
@@ -57,7 +57,7 @@ No unverifiable person, employer, university, or institution was invented.
 
 ## 13. Third-Party Audit
 
-Third-party provenance is recorded separately; CGKN's license does not relicense
+Third-party provenance is recorded separately; CGNK's license does not relicense
 third-party work.
 
 ## 14. Postiz Boundary
@@ -158,11 +158,11 @@ provider timeout and frozen aggregate-output-budget exhaustion.
 
 15/72 succeeded (20.83%); median context 6,861 characters.
 
-## 36. B3 Current CGKN
+## 36. B3 Current CGNK
 
 49/72 succeeded (68.06%); 16,752 total recorded tokens.
 
-## 37. B4 Optimized CGKN
+## 37. B4 Optimized CGNK
 
 48/72 succeeded (66.67%); 16,716 total recorded tokens; cost $0.0066879.
 
@@ -178,7 +178,7 @@ interval of [-4.17pp, 0pp]. This is directional, not definitive proof.
 
 ## 40. Direct Execution Result
 
-Direct Cheap was the strongest baseline. An overall CGKN superiority claim is
+Direct Cheap was the strongest baseline. An overall CGNK superiority claim is
 therefore prohibited.
 
 ## 41. Strong Route Result

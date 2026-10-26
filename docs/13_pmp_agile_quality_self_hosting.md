@@ -2,7 +2,7 @@
 
 ## Purpose
 
-CGKN uses the same project-management method that it offers to generated
+CGNK uses the same project-management method that it offers to generated
 projects. The method is a tailored hybrid: stable governance and delivery
 constraints surround short, value-oriented implementation iterations with
 quality built into every increment.
@@ -54,7 +54,7 @@ outcomes and constraints
 ```
 
 Governance preserves value, legal and policy compliance, resource constraints,
-formal CGKN evidence rules, and the canonical delivery route. It must not turn
+formal CGNK evidence rules, and the canonical delivery route. It must not turn
 normal backlog refinement into heavyweight change control.
 
 ## Tailoring
@@ -92,9 +92,9 @@ These are management artifacts, not formal delivery evidence. Their
 `workflow_state` and `experience_state` fields must never be interpreted as
 `EvidenceStatus`.
 
-## CGKN self-hosting rule
+## CGNK self-hosting rule
 
-For non-trivial CGKN work:
+For non-trivial CGNK work:
 
 1. Read the active management pack.
 2. Tailor the way of working to the change.

@@ -1,10 +1,13 @@
-# CGKN Agent Contract
+# CGNK Agent Contract
 
 ## Product authority
 
 Before non-trivial architecture work read PRODUCT_GOAL.md, MVP_SCOPE.md, governance/product_invariants.json, and governance/current_architecture.json. These outrank historical design notes, benchmark reports, and project-management summaries.
 
-CGKN self-hosting uses the reviewed `skills/manage-pmp-agile-quality` method.
+CGNK self-hosting uses the reviewed `skills/manage-pmp-agile-quality` method.
+
+CGNK is the public project name. The current Python package namespace remains
+`cgkn` for backward compatibility.
 
 The reviewed Codex conversation generation route remains: API/provider project generation -> provider output validation -> post-build finalization -> local_packager -> public_delivery_gate -> delivery_manifest.json. Kernel work must not create a second public delivery route.
 

@@ -1,4 +1,4 @@
-# CGKN Contract Registry
+# CGNK Contract Registry
 
 ## Canonical version governance
 
@@ -30,7 +30,7 @@ BoundaryReport, and DeliveryJudgment. Formal evidence values inside evidence
 artifacts use only the canonical status registry. Artifact lifecycle values
 remain separate.
 
-This registry is the authoritative list of formal CGKN evidence and delivery contracts. Every formal artifact uses the canonical envelope:
+This registry is the authoritative list of formal CGNK evidence and delivery contracts. Every formal artifact uses the canonical envelope:
 
 ```json
 {
@@ -150,7 +150,7 @@ and `UNKNOWN` as command-result states. They are not canonical formal
 
 ## Project Management Support Artifacts
 
-These artifacts support CGKN self-hosting and generated-project planning. They
+These artifacts support CGNK self-hosting and generated-project planning. They
 are not formal delivery evidence and cannot authorize a formal gate.
 
 `CGKNRoleDrivenValidationSupportReport` is an additive black-box validation
@@ -247,17 +247,17 @@ authorize promotion, packaging, delivery, or formal PASS.
 | `CGKNCodexCapabilitySupervisorResponse` | `schemas/codex_capability_supervisor_response.schema.json` | external Codex through the approved `supervise-cgkn-capabilities` skill and deterministic sealing helper | `scripts/codex_capability_supervisor.py`, CFO/support workers, existing Provider planning context when explicitly selected | workflow state is `ready`, `needs_context`, or `declined`; formal evidence is fixed `NOT_EVALUATED`; response cannot contain source files, patches, final verdicts, packages, or delivery approval |
 | `CGKNCodexCapabilityBrief` | `schemas/codex_capability_brief.schema.json` | `scripts/codex_capability_supervisor.py` after request/response identity and authority validation | existing `agent_session`, bounded whiteboard support state, retained support pipeline, and explicitly selected reviewed formal Provider planning context | full brief is revalidated and retained as support evidence; only a bounded advisory projection enters Provider planning/components; brief hash binds checkpoint reuse; cannot write a candidate or replace Provider output validation, canonical evidence, `local_packager`, or `public_delivery_gate` |
 | `CGKNCodexCapabilityPlanContract` | deterministic inline projection bound inside `generation_plan_checkpoint.json` | `scripts/run_local_pipeline_impl.py` from one validated `CGKNCodexCapabilityBrief` projection | Requirement Decision Lane, existing Provider component/leaf context, checkpoint identity | exact brief paths, public symbols, entrypoints, safety limits, and acceptance-check hash are planning constraints only; drift blocks source generation; grants no candidate-write, formal-evidence, package, or delivery authority |
-| `CGKNRuntimeSupervisionCheckpoint` | deterministic hash-linked JSONL support envelope | `scripts/cgkn_supervision_protocol.py`, invoked by the CGKN Codex conversation service | persistent Codex supervisor host | binds sequence, prior hash, repository/chat/project/run identity, checkpoint type, bounded context references, requested action, and fixed no-authority fields; contains no credential and is not formal evidence |
+| `CGKNRuntimeSupervisionCheckpoint` | deterministic hash-linked JSONL support envelope | `scripts/cgkn_supervision_protocol.py`, invoked by the CGNK Codex conversation service | persistent Codex supervisor host | binds sequence, prior hash, repository/chat/project/run identity, checkpoint type, bounded context references, requested action, and fixed no-authority fields; contains no credential and is not formal evidence |
 | `CGKNRuntimeSupervisionResult` | deterministic hash-bound support receipt constrained by `schemas/runtime_supervision_draft.schema.json` | `scripts/cgkn_runtime_supervisor.py` after one start/resume turn on the stored Codex thread | deterministic supervision router, `agent_session`, supervisor cursor | canonical action is only `resume`, `rework_project`, `recheck_evidence`, `repair_kernel`, `user_decision`, or `halt`; scope and evidence refs make routing explicit; no action grants candidate, evidence, package, or delivery authority |
 | `CGKNSupervisionRouteReceipt` | deterministic hash-bound support routing receipt | `scripts/cgkn_supervision_router.py` from one validated supervision result | production consumer in `scripts/codex_conversation.py` | records one typed next action without an LLM; Provider authors project repairs, verifier rechecks evidence, and kernel repair remains separately allowlisted; never formal evidence or delivery authority |
 | `CGKNSupervisionRouteConsumptionReceipt` | deterministic support completion receipt | production consumer in `scripts/codex_conversation.py` after a route is executed or explicitly stopped | supervisor diagnostics and bounded re-audit control | binds the original route, action outcome, and recovery receipt; clears the matching pending receipt; cannot authorize evidence, packaging, delivery, or PASS |
 | `CGKNSupervisionProviderRepairPlan` / `CGKNSupervisionProviderRepairPreparationReceipt` | bounded support repair plan/receipt | `scripts/run_local_pipeline_impl.py` from a validated `rework_project` audit | existing same-run Provider semantic/leaf repair executor | maps exact file/leaf/component targets when available and otherwise only the affected audited scope; no second Provider scheduler or generation route |
 | `CGKNSupervisionEvidenceInvalidationReceipt` | deterministic support invalidation receipt | production consumer in `scripts/codex_conversation.py` from `recheck_evidence` | the corresponding canonical validation/runtime/visual/evidence rerun | moves only in-scope stale evidence out of the active chain, records zero Provider calls, and has no formal evidence authority |
 | `CGKNProviderExecutionMetrics` | durable support metrics JSON | `scripts/provider_execution_metrics.py` during the formal Provider route | operations, acceptance reports, diagnostics | records Provider API call count, actual peak request concurrency, unique Provider jobs, owned-file count, average files/job, DAG wave widths and critical-path waves, fragmentation ratio, repaired/reused job counts, and stage timing; metrics cannot authorize evidence or delivery |
-| `CGKNGovernedKernelRepairRequest` / `CGKNGovernedKernelRepairReceipt` | bounded support request/receipt | `scripts/governed_kernel_repair.py` from `repair_kernel` | isolated Codex workspace-write executor and original-checkpoint re-audit | requires reproduction plus regression target, copies back only declared CGKN-owned paths, and excludes candidates, artifacts, runs, workspaces, packages, and delivery authority |
+| `CGKNGovernedKernelRepairRequest` / `CGKNGovernedKernelRepairReceipt` | bounded support request/receipt | `scripts/governed_kernel_repair.py` from `repair_kernel` | isolated Codex workspace-write executor and original-checkpoint re-audit | requires reproduction plus regression target, copies back only declared CGNK-owned paths, and excludes candidates, artifacts, runs, workspaces, packages, and delivery authority |
 | `CGKNRuntimeSupervisorState` | project-local deterministic support JSON under `.cgkn/runtime_supervisor/` | `scripts/cgkn_runtime_supervisor.py` | supervisor reattachment, health/status, checkpoint continuity | stores supervisor/thread/process/repository/cursor/restart workflow identity without secrets; file or process presence is not readiness or formal evidence |
 | `CGKNProjectGenerationBenchmarkCaseCatalog` | `schemas/project_generation_benchmark_case_v1.schema.json` | `benchmarks/project_generation_v1/cases.json` | independent project-generation benchmark runner and evaluator only | fixed evaluation input; `hidden_acceptance` is evaluator-only and must never enter Provider, Codex, planner, or production candidate context |
-| `ProjectBenchmarkExternalObservation` | identity-bound inline JSON under `artifacts/project_generation_benchmark/<run_id>/cases/<case_id>/evidence/` | independent process, HTTP, browser, persistence, file/package, or controlled-fault probes | project-generation benchmark evaluator only | binds benchmark run, case, and exact candidate tree hash; CGKN verdicts, Provider claims, README claims, fixtures, and stale observations cannot replace it or authorize formal PASS |
+| `ProjectBenchmarkExternalObservation` | identity-bound inline JSON under `artifacts/project_generation_benchmark/<run_id>/cases/<case_id>/evidence/` | independent process, HTTP, browser, persistence, file/package, or controlled-fault probes | project-generation benchmark evaluator only | binds benchmark run, case, and exact candidate tree hash; CGNK verdicts, Provider claims, README claims, fixtures, and stale observations cannot replace it or authorize formal PASS |
 | `CGKNProjectGenerationBenchmarkReport` | `schemas/project_generation_benchmark_report_v1.schema.json` | `benchmarks/project_generation_v1/run_benchmark.py` | engineering comparison and release-readiness review | evaluation/acceptance support only; separates `PROJECT_PASS`, `PROJECT_FAIL`, `BLOCKED_PROVIDER`, and `NOT_EVALUATED`, and can neither promote formal evidence nor authorize packaging or delivery |
 
 The support flow is:
@@ -275,16 +275,16 @@ It does not alter the formal Codex conversation mainline or the sole delivery ex
 ## Runtime Supervision Architecture Baseline
 
 `docs/14_codex_cgkn_runtime_supervision_baseline.md` is the normative authority
-for runtime ownership among Codex, CGKN, and Codex conversation:
+for runtime ownership among Codex, CGNK, and Codex conversation:
 
-- CGKN is the independently running system and owns Codex conversation intake, durable
+- CGNK is the independently running system and owns Codex conversation intake, durable
   project state, the reviewed Provider route, evidence orchestration, packaging,
   and delivery handoff.
-- the active Codex task is the sole CGKN-owned interaction surface; it
+- the active Codex task is the sole CGNK-owned interaction surface; it
   are not direct Codex transports or alternate generation routes.
-- Codex starts or attaches to CGKN and resumes one identity-bound persistent
+- Codex starts or attaches to CGNK and resumes one identity-bound persistent
   supervision thread at declared checkpoints.
-- A bounded Codex repair may modify CGKN-owned code, configuration,
+- A bounded Codex repair may modify CGNK-owned code, configuration,
   documentation, or tests and must produce an auditable diff plus proportionate
   regression before resume.
 - Codex cannot impersonate Provider, author a sealed generated candidate,
@@ -293,7 +293,7 @@ for runtime ownership among Codex, CGKN, and Codex conversation:
   adapters and cannot satisfy persistent-supervision conformance by themselves.
 - Public runtime selection is limited to two mutually exclusive support
   profiles: `API-only` disables every Codex path, while the branch distribution
-  `CGKN Codex Edition` forces the one-shot design CLI off and uses one persistent supervisor thread.
+  `CGNK Codex Edition` forces the one-shot design CLI off and uses one persistent supervisor thread.
   Their sessions, logs, uploads, project memory, Provider candidate roots, and
   supervisor state are isolated. Both profiles enter the same formal Codex conversation
   Provider mainline below.
