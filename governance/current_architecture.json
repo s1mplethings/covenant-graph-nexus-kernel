@@ -1,7 +1,7 @@
 {
   "kind": "CGKNCurrentArchitecture",
   "schema_version": "1.3",
-  "product_version": "0.2.0-rc.5",
+  "product_version": "0.2.0-rc.6",
   "architecture_generation": "capability-tree-mvp-runtime-foundation",
   "supersedes": [],
   "authorities": {
@@ -87,7 +87,7 @@
   },
   "compatibility_entrypoints": ["scripts/codex_conversation.py", "scripts/run_codex_conversation_generation.py", "scripts/run_local_pipeline.py", "scripts/run_local_pipeline_impl.py"],
   "compatibility_rule": "Compatibility entrypoints remain callable and are not the MVP planning or composition authority. The isolated MVP runtime has not replaced them.",
-  "next_feature_increment": {"id": "PB-034", "name": "Project Corpus foundation", "migration_target": "Preserve success, failure, partial, repair, lineage, and reproducibility evidence in a local-first content-addressed corpus without adding a kernel authority."},
+  "next_feature_increment": {"id": "PB-035", "name": "Optional orchestration boundary research", "migration_target": "Test whether deterministic project features can identify when optional orchestration pays for its overhead, without admitting a Router, Multi-Agent runtime, or new authority."},
   "forbidden_parallel_authorities": true,
-  "verification": {"github_actions": "NOT_EVALUATED", "product_direction_gate": "PASS", "focused_tests": "PASS", "deterministic_vertical_slice": "PASS", "resume_and_local_repair": "PASS", "self_growth_v0": "PASS", "agent_cheap_executor_fake_integration": "PASS", "agent_cheap_executor_real_provider": "PASS", "decision_efficiency_benchmark": "PASS_WITH_LIMITS", "architecture_convergence": "PASS_WITH_LIMITS", "self_growth_v1": "NOT_EVALUATED", "full_pytest": "PASS_2828_SKIP_357_0_FAILED_0_ERRORS"}
+  "verification": {"github_actions": "NOT_EVALUATED", "product_direction_gate": "PASS", "focused_tests": "PASS", "deterministic_vertical_slice": "PASS", "resume_and_local_repair": "PASS", "self_growth_v0": "PASS", "agent_cheap_executor_fake_integration": "PASS", "agent_cheap_executor_real_provider": "PASS", "decision_efficiency_benchmark": "PASS_WITH_LIMITS", "architecture_convergence": "PASS_WITH_LIMITS", "project_complexity_frontier": "PASS_WITH_LIMITS_92_OF_96", "self_growth_v1": "NOT_EVALUATED", "full_pytest": "PASS_3065_SKIP_364_0_FAILED_0_ERRORS"}
 }

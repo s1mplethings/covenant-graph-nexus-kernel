@@ -1,51 +1,49 @@
-# CGNK 0.2.0-rc.5 Research Preview
+# CGNK 0.2.0-rc.6 Research Preview
 
 CGNK is a composable capability kernel for evidence-grounded agentic project
-work. This candidate introduces a local-first Project Corpus so the system can
-retain successful, failed, partial, repaired, and aborted project attempts as
-auditable material.
+work. This candidate adds the preregistered ITER-060 project-complexity frontier
+and architecture ablation; it does not change the default architecture.
 
-## Project Corpus highlights
+## Complexity-frontier evaluation
 
-- SHA-256 content-addressed objects deduplicate unchanged files across
-  snapshots, attempts, and project families.
-- Versioned attempt, snapshot, and benchmark manifests separate immutable
-  evidence from the rebuildable SQLite/FTS catalog.
-- The minimal project loop can capture generation, failed-test, pre/post-repair,
-  final, and aborted stages when `CGNK_PROJECT_CORPUS_ROOT` is configured.
-- Capture failure is isolated from project execution and never changes project
-  success, repair, or scheduling.
-- Public project packets and private evaluator packets are physically separated;
-  private packets are not searched or included in portable family exports.
-- Family-level deterministic splits and leakage checks keep attempts, repairs,
-  extensions, and variants together.
-- `cgkn corpus` provides initialization, inspection, search, integrity checks,
-  reconstruction, import/export, catalog rebuild, and seeded sampling.
+- 24 formal generated-original Python project families covered eight project
+  types and LOW, MEDIUM, and HIGH complexity tiers.
+- Each family ran through Direct Cheap, Direct Cheap with flat state, Minimal
+  CGNK, and Full CGNK using the same `deepseek-flash` route and frozen budgets.
+- All 96 formal attempts were captured into the local Project Corpus; 92 passed
+  and four failed. The four failures were the same HIGH family under every
+  baseline, so no discordant replay was applicable.
+- LOW and MEDIUM success were 100% for all routes. HIGH success was 87.5% for
+  all routes. Direct Cheap had the lowest aggregate cost per success.
+- Full CGNK, Minimal CGNK, DAG, state/evidence, and repair-orchestration benefit
+  are `NEUTRAL` at the tested scale. Direct low-complexity benefit and the
+  existence of a directional complexity frontier are `PROVEN_DIRECTIONALLY`.
 
-## Architecture boundary
+## Architecture decision
 
-Project Corpus is application/evaluation infrastructure. It is not a second
-ProjectKnowledgePack, planner, runtime, DAG, ProjectBlueprint, FileRunStore, or
-Git authority. The existing Agent -> CapabilityTree -> ExecutionDAG -> bounded
-Executor -> Result/Test/Artifact -> Project State -> Agent checkpoint path is
-unchanged.
+The evidence supports a future simplification experiment: keep state/evidence
+primitives and make full orchestration optional. It does not support enabling an
+Architecture Router, Multi-Agent runtime, or a new authority in this release.
+Capability reuse remains `INSUFFICIENT_EVIDENCE` and requires a separate
+cross-family reuse study.
 
-## Data and security boundary
+## Corpus and security boundary
 
-Real corpus data remains outside Git. Secret-bearing source and unknown or
-unlicensed provenance are quarantined. Portable imports reject traversal,
-symlinks, oversized members, unsafe compression ratios, hash mismatches,
-missing objects, and manifest conflicts. No corpus dataset, PyPI package,
-container image, Zenodo record, arXiv paper, leaderboard submission, or social
-announcement is published by this release.
+The real Project Corpus remains local-only. The release includes aggregate
+results, IDs, hashes, analysis, and the technical report, not generated project
+contents or private evaluator packets. Current-tree and history compliance
+audits passed with zero P0 findings. Projects are generated-original and use
+the Python standard library; no third-party dataset is redistributed.
 
-## Known limitations
+## Reproduction and limitations
 
-This release does not implement vector search, semantic near-duplicate
-detection, Provider-call replay, model training, automatic garbage collection,
-or cross-machine environment reproduction. Historical backfill is limited to
-evidence actually present in the repository and is labeled as full, source-only,
-or metadata-only rather than inferred.
+See `docs/REPRODUCIBILITY.md` and `research/release-060/`. The sample is
+directional rather than statistically conclusive, uses one qualified cheap
+model, and does not establish benefit for capability reuse, public benchmarks,
+Router admission, or Multi-Agent execution.
+
+No PyPI package, container image, Zenodo record, arXiv submission, leaderboard
+entry, complete corpus, or social announcement is published by this release.
 
 ## License and citation
 

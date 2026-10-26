@@ -1,0 +1,33 @@
+{
+  "kind": "ITER060SecurityProvenanceAudit",
+  "schema_version": "1.0",
+  "status": "PASS",
+  "p0_findings": 0,
+  "current_tree": {
+    "status": "PASS",
+    "secret_findings": 0,
+    "absolute_path_findings": 0,
+    "private_evaluator_leaks": 0,
+    "notes": "Hits reviewed in test fixtures and explicit placeholders were non-sensitive."
+  },
+  "repository_history": {
+    "status": "PASS",
+    "unique_blobs_reviewed": 6319,
+    "p0_findings": 0
+  },
+  "release_060_assets": {
+    "status": "PASS",
+    "secret_findings": 0,
+    "absolute_path_findings": 0,
+    "hidden_source_findings": 0,
+    "real_project_contents_in_git": false
+  },
+  "license_and_provenance": {
+    "status": "PASS",
+    "project_code_license": "Apache-2.0",
+    "formal_projects": "generated-original; Python standard library only",
+    "third_party_dataset_redistributed": false,
+    "postiz_code_imported": false,
+    "unresolved_items": 0
+  }
+}

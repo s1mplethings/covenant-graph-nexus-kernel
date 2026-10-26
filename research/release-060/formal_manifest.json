@@ -1,0 +1,15 @@
+{
+  "baseline_config_hash": "sha256:d7e425101e54129cff6b93df1799d4879850bf8f4fe8b669ca97532f8e301936",
+  "budget_hash": "sha256:9b81e6ef6d0ab7c9e69ca63de8d2337af1b753f27a3aa7259ce950c738daf61c",
+  "complexity_policy_hash": "sha256:83e19e7aacb58c5b426785b82a2ff417763acff11d353b5df93b4b4d8e143ed1",
+  "corpus_policy_hash": "sha256:7df7f855b18e9f4f4d74ed1c27b6b304021e1a1b0afde617074eac483bbd805e",
+  "formal_family_manifest_hash": "sha256:8147e3682f2aec26820ae283bd1bdbc6a81264e38a24108913ffc5ed456cf256",
+  "freeze_hash": "sha256:9793e238fbd466cbe2a5d5bf388c146031d306ae8d17596e49395b25e07b0ccd",
+  "kind": "CGNKITER060FormalFreeze",
+  "model_config_hash": "sha256:d25d6c40a2e98bfea865e807476b657d7106efcf2c76584743790078e08e3fb3",
+  "project_spec_hash": "sha256:74d370b604bf0085dfb5b4ad0fd4f0dbead6a3c6043249ff973e17130ad3f2c1",
+  "schema_version": "1.0",
+  "source_tree": "8104de0173ae11aa7a603cf099b1536728b8705c",
+  "source_version": "56cba0c04abb659f53eadef406c23388fd1cc891",
+  "test_authority_hash": "sha256:76d898aac7e2c3d61e47e66addd502b489bb876b0f6120a3714b4350944fdccf"
+}

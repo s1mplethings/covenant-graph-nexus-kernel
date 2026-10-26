@@ -1,0 +1,26 @@
+{
+  "kind": "ITER060RegressionReceipt",
+  "schema_version": "1.0",
+  "status": "PASS",
+  "source_closure": "56cba0c04abb659f53eadef406c23388fd1cc891",
+  "compileall": "PASS",
+  "gates": {
+    "product_direction": "PASS",
+    "kernel_architecture": "PASS",
+    "test_architecture": "PASS",
+    "kernel_completeness": "PASS",
+    "kernel_test_receipt": "PASS"
+  },
+  "profiles": {
+    "boundary": {"passed": 325, "skipped": 1, "failed": 0},
+    "fault": {"passed": 80, "skipped": 0, "failed": 0},
+    "security": {"passed": 119, "skipped": 1, "failed": 0},
+    "local_functional": {"passed": 6, "skipped": 0, "failed": 0},
+    "unit": {"passed": 482, "skipped": 1, "failed": 0},
+    "full_core": {"passed": 482, "skipped": 1, "failed": 0}
+  },
+  "application_and_experiment": {"passed": 738, "skipped": 2, "failed": 0},
+  "collection": {"tests": 3429, "errors": 0},
+  "active_repository": {"passed": 3065, "skipped": 364, "failed": 0, "errors": 0},
+  "receipt_freshness": "PASS"
+}

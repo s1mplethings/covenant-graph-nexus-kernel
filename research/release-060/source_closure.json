@@ -1,0 +1,19 @@
+{
+  "kind": "ITER060SourceClosure",
+  "schema_version": "1.0",
+  "status": "FROZEN",
+  "source_commit": "56cba0c04abb659f53eadef406c23388fd1cc891",
+  "source_tree": "8104de0173ae11aa7a603cf099b1536728b8705c",
+  "base_branch": "main",
+  "base_commit": "1f8425dbba7c7b44d4273e25b2db20be6f8bd4f5",
+  "work_branch": "codex/project-complexity-frontier-20261027",
+  "api_lab_dependency": "7c15f2546ec007cc7e601fa62ae4d88b9ba12f80",
+  "formal_freeze_hash": "sha256:9793e238fbd466cbe2a5d5bf388c146031d306ae8d17596e49395b25e07b0ccd",
+  "formal_summary_hash": "sha256:fd21954bc908b2dda09289fdc3aaeaf455faeb5b7fe0d95236e7c19df0048661",
+  "analysis_hash": "sha256:d680a9ad50f25c4fdcda74770ef57a9dfb801d5ea0ee61fc30eb0e919a8cb475",
+  "notes": [
+    "All 96 formal attempts used this exact source closure and one frozen Provider route.",
+    "Release metadata and sanitized aggregate evidence are intentionally outside the experiment source boundary.",
+    "Real Project Corpus contents and private evaluator packets remain local-only."
+  ]
+}

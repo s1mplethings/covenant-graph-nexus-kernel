@@ -1,9 +1,9 @@
 {
   "kind": "CGKNSemanticArtifactValidationReceipt",
   "schema_version": "1.0",
-  "source_commit": "333052d75bdbe5ba73f4f6d356bac8bf2c586df5",
-  "source_tree": "3cf6f8d2ce8bf242cef43150210e4bf456ed0bca",
-  "experiment_boundary_hash": "sha256:21e6cfc6cb0db85bdf193fbbd396740f0061fba06c681fb0a1885b82772e39f1",
+  "source_commit": "56cba0c04abb659f53eadef406c23388fd1cc891",
+  "source_tree": "8104de0173ae11aa7a603cf099b1536728b8705c",
+  "experiment_boundary_hash": "sha256:bfb5486385411b49e899342f93417d9c58650d9875417a505a212fb13e341431",
   "evidence_status": "NEEDS_REWORK",
   "semantic_artifact_interface": "PARTIAL",
   "winner": "NONE",
@@ -18,7 +18,7 @@
   },
   "source_boundary_validation": {
     "command": "python -m pytest tests/application tests/experiments -q",
-    "passed": 719,
+    "passed": 738,
     "failed": 0,
     "errors": 0,
     "skipped": 2,
@@ -84,7 +84,7 @@
     "collection": "PASS_3364",
     "failed": 0,
     "errors": 0,
-    "note": "Application and experiment source boundaries passed 695 tests with one skip; RC7 active-repository regression passed 3,001 tests with 363 skips and zero failures or errors after stable dependency prompt projection."
+    "note": "Application and experiment source boundaries passed 738 tests with two skips on the frozen ITER-060 source. The first active-repository diagnostic passed 3,064 tests and exposed only the expected stale boundary-receipt gate; authoritative zero-failure rerun is pending this evidence refresh."
   },
   "stop_condition": "B"
 }

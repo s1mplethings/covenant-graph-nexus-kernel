@@ -1,0 +1,26 @@
+{
+  "attempts": 96,
+  "complexities": {
+    "HIGH": 32,
+    "LOW": 32,
+    "MEDIUM": 32
+  },
+  "families": 24,
+  "project_types": {
+    "CLI_FILE_TOOL": 12,
+    "CONFIGURATION_MIGRATION_TOOL": 12,
+    "DATA_PIPELINE": 12,
+    "DOCUMENT_KNOWLEDGE_TOOL": 12,
+    "LIBRARY_PACKAGE": 12,
+    "LOCAL_SERVICE_BACKEND": 12,
+    "LOG_DIAGNOSTIC_TOOL": 12,
+    "MULTI_COMPONENT_AUTOMATION": 12
+  },
+  "splits": {
+    "FORMAL_HOLDOUT": 96
+  },
+  "statuses": {
+    "FAIL": 4,
+    "PASS": 92
+  }
+}

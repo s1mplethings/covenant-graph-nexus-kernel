@@ -1,5 +1,23 @@
 # Benchmarks and Evaluation
 
+## ITER-060 project-complexity frontier
+
+Release 0.2.0-rc.6 uses 24 preregistered generated-original Python project
+families across eight project types and LOW, MEDIUM, and HIGH complexity. Each
+family runs once through four matched baselines using the same frozen
+`deepseek-flash` route and fixed budgets. The formal result is 92/96 PASS; one
+HIGH-complexity family failed under all four baselines. Every baseline therefore
+finished at 23/24, with no discordant family available for replay.
+
+Direct Cheap had the lowest aggregate token and cost per success. Full CGNK did
+not improve success and added context/token overhead at this scale. These are
+directional results from one qualified model and small per-cell samples, not a
+universal performance or statistical-significance claim. Aggregate results and
+the claim ledger are in `research/release-060/`; real project contents and
+private evaluator packets remain local-only.
+
+## Earlier cross-domain holdout
+
 Release 0.2.0-rc.2 uses a preregistered 72-task internal cross-domain holdout
 covering twelve domains and five matched configurations. Each configuration is
 run once per frozen task with fresh state, one logical call, fixed routing, and

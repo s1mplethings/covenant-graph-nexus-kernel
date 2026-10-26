@@ -1,31 +1,31 @@
 {
   "kind": "CGKNSoftwareProjectGenerationReceipt",
   "schema_version": "1.0",
-  "source_commit": "333052d75bdbe5ba73f4f6d356bac8bf2c586df5",
-  "source_tree_sha": "3cf6f8d2ce8bf242cef43150210e4bf456ed0bca",
-  "application_boundary_hash": "sha256:918131f7219f0d73528d6e4cb0171b0bdff329f22db7d1db0b5ab0d20c45008c",
+  "source_commit": "56cba0c04abb659f53eadef406c23388fd1cc891",
+  "source_tree_sha": "8104de0173ae11aa7a603cf099b1536728b8705c",
+  "application_boundary_hash": "sha256:07ef7494441f3066eeeb7c47c5455af767252d7f20cde139f101c15377953e89",
   "suite_result": "PASS_CURRENT_SOURCE_BOUNDARY_WITH_RETAINED_LIVE_QUALIFICATION",
   "formal_final_suite": "PASS_CURRENT_SOURCE_BOUNDARY",
   "generation_readiness": "GENERATION_LEVEL_3",
   "bundle_status": "COMPLETE",
   "application_validation": {
     "targeted_command": "python -m pytest tests/application tests/experiments -q",
-    "targeted_passed": 719,
+    "targeted_passed": 738,
     "targeted_failed": 0,
     "targeted_errors": 0,
     "targeted_skipped": 2,
-    "full_repository_status": "PENDING_FINAL_RECEIPT_REFRESH",
-    "full_repository_passed": 0,
-    "full_repository_failed": 0,
+    "full_repository_status": "PASS_EXCEPT_EXPECTED_STALE_BOUNDARY_RECEIPT_PENDING_REFRESH",
+    "full_repository_passed": 3064,
+    "full_repository_failed": 1,
     "full_repository_errors": 0,
-    "full_repository_skipped": 0,
-    "collection_count": 0,
+    "full_repository_skipped": 364,
+    "collection_count": 3429,
     "provider_network_usage_during_regression": false
   },
   "current_source_boundary_validation": {
     "status": "PASS",
     "command": "python -m pytest -q tests/application tests/experiments",
-    "passed": 719,
+    "passed": 738,
     "skipped": 2,
     "failed": 0,
     "errors": 0,
@@ -100,5 +100,5 @@
     "memory_hallucination_rate": 0.0,
     "external_writes": 0
   },
-  "receipt_hash": "sha256:09d1574200fe01ad539ac2e1d97906aea04502a202676a356f716e999096e253"
+  "receipt_hash": "sha256:a0fd94c6855bf23c48801f6200ea4cef7a19594c7240a6d862a724824babfa1d"
 }

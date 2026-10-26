@@ -2,9 +2,10 @@
 
 ## Release identity
 
-- Version: `0.2.0-rc.5`
-- Source closure: recorded in `research/release-059/source_closure.json`
-- Evidence closure: recorded in `research/release-059/evidence_closure.json`
+- Version: `0.2.0-rc.6`
+- Source closure: `56cba0c04abb659f53eadef406c23388fd1cc891`
+- Source tree: `8104de0173ae11aa7a603cf099b1536728b8705c`
+- Evidence closure: recorded in `research/release-060/evidence_closure.json`
 - API Lab dependency: `7c15f2546ec007cc7e601fa62ae4d88b9ba12f80`
 - Python: 3.10 or newer
 
@@ -36,9 +37,28 @@ python -m pytest --collect-only -q
 python -m pytest -q
 ```
 
-The exact rc.5 active-repository totals are recorded in the ITER-059 technical
-report and test receipt. Network/provider tests remain skipped unless explicitly
+The exact rc.6 active-repository totals are recorded in the ITER-060 technical
+report and regression receipt. Network/provider tests remain skipped unless explicitly
 configured.
+
+## ITER-060 complexity frontier
+
+With the exact frozen API Lab checkout available locally:
+
+```bash
+python scripts/run_release_060.py preflight --artifact-root /external/iter-060
+python scripts/run_release_060.py formal \
+  --artifact-root /external/iter-060 \
+  --api-lab-root /path/to/frozen-api-lab
+python scripts/run_release_060.py analyze \
+  --artifact-root /external/iter-060 \
+  --source-version 56cba0c04abb659f53eadef406c23388fd1cc891
+```
+
+The formal manifest, aggregate JSON/CSV results, complexity and project-type
+matrices, claim ledger, failure analysis, and report are under
+`research/release-060/`. Real project snapshots and private evaluator packets
+remain outside Git.
 
 ## ITER-059 Project Corpus evaluation
 

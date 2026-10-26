@@ -1,73 +1,52 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-059",
+  "iteration_id": "ITER-060",
   "project_id": "cgnk",
-  "goal": "Build a local-first, content-addressed, versioned, searchable, replayable Project Corpus that preserves success, failure, partial, and repair history without becoming a second Knowledge or runtime authority.",
-  "backlog_item_ids": ["PB-034"],
+  "goal": "Determine the project-complexity frontier where direct, flat-state, minimal-CGNK, and full-CGNK execution differ in success, repair, context, token, and cost behavior.",
   "workflow_state": "closed",
   "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
-    "all project outcomes, including failed and aborted attempts, can be captured",
-    "source snapshots reconstruct with byte fidelity and content-hash integrity",
-    "private evaluator packets, secrets, machine paths, and quarantined material never enter normal search or benchmark packets",
-    "family-level split governance prevents sibling and near-duplicate leakage",
-    "a real FAIL to REPAIR to PASS chain is fully recoverable",
-    "full repository regression finishes with zero failures and zero errors before release"
-  ],
-  "quality_metrics": [
-    {"id": "QM-059-INTEGRITY", "measure": "snapshot reconstruction and hash verification", "target": "100% byte fidelity; 0 corrupt references", "method": "reconstruction, verification, and catalog rebuild tests"},
-    {"id": "QM-059-PRIVACY", "measure": "secret, private evaluator, and absolute-path leakage", "target": "0 leaked items", "method": "quarantine and adversarial security tests"},
-    {"id": "QM-059-LINEAGE", "measure": "family split leakage", "target": "0 sibling or near-duplicate cross-split cases", "method": "deterministic family split and leakage checker"},
-    {"id": "QM-059-RESILIENCE", "measure": "atomic capture and crash recovery", "target": "0 false COMPLETE entries and project outcome unaffected", "method": "fault injection and best-effort hook tests"},
-    {"id": "QM-059-REGRESSION", "measure": "repository failures/errors", "target": "0/0", "method": "required gates, domain suites, and full pytest"}
-  ],
-  "quality_activities": {
-    "prevention": ["project-relative paths only", "public/private packet separation", "family-level split assignment", "secret and provenance gates"],
-    "assurance": ["reconstruction and failure replay", "fault injection", "scale and dedup tests", "full regression"],
-    "control": ["canonical repository publisher", "local-only real corpus", "immutable objects", "report-only garbage collection"],
-    "improvement": ["use captured failure chains to prepare future complexity benchmarks without training or changing generation behavior"]
-  },
-  "interface_expectations": [
-    "ProjectKnowledgePack remains the Knowledge authority",
-    "CapabilityTree, ExecutionDAG, FileRunStore, and ProjectBlueprint remain canonical authorities",
-    "Corpus capture is an application-level best-effort observer and cannot change project outcomes",
-    "real corpus content remains external and local; Git contains only code, schemas, docs, and sanitized examples"
+    "24 formal generated-original project families cover eight project types and three complexity tiers",
+    "all four baselines use one frozen cheap Provider route and fixed budgets",
+    "formal attempts are captured in the local Project Corpus with private evaluator separation",
+    "aggregate results identify benefits, neutral effects, failures, and unsupported claims without changing default architecture",
+    "full repository regression has zero failures and zero errors"
   ],
   "evidence_refs": [
-    "research/release-059/preregistration.md",
-    "research/release-059/corpus_profile.json",
-    "research/release-059/formal_evaluation.json",
-    "research/release-059/security_audit.json",
-    "research/release-059/claim_ledger.json",
-    "research/release-059/technical_report.md"
+    "research/release-060/preregistration.md",
+    "research/release-060/formal_manifest.json",
+    "research/release-060/main_results.json",
+    "research/release-060/claim_ledger.json",
+    "research/release-060/technical_report.md",
+    "research/release-060/security_provenance_audit.json",
+    "research/release-060/regression.json"
   ],
   "review": {
     "outcome": "accepted_with_limits",
     "feedback": [
-      "all 14 preregistered hard gates passed",
-      "historical backfill is classified by recoverability and not overstated",
-      "real corpus contents remain local",
-      "full CGNK architecture benefit remains NOT_PROVEN"
-    ],
-    "accepted_backlog_item_ids": ["PB-034"]
+      "92 of 96 formal attempts passed",
+      "one HIGH-complexity family failed identically under all four baselines",
+      "direct execution was the aggregate cost/token Pareto route",
+      "full orchestration benefit was neutral at the tested scale",
+      "the result supports optional-orchestration research but not a default architecture change"
+    ]
   },
   "retrospective": {
     "worked": [
-      "immutable objects plus versioned manifests made catalog rebuild deterministic",
-      "application-level best-effort capture preserved project outcome isolation",
-      "family-level split assignment made leakage checks straightforward",
-      "formal repair-chain dogfood exposed the evidence needed for future repair benchmarks"
+      "frozen source, route, contracts, and budgets made the ablation comparable",
+      "local Project Corpus capture preserved all formal attempts and evidence lineage",
+      "public/private evaluator separation and sanitized aggregate publication prevented hidden-source leakage"
     ],
     "did_not_work": [
-      "the initial final regression retained a pre-rc.5 plugin identity expectation and required a source-only test alignment",
-      "historical artifacts were not uniformly recoverable and required explicit FULLY_RECOVERED, SOURCE_ONLY, or PARTIAL_METADATA_ONLY labels"
+      "the single HIGH library family remained wrong under all baselines",
+      "the current family set did not exercise enough cross-family capability reuse to support a reuse claim"
     ],
     "experiments": [
-      "10-family formal corpus with success, failure, partial, repaired, and quarantined outcomes",
-      "1,000-snapshot and 10,000-reference deterministic scale evaluation",
-      "portable repair-family export/import and byte-faithful reconstruction",
-      "6,284-blob release history compliance scan"
+      "96-attempt four-baseline formal ablation",
+      "LOW, MEDIUM, and HIGH complexity frontier",
+      "eight-project-type matrix",
+      "current-tree and 6319-blob history compliance audit"
     ]
   }
 }

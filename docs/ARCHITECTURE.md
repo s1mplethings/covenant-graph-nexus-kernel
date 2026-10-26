@@ -56,6 +56,17 @@ Knowledge. Capture is best-effort and is disabled unless an external local root
 is configured. Private evaluator packets use a separate non-searchable,
 non-exportable namespace.
 
+## Complexity-frontier result
+
+ITER-060 compared Direct Cheap, flat-state Direct Cheap, Minimal CGNK, and Full
+CGNK on the same 24 formal project families. Success was identical by baseline,
+while Direct Cheap used the least aggregate token/cost. Consequently full
+orchestration remains available but is not automatically admitted for every
+project, and no Router or Multi-Agent authority is added. A future bounded study
+may test optional orchestration using deterministic project features; that
+study must preserve the existing Agent, CapabilityTree, ExecutionDAG, Project
+State, and public-delivery authorities.
+
 ## Context and dependency boundaries
 
 Executors receive only the node contract and relevant dependencies. Downstream

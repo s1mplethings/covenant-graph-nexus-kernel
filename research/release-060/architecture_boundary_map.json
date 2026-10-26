@@ -1,0 +1,32 @@
+{
+  "boundaries": [
+    {
+      "complexity": "LOW",
+      "evidence": "paired formal family outcomes plus cost-per-success tie-break",
+      "minimum_supported_routes": [
+        "B0_DIRECT_CHEAP"
+      ]
+    },
+    {
+      "complexity": "MEDIUM",
+      "evidence": "paired formal family outcomes plus cost-per-success tie-break",
+      "minimum_supported_routes": [
+        "B1_DIRECT_CHEAP_FLAT_STATE"
+      ]
+    },
+    {
+      "complexity": "HIGH",
+      "evidence": "paired formal family outcomes plus cost-per-success tie-break",
+      "minimum_supported_routes": [
+        "B0_DIRECT_CHEAP"
+      ]
+    }
+  ],
+  "evidence_limit": "No production default or Router change is authorized by this research release.",
+  "full_cgnk_simplification_candidate": "YES",
+  "full_orchestration": "NOT_NEEDED_AT_TESTED_SCALE",
+  "kind": "CGNKArchitectureBoundaryMap",
+  "map_hash": "sha256:849577fb378b2f585defee71b2df492cd8ae8ac451425047a8d44efc140a3250",
+  "router_reopen_evidence": "YES",
+  "schema_version": "1.0"
+}

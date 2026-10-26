@@ -1,0 +1,230 @@
+[
+  {
+    "best_or_pareto": [
+      "B0_DIRECT_CHEAP"
+    ],
+    "complexity": "LOW",
+    "routes": [
+      {
+        "attempts": 8,
+        "average_calls": 1.5,
+        "average_context_growth_chars": 2858.25,
+        "average_cost_usd": 0.003227,
+        "average_duration_ms": 9141,
+        "average_failed_calls": 0,
+        "average_input_chars": 9943,
+        "average_max_input_chars": 7549.625,
+        "average_repair_calls": 0,
+        "average_tokens": 4852.5,
+        "baseline": "B0_DIRECT_CHEAP",
+        "complexity": "LOW",
+        "cost_per_success_usd": 0.00322729,
+        "success_rate": 1.0,
+        "successes": 8
+      },
+      {
+        "attempts": 8,
+        "average_calls": 1.5,
+        "average_context_growth_chars": 2895.375,
+        "average_cost_usd": 0.003228,
+        "average_duration_ms": 8853.25,
+        "average_failed_calls": 0,
+        "average_input_chars": 10005.625,
+        "average_max_input_chars": 7603.75,
+        "average_repair_calls": 0,
+        "average_tokens": 4871.75,
+        "baseline": "B1_DIRECT_CHEAP_FLAT_STATE",
+        "complexity": "LOW",
+        "cost_per_success_usd": 0.00322766,
+        "success_rate": 1.0,
+        "successes": 8
+      },
+      {
+        "attempts": 8,
+        "average_calls": 1.5,
+        "average_context_growth_chars": 3123.25,
+        "average_cost_usd": 0.003317,
+        "average_duration_ms": 8861.5,
+        "average_failed_calls": 0,
+        "average_input_chars": 10722.5,
+        "average_max_input_chars": 8157.625,
+        "average_repair_calls": 0,
+        "average_tokens": 5134.5,
+        "baseline": "B2_MINIMAL_CGNK",
+        "complexity": "LOW",
+        "cost_per_success_usd": 0.00331706,
+        "success_rate": 1.0,
+        "successes": 8
+      },
+      {
+        "attempts": 8,
+        "average_calls": 1.625,
+        "average_context_growth_chars": 3312.25,
+        "average_cost_usd": 0.003755,
+        "average_duration_ms": 10296.375,
+        "average_failed_calls": 0,
+        "average_input_chars": 12665,
+        "average_max_input_chars": 8577.625,
+        "average_repair_calls": 0.125,
+        "average_tokens": 5961,
+        "baseline": "B3_FULL_CGNK",
+        "complexity": "LOW",
+        "cost_per_success_usd": 0.00375502,
+        "success_rate": 1.0,
+        "successes": 8
+      }
+    ]
+  },
+  {
+    "best_or_pareto": [
+      "B1_DIRECT_CHEAP_FLAT_STATE"
+    ],
+    "complexity": "MEDIUM",
+    "routes": [
+      {
+        "attempts": 8,
+        "average_calls": 3.25,
+        "average_context_growth_chars": 9113.5,
+        "average_cost_usd": 0.009591,
+        "average_duration_ms": 24803.125,
+        "average_failed_calls": 0,
+        "average_input_chars": 33070.875,
+        "average_max_input_chars": 14096.125,
+        "average_repair_calls": 0,
+        "average_tokens": 15069.125,
+        "baseline": "B0_DIRECT_CHEAP",
+        "complexity": "MEDIUM",
+        "cost_per_success_usd": 0.00959134,
+        "success_rate": 1.0,
+        "successes": 8
+      },
+      {
+        "attempts": 8,
+        "average_calls": 3.25,
+        "average_context_growth_chars": 9121.75,
+        "average_cost_usd": 0.00958,
+        "average_duration_ms": 23934.625,
+        "average_failed_calls": 0,
+        "average_input_chars": 33228.875,
+        "average_max_input_chars": 14121.375,
+        "average_repair_calls": 0,
+        "average_tokens": 15089,
+        "baseline": "B1_DIRECT_CHEAP_FLAT_STATE",
+        "complexity": "MEDIUM",
+        "cost_per_success_usd": 0.0095802,
+        "success_rate": 1.0,
+        "successes": 8
+      },
+      {
+        "attempts": 8,
+        "average_calls": 3.375,
+        "average_context_growth_chars": 10378.5,
+        "average_cost_usd": 0.010467,
+        "average_duration_ms": 25050.25,
+        "average_failed_calls": 0,
+        "average_input_chars": 38461.25,
+        "average_max_input_chars": 15704.125,
+        "average_repair_calls": 0.125,
+        "average_tokens": 17056.25,
+        "baseline": "B2_MINIMAL_CGNK",
+        "complexity": "MEDIUM",
+        "cost_per_success_usd": 0.01046715,
+        "success_rate": 1.0,
+        "successes": 8
+      },
+      {
+        "attempts": 8,
+        "average_calls": 3.25,
+        "average_context_growth_chars": 10271.75,
+        "average_cost_usd": 0.010029,
+        "average_duration_ms": 25649.875,
+        "average_failed_calls": 0,
+        "average_input_chars": 36867.875,
+        "average_max_input_chars": 15828.375,
+        "average_repair_calls": 0,
+        "average_tokens": 16405.5,
+        "baseline": "B3_FULL_CGNK",
+        "complexity": "MEDIUM",
+        "cost_per_success_usd": 0.01002949,
+        "success_rate": 1.0,
+        "successes": 8
+      }
+    ]
+  },
+  {
+    "best_or_pareto": [
+      "B0_DIRECT_CHEAP"
+    ],
+    "complexity": "HIGH",
+    "routes": [
+      {
+        "attempts": 8,
+        "average_calls": 5.125,
+        "average_context_growth_chars": 16338.875,
+        "average_cost_usd": 0.021183,
+        "average_duration_ms": 49590.125,
+        "average_failed_calls": 0,
+        "average_input_chars": 73608.625,
+        "average_max_input_chars": 21643.5,
+        "average_repair_calls": 0.25,
+        "average_tokens": 33285.125,
+        "baseline": "B0_DIRECT_CHEAP",
+        "complexity": "HIGH",
+        "cost_per_success_usd": 0.02420927,
+        "success_rate": 0.875,
+        "successes": 7
+      },
+      {
+        "attempts": 8,
+        "average_calls": 5.125,
+        "average_context_growth_chars": 17159.375,
+        "average_cost_usd": 0.022182,
+        "average_duration_ms": 51057.875,
+        "average_failed_calls": 0,
+        "average_input_chars": 75875.375,
+        "average_max_input_chars": 22481,
+        "average_repair_calls": 0.25,
+        "average_tokens": 34657.875,
+        "baseline": "B1_DIRECT_CHEAP_FLAT_STATE",
+        "complexity": "HIGH",
+        "cost_per_success_usd": 0.02535107,
+        "success_rate": 0.875,
+        "successes": 7
+      },
+      {
+        "attempts": 8,
+        "average_calls": 5.125,
+        "average_context_growth_chars": 17883.125,
+        "average_cost_usd": 0.021764,
+        "average_duration_ms": 49718.125,
+        "average_failed_calls": 0,
+        "average_input_chars": 79973.125,
+        "average_max_input_chars": 23530.75,
+        "average_repair_calls": 0.25,
+        "average_tokens": 35412.75,
+        "baseline": "B2_MINIMAL_CGNK",
+        "complexity": "HIGH",
+        "cost_per_success_usd": 0.02487291,
+        "success_rate": 0.875,
+        "successes": 7
+      },
+      {
+        "attempts": 8,
+        "average_calls": 5.125,
+        "average_context_growth_chars": 18181.5,
+        "average_cost_usd": 0.022069,
+        "average_duration_ms": 50038.875,
+        "average_failed_calls": 0,
+        "average_input_chars": 81254.5,
+        "average_max_input_chars": 24060.125,
+        "average_repair_calls": 0.25,
+        "average_tokens": 36078.75,
+        "baseline": "B3_FULL_CGNK",
+        "complexity": "HIGH",
+        "cost_per_success_usd": 0.02522199,
+        "success_rate": 0.875,
+        "successes": 7
+      }
+    ]
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "candidates": [
+    {
+      "id": "CROSS_FAMILY_REUSE",
+      "reason": "Capability reuse is not identified by within-family generation."
+    },
+    {
+      "id": "NATURAL_MULTI_ROUND_REPAIR",
+      "reason": "Increase repair-path density without hidden failure hints."
+    },
+    {
+      "id": "LONGER_RESTART_CHAIN",
+      "reason": "Separate state/evidence benefit from model context capacity."
+    },
+    {
+      "id": "DEPENDENCY_CONTRACT_CHANGE",
+      "reason": "Test localized invalidation under public interface evolution."
+    }
+  ],
+  "index_hash": "sha256:fee238b05a8216097aa56b1510971de1a6d73179e1c95c0cfe0deb8ca7a1b9cf",
+  "kind": "CGNKFutureProjectProblemCandidates",
+  "schema_version": "1.0"
+}

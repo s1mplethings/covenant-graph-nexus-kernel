@@ -10,10 +10,11 @@ CGNK-owned source and documentation are available under the
 and separately deployed services retain their own licenses; see
 [Third-party licenses and provenance](docs/THIRD_PARTY_LICENSES.md).
 
-This repository is a **Research Preview**. The 0.2.0-rc.5 candidate adds a
-local-first, content-addressed Project Corpus while preserving the rc.4
-necessity-boundary result: current evidence does not show that full CGNK
-improves final success over a fair direct baseline. The corpus release is not a
+This repository is a **Research Preview**. The 0.2.0-rc.6 candidate maps a
+project-complexity frontier across Direct, flat-state Direct, Minimal CGNK, and
+Full CGNK on the same qualified cheap model. At the tested scale, Direct remains
+the lowest-cost Pareto route and full orchestration has neutral measured benefit;
+no default architecture is changed by this release. The corpus release is not a
 public dataset, training claim, production-readiness claim, statistical result,
 or benchmark SOTA claim. See
 [Architecture](docs/ARCHITECTURE.md), [Benchmarks](docs/BENCHMARKS.md), and
@@ -154,11 +155,13 @@ Cleanup status and the exact migration boundary are recorded in:
 
 ## Current release increment
 
-`ITER-059` adds the local-first Project Corpus, deterministic family-level
-benchmark splits, replayable snapshots, failure/repair lineage, and derived
-search. Fixed routing remains the default; Multi-Agent Runtime, corpus-driven
-training, public dataset publication, and autonomous external writes remain
-disabled.
+`ITER-060` adds a preregistered project-complexity frontier and four-baseline
+architecture ablation over the local-first Project Corpus. The formal result is
+92/96 PASS with one common HIGH-complexity failure across all baselines; Direct
+Cheap is the aggregate cost/token Pareto route, while Full CGNK benefit is
+neutral at the tested scale. Fixed routing remains the default; Architecture
+Router, Multi-Agent Runtime, corpus-driven training, public dataset publication,
+and autonomous external writes remain disabled.
 
 ## Current reusable substrate
 
