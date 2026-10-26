@@ -1,0 +1,35 @@
+{
+  "kind": "CGNKReleaseClaimLedger",
+  "schema_version": "1.0",
+  "iteration": "ITER-058",
+  "claims": {
+    "FULL_CGNK_ARCHITECTURE_BENEFIT": "NOT_PROVEN",
+    "STATE_CONTINUITY_BENEFIT": "NOT_PROVEN_AGAINST_B0",
+    "PROVENANCE_BENEFIT": "NOT_PROVEN_AGAINST_B0",
+    "KNOWLEDGE_SUPERSESSION_REWORK_BENEFIT": "PROVEN_DIRECTIONALLY",
+    "REPAIR_CONTINUITY_BENEFIT": "DIRECTIONAL_VS_FLAT_STATE_ONLY",
+    "CAPABILITY_REUSE_BENEFIT": "NOT_PROVEN",
+    "MIXED_LONG_HORIZON_REWORK_BENEFIT": "PROVEN_DIRECTIONALLY",
+    "CONTEXT_EFFICIENCY_VS_DIRECT": "NOT_PROVEN",
+    "CONTEXT_EFFICIENCY_VS_FLAT_STATE": "PROVEN_ON_THIS_HOLDOUT",
+    "KNOWLEDGE_SCC_DECOMPOSITION": "PASS",
+    "ROUTER_REOPEN_EVIDENCE": "NO",
+    "ROUTER_STATUS": "INSUFFICIENT_EVIDENCE_NOT_ADOPTED",
+    "MULTI_AGENT_RUNTIME": "NOT_RECOMMENDED_CURRENT_EVIDENCE"
+  },
+  "basis": {
+    "B0_vs_B2_chain_success_difference_pp": 0.0,
+    "B0_vs_B2_cgnk_only": 0,
+    "B2_vs_B0_rework_change_percent": -18.4615,
+    "B2_vs_B0_context_change_percent": 7.1738,
+    "B2_vs_B0_estimated_cost_change_percent": 0.9048,
+    "knowledge_cyclic_scc_before": 1,
+    "knowledge_cyclic_scc_after": 0
+  },
+  "prohibited_overclaims": [
+    "CGNK beats direct execution",
+    "CGNK proves long-term intelligence",
+    "Router V1 is justified",
+    "The result is statistically significant"
+  ]
+}

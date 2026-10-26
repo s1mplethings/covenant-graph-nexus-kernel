@@ -10,9 +10,13 @@ CGNK-owned source and documentation are available under the
 and separately deployed services retain their own licenses; see
 [Third-party licenses and provenance](docs/THIRD_PARTY_LICENSES.md).
 
-This repository is a **Research Preview**. The 0.2.0-rc.4 release has a clean
-install reproduction, 3,001 passing tests, and a preregistered cross-domain
-evaluation. It is not a claim of production readiness or benchmark SOTA. See
+This repository is a **Research Preview**. The 0.2.0-rc.4 release has 3,022
+passing tests and a preregistered 18-chain necessity-boundary evaluation. B0
+Direct Cheap and B2 CGNK both passed 18/18 chains: current evidence does not
+show that full CGNK improves final success over a fair direct baseline. CGNK
+did reduce measured repeated evidence work by 18.5%, concentrated in knowledge
+supersession and mixed long-horizon chains. It is not a claim of production
+readiness, statistical significance, or benchmark SOTA. See
 [Architecture](docs/ARCHITECTURE.md), [Benchmarks](docs/BENCHMARKS.md), and
 [Reproducibility](docs/REPRODUCIBILITY.md).
 

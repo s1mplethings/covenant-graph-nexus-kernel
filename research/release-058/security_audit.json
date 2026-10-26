@@ -1,0 +1,12 @@
+{
+  "kind": "ITER058ReleaseSecurityAudit",
+  "schema_version": "1.0",
+  "source_closure": "a2c7720fb176ba8aa913016dd166e98221282afd",
+  "current_tree": {"status": "PASS", "p0_count": 0, "finding_count": 17, "result_hash": "sha256:e63b77c93f9d0e5597b53269896a92008cd91e49c6544caaad1585295c6cfabc"},
+  "history": {"status": "PASS", "scope_commit": "a2c7720fb176ba8aa913016dd166e98221282afd", "unique_blob_count": 6224, "p0_count": 0, "finding_count": 141, "result_hash": "sha256:40cbcda2219fa64c827d7c7552d964ce9b5893eb1c164d5a4d260a9a5d6a76b3"},
+  "known_non_p0_classes": ["audit-detector source patterns", "deliberate test token fixtures", "deliberate absolute-path fixtures", "historical generated-project paths"],
+  "formal_index_contains_credentials": false,
+  "formal_index_contains_hidden_gold": false,
+  "external_writes": false,
+  "force_push": false
+}

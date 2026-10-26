@@ -7,6 +7,16 @@ Versioning; review candidates use an `-rc.N` suffix.
 
 - No unreleased changes.
 
+## [0.2.0-rc.4]
+
+- Remove the Knowledge store/persistence/internalization import SCC through a
+  pure projection boundary while preserving public and persistence contracts.
+- Add the frozen B0/B1/B2 essential-workload protocol, paired chain analysis,
+  and release-bound reproducibility artifacts.
+- Record the negative full-architecture necessity result: Direct Cheap and
+  CGNK both passed 18/18 formal chains, while CGNK reduced measured rework.
+- Keep Architecture Router and Multi-Agent Runtime unadopted.
+
 ## [0.2.0-rc.3]
 
 - Normalize the public project name to CGNK while retaining the `cgkn` Python

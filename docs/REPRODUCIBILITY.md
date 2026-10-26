@@ -2,10 +2,10 @@
 
 ## Release identity
 
-- Version: `0.2.0-rc.3`
-- Source closure: `7b81a3dde5823dd9ccc31839441bffc6b6acfe98`
-- Evidence base: `f9a0f4197d73e8e82654c78268988cb5b8d13a7f`
-- API Lab dependency: `999dff096afe45f058fe67016aee28a73912d5d4`
+- Version: `0.2.0-rc.4`
+- Source closure: `a2c7720fb176ba8aa913016dd166e98221282afd`
+- Evidence closure: the commit containing `research/release-058/technical_report.md`
+- API Lab dependency: `7c15f2546ec007cc7e601fa62ae4d88b9ba12f80`
 - Python: 3.10 or newer
 
 ## Clean installation
@@ -36,7 +36,7 @@ python -m pytest --collect-only -q
 python -m pytest -q
 ```
 
-The final active-repository result was 3,007 passed, 363 skipped, 0 failed, and
+The final active-repository result was 3,022 passed, 363 skipped, 0 failed, and
 0 errors. Network/provider tests remain skipped unless explicitly configured.
 
 ## Release hygiene and routing oracle
@@ -70,7 +70,25 @@ python scripts/run_release_056_profile.py \
   --json
 ```
 
-## Formal evaluation
+## ITER-058 formal evaluation
+
+With the exact API Lab checkout available locally:
+
+```bash
+python scripts/run_release_058.py preflight --api-lab-root /path/to/api-lab
+python scripts/run_release_058.py formal \
+  --api-lab-root /path/to/api-lab \
+  --artifact-root artifacts/release-058-formal-runtime
+python scripts/run_release_058.py analyze \
+  --index artifacts/release-058-formal-runtime/<batch>/index.json
+```
+
+The formal manifest, prompt, schema, baselines, state projection, model config,
+Source Closure, and API Lab commit are hash-bound. The release asset
+`iter-058-formal-index.json` is the normalized, secret-safe 54-run index; its
+hash is recorded in `research/release-058/formal_index_manifest.json`.
+
+## Earlier formal evaluation
 
 The frozen task manifest, configurations, hypotheses, and pricing snapshot live
 under `research/release-056/`. Provider execution requires the separately

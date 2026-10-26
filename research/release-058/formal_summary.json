@@ -1,0 +1,39 @@
+{
+  "kind": "CGNKEssentialWorkloadFormalSummary",
+  "schema_version": "1.0",
+  "iteration": "ITER-058",
+  "batch_id": "formal-2b49c274-c9b19925",
+  "source_closure": "a2c7720fb176ba8aa913016dd166e98221282afd",
+  "source_tree": "3eedb87c5eead92a08b11e056a4e019a2ca048e4",
+  "source_dirty": false,
+  "api_lab_commit": "7c15f2546ec007cc7e601fa62ae4d88b9ba12f80",
+  "workload_manifest_hash": "sha256:1be5009ff4b58e4208fd0045081a6b42500ef5f12ff4dd3211a510121de1111d",
+  "formal_scenario_manifest_hash": "sha256:09e806b4706a42d08e15c537a4c78e107527163d5174eb4d15b855fe16e600ea",
+  "baseline_config_hash": "sha256:ca2748a16f089220cab45184eee720c069df0e35c2fa137bef4d1efdbb1cd87b",
+  "model_config_hash": "sha256:e8e027f8c0b3eff7e845b95222715f4ad0878642fa90025a39ed9005dd1c2383",
+  "state_projection_hash": "sha256:518b0d212a2521d35258cb620046f260c51805c0790c3296c8b97f4a9a86531c",
+  "scc_architecture_hash": "sha256:86c252e3023957553b1e286f79054efb7caa79e441602fe923fb15e851a98a5a",
+  "provider": "deepseek",
+  "model": "deepseek-flash",
+  "temperature": 0.0,
+  "logical_retries": 0,
+  "chains": 18,
+  "episodes_per_baseline": 90,
+  "provider_calls": 270,
+  "transport_failures": 0,
+  "actual_usage_complete": true,
+  "total_input_tokens": 171480,
+  "total_output_tokens": 24309,
+  "total_estimated_cost_usd": 0.0806148,
+  "baselines": {
+    "B0_DIRECT_CHEAP": {"chain_successes": 18, "chain_count": 18, "episode_successes": 90, "episode_count": 90, "input_tokens": 46163, "output_tokens": 8049, "context_chars": 60891, "rework_count": 195, "state_consistency": 1.0, "provenance_accuracy": 1.0, "estimated_cost_usd": 0.0235077},
+    "B1_DIRECT_CHEAP_WITH_FLAT_STATE": {"chain_successes": 17, "chain_count": 18, "episode_successes": 89, "episode_count": 90, "input_tokens": 78209, "output_tokens": 8270, "context_chars": 166431, "rework_count": 195, "state_consistency": 1.0, "provenance_accuracy": 0.9888888889, "estimated_cost_usd": 0.0333867},
+    "B2_CGNK_CURRENT": {"chain_successes": 18, "chain_count": 18, "episode_successes": 90, "episode_count": 90, "input_tokens": 47108, "output_tokens": 7990, "context_chars": 65259, "rework_count": 159, "state_consistency": 1.0, "provenance_accuracy": 1.0, "estimated_cost_usd": 0.0237204}
+  },
+  "paired_classification": {
+    "B0_DIRECT_CHEAP_VS_B2_CGNK_CURRENT": {"BOTH_PASS": 18, "DIRECT_ONLY": 0, "CGNK_ONLY": 0, "BOTH_FAIL": 0},
+    "B1_DIRECT_CHEAP_WITH_FLAT_STATE_VS_B2_CGNK_CURRENT": {"BOTH_PASS": 17, "DIRECT_ONLY": 0, "CGNK_ONLY": 1, "BOTH_FAIL": 0}
+  },
+  "result_hash": "sha256:93c8231258170fd0b61f8b420166850d4b72072d2166d401378a92436336713c",
+  "verdict": "FULL_CGNK_ARCHITECTURE_BENEFIT_NOT_PROVEN"
+}

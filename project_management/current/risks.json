@@ -7,8 +7,8 @@
       "title": "CGNK orchestration may add context and complexity without creating architecture-only successes",
       "probability": "high",
       "impact": "high",
-      "signal": "Paired essential workloads show no repeatable CGNK_ONLY chains against Direct Cheap, or CGNK failures arise from retrieval, state mismatch, or protocol overhead.",
-      "response": "Keep Direct Cheap as a first-class baseline, report necessity per workload family, require frozen paired evidence before reopening routing research, and do not implement Router or Multi-Agent from development-only results.",
+      "signal": "Formal B0 and B2 both passed 18/18 chains with zero discordant cases; B2 reduced rework but added context and cost.",
+      "response": "Treat full-architecture benefit as not proven, keep Direct Cheap first-class, preserve only evidenced Knowledge/recovery substrate, and keep Router and Multi-Agent dormant.",
       "owner": "product architecture"
     },
     {

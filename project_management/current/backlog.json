@@ -16,7 +16,7 @@
       "id": "PB-033",
       "title": "Establish CGNK necessity boundaries and decompose the Knowledge SCC",
       "priority": 33,
-      "state": "in_progress",
+      "state": "done_with_limits",
       "value": "Replace broad architecture assumptions with paired long-horizon evidence while reducing Knowledge coupling without changing authority.",
       "acceptance": [
         "same-model B0/B1/B2 comparison on frozen scenario chains",
@@ -25,7 +25,7 @@
         "formal source immutability and full regression",
         "Router and Multi-Agent remain dormant"
       ],
-      "evidence_status": "DEVELOPMENT_PASS_FORMAL_PENDING"
+      "evidence_status": "PASS_WITH_LIMITS_FULL_ARCHITECTURE_BENEFIT_NOT_PROVEN"
     },
     {
       "id": "PB-032",

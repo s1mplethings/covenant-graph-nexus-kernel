@@ -1,26 +1,25 @@
-# CGNK 0.2.0-rc.3 Research Preview
+# CGNK 0.2.0-rc.4 Research Preview
 
 CGNK is a composable capability kernel for evidence-grounded agentic project
-work. This hygiene release establishes the canonical public name, retains the
-`cgkn` Python namespace for compatibility, scopes history audits to an exact
-commit, and records a negative Architecture Router feasibility result.
+work. This boundary release safely removes the Knowledge store/persistence/
+internalization import cycle and publishes a preregistered necessity study.
 
-## Hygiene and feasibility highlights
+## Boundary and evaluation highlights
 
-- Public branding is CGNK: Covenant Graph Nexus Kernel.
-- The Python namespace remains `cgkn`; `CGKN...` legacy machine identifiers
-  remain stable for schema compatibility.
-- The paired ITER-056 oracle achieved 58/72, exactly the Direct Cheap result,
-  with zero CGNK-only successes and therefore did not authorize Router V1.
-- The history audit reports an explicit Source Closure and unique-blob scope.
-- Direct Cheap's 58/72 result remains visible and unchanged.
+- Knowledge cyclic SCCs fell from one to zero with no schema, public signature,
+  authority, persistence-format, or recovery change.
+- Frozen formal results: B0 Direct Cheap 18/18, B1 Flat State 17/18, B2 CGNK
+  18/18 chains; B0 versus B2 has zero discordant chains.
+- B2 reduced measured rework 18.5% versus B0 but added 7.2% context and 0.9%
+  estimated Provider cost. Full architecture benefit is not proven.
+- All 270 formal calls completed with reported usage and no transport failure.
+- Router remains not adopted; Multi-Agent remains not recommended.
 
 ## Known limitations
 
-The Router result is diagnostic because the same 72 tasks were previously
-observed; no fresh holdout was run after the oracle stop gate. Public benchmark
-formal runs remain environment-blocked. Multi-Agent Runtime is not recommended
-or enabled.
+The 18-chain sample is directional and has one run per route/chain, so it is not
+a statistical-significance or Provider-reliability claim. Public benchmark
+formal runs remain environment-blocked.
 
 ## Compatibility and migration
 

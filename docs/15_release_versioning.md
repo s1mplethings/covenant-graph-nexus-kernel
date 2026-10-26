@@ -14,16 +14,16 @@ branch does not imply formal acceptance or public release.
 Companion packages follow their ecosystem's equivalent notation:
 
 - Codex plugin: repository SemVer plus one `+codex.<cachebuster>` suffix for local pickup.
-- Python Agent Kit: PEP 440 (`0.2.0rc3` for repository version `0.2.0-rc.3`).
+- Python Agent Kit: PEP 440 (`0.2.0rc4` for repository version `0.2.0-rc.4`).
 - MCP server protocol identity: repository SemVer without the Codex cachebuster.
 
 ## Current review candidate
 
-`0.2.0-rc.3` is a Research Preview hygiene release. It establishes CGNK as the
-public name while retaining the `cgkn` Python namespace and legacy machine
-identifiers, binds history audits to an explicit Source Closure, and records
-the negative Architecture Router oracle result. It does not adopt a Router or
-change kernel authority.
+`0.2.0-rc.4` is a Research Preview boundary release. It removes the conceptual
+Knowledge import SCC without changing the Knowledge authority or persistence
+formats and reports a frozen necessity-boundary holdout. The holdout does not
+prove a full-architecture success advantage, so it does not adopt a Router,
+Multi-Agent runtime, or new kernel authority.
 
 Runtime workspaces, generated project memory, media, transient evidence, and local `.cgkn` state are
 not release source and must not be committed to the review branch.

@@ -1,0 +1,25 @@
+{
+  "kind": "CGNKEssentialFormalAnalysis",
+  "schema_version": "1.0",
+  "analysis_hash": "sha256:e1c8d0f7d49e4b9874e87f629dd5f4e8fc447e9e9dc2019064df2715c5dc7776",
+  "primary_unit": "scenario_chain",
+  "bootstrap_resamples": 10000,
+  "comparisons": {
+    "B0_DIRECT_CHEAP_VS_B2_CGNK_CURRENT": {"difference_pp": 0.0, "ci95_low_pp": 0.0, "ci95_high_pp": 0.0, "direct_only": 0, "cgnk_only": 0, "mcnemar_exact_two_sided_p": 1.0},
+    "B1_DIRECT_CHEAP_WITH_FLAT_STATE_VS_B2_CGNK_CURRENT": {"difference_pp": 5.556, "ci95_low_pp": 0.0, "ci95_high_pp": 16.667, "direct_only": 0, "cgnk_only": 1, "mcnemar_exact_two_sided_p": 1.0}
+  },
+  "family_results": {
+    "W1_STATE_CONTINUITY": {"B0": "3/3", "B1": "3/3", "B2": "3/3", "b0_context_chars_mean": 2153, "b2_context_chars_mean": 2602, "b0_rework_mean": 8, "b2_rework_mean": 6},
+    "W2_EVIDENCE_PROVENANCE": {"B0": "3/3", "B1": "3/3", "B2": "3/3", "b0_context_chars_mean": 3920, "b2_context_chars_mean": 4414, "b0_rework_mean": 14, "b2_rework_mean": 14},
+    "W3_KNOWLEDGE_UPDATE_SUPERSESSION": {"B0": "3/3", "B1": "3/3", "B2": "3/3", "b0_context_chars_mean": 2725, "b2_context_chars_mean": 2275, "b0_rework_mean": 10, "b2_rework_mean": 4},
+    "W4_REPAIR_CONTINUITY": {"B0": "3/3", "B1": "2/3", "B2": "3/3", "b0_context_chars_mean": 3781, "b2_context_chars_mean": 4353, "b0_rework_mean": 10, "b2_rework_mean": 10},
+    "W5_CAPABILITY_REUSE_COMPOSITION": {"B0": "3/3", "B1": "3/3", "B2": "3/3", "b0_context_chars_mean": 2601, "b2_context_chars_mean": 3252, "b0_rework_mean": 7, "b2_rework_mean": 7},
+    "W6_MIXED_LONG_HORIZON_PROJECT": {"B0": "3/3", "B1": "3/3", "B2": "3/3", "b0_context_chars_mean": 5117, "b2_context_chars_mean": 4857, "b0_rework_mean": 16, "b2_rework_mean": 12}
+  },
+  "limitations": [
+    "Eighteen chains provide directional evidence rather than statistical significance.",
+    "Episode observations within a chain are not independent statistical units.",
+    "One run per route and chain does not estimate provider nondeterminism.",
+    "The internal workload tests controlled state/evidence continuity and is not a public benchmark."
+  ]
+}

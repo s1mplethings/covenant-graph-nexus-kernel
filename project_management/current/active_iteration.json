@@ -5,7 +5,7 @@
   "project_id": "cgnk",
   "goal": "Identify the tasks on which CGNK adds value beyond direct cheap-model execution and safely decompose the Knowledge store/persistence/internalization dependency cycle without changing authority or public behavior.",
   "backlog_item_ids": ["PB-033"],
-  "workflow_state": "active",
+  "workflow_state": "closed",
   "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
     "12 development and 18 frozen formal scenario chains compare Direct Cheap, Direct Cheap with Flat State, and current CGNK using the same cheap model and underlying facts",
@@ -36,16 +36,20 @@
     "research/release-058/preregistration.md",
     "research/release-058/knowledge_boundary_audit.md",
     "research/release-058/development_summary.json",
-    "research/release-058/public_benchmark_preflight.json"
+    "research/release-058/public_benchmark_preflight.json",
+    "research/release-058/formal_summary.json",
+    "research/release-058/statistical_analysis.json",
+    "research/release-058/claim_ledger.json",
+    "research/release-058/technical_report.md"
   ],
   "review": {
-    "outcome": "pending",
-    "feedback": ["Development evidence is complete; formal holdout and final regression remain pending."],
-    "accepted_backlog_item_ids": []
+    "outcome": "accepted_with_limits",
+    "feedback": ["Formal B0 and B2 both passed 18/18 chains, so full CGNK necessity is not proven; SCC decomposition and localized rework benefit are accepted."],
+    "accepted_backlog_item_ids": ["PB-033"]
   },
   "retrospective": {
     "worked": ["Development-only evaluator audit removed three false-failure mechanisms before formal freeze."],
     "did_not_work": ["The first regression retained an architecture test that required the known SCC to remain unchanged."],
-    "experiments": ["Development B0 and B2 both completed 12/12 chains; formal necessity evidence remains pending."]
+    "experiments": ["Formal B0=18/18, B1=17/18, B2=18/18; B2 reduced rework 18.5% without a success gain over B0. Keep Router dormant and investigate a smaller supersession/mixed-chain state substrate before adding architecture."]
   }
 }

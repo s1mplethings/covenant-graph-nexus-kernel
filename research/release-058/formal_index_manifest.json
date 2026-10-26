@@ -1,0 +1,13 @@
+{
+  "kind": "ITER058FormalIndexManifest",
+  "schema_version": "1.0",
+  "batch_id": "formal-2b49c274-c9b19925",
+  "source_closure": "a2c7720fb176ba8aa913016dd166e98221282afd",
+  "relative_runtime_path": "artifacts/release-058-formal-runtime/formal-2b49c274-c9b19925/index.json",
+  "release_asset_name": "iter-058-formal-index.json",
+  "bytes": 527910,
+  "sha256": "sha256:9ac894f97168e86ade4b456b15025eb2838867686de99d09c70c81442f4b2a7a",
+  "contains_credentials": false,
+  "contains_hidden_gold": false,
+  "redistribution": "GitHub release asset; raw provider transport text and runtime workspaces excluded"
+}

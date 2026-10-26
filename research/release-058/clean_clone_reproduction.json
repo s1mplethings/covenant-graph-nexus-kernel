@@ -1,0 +1,14 @@
+{
+  "kind": "ITER058CleanCloneReproduction",
+  "schema_version": "1.0",
+  "status": "PASS",
+  "source_closure": "a2c7720fb176ba8aa913016dd166e98221282afd",
+  "clone_mode": "https clean clone with detached Source Closure checkout",
+  "environment": "new isolated venv",
+  "editable_install": "PASS",
+  "compileall": "PASS",
+  "product_direction_gate": "PASS",
+  "canonical_version_gate": "PASS",
+  "focused_release_tests": {"passed": 12, "failed": 0, "errors": 0},
+  "note": "The clean clone validated committed Source Closure code; formal evidence is bound separately by hashes."
+}
