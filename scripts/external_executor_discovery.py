@@ -28,7 +28,7 @@ from typing import Any, Callable, Iterable, Mapping
 
 
 SCHEMA_VERSION = "1.0"
-USER_AGENT = "CGNK/0.2.0-rc.3"
+USER_AGENT = "CGNK/0.2.0-rc.4"
 HTTP_TIMEOUT_SECONDS = 10
 MAX_RESPONSE_BYTES = 1_000_000
 MAX_QUERIES = 5

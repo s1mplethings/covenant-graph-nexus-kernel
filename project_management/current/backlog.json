@@ -2,7 +2,7 @@
   "kind": "CGKNCurrentBacklog",
   "schemaVersion": "3",
   "project": "CGNK",
-  "current_item_id": "PB-032",
+  "current_item_id": "PB-033",
   "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
   "verification_status": "PASS_WITH_LIMITS",
   "product_authority": [
@@ -12,6 +12,21 @@
     "governance/current_architecture.json"
   ],
   "items": [
+    {
+      "id": "PB-033",
+      "title": "Establish CGNK necessity boundaries and decompose the Knowledge SCC",
+      "priority": 33,
+      "state": "in_progress",
+      "value": "Replace broad architecture assumptions with paired long-horizon evidence while reducing Knowledge coupling without changing authority.",
+      "acceptance": [
+        "same-model B0/B1/B2 comparison on frozen scenario chains",
+        "family-specific necessity verdicts and honest negative results",
+        "zero cyclic Knowledge SCCs with unchanged schema and public behavior",
+        "formal source immutability and full regression",
+        "Router and Multi-Agent remain dormant"
+      ],
+      "evidence_status": "DEVELOPMENT_PASS_FORMAL_PENDING"
+    },
     {
       "id": "PB-032",
       "title": "Normalize release hygiene and gate simple architecture admission",

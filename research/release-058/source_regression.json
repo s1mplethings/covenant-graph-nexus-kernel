@@ -1,0 +1,18 @@
+{
+  "kind": "ITER058SourceRegression",
+  "schema_version": "1.0",
+  "status": "PASS",
+  "profile_receipt_sha256": "sha256:75d4e38130db103f18de69d8bfca5f65676114f89b235ede8e1d600d95fb6948",
+  "profiles": [
+    {"profile": "static", "status": "PASS", "passed": 0, "failed": 0, "errors": 0, "skipped": 0, "duration_ms": 21880},
+    {"profile": "unit", "status": "PASS", "passed": 482, "failed": 0, "errors": 0, "skipped": 1, "duration_ms": 219051},
+    {"profile": "boundary", "status": "PASS", "passed": 325, "failed": 0, "errors": 0, "skipped": 1, "duration_ms": 162182},
+    {"profile": "fault", "status": "PASS", "passed": 80, "failed": 0, "errors": 0, "skipped": 0, "duration_ms": 8544},
+    {"profile": "security", "status": "PASS", "passed": 119, "failed": 0, "errors": 0, "skipped": 1, "duration_ms": 109550},
+    {"profile": "local-functional", "status": "PASS", "passed": 6, "failed": 0, "errors": 0, "skipped": 0, "duration_ms": 22671},
+    {"profile": "full-core", "status": "PASS", "passed": 482, "failed": 0, "errors": 0, "skipped": 1, "duration_ms": 204105},
+    {"profile": "active-repository", "status": "PASS", "passed": 3022, "failed": 0, "errors": 0, "skipped": 363, "duration_ms": 1446479}
+  ],
+  "collection": {"status": "PASS", "failed": 0, "errors": 0},
+  "final": {"passed": 3022, "failed": 0, "errors": 0, "skipped": 363}
+}

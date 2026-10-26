@@ -1,64 +1,51 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-057",
+  "iteration_id": "ITER-058",
   "project_id": "cgnk",
-  "goal": "Normalize the public CGNK release identity, bind history audits to an explicit Source Closure, and use the ITER-056 paired oracle as an anti-overengineering gate before any architecture admission Router implementation.",
-  "backlog_item_ids": ["PB-032"],
-  "workflow_state": "closed",
+  "goal": "Identify the tasks on which CGNK adds value beyond direct cheap-model execution and safely decompose the Knowledge store/persistence/internalization dependency cycle without changing authority or public behavior.",
+  "backlog_item_ids": ["PB-033"],
+  "workflow_state": "active",
   "evidence_status": "PASS_WITH_LIMITS",
   "acceptance_criteria": [
-    "public branding consistently uses CGNK while the cgkn Python namespace and legacy machine identifiers remain compatible",
-    "history audit reports the exact scope commit, unique reachable blob count, policy, and result hash",
-    "main advances from the validated release lineage without force push or history rewrite and becomes the GitHub default branch",
-    "the ITER-056 B0/B4 paired oracle is reproduced before any Router implementation",
-    "Router V1 is implemented only if the frozen opportunity gate authorizes it",
+    "12 development and 18 frozen formal scenario chains compare Direct Cheap, Direct Cheap with Flat State, and current CGNK using the same cheap model and underlying facts",
+    "formal results report paired chain outcomes and family-specific necessity verdicts without treating episodes as independent",
+    "the Knowledge conceptual SCC is either safely removed with unchanged schema/API/authority/recovery behavior or explicitly retained",
+    "Router and Multi-Agent remain unimplemented",
     "full repository regression finishes with zero failures and zero errors before release"
   ],
   "quality_metrics": [
-    {"id": "QM-057-NAME", "measure": "strict public naming findings", "target": "0", "method": "deterministic naming audit"},
-    {"id": "QM-057-AUDIT", "measure": "release-blocking compliance findings", "target": "0 P0", "method": "scope-bound current/history audit"},
-    {"id": "QM-057-ORACLE", "measure": "oracle gain over Always Direct Cheap", "target": ">=5pp to authorize Router V1", "method": "paired 72-task analysis"},
-    {"id": "QM-057-REGRESSION", "measure": "repository failures/errors", "target": "0/0", "method": "required profiles and full pytest"}
+    {"id": "QM-058-NECESSITY", "measure": "paired formal chain outcomes", "target": "honest family-specific verdicts", "method": "18-chain frozen holdout"},
+    {"id": "QM-058-PROVENANCE", "measure": "episode provenance accuracy", "target": "reported by baseline", "method": "hidden evidence-ID evaluator"},
+    {"id": "QM-058-SCC", "measure": "Knowledge cyclic SCC count", "target": "0 without public/schema/authority change", "method": "deterministic architecture audit and compatibility tests"},
+    {"id": "QM-058-REGRESSION", "measure": "repository failures/errors", "target": "0/0", "method": "required gates, profiles, and full pytest"}
   ],
   "quality_activities": {
-    "prevention": ["preserve the rc.2 tag", "do not rename the Python package", "freeze machine identifiers", "run oracle before implementation"],
-    "assurance": ["naming tests", "audit-scope tests", "paired oracle reproduction", "full regression"],
-    "control": ["canonical repository publisher", "no force push", "no new authority", "no Router after a failed opportunity gate"],
-    "improvement": ["make audit scope explicit", "keep architecture opt-in only when evidence supports it"]
+    "prevention": ["freeze formal holdout before Source Closure", "keep gold out of model packets", "preserve one Knowledge authority"],
+    "assurance": ["paired baseline tests", "migration and replay tests", "SCC audit", "full regression"],
+    "control": ["canonical repository publisher", "no force push", "no Router or Multi-Agent implementation", "formal source immutability"],
+    "improvement": ["fix evaluator defects only on development data", "remove the conceptual SCC through a pure projection boundary"]
   },
   "interface_expectations": [
-    "CGNK is the public name and cgkn remains the compatibility package namespace",
-    "legacy CGKN schema kinds remain stable machine identifiers",
-    "an admission policy, if authorized, may choose an execution level but cannot plan or change business behavior",
-    "CapabilityTree, ExecutionDAG, Knowledge, Registry, Runtime, State, and public-delivery authorities remain unchanged"
+    "ProjectKnowledgePack remains the Knowledge authority",
+    "segmented-v2 persistence, checkpoints, recovery, and v1 migration remain compatible",
+    "Direct baselines receive the same underlying public facts and model as CGNK",
+    "cgkn package and public delivery route remain unchanged"
   ],
   "evidence_refs": [
-    "research/release-057/oracle_analysis.json",
-    "research/release-057/history_audit_summary.json",
-    "research/release-057/regression_summary.json",
-    "project_management/summaries/ITER-057-release-hygiene-simple-routing.md"
+    "research/release-058/preregistration.md",
+    "research/release-058/knowledge_boundary_audit.md",
+    "research/release-058/development_summary.json",
+    "research/release-058/public_benchmark_preflight.json"
   ],
   "review": {
-    "outcome": "accepted_with_limits",
-    "feedback": [
-      "Public naming and audit scope are consistent and release-ready.",
-      "The paired oracle provides no architecture-only successes, so Router V1 and a fresh holdout were correctly stopped.",
-      "The Knowledge persistence/internalization cycle remains a bounded P1 follow-up rather than a hygiene-release refactor."
-    ],
-    "accepted_backlog_item_ids": ["PB-032"]
+    "outcome": "pending",
+    "feedback": ["Development evidence is complete; formal holdout and final regression remain pending."],
+    "accepted_backlog_item_ids": []
   },
   "retrospective": {
-    "worked": [
-      "The oracle-first gate prevented unsupported Router implementation.",
-      "Explicit commit-scoped history scanning removed ambiguity from mutable --all scans.",
-      "Canonical publication preserved normal push and remote-SHA verification."
-    ],
-    "did_not_work": [
-      "The first frozen regression exposed stale experiment-boundary receipt assumptions and two metadata test mismatches; all were corrected before final evidence."
-    ],
-    "experiments": [
-      "Always Direct Cheap and Optimized CGNK had no complementary architecture-only successes in 72 paired ITER-056 cases."
-    ]
+    "worked": ["Development-only evaluator audit removed three false-failure mechanisms before formal freeze."],
+    "did_not_work": ["The first regression retained an architecture test that required the known SCC to remain unchanged."],
+    "experiments": ["Development B0 and B2 both completed 12/12 chains; formal necessity evidence remains pending."]
   }
 }

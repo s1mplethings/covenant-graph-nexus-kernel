@@ -25,8 +25,8 @@ def test_review_candidate_versions_are_aligned() -> None:
         (ROOT / "governance" / "current_architecture.json").read_text(encoding="utf-8")
     )
 
-    assert repository_version == "0.2.0-rc.3"
+    assert repository_version == "0.2.0-rc.4"
     assert architecture["product_version"] == repository_version
     assert plugin["version"].startswith(f"{repository_version}+codex.")
-    assert '__version__ = "0.2.0rc3"' in agent_init
-    assert re.search(r'^SERVER_VERSION = "0\.2\.0-rc\.3"$', server, re.MULTILINE)
+    assert '__version__ = "0.2.0rc4"' in agent_init
+    assert re.search(r'^SERVER_VERSION = "0\.2\.0-rc\.4"$', server, re.MULTILINE)

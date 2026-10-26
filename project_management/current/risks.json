@@ -3,6 +3,15 @@
   "schema_version": "3.0",
   "risks": [
     {
+      "id": "R-MVP-021",
+      "title": "CGNK orchestration may add context and complexity without creating architecture-only successes",
+      "probability": "high",
+      "impact": "high",
+      "signal": "Paired essential workloads show no repeatable CGNK_ONLY chains against Direct Cheap, or CGNK failures arise from retrieval, state mismatch, or protocol overhead.",
+      "response": "Keep Direct Cheap as a first-class baseline, report necessity per workload family, require frozen paired evidence before reopening routing research, and do not implement Router or Multi-Agent from development-only results.",
+      "owner": "product architecture"
+    },
+    {
       "id": "R-MVP-020",
       "title": "Persistent Persona could drift, fabricate social history, overpersonalize, or bypass public-write authority",
       "probability": "low",

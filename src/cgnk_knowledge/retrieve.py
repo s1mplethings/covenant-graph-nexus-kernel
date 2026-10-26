@@ -16,11 +16,14 @@ _STOPWORDS = {
 
 
 def _terms(value: Any) -> set[str]:
-    return {
-        token.casefold()
-        for token in _TOKEN.findall(str(value or ""))
-        if len(token) > 1 and token.casefold() not in _STOPWORDS
-    }
+    terms: set[str] = set()
+    for token in _TOKEN.findall(str(value or "")):
+        folded = token.casefold()
+        normalized = folded.strip(".+-")
+        for candidate in (folded, normalized):
+            if len(candidate) > 1 and candidate not in _STOPWORDS:
+                terms.add(candidate)
+    return terms
 
 
 def relevance_terms(item: dict[str, Any], query: dict[str, Any]) -> tuple[set[str], set[str]]:
@@ -44,11 +47,13 @@ def _exclude_reason(item: dict[str, Any], query: dict[str, Any]) -> str | None:
         return "derived_stale"
     status = item.get("status", "active")
     retention = item.get("retention", "keep")
-    if status == "superseded":
+    if status == "superseded" and not query.get("include_superseded"):
         return "superseded"
     if status == "retracted":
         return "retracted"
-    if item.get("review_state") == "rejected":
+    if item.get("review_state") == "rejected" and not (
+        status == "superseded" and query.get("include_superseded")
+    ):
         return "rejected"
     if retention == "discard":
         return "discard"

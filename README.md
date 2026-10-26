@@ -10,7 +10,7 @@ CGNK-owned source and documentation are available under the
 and separately deployed services retain their own licenses; see
 [Third-party licenses and provenance](docs/THIRD_PARTY_LICENSES.md).
 
-This repository is a **Research Preview**. The 0.2.0-rc.3 release has a clean
+This repository is a **Research Preview**. The 0.2.0-rc.4 release has a clean
 install reproduction, 3,001 passing tests, and a preregistered cross-domain
 evaluation. It is not a claim of production readiness or benchmark SOTA. See
 [Architecture](docs/ARCHITECTURE.md), [Benchmarks](docs/BENCHMARKS.md), and

@@ -1,0 +1,21 @@
+{
+  "kind": "CGKNITER058DevelopmentSummary",
+  "schema_version": "1.0",
+  "status": "PASS_DEVELOPMENT_ONLY",
+  "workload_manifest_hash": "sha256:1be5009ff4b58e4208fd0045081a6b42500ef5f12ff4dd3211a510121de1111d",
+  "valid_batch_id": "development-4ee8fd54-be285716",
+  "invalid_diagnostic_batch_id": "development-4ee8fd54-ce421dd7",
+  "invalid_diagnostic_reason": "development evaluator treated semantically equivalent plus notation, reuse action, and explicit stale-history explanation as failures",
+  "by_baseline": {
+    "B0_DIRECT_CHEAP": {"chains": 12, "chain_successes": 12, "episodes": 60, "episode_successes": 60, "input_tokens": 30752, "output_tokens": 5292, "context_chars": 40594, "repeated_context_sources": 130, "provenance_accuracy": 1.0, "state_consistency": 1.0},
+    "B1_DIRECT_CHEAP_WITH_FLAT_STATE": {"chains": 12, "chain_successes": 11, "episodes": 60, "episode_successes": 59, "input_tokens": 52116, "output_tokens": 5463, "context_chars": 110954, "repeated_context_sources": 130, "provenance_accuracy": 0.9833333333333334, "state_consistency": 1.0},
+    "B2_CGNK_CURRENT": {"chains": 12, "chain_successes": 12, "episodes": 60, "episode_successes": 60, "input_tokens": 31382, "output_tokens": 5392, "context_chars": 43506, "repeated_context_sources": 106, "provenance_accuracy": 1.0, "state_consistency": 1.0}
+  },
+  "paired": {
+    "B0_DIRECT_CHEAP_VS_B2_CGNK_CURRENT": {"BOTH_PASS": 12, "DIRECT_ONLY": 0, "CGNK_ONLY": 0, "BOTH_FAIL": 0},
+    "B1_DIRECT_CHEAP_WITH_FLAT_STATE_VS_B2_CGNK_CURRENT": {"BOTH_PASS": 11, "DIRECT_ONLY": 0, "CGNK_ONLY": 1, "BOTH_FAIL": 0}
+  },
+  "result_hash": "sha256:9f19d43c3f696c39cee90bc17bbf2ea637e8292ea53a38b54b066fbdfdc60106",
+  "interpretation": "B2 matched B0 on all development chains, used 7.1% more input tokens than B0, and repeated 18.5% fewer context sources. B1 used materially more context and had one provenance failure. No B2-over-B0 necessity claim is supported by development data."
+}
+

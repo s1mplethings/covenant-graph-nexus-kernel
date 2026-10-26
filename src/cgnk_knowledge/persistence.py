@@ -13,6 +13,14 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from typing import Any, Callable, Iterable, Mapping, Protocol, Sequence
 
+from .projection import (
+    _append_index_entry as append_index_entry,
+    _rebuild_pack_buckets as rebuild_pack_buckets,
+    _rebuild_pack_indexes as rebuild_pack_indexes,
+    _replace_index_content as replace_index_content,
+    _sync_pack_buckets as sync_pack_buckets,
+)
+
 
 FORMAT_VERSION = "2.0"
 MANIFEST_KIND = "ProjectKnowledgePersistenceManifest"
@@ -115,6 +123,14 @@ def clone_pack(value: Mapping[str, Any]) -> TrackedKnowledgePack:
     if isinstance(value, TrackedKnowledgePack):
         pack._pending_mutations = copy.deepcopy(value._pending_mutations)
     return pack
+
+
+def _load_legacy_pack_document(path: str | pathlib.Path) -> TrackedKnowledgePack:
+    """Read the compatible v1 document without depending on the store facade."""
+    data = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
+    if not isinstance(data, dict) or data.get("kind") != "ProjectKnowledgePack":
+        raise ValueError("legacy ProjectKnowledgePack document is invalid")
+    return tracked_pack(rebuild_pack_indexes(data))
 
 
 def attach_pending_mutation(pack: Mapping[str, Any], mutation: Mapping[str, Any] | None) -> None:
@@ -507,8 +523,6 @@ def _materialize(
     phases: dict[str, float] | None = None,
     take_ownership: bool = False,
 ) -> dict[str, Any]:
-    from .store import rebuild_pack_buckets, rebuild_pack_indexes
-
     phase = time.perf_counter()
     pack = dict(projection) if take_ownership else dict(copy.deepcopy(projection))
     if phases is not None:
@@ -567,8 +581,6 @@ def _apply_record(projection: dict[str, Any] | None, record: Mapping[str, Any], 
 
 def _apply_record_to_materialized(pack: dict[str, Any], record: Mapping[str, Any], pack_id: str) -> None:
     """Apply a tail record without rebuilding the checkpoint's global index."""
-    from .internalization import _append_index, _replace_index_content, _sync_buckets
-
     if str(record.get("target_identity", "")) != pack_id or record.get("operation") == "INITIALIZE":
         raise KnowledgePersistenceError("INVALID_CHECKPOINT_TAIL_RECORD", str(record.get("sequence", "")))
     payload = dict(record.get("payload", {}))
@@ -587,17 +599,17 @@ def _apply_record_to_materialized(pack: dict[str, Any], record: Mapping[str, Any
             position = int(index["by_id"][item_id])
             old = all_items[position]
             all_items[position] = value
-            _replace_index_content(index, old, value)
+            replace_index_content(index, old, value)
         else:
             position = len(all_items)
             all_items.append(value)
-            _append_index(index, value, position)
+            append_index_entry(index, value, position)
         changed[item_id] = value
     pack.update({key: copy.deepcopy(value) for key, value in metadata.items()})
     pack["all_items"] = all_items
     index["pack_revision"] = int(pack.get("knowledge_revision", 0))
     index["item_count"] = len(all_items)
-    _sync_buckets(pack, index, changed)
+    sync_pack_buckets(pack, index, changed)
 
 
 class SegmentedKnowledgeStore:
@@ -1209,14 +1221,12 @@ def detect_persistence_format(path: str | pathlib.Path) -> str:
 def migrate_legacy_pack(
     source: str | pathlib.Path, target: str | pathlib.Path, *, policy: PersistencePolicy = DEFAULT_POLICY,
 ) -> dict[str, Any]:
-    from .store import load_legacy_project_knowledge
-
     source_path, target_path = pathlib.Path(source), pathlib.Path(target)
     if detect_persistence_format(source_path) != "1":
         raise KnowledgePersistenceError("MIGRATION_SOURCE_NOT_LEGACY", str(source_path))
     if target_path.exists():
         raise KnowledgePersistenceError("MIGRATION_TARGET_EXISTS", str(target_path))
-    legacy = load_legacy_project_knowledge(source_path)
+    legacy = _load_legacy_pack_document(source_path)
     before_hash = project_knowledge_semantic_hash(legacy)
     temporary = target_path.with_name(f".{target_path.name}.migration-{uuid.uuid4().hex}.tmp")
     started = time.perf_counter()
@@ -1243,10 +1253,8 @@ def migrate_legacy_pack(
 
 
 def rollback_legacy_migration(source: str | pathlib.Path, target: str | pathlib.Path) -> dict[str, Any]:
-    from .store import load_legacy_project_knowledge
-
     source_path, target_path = pathlib.Path(source), pathlib.Path(target)
-    legacy = load_legacy_project_knowledge(source_path)
+    legacy = _load_legacy_pack_document(source_path)
     store = SegmentedKnowledgeStore(target_path)
     migrated = store.load()
     source_hash, target_hash = project_knowledge_semantic_hash(legacy), project_knowledge_semantic_hash(migrated)

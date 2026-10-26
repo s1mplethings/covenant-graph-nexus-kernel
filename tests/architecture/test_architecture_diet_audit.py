@@ -17,7 +17,7 @@ def test_inventory_is_deterministic_and_complete() -> None:
     baseline = audit_module.audit(audit_module.BASELINE)
     assert first == second
     assert first["metrics"]["production_module_count"] == len(first["module_inventory"])
-    assert first["metrics"]["cyclic_scc_count"] == baseline["metrics"]["cyclic_scc_count"]
+    assert first["metrics"]["cyclic_scc_count"] <= baseline["metrics"]["cyclic_scc_count"]
     required = {
         "purpose", "authority", "public_symbols", "incoming_dependencies",
         "outgoing_dependencies", "runtime_usage", "test_usage",

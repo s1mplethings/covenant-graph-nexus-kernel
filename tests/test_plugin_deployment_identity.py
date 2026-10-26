@@ -61,7 +61,7 @@ def test_p05_p08_manifest_and_runtime_identity_are_safe_and_distinguishable() ->
     root = pathlib.Path(__file__).resolve().parents[1]
     manifest = json.loads((root / "plugins/cgkn/.codex-plugin/plugin.json").read_text(encoding="utf-8"))
     server = (root / "plugins/cgkn/scripts/cgkn_mcp_server.py").read_text(encoding="utf-8")
-    assert manifest["version"] == "0.2.0-rc.3+codex.20261026080000"
+    assert manifest["version"] == "0.2.0-rc.4+codex.20261026170000"
     assert 'artifacts["runtime_identity"]' in server
     assert "server_sha256" in server and "repository_revision" in server
     assert "API_KEY" not in json.dumps(manifest)

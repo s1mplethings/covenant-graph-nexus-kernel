@@ -1,0 +1,26 @@
+{
+  "kind": "CGKNPublicBenchmarkEnvironmentPreflight",
+  "schema_version": "1.0",
+  "captured_at": "2026-10-26",
+  "provider_call_made": false,
+  "benchmarks": [
+    {
+      "id": "TUA-Bench",
+      "status": "ENVIRONMENT_BLOCKED",
+      "reason": "Docker Desktop Linux engine pipe is unavailable; no container or evaluator run was attempted."
+    },
+    {
+      "id": "LongMemEval-V2",
+      "status": "ENVIRONMENT_BLOCKED",
+      "local_revision": "2cc8c540bdb87fe6761629b585e727e1c4704520",
+      "reason": "Official repository is present, but the available Python runtimes do not match the previously frozen official environment and required model/data endpoints were not provisioned."
+    },
+    {
+      "id": "BFCL-V4",
+      "status": "ENVIRONMENT_BLOCKED",
+      "local_revision": "f7cf7359b7ac615a0b294831c5ba2bc95ee4a000",
+      "reason": "Official repository is present, but the host has Python 3.12/3.13 rather than the frozen Python 3.10 environment."
+    }
+  ],
+  "conclusion": "No public benchmark is executed in ITER-058; environment blocking does not affect the internal essential-workload result."
+}

@@ -7,12 +7,14 @@ from enum import Enum
 from typing import Any, Callable, Mapping
 
 from .normalize import normalize_text, stable_hash_for
-from .store import (
+from .persistence import attach_pending_mutation, build_pack_mutation
+from .projection import (
     ACTIVE_BUCKETS,
-    attach_pending_mutation,
-    build_knowledge_index,
-    build_pack_mutation,
-    knowledge_index_is_current,
+    _append_index_entry as _append_index,
+    _build_knowledge_index as build_knowledge_index,
+    _knowledge_index_is_current as knowledge_index_is_current,
+    _replace_index_content,
+    _sync_pack_buckets as _sync_buckets,
 )
 
 
@@ -96,108 +98,6 @@ def _ensure_index(pack: dict[str, Any]) -> tuple[dict[str, Any], int]:
         return pack["knowledge_index"], 0
     pack["knowledge_index"] = build_knowledge_index(pack)
     return pack["knowledge_index"], len(pack.get("all_items", ()))
-
-
-def _append_index(index: dict[str, Any], item: Mapping[str, Any], position: int) -> None:
-    item_id = str(item["id"])
-    index.setdefault("by_id", {})[item_id] = position
-    for field, mapping_name in (
-        ("content_hash", "by_content_hash"),
-        ("subject_ref", "by_subject_ref"),
-        ("branch_ref", "by_branch_ref"),
-    ):
-        value = str(item.get(field, ""))
-        if value:
-            values = index.setdefault(mapping_name, {}).setdefault(value, [])
-            if item_id not in values:
-                values.append(item_id)
-                values.sort()
-    terms = {
-        token.casefold()
-        for token in re.findall(
-            r"[A-Za-z0-9_.+-]+|[\u3400-\u9fff]+",
-            " ".join((str(item.get("id", "")), str(item.get("title", "")), str(item.get("content", "")),
-                       " ".join(map(str, item.get("tags", ()))), str(item.get("subject_ref", "")),
-                       str(item.get("branch_ref", "")))),
-        )
-        if len(token) > 1
-    }
-    for term in terms:
-        values = index.setdefault("by_term", {}).setdefault(term, [])
-        if item_id not in values:
-            values.append(item_id)
-            values.sort()
-    if _derived(item):
-        if item_id not in index.setdefault("derived_ids", []):
-            index["derived_ids"].append(item_id)
-            index["derived_ids"].sort()
-        for dependency_id in item.get("source_refs", ()):
-            values = index.setdefault("dependents", {}).setdefault(str(dependency_id), [])
-            if item_id not in values:
-                values.append(item_id)
-                values.sort()
-
-
-def _replace_index_content(index: dict[str, Any], old: Mapping[str, Any], new: Mapping[str, Any]) -> None:
-    item_id = str(new["id"])
-    old_hash = str(old.get("content_hash", ""))
-    new_hash = str(new.get("content_hash", ""))
-    if old_hash != new_hash:
-        old_values = index.get("by_content_hash", {}).get(old_hash, [])
-        index.get("by_content_hash", {})[old_hash] = [value for value in old_values if value != item_id]
-        index.setdefault("by_content_hash", {}).setdefault(new_hash, []).append(item_id)
-    # Content changes are cold-path events, so rebuilding only the term map is
-    # acceptable and keeps query behavior exact without rebuilding abstractions.
-    index["by_term"] = build_knowledge_index({"all_items": [new], "knowledge_revision": 0})["by_term"] | {
-        key: [value for value in values if value != item_id]
-        for key, values in index.get("by_term", {}).items()
-        if any(value != item_id for value in values)
-    }
-    _append_index(index, new, int(index["by_id"][item_id]))
-
-
-def _sync_buckets(pack: dict[str, Any], index: dict[str, Any], changed: Mapping[str, Mapping[str, Any]]) -> int:
-    """Update compatibility buckets by indexed position, touching changed nodes only."""
-    bucket_names = (*ACTIVE_BUCKETS.values(), "archived_items", "discarded_items")
-    positions = index.setdefault("bucket_positions", {})
-    for bucket in bucket_names:
-        positions.setdefault(
-            bucket,
-            {str(item.get("id")): position for position, item in enumerate(pack.get(bucket, ())) if item.get("id")},
-        )
-
-    def desired(item: Mapping[str, Any]) -> set[str]:
-        values: set[str] = set()
-        active_bucket = ACTIVE_BUCKETS.get(item.get("type"))
-        if active_bucket and _active(item):
-            values.add(active_bucket)
-        if item.get("status") in {"archived", "superseded", "retracted"} or item.get("retention") == "archive":
-            values.add("archived_items")
-        if item.get("retention") == "discard":
-            values.add("discarded_items")
-        return values
-
-    operations = 0
-    for item_id, item in changed.items():
-        desired_buckets = desired(item)
-        current_buckets = {bucket for bucket in bucket_names if item_id in positions[bucket]}
-        for bucket in current_buckets - desired_buckets:
-            rows = pack.setdefault(bucket, [])
-            position = int(positions[bucket].pop(item_id))
-            last = rows.pop()
-            if position < len(rows):
-                rows[position] = last
-                positions[bucket][str(last["id"])] = position
-            operations += 1
-        for bucket in current_buckets & desired_buckets:
-            pack[bucket][int(positions[bucket][item_id])] = dict(item)
-            operations += 1
-        for bucket in desired_buckets - current_buckets:
-            rows = pack.setdefault(bucket, [])
-            positions[bucket][item_id] = len(rows)
-            rows.append(dict(item))
-            operations += 1
-    return operations
 
 
 def _relation_for(
