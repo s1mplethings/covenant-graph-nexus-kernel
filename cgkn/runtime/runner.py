@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from cgkn.telemetry.lean import ACTIVE, observed, analysis_cost
+
 import importlib
 import json
 import pathlib
@@ -77,6 +79,7 @@ class ArtifactModuleRunner:
                 if artifact:
                     self._outputs[(node_id, port)] = artifact.ref
 
+    @observed(lambda a: a["self"].flow_ref, lambda a: a["self"].run_dir, expose=True)
     def run(
         self,
         flow_inputs: dict[str, ArtifactRef],
@@ -137,6 +140,7 @@ class ArtifactModuleRunner:
         output_refs: list[ArtifactRef] = []
         cache_hit = False
         evidence_refs: tuple[str, ...] = ()
+        lean_observation = None
         try:
             inputs = self._resolve_inputs(node_id, flow_inputs)
             execution.start(inputs.values())
@@ -182,10 +186,32 @@ class ArtifactModuleRunner:
             implementation = module["implementation"]
             prompt_version = implementation.get("promptVersion")
             execution.execution_fingerprint = execution_fingerprint(spec.ref, node.get("config", {}), inputs.values(), prompt_version, self.flow["policy_ref"])
+            function = None
+            lean_scope=ACTIVE.get()
+            if lean_scope and lean_scope.mode!='OFF' and not lean_scope.disabled and implementation.get('lean_input_only') and implementation['kind']=='local_function':
+                with analysis_cost():
+                    from cgkn.telemetry.lean_policy import artifact_identity
+                    from cgkn.telemetry.lean import source_identity
+                    function=self.local_functions.get(implementation.get('entrypoint')) or self._import_callable(implementation['entrypoint'])
+                    implementation_hash=source_identity(function)
+                    lean_observation={'semantic_identity':artifact_identity(module,node,inputs,function,self.flow['policy_ref'],implementation_hash=implementation_hash),
+                        'pure_inputs':not any(module.get('effects',{}).values()),
+                        'implementation_hash':implementation_hash,
+                        'component_contract_hash':__import__('cgkn.artifacts.hash',fromlist=['content_hash']).content_hash(module),
+                        'protections':module.get('metadata',{}).get('lean_protections',[])}
             cached = self.cache.lookup(node_id, execution.execution_fingerprint, self.store) if implementation.get("cacheable", True) else None
+            shared = None
+            if not cached and function and lean_observation:
+                from cgkn.telemetry.lean_policy import artifact_reuse
+                with analysis_cost():
+                    shared=artifact_reuse(self,module,node,inputs,lean_observation['semantic_identity'],function)
             if cached:
                 output_refs = cached
                 cache_hit = True
+            elif shared is not None:
+                output_refs=self._materialize_outputs(node,spec,module,inputs,ComponentResult(output_contents=shared))
+                self.cache.record(node_id,execution.execution_fingerprint,output_refs)
+                cache_hit=True
             else:
                 self.effects.consume_declared(dict(spec.effects), node_id=node_id, phase=str(node.get("config", {}).get("phase", "")), run=self.run_dir.name)
                 execution.effects_summary = dict(spec.effects)
@@ -211,9 +237,9 @@ class ArtifactModuleRunner:
             if execution.status.value == "pending":
                 execution.start(inputs.values())
             execution.fail(diagnostics)
-            self._record_checkpoint(execution.as_checkpoint())
+            self._record_checkpoint(execution.as_checkpoint(), lean_observation)
             raise ModuleExecutionError(str(exc), diagnostics) from exc
-        self._record_checkpoint(execution.as_checkpoint())
+        self._record_checkpoint(execution.as_checkpoint(), lean_observation)
         metrics = context_pack.get("metrics", {})
         self.feed_rows.append(
             {
@@ -263,7 +289,8 @@ class ArtifactModuleRunner:
         entrypoint = str(implementation.get("entrypoint", ""))
         if kind in {"local_function", "composite"}:
             function = self.local_functions.get(entrypoint) or self._import_callable(entrypoint)
-            return function(payload, {"contextPack": context_pack, "node": node, "module": module, "store": self.store}), {}
+            context = {} if implementation.get('lean_input_only') else {"contextPack": context_pack, "node": node, "module": module, "store": self.store}
+            return function(payload, context), {}
         if kind == "script":
             command = implementation.get("command")
             if not isinstance(command, list) or not command:
@@ -377,7 +404,7 @@ class ArtifactModuleRunner:
             raise ModuleExecutionError(f"local function entrypoint is not callable: {entrypoint}")
         return function
 
-    def _record_checkpoint(self, checkpoint: dict[str, Any]) -> None:
+    def _record_checkpoint(self, checkpoint: dict[str, Any], lean_observation=None) -> None:
         checkpoint["runId"] = self.run_dir.name
         path = write_checkpoint(self.run_dir, checkpoint)
         manifest = self._load_manifest()
@@ -385,6 +412,12 @@ class ArtifactModuleRunner:
         manifest["nodeCheckpoints"] = [item for item in manifest["nodeCheckpoints"] if item["nodeId"] != checkpoint["nodeId"]]
         manifest["nodeCheckpoints"].append(row)
         self._save_manifest(manifest)
+        try:
+            with analysis_cost():
+                from cgkn.telemetry.lean_policy import observe_artifact
+                observe_artifact(self,checkpoint,lean_observation)
+        except Exception as exc:
+            __import__('logging').getLogger(__name__).error('LEAN_OBSERVATION_FAILED: %s',type(exc).__name__)
 
     def _record_bypass(self, node_id: str, overrides: dict[tuple[str, str], ArtifactRef]) -> None:
         refs = [ref for (owner, _), ref in overrides.items() if owner == node_id]

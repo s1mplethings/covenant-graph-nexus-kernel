@@ -104,7 +104,7 @@ class OracleExecutor:
             status = OracleStatus.HARNESS_FAILURE
             failure_class = "HARNESS_FAILURE"
             observed = {"error": str(exc)}
-        return OracleEvidence(
+        evidence = OracleEvidence(
             evidence_id=f"EVIDENCE-{spec.oracle_id}",
             oracle_id=spec.oracle_id,
             obligation_ids=spec.obligation_ids,
@@ -118,6 +118,13 @@ class OracleExecutor:
             duration_ms=int((time.perf_counter() - started) * 1000),
             failure_class=failure_class,
         )
+        if os.environ.get('CGKN_LEAN_POLICY'):
+            try:
+                from cgkn.telemetry.lean_policy import review_oracle
+                review_oracle(evidence, root)
+            except Exception as exc:
+                __import__('logging').getLogger(__name__).error('LEAN_ORACLE_REVIEW_FAILED: %s',type(exc).__name__)
+        return evidence
 
     def _environment(self, operation: Mapping[str, Any]) -> dict[str, str]:
         allowed = set(str(item) for item in operation.get("env_allowlist", ())) | set(_SYSTEM_ENV)

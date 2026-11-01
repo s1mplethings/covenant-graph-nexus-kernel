@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import pathlib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from types import MappingProxyType
 from typing import Any, Mapping
@@ -45,7 +45,7 @@ class CGKNModelRouting:
         configs: dict[str, ModelRoleConfig] = {}
         for role in ("agent", "worker"):
             value = roles[role]
-            if not isinstance(value, dict) or set(value) - {"provider_id", "timeout_seconds", "max_output_tokens", "temperature", "reasoning_effort"}:
+            if not isinstance(value, dict) or set(value) - {"provider_id", "model_id", "timeout_seconds", "max_output_tokens", "temperature", "reasoning_effort"}:
                 raise ValueError(f"invalid {role} routing fields")
             provider_id = str(value.get("provider_id", "")).strip().lower()
             if provider_id not in allowed:
@@ -57,6 +57,7 @@ class CGKNModelRouting:
                 int(value.get("max_output_tokens", 6000)),
                 float(value.get("temperature", 0.0)),
                 str(value.get("reasoning_effort", "none")),
+                value.get("model_id"),
             )
         return cls(configs["agent"], configs["worker"], allowed, fallback)
 
@@ -64,6 +65,7 @@ class CGKNModelRouting:
         def role(config: ModelRoleConfig) -> dict[str, Any]:
             return {
                 "provider_id": config.model,
+                **({"model_id": config.model_id} if config.model_id else {}),
                 "timeout_seconds": config.timeout_seconds,
                 "max_output_tokens": config.max_output_tokens,
                 "temperature": config.temperature,
@@ -92,6 +94,7 @@ class CGKNModelRouting:
             run_id=str(run_id),
             roles=roles,
             actual_models=MappingProxyType({"agent": "", "worker": ""}),
+            requested_models=MappingProxyType({"agent": self.agent.model_id or "DEFAULT_BINDING", "worker": self.worker.model_id or "DEFAULT_BINDING"}),
             gateway_protocol=gateway_protocol,
             routing_config_hash=self.config_hash,
             limits=limits,
@@ -110,6 +113,7 @@ class ModelRoutingSnapshot:
     limits: Mapping[str, Mapping[str, int]]
     fallback: str
     created_at: str
+    requested_models: Mapping[str, str] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -118,6 +122,9 @@ class ModelRoutingSnapshot:
             "run_id": self.run_id,
             "roles": dict(self.roles),
             "actual_models": dict(self.actual_models),
+            "requested_models": dict(self.requested_models),
+            "bound_models": {k:(v if v!='DEFAULT_BINDING' else 'UNRESOLVED') for k,v in self.requested_models.items()},
+            "binding_policy": {"kind":"exact","aliases":[]},
             "gateway_protocol": self.gateway_protocol,
             "routing_config_hash": self.routing_config_hash,
             "limits": {key: dict(value) for key, value in self.limits.items()},

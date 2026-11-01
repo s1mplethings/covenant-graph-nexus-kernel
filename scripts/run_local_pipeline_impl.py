@@ -633,7 +633,11 @@ def mark_generation_progress(deadline: float | ProgressDeadline | None, phase: s
         deadline.mark_progress(phase, message, artifacts_written)
 
 
-def remaining_timeout(deadline: float | ProgressDeadline, requested: int, *, floor: int = 1, cap: int | None = None) -> int:
+def remaining_timeout(deadline: float | ProgressDeadline | None, requested: int, *, floor: int = 1, cap: int | None = None) -> int:
+    # Domestic streaming has no project-wide generation clock. Deterministic
+    # tools still receive their own finite operation limits.
+    if deadline is None:
+        return max(floor, min(int(requested), int(cap)) if cap is not None else int(requested))
     remaining = int(deadline_timestamp(deadline) - time.time())
     if remaining < floor:
         raise TimeoutError("generation deadline exhausted before starting next step")
@@ -8547,6 +8551,37 @@ def provider_text(
             target_file=target_file,
             requested_role="formal_provider",
         )
+    from cgkn.providers.application_network import settings as application_network_settings
+    application=application_network_settings()
+    if application:
+        from cgkn.providers.canonical_gateway_adapter import provider_text as gateway_provider_text
+        from cgkn.providers.routing import CGKNModelRouting
+        import copy
+        saved=CGKNModelRouting.load(application['model_routing'])
+        policy=copy.copy(routing_policy) if routing_policy else ProviderModelRoutingPolicy()
+        policy.small_model=saved.worker.model;policy.large_model=saved.agent.model
+        if policy.repair_model and policy.repair_model not in saved.allowed_providers:
+            raise RuntimeError('APPLICATION_REPAIR_MODEL_NOT_ADMITTED')
+        if provider_api_budget.call_purpose(stage)=='PLANNING':
+            route={'selected_model':saved.agent.model,'model_routing_reason':'saved_agent_planning_role'}
+        else:
+            route=choose_provider_model(stage=stage,prompt_chars=sum(len(m.get('content','')) for m in messages),
+                requested_model=model,routing_policy=policy,last_error=None,attempt_number=1)
+        selected=route['selected_model']
+        append_provider_event_log(phase_log_path,dict(event='canonical_budgeted_gateway',stage=stage,
+            component=component,target_file=target_file,provider=selected,model_routing_reason=route.get('model_routing_reason'),
+            model_routing=application['model_routing']))
+        result=gateway_provider_text(messages,selected,timeout,
+            max_tokens=min(max_tokens,profile_token_cap) if profile_token_cap else max_tokens,
+            stage=stage,response_format=response_format,temperature=request_temperature,
+            transport_scope=lambda:provider_execution_metrics.provider_api_call(phase_log_path,stage=stage,
+                payload_mode=metric_call_kind or payload_mode,transport_retry=False))
+        append_provider_event_log(phase_log_path,dict(event='provider_transport_attempt',stage=stage,
+            component=component,target_file=target_file,selected_model=selected,status='ok',
+            response_id=result.request_id,response_usage=dict(result.usage),attempts=result.attempts,
+            transport='BUDGETED_GATEWAY',response_text_sha256=hashlib.sha256(result.text.encode('utf-8')).hexdigest()))
+        provider_execution_metrics.mark_call_origin('primary')
+        return result.text
     external_api_only = str(os.environ.get("CGKN_EXTERNAL_API_ONLY", "")).strip().lower() in {"1", "true", "yes"}
     routed_task = local_model_task_for_provider_stage(stage)
     local_stage_enabled = bool(not external_api_only and routed_task and local_model_router.task_enabled(routed_task))
@@ -32278,6 +32313,10 @@ def source_identity_environment_blocker(
     return blocker
 
 
+from cgkn.telemetry.lean import observed
+
+
+@observed("provider_pipeline", lambda a: pathlib.Path(getattr(a["args"], "resume_run_dir", "") or a["args"].run_dir))
 def execute(args: argparse.Namespace) -> dict[str, Any]:
     production_started_at = now()
     production_started_monotonic = time.perf_counter()
@@ -32292,7 +32331,9 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
     if provider_mode != "live":
         args.use_api = True
     require_api_generation(args)
-    exec_deadline_value = generation_deadline(args)
+    from cgkn.providers.application_network import settings as application_network_settings
+    progress_only_generation = provider_mode == "live" and application_network_settings() is not None
+    exec_deadline_value = None if progress_only_generation else generation_deadline(args)
     run_dir = pathlib.Path(args.run_dir).resolve()
     (run_dir / "artifacts").mkdir(parents=True, exist_ok=True)
     out_dir = pathlib.Path(args.out_dir).resolve()
@@ -32492,7 +32533,7 @@ def execute(args: argparse.Namespace) -> dict[str, Any]:
             },
         )
     routing_policy = provider_model_routing_policy_from_args(args)
-    exec_deadline = ProgressDeadline(
+    exec_deadline = None if progress_only_generation else ProgressDeadline(
         exec_deadline_value,
         extension_seconds=max(30, int(getattr(args, "timeout", 360))),
         phase_log_path=phase_log_path,

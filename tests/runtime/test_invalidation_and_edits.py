@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from tests.qualification_support import probe_node
 
 from cgkn.orchestration.capability_tree import CapabilityNode, CapabilityTree
 from cgkn.orchestration.execution_dag import compile_tree
@@ -10,10 +11,10 @@ from cgkn.orchestration.tree_edits import TreeEdit, apply_tree_edit
 
 def graph():
     tree = CapabilityTree("repair", (
-        CapabilityNode("inspect", capability_ref="inspect@1"), CapabilityNode("research", capability_ref="research@1"),
-        CapabilityNode("implement", capability_ref="implement@1", depends_on=("inspect", "research")),
-        CapabilityNode("test", capability_ref="test@1", depends_on=("implement",)),
-        CapabilityNode("report", capability_ref="report@1", depends_on=("test",)),
+        probe_node("inspect", capability_ref="inspect@1"), probe_node("research", capability_ref="research@1"),
+        probe_node("implement", capability_ref="implement@1", depends_on=("inspect", "research")),
+        probe_node("test", capability_ref="test@1", depends_on=("implement",)),
+        probe_node("report", capability_ref="report@1", depends_on=("test",)),
     ))
     return tree, compile_tree(tree)
 

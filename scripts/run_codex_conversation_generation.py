@@ -126,7 +126,12 @@ def main() -> int:
             if temp_path.exists():
                 temp_path.unlink()
 
+    # Correlation metadata only: never part of the deduplication identity.
+    os.environ["CGKN_MODEL_JOB_ID"] = str(args.generation_job_id or "")
+    os.environ["CGKN_MODEL_ATTEMPT_ID"] = str(args.generation_attempt_id or "")
+
     def started(generation: dict) -> None:
+        os.environ["CGKN_BENCHMARK_RUN_ID"] = str(generation.get("run_id", ""))
         write_job({
             "state": "RUNNING",
             "run_id": str(generation.get("run_id", "")),

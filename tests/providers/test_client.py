@@ -11,6 +11,15 @@ pytestmark = [pytest.mark.happy_path, pytest.mark.boundary]
 CONFIG = ModelRoleConfig("agent", "model")
 
 
+@pytest.fixture(autouse=True)
+def explicit_legacy_profile(tmp_path, monkeypatch):
+    profile = tmp_path / 'legacy.json'
+    profile.write_text('{"mode":"legacy"}', encoding='utf-8')
+    monkeypatch.setenv('CGKN_APPLICATION_PROFILE', str(profile))
+    monkeypatch.delenv('CGKN_NETWORK_MODE', raising=False)
+
+
+
 @pytest.mark.negative
 @pytest.mark.parametrize("role, model", [("other", "m"), ("agent", "")])
 def test_model_role_config_rejects_invalid_identity(role, model) -> None:
@@ -44,12 +53,12 @@ def test_parse_json_object_rejects_non_object_and_malformed(text, exception) -> 
 
 
 def configure(monkeypatch, *, credentials=None, transport=None, text='{"ok":true}'):
-    monkeypatch.setattr("cgkn.providers.client.check_connectivity._resolve_api_credentials", lambda: credentials if credentials is not None else {"api_key": "token", "base_url": "https://provider.invalid/v1"})
-    monkeypatch.setattr("cgkn.providers.client.check_connectivity._build_openai_compatible_payload", lambda base, payload, **kwargs: {"base": base, **payload, **kwargs})
-    monkeypatch.setattr("cgkn.providers.client.check_connectivity._openai_compatible_endpoint", lambda base, **kwargs: base + "/chat")
-    monkeypatch.setattr("cgkn.providers.client.check_connectivity._extract_text", lambda _doc: text)
+    monkeypatch.setattr("cgkn.providers.legacy_client.check_connectivity._resolve_api_credentials", lambda: credentials if credentials is not None else {"api_key": "token", "base_url": "https://provider.invalid/v1"})
+    monkeypatch.setattr("cgkn.providers.legacy_client.check_connectivity._build_openai_compatible_payload", lambda base, payload, **kwargs: {"base": base, **payload, **kwargs})
+    monkeypatch.setattr("cgkn.providers.legacy_client.check_connectivity._openai_compatible_endpoint", lambda base, **kwargs: base + "/chat")
+    monkeypatch.setattr("cgkn.providers.legacy_client.check_connectivity._extract_text", lambda _doc: text)
     value = transport if transport is not None else SimpleNamespace(doc={"id": "req", "model": "actual", "usage": {"total_tokens": 3}}, error="", attempts=[1, 2])
-    monkeypatch.setattr("cgkn.providers.client.provider_transport.post_json_with_retry", lambda *args, **kwargs: value)
+    monkeypatch.setattr("cgkn.providers.legacy_client.provider_transport.post_json_with_retry", lambda *args, **kwargs: value)
 
 
 @pytest.mark.negative
@@ -64,7 +73,7 @@ def test_complete_rejects_missing_credentials(monkeypatch) -> None:
 @pytest.mark.security
 def test_transport_failure_is_redacted(monkeypatch) -> None:
     configure(monkeypatch, transport=SimpleNamespace(doc=None, error="contains token", attempts=[1]))
-    monkeypatch.setattr("cgkn.providers.client.provider_transport._redact", lambda error, token: "[REDACTED]")
+    monkeypatch.setattr("cgkn.providers.legacy_client.provider_transport._redact", lambda error, token: "[REDACTED]")
     with pytest.raises(RuntimeError, match="REDACTED"):
         OpenAICompatibleClient().complete(system="s", user="u", schema_name="x", schema={}, config=CONFIG)
 

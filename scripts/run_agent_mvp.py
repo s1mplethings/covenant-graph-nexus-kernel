@@ -76,7 +76,11 @@ def main(argv: list[str] | None = None) -> int:
     run_id = f"agent-mvp-{uuid.uuid4().hex[:10]}"
     store = FileRunStore(args.run_root / "runs")
     client = completion_client_from_environment()
-    routing = CGKNModelRouting.load(args.routing_config) if isinstance(client, GatewayCompletionClient) else None
+    from cgkn.providers.application_network import routing_path
+    selected_routing=routing_path(args.routing_config)
+    if args.routing_config!=ROOT/'config'/'provider_profiles'/'gateway_model_routing.json' and args.routing_config.resolve()!=selected_routing.resolve():
+        raise ValueError('APPLICATION_MODEL_ROUTING_MISMATCH')
+    routing = CGKNModelRouting.load(selected_routing) if isinstance(client, GatewayCompletionClient) else None
     agent_config, worker_config = (
         (routing.agent, routing.worker) if routing else (role_config("agent", config["agent"]), role_config("worker", config["worker"]))
     )
@@ -84,6 +88,7 @@ def main(argv: list[str] | None = None) -> int:
         client = client.bind_run(run_id, "agent-mvp")
     if routing:
         routing.snapshot(run_id).write_once(args.run_root / "model_routing_snapshot.json")
+    from cgkn.application.mvp_qualification import leaf_contract, install
     registry = ExecutorRegistry()
     registry.register(FileExecutor(project))
     registry.register(LLMExecutor(project, client, worker_config))
@@ -95,13 +100,18 @@ def main(argv: list[str] | None = None) -> int:
             "code.modify@1": {"executor_ref": "llm.cheap@1", "goal": "Correct add so it returns the sum", "acceptance": ["pytest passes"]},
             "test.python@1": {"executor_ref": "local.python-test@1", "pytest_args": ["-q"]},
         }
-        result = AgentProjectLoop(AgentComposer(client, agent_config), DAGRunner(registry, store), store, known_capabilities=set(catalog), worker_model=worker_config.model, capability_catalog=catalog, max_decisions=int(config.get("max_agent_decisions", 4))).run(project_id="agent-mvp", run_id=run_id, goal=goal, constraints=("worker actions are read/list/write/patch only", "do not modify project goal"))
-        status = "PASS" if initial_test["returncode"] != 0 and result.status == "SUCCEEDED" and result.worker_calls >= 1 else "FAIL"
+        for node,cap,deps in [('inspect','repo.inspect@1',()),('fix','code.modify@1',('inspect',)),('test','test.python@1',('fix',))]:
+            catalog[cap]['leaf_contract']=leaf_contract(node,catalog[cap]['executor_ref'],deps)
+        acceptance,checkers=install(registry,store,project,'agent-mvp',run_id)
+        result = AgentProjectLoop(AgentComposer(client, agent_config), DAGRunner(registry, store,deliverable_checkers=checkers), store,acceptance=acceptance, known_capabilities=set(catalog), worker_model=worker_config.model, capability_catalog=catalog, max_decisions=int(config.get("max_agent_decisions", 4))).run(project_id="agent-mvp", run_id=run_id, goal=goal, constraints=("worker actions are read/list/write/patch only", "do not modify project goal"))
+        status = "PASS" if initial_test["returncode"] != 0 and result.status == "GOALS_VERIFIED" and result.worker_calls >= 1 else "FAIL"
         benchmark = run_direct_baseline(args.run_root, client, agent_config) if args.benchmark else None
         report = {"kind": "CGKNAgentMVPResult", "schema_version": "1.0", "status": status, "functional_readiness_candidate": "LEVEL_4" if status == "PASS" else "LEVEL_3", "provider_validation": "REAL", "agent_model": agent_config.model, "worker_model": worker_config.model, "initial_test": initial_test, "project_root": str(project), "run_root": str(args.run_root), "run_id": run_id, "result": result.as_dict(), "benchmark": benchmark, "decision_efficiency": {"baseline_high_model_calls": benchmark["provider_calls"] if benchmark else None, "cgkn_high_agent_calls": result.agent_calls, "cgkn_cheap_worker_calls": result.worker_calls, "note": "The baseline is reported as observed; it is not throttled or degraded."}}
     except Exception as exc:
         report = {"kind": "CGKNAgentMVPResult", "schema_version": "1.0", "status": "BLOCKED_PROVIDER", "functional_readiness_candidate": "LEVEL_3", "provider_validation": "BLOCKED_PROVIDER", "agent_model": agent_config.model, "worker_model": worker_config.model, "initial_test": initial_test, "project_root": str(project), "run_root": str(args.run_root), "run_id": run_id, "error": str(exc)}
     output = args.run_root / "agent_mvp_result.json"
+    lean_path=store.run_dir('agent-mvp',run_id)/'lean-report.md'
+    if lean_path.exists(): report['lean_report_ref']=str(lean_path)
     output.write_text(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) if args.json else report["status"])
     return 0 if report["status"] == "PASS" else 1

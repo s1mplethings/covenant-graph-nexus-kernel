@@ -5,6 +5,7 @@ import pathlib
 import sys
 import tempfile
 import unittest
+from types import SimpleNamespace
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -111,20 +112,21 @@ class AgentConversationMainlineTests(unittest.TestCase):
             client = FakeCodexConversation()
             called: dict[str, object] = {}
             original_execute = bridge.provider_project_pipeline.execute
-            original_thread = bridge.threading.Thread
+            # Keep subprocess pipe-reader threads real on Windows.
+            original_threading = bridge.threading
 
             def fake_execute(args):
                 called["project_dir"] = str(args.out_dir)
                 return make_provider_result(pathlib.Path(args.out_dir))
 
             bridge.provider_project_pipeline.execute = fake_execute
-            bridge.threading.Thread = InlineThread
+            bridge.threading = SimpleNamespace(Thread=InlineThread, get_ident=original_threading.get_ident)
             try:
                 bridge.handle_text(client, "chat-b", "做一个本地待办事项应用", session_dir, log_dir, "gpt-test", 30)
                 bridge.handle_text(client, "chat-b", "开始生成", session_dir, log_dir, "gpt-test", 30)
             finally:
                 bridge.provider_project_pipeline.execute = original_execute
-                bridge.threading.Thread = original_thread
+                bridge.threading = original_threading
 
             saved = bridge.load_session(session_dir, "chat-b")
             provider_staging = pathlib.Path(str(called["project_dir"])).resolve()
@@ -145,7 +147,8 @@ class AgentConversationMainlineTests(unittest.TestCase):
             log_dir = root / "logs"
             client = FakeCodexConversation()
             original_execute = bridge.provider_project_pipeline.execute
-            original_thread = bridge.threading.Thread
+            # Keep subprocess pipe-reader threads real on Windows.
+            original_threading = bridge.threading
             called = {"ran": False}
 
             def fake_execute(args):
@@ -153,7 +156,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
                 return make_provider_result(pathlib.Path(args.out_dir))
 
             bridge.provider_project_pipeline.execute = fake_execute
-            bridge.threading.Thread = InlineThread
+            bridge.threading = SimpleNamespace(Thread=InlineThread, get_ident=original_threading.get_ident)
             try:
                 bridge.handle_text(client, "chat-c", "做一个本地记账工具", session_dir, log_dir, "gpt-test", 30)
                 session = bridge.load_session(session_dir, "chat-c")
@@ -162,7 +165,7 @@ class AgentConversationMainlineTests(unittest.TestCase):
                 bridge.handle_text(client, "chat-c", "开始生成", session_dir, log_dir, "gpt-test", 30)
             finally:
                 bridge.provider_project_pipeline.execute = original_execute
-                bridge.threading.Thread = original_thread
+                bridge.threading = original_threading
 
             self.assertTrue(called["ran"])
 
@@ -504,7 +507,8 @@ class AgentConversationMainlineTests(unittest.TestCase):
             log_dir = root / "logs"
             client = FakeCodexConversation()
             original_execute = bridge.provider_project_pipeline.execute
-            original_thread = bridge.threading.Thread
+            # Keep subprocess pipe-reader threads real on Windows.
+            original_threading = bridge.threading
             called = {"provider": False}
 
             def fake_execute(args):
@@ -512,13 +516,13 @@ class AgentConversationMainlineTests(unittest.TestCase):
                 return make_provider_result(pathlib.Path(args.out_dir))
 
             bridge.provider_project_pipeline.execute = fake_execute
-            bridge.threading.Thread = InlineThread
+            bridge.threading = SimpleNamespace(Thread=InlineThread, get_ident=original_threading.get_ident)
             try:
                 bridge.handle_text(client, "chat-no-api", "做一个本地笔记应用", session_dir, log_dir, "gpt-test", 30, "simulator")
                 bridge.handle_text(client, "chat-no-api", "开始生成", session_dir, log_dir, "gpt-test", 30, "simulator")
             finally:
                 bridge.provider_project_pipeline.execute = original_execute
-                bridge.threading.Thread = original_thread
+                bridge.threading = original_threading
 
             self.assertTrue(called["provider"])
             session = bridge.load_session(session_dir, "chat-no-api")

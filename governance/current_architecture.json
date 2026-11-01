@@ -25,8 +25,26 @@
     "software_project_generation_bundle": "PARTIAL",
     "functional_readiness": "LEVEL_4"
   },
-  "product_authority": ["PRODUCT_GOAL.md", "MVP_SCOPE.md", "governance/product_invariants.json"],
-  "state_authority": ["governance/current_architecture.json", "docs/00_kernel_contract.md", "project_management/current/active_iteration.json"],
+  "current_qualification": {
+    "iteration": "ITER-131",
+    "scope": "FULL-PENETRATION-CLOSURE-V1",
+    "status": "PRODUCT_NOT_READY",
+    "evidence_root": "F:\\CGKN-ITER-131\\full-penetration-closure-v1",
+    "prior_iteration_result": "SMALL_PROJECT_FAIL_STOPPED_BEFORE_PROMOTION",
+    "strict_calibration_started": false,
+    "active_witness": "small-v5-04",
+    "qualified_source_hash": "8cfc255087344eaaeffd7c868fd775e4e773a4b9115a13caed061eb12bf68700"
+  },
+  "product_authority": [
+    "PRODUCT_GOAL.md",
+    "MVP_SCOPE.md",
+    "governance/product_invariants.json"
+  ],
+  "state_authority": [
+    "governance/current_architecture.json",
+    "docs/00_kernel_contract.md",
+    "project_management/current/active_iteration.json"
+  ],
   "declared_authorities": {
     "composition": "cgkn/orchestration/capability_tree.py:CapabilityTree",
     "execution_graph": "cgkn/orchestration/execution_dag.py:compile_tree",
@@ -52,13 +70,50 @@
     "product_direction_gate": "scripts/product_direction_gate.py:check"
   },
   "target_routes": {
-    "composition": ["high-capability Agent", "CapabilityTree", "compile_tree"],
-    "isolated_execution": ["ComponentSpec/PortSpec", "ExecutorRegistry", "DAGRunner", "BlockExecutionResult", "FileRunStore", "Agent checkpoint"],
-    "failure_recovery": ["failed node", "downstream_closure", "explicit retry", "unaffected PASS reuse"]
+    "composition": [
+      "high-capability Agent",
+      "CapabilityTree",
+      "compile_tree"
+    ],
+    "isolated_execution": [
+      "ComponentSpec/PortSpec",
+      "ExecutorRegistry",
+      "DAGRunner",
+      "BlockExecutionResult",
+      "FileRunStore",
+      "Agent checkpoint"
+    ],
+    "failure_recovery": [
+      "failed node",
+      "downstream_closure",
+      "explicit retry",
+      "unaffected PASS reuse"
+    ]
   },
-  "compatibility_entrypoints": ["scripts/codex_conversation.py", "scripts/run_codex_conversation_generation.py", "scripts/run_local_pipeline.py", "scripts/run_local_pipeline_impl.py"],
+  "compatibility_entrypoints": [
+    "scripts/codex_conversation.py",
+    "scripts/run_codex_conversation_generation.py",
+    "scripts/run_local_pipeline.py",
+    "scripts/run_local_pipeline_impl.py"
+  ],
   "compatibility_rule": "Compatibility entrypoints remain callable and are not the MVP planning or composition authority. The isolated MVP runtime has not replaced them.",
-  "next_feature_increment": {"id": "MVP-015", "name": "Stabilize bounded real-provider project generation", "migration_target": "Improve scoped worker proposal fidelity and public-test repair reliability without changing fixed budgets or replacing the compatibility generation mainline."},
+  "next_feature_increment": {
+    "id": "MVP-015",
+    "name": "Stabilize bounded real-provider project generation",
+    "migration_target": "Improve scoped worker proposal fidelity and public-test repair reliability without changing fixed budgets or replacing the compatibility generation mainline."
+  },
   "forbidden_parallel_authorities": true,
-  "verification": {"github_actions": "NOT_EVALUATED", "product_direction_gate": "PASS", "focused_tests": "PASS", "deterministic_vertical_slice": "PASS", "resume_and_local_repair": "PASS", "self_growth_v0": "PASS", "agent_cheap_executor_fake_integration": "PASS", "agent_cheap_executor_real_provider": "PASS", "decision_efficiency_benchmark": "PASS_WITH_LIMITS", "self_growth_v1": "NOT_EVALUATED", "full_pytest": "NOT_EVALUATED"}
+  "verification": {
+    "github_actions": "NOT_EVALUATED",
+    "product_direction_gate": "PASS",
+    "focused_tests": "PASS",
+    "deterministic_vertical_slice": "PASS",
+    "resume_and_local_repair": "PASS",
+    "self_growth_v0": "PASS",
+    "agent_cheap_executor_fake_integration": "PASS",
+    "agent_cheap_executor_real_provider": "PASS",
+    "decision_efficiency_benchmark": "PASS_WITH_LIMITS",
+    "self_growth_v1": "NOT_EVALUATED",
+    "full_pytest": "NOT_EVALUATED"
+  }
 }

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from types import MappingProxyType
+from cgkn.component.spec import _freeze, _thaw
 from typing import Any, Mapping
 
 from cgkn.artifacts.models import ArtifactRef
@@ -14,22 +14,6 @@ SCHEMA_VERSION = "1.0"
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def _freeze(value: Any) -> Any:
-    if isinstance(value, Mapping):
-        return MappingProxyType({str(key): _freeze(item) for key, item in value.items()})
-    if isinstance(value, (list, tuple)):
-        return tuple(_freeze(item) for item in value)
-    return value
-
-
-def _thaw(value: Any) -> Any:
-    if isinstance(value, Mapping):
-        return {key: _thaw(item) for key, item in value.items()}
-    if isinstance(value, tuple):
-        return [_thaw(item) for item in value]
-    return value
 
 
 class BlockStatus(str, Enum):

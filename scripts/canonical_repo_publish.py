@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import json
 import pathlib
@@ -137,7 +138,15 @@ def _secret_content(path: pathlib.Path) -> bool:
     if not path.is_file() or path.stat().st_size > 1_000_000:
         return False
     try:
-        return bool(SECRET_CONTENT.search(path.read_text(encoding="utf-8", errors="replace")))
+        text = path.read_text(encoding="utf-8", errors="replace")
+        references = set()
+        if path.suffix == '.py':
+            try:
+                references = {ast.get_source_segment(text, node) for node in ast.walk(ast.parse(text))
+                    if isinstance(node, ast.keyword) and isinstance(node.value, (ast.Name, ast.Attribute))}
+            except SyntaxError:
+                pass
+        return any(match.group() not in references for match in SECRET_CONTENT.finditer(text))
     except OSError:
         return False
 
@@ -172,6 +181,8 @@ def classify_path(path: str, root: pathlib.Path | None = None) -> tuple[str, str
         return "TEST", "deterministic MVP runtime example or fixture"
     if lower.startswith("config/provider_profiles/"):
         return "CONTRACT", "reviewed Provider execution profile"
+    if re.fullmatch(r"requirements(?:-[a-z0-9_-]+)?\.txt", lower):
+        return "CONTRACT", "explicit root dependency declaration"
     if lower == "pytest.ini" or lower.startswith("tests/") or pure.name.startswith("test_"):
         return "TEST", "test source"
     if lower.startswith("contracts/"):
@@ -190,7 +201,7 @@ def classify_path(path: str, root: pathlib.Path | None = None) -> tuple[str, str
         return "DURABLE_EVIDENCE", "bounded experiment receipt requires review"
     if lower.startswith("experiments/") and pure.suffix.lower() == ".md":
         return "CURRENT_DOC", "current experiment documentation"
-    if lower.startswith("docs/") or lower in {".gitignore", "readme.md", "agents.md", "version", "edition.md", "product_goal.md"} or lower.startswith("project_management/summaries/"):
+    if lower.startswith("docs/") or lower in {".gitignore", "readme.md", "agents.md", "version", "edition.md", "product_goal.md", "project_management.md"} or lower.startswith("project_management/summaries/"):
         return "CURRENT_DOC", "current documentation or version truth"
     if lower.startswith("legacy/"):
         return "SOURCE", "tracked legacy source or historical material"

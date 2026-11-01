@@ -12,7 +12,7 @@ from .protocol import ExecutorDescriptor
 
 
 ALLOWED_ACTIONS = {"read_file", "list_files", "write_file", "patch_file"}
-PROTECTED_PARTS = {".git", ".hg", ".svn"}
+PROTECTED_PARTS = {".git", ".hg", ".svn", ".cgkn-publication.lock"}
 
 WORKER_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -87,6 +87,9 @@ def validate_worker_proposal(value: Mapping[str, Any], node_id: str) -> dict[str
     for action in value["actions"]:
         if not isinstance(action, dict) or action.get("action") not in ALLOWED_ACTIONS:
             raise ProposalError("worker proposal contains a forbidden action")
+        fields = {"read_file": {"action", "path"}, "list_files": {"action", "path"}, "write_file": {"action", "path", "content"}, "patch_file": {"action", "path", "find", "replace"}}
+        if set(action) != fields[action["action"]] or any(not isinstance(v, str) for v in action.values()):
+            raise ProposalError("worker action fields are invalid; no actions applied")
     if bool(value["needs_escalation"]) and value["actions"]:
         raise ProposalError("escalation proposal cannot contain actions")
     return dict(value)
@@ -95,30 +98,154 @@ def validate_worker_proposal(value: Mapping[str, Any], node_id: str) -> dict[str
 class LLMExecutor:
     descriptor = ExecutorDescriptor("llm.cheap@1", "bounded_llm", ("*",), ("filesystem.read", "filesystem.write"))
 
-    def __init__(self, project_root: pathlib.Path | str, client: CompletionClient, config: ModelRoleConfig):
+    def __init__(self, project_root: pathlib.Path | str, client: CompletionClient, config: ModelRoleConfig, *, max_rounds: int = 1, capability_ledger=None, semantic_protocol=False, protocol_trace=None):
         if config.role != "worker":
             raise ValueError("LLMExecutor requires worker model config")
+        if semantic_protocol:
+            if not callable(protocol_trace):raise ValueError("semantic protocol requires an audit sink")
+            from cgkn.protocol.adapters import SemanticWorkerClient
+            client=SemanticWorkerClient(client,protocol_trace)
         self.actions, self.client, self.config = BoundedFileActions(project_root), client, config
+        self.resource_claims = {"workspace:" + str(pathlib.Path(project_root).resolve()): "write"}
+        self.max_rounds = max_rounds
+        self.model_configs = {}
+        self.capability_ledger = capability_ledger
 
     def execute(self, request: BlockExecutionRequest) -> BlockExecutionResult:
         started, clock = utc_now(), time.perf_counter()
+        try:
+            from cgkn.orchestration.capability_tree import CapabilityNode
+            from cgkn.orchestration.leaf_contract import validate_leaf
+            validate_leaf(CapabilityNode(request.node_id,capability_ref=request.component_ref,
+                depends_on=request.dependency_result_refs,config=dict(request.task_context.node_config)))
+            if not isinstance(self.actions,BoundedFileActions):
+                raise ValueError('UNQUALIFIED_MATERIALIZATION_ADAPTER: bounded file contract required')
+        except ValueError as exc:
+            return self._result(request,BlockStatus.BLOCKED,started,clock,
+                error=ExecutionError(ExecutionErrorCode.POLICY_BLOCKED,str(exc)))
+        selected = request.task_context.node_config.get('model_config_id', request.task_context.node_config.get('provider', self.config.model))
+        if self.model_configs and selected not in self.model_configs:
+            return self._result(request, BlockStatus.FAILED, started, clock, error=ExecutionError(ExecutionErrorCode.INVALID_OUTPUT, 'Unregistered worker provider'))
+        route_decision=None
+        if self.capability_ledger and self.model_configs:
+            cfg=request.task_context.node_config
+            route_decision=self.capability_ledger.route(str(cfg.get('task_class',request.component_ref)),self.model_configs,selected,
+                operation=cfg.get('operation'),capability_scope={k:cfg.get(k,'UNKNOWN') for k in ('artifact_domain','environment','tool_identity')})
+            selected=route_decision['selected_config']
+        call_config = self.model_configs.get(selected, self.config)
         context = request.task_context.as_dict()
         prompt = {"node_id": request.node_id, "goal": request.task_context.node_goal, "config": context["node_config"], "dependency_results": context["dependency_results"], "constraints": list(request.task_context.project_constraints), "acceptance": list(request.task_context.acceptance), "allowed_actions": sorted(ALLOWED_ACTIONS)}
         import json
         raw_prompt = json.dumps(prompt, ensure_ascii=False, sort_keys=True)
         usage: dict[str, Any] = {}
+        completion_calls=[]
         try:
-            completion = self.client.complete(system="You are a bounded CGKN worker. Propose only read/list/write/patch actions. Never propose shell, network, goals, DAG edits, tests, delivery, or hidden reasoning. Return JSON only.", user=raw_prompt, schema_name="cgkn_worker_proposal", schema=WORKER_SCHEMA, config=self.config)
-            usage = dict(completion.usage) | {"model": completion.model, "request_id": completion.request_id, "provider_attempts": completion.attempts, "context_chars": len(raw_prompt), "dependency_count": len(context["dependency_results"])}
+            observations = []
+            for _ in range(self.max_rounds):
+                raw_prompt = json.dumps({**prompt, "observations": observations}, ensure_ascii=False, sort_keys=True)
+                completion = self.client.complete(system="You are a bounded CGKN worker executing the Agent's assigned task. Propose only read/list/write/patch actions, including implementation or test files requested by the Agent. Read actions return observations for your next response. A batch containing writes ends this delegation; return precise outputs for the coordinator to test. Do not redefine the project goal or DAG. Return JSON only.", user=raw_prompt, schema_name="cgkn_worker_proposal", schema=WORKER_SCHEMA, config=call_config)
+                completion_calls.append({'model':completion.model,'request_id':completion.request_id,'usage':dict(completion.usage),'routing':dict(completion.routing),'attempts':completion.attempts,'raw_finish_reason':completion.raw_finish_reason})
+                usage=dict(completion.usage) | {'model':completion.model,'routing':dict(completion.routing),'request_id':completion.request_id,'completion_calls':completion_calls,'provider_attempts':sum(x['attempts'] for x in completion_calls)}
+                for key,alias in [('input_tokens','prompt_tokens'),('output_tokens','completion_tokens'),('total_tokens','total_tokens')]:
+                    samples=[x['usage'].get(key,x['usage'].get(alias)) for x in completion_calls]
+                    if any(v is not None for v in samples):usage[key]=sum(samples) if all(isinstance(v,(int,float)) for v in samples) else None
+                semantic_calls=[call for row in completion_calls for call in row['usage'].get('semantic_calls',[])]
+                if semantic_calls:
+                    usage.update(semantic_calls=semantic_calls,
+                        semantic_decision_attempts=sum(c.get('call_kind')=='semantic_decision_attempt' for c in semantic_calls),
+                        schema_repair_attempts=sum(c.get('call_kind')=='schema_repair_attempt' for c in semantic_calls),
+                        admission_correction_attempts=sum(c.get('call_kind')=='admission_correction_attempt' for c in semantic_calls))
+                proposal = validate_worker_proposal(parse_json_object(completion.text), request.node_id)
+                if self.max_rounds == 1 or proposal["needs_escalation"] or not proposal["actions"] or any(a["action"] in {"write_file", "patch_file"} for a in proposal["actions"]):
+                    break
+                for action in proposal["actions"]:
+                    try:
+                        observations.append(self.actions.apply(action))
+                    except PermissionError:
+                        raise
+                    except (OSError, RuntimeError) as exc:
+                        # Read/list failures are observations for the next
+                        # bounded decision. Never retry a write this way.
+                        observations.append({"action":action['action'],"path":action['path'],
+                            "status":"FAILED","error_type":type(exc).__name__,"error":str(exc)})
+            else:
+                return self._result(request, BlockStatus.BLOCKED, started, clock, outputs={"action_results": observations}, error=ExecutionError(ExecutionErrorCode.POLICY_BLOCKED, "worker observation resource bound reached"),usage=usage)
+            usage.update(context_chars=len(raw_prompt),dependency_count=len(context['dependency_results']))
+            from dataclasses import asdict
+            from cgkn.state.task_feedback import digest
+            usage.update(config_hash=digest(asdict(call_config)),context_hash=digest(raw_prompt),route_decision=route_decision)
             proposal = validate_worker_proposal(parse_json_object(completion.text), request.node_id)
             if proposal["needs_escalation"]:
                 return self._result(request, BlockStatus.BLOCKED, started, clock, error=ExecutionError(ExecutionErrorCode.POLICY_BLOCKED, str(proposal["escalation_reason"]), {"needs_escalation": True}), usage=usage, metadata={"proposal": proposal})
-            results = [self.actions.apply(action) for action in proposal["actions"]]
+            contract = request.task_context.node_config.get('leaf_contract')
+            if not contract:
+                raise ProposalError('INVALID_CONTRACT: worker requires ExecutionLeafContract')
+            scope = set(contract['target_scope'])
+            protected = request.metadata.get('verified_partial_artifacts',{})
+            for action in proposal['actions']:
+                if action['action'] in {'write_file','patch_file'}:
+                    normalized = self.actions._path(action['path']).relative_to(self.actions.root).as_posix()
+                    if normalized not in scope:
+                        raise PermissionError('write outside leaf target_scope')
+                    if normalized in protected and not request.task_context.node_config.get('verified_artifact_change_reason'):
+                        raise PermissionError('verified partial artifact requires explicit Agent change reason')
+            # Validate every write before applying any; rollback action failures.
+            originals = {name:(self.actions._path(name).read_bytes() if self.actions._path(name).is_file() else None) for name in scope}
+            results = list(observations)
+            try:
+                for action in proposal['actions']: results.append(self.actions.apply(action))
+            except Exception:
+                for name, content in originals.items():
+                    path = self.actions._path(name)
+                    if content is None: path.unlink(missing_ok=True)
+                    else: path.write_bytes(content)
+                raise
             modified = [item["path"] for item in results if item["action"] in {"write_file", "patch_file"}]
-            return self._result(request, BlockStatus.SUCCEEDED, started, clock, outputs={"summary": proposal["summary"], "action_results": results, "modified_files": modified, "expected_outputs": proposal["expected_outputs"]}, usage=usage, metadata={"proposal": proposal})
+            from cgkn.providers.finish_reason import finish_disposition
+            return self._result(request, BlockStatus.SUCCEEDED, started, clock, outputs={"summary": proposal["summary"], "action_results": results, "modified_files": modified, "expected_outputs": proposal["expected_outputs"]}, usage=usage, metadata={"proposal": proposal,**finish_disposition(completion.raw_finish_reason)})
         except TimeoutError as exc:
             return self._result(request, BlockStatus.TIMED_OUT, started, clock, error=ExecutionError(ExecutionErrorCode.TIMEOUT, str(exc)), usage=usage, retryable=True)
         except (OSError, ValueError, PermissionError, RuntimeError) as exc:
+            from cgkn.protocol.normalization import ContractError
+            if isinstance(exc,ContractError):
+                calls=[call for row in completion_calls for call in row['usage'].get('semantic_calls',[])]+getattr(exc,'semantic_calls',[])
+                measured={'semantic_calls':calls,'semantic_decision_attempts':sum(c.get('call_kind')=='semantic_decision_attempt' for c in calls),
+                    'schema_repair_attempts':sum(c.get('call_kind')=='schema_repair_attempt' for c in calls),
+                    'admission_correction_attempts':sum(c.get('call_kind')=='admission_correction_attempt' for c in calls),
+                    'provider_attempts':sum(c.get('provider_attempts',0) for c in calls)}
+                for key,alias in [('input_tokens','prompt_tokens'),('output_tokens','completion_tokens')]:
+                    values=[x['usage'].get(key,x['usage'].get(alias)) for x in calls]
+                    measured[key]=sum(values) if values and all(type(v) in (int,float) for v in values) else None
+                return self._result(request,BlockStatus.FAILED,started,clock,usage={**usage,**measured},
+                    error=ExecutionError(ExecutionErrorCode.INVALID_OUTPUT,exc.code,{'failure_domain':exc.details.get('failure_domain','HARNESS' if exc.code=='WORKER_REQUIRED_CONTRACT_MISSING' else 'MODEL_OUTPUT'),'protocol_error':exc.as_dict(),'outcome_unknown':False}),
+                    metadata={'semantic_protocol':'v1','acceptance':'NOT_INFERRED'},retryable=False)
+            from cgkn.providers.gateway_client import GatewayCompletionError
+            from cgkn.providers.streaming_sse import StreamError
+            from cgkn.providers.finish_reason import finish_disposition
+            if isinstance(exc,StreamError):
+                return self._result(request,BlockStatus.BLOCKED,started,clock,usage=usage,
+                    metadata={**finish_disposition(exc.code,outcome_unknown=exc.outcome_unknown),
+                        'raw_partial_response':exc.response},
+                    error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR,exc.code,
+                        {'outcome_unknown':exc.outcome_unknown,'failure_domain':'TRANSPORT'}),retryable=False)
+            if isinstance(exc,GatewayCompletionError) and exc.category=='schema_validation_failed' and not exc.outcome_unknown:
+                completed=getattr(exc,'completed_response',{}) or {}
+                measured=dict(completed.get('usage',{}))
+                if completed.get('model'):measured['model']=completed['model']
+                if completed.get('cgkn_model_identity'):measured['routing']=completed['cgkn_model_identity']
+                return self._result(request,BlockStatus.FAILED,started,clock,
+                    error=ExecutionError(ExecutionErrorCode.INVALID_OUTPUT,str(exc),
+                        {'failure_class':'schema','failure_domain':'MODEL_OUTPUT','category':exc.category,'outcome_unknown':False}),
+                    usage={**usage,**measured},retryable=False,
+                    metadata={**finish_disposition('schema_incomplete'),'provider_error_category':exc.category,
+                        'raw_provider_response':completed})
+            if isinstance(exc,GatewayCompletionError):
+                return self._result(request,BlockStatus.BLOCKED,started,clock,
+                    error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR,'NetworkUnavailable',
+                        {'failure_class':'network','failure_domain':'TRANSPORT','category':exc.category,'outcome_unknown':exc.outcome_unknown}),
+                    usage=usage,retryable=False,metadata={**finish_disposition(
+                        exc.category if exc.category.startswith('stream_') else 'provider_error',
+                        outcome_unknown=exc.outcome_unknown),'provider_error_category':exc.category})
             code = ExecutionErrorCode.POLICY_BLOCKED if isinstance(exc, PermissionError) else ExecutionErrorCode.INVALID_OUTPUT if isinstance(exc, (ValueError, ProposalError)) else ExecutionErrorCode.EXECUTION_ERROR
             return self._result(request, BlockStatus.FAILED, started, clock, error=ExecutionError(code, str(exc)), usage=usage, retryable=isinstance(exc, RuntimeError))
 

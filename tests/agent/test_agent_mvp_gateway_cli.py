@@ -32,6 +32,8 @@ class AgentMVPGateway(BaseHTTPRequestHandler):
             type(self).agent_calls += 1
             if self.agent_calls == 1:
                 def add(edit_id, node, capability, config, deps=()):
+                    from cgkn.application.mvp_qualification import leaf_contract
+                    config["leaf_contract"]=leaf_contract(node,config["executor_ref"],deps)
                     return {"edit_id": edit_id, "operation": "add_node", "node_id": node, "payload": {"parent_id": "", "capability_ref": capability, "depends_on": list(deps), "config": config}, "provenance": {"provider": "gateway-mock"}}
                 edits = [
                     add("e1", "inspect", "repo.inspect@1", {"executor_ref": "local.file@1", "action": "read_file", "path": "math_utils.py"}),
@@ -42,10 +44,9 @@ class AgentMVPGateway(BaseHTTPRequestHandler):
             else:
                 value = {"schema_version": "1.0", "decision_id": "d2", "summary": "finish", "reason": "pytest passed", "edits": [], "request_run": False, "finish": True, "needs_escalation": False, "escalation_reason": ""}
         body = json.dumps({"id": f"request-{len(self.models)}", "status": "completed", "model": model, "output_text": json.dumps(value), "usage": {"input_tokens": 20, "output_tokens": 10, "total_tokens": 30}}).encode()
-        self.send_response(200)
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+        from tests.providers.stream_fixtures import send_gateway
+        send_gateway(self,payload,json.loads(body))
+
 
 
 @pytest.mark.happy_path
@@ -57,7 +58,9 @@ def test_agent_mvp_cli_uses_gateway_routing_snapshot_and_budget(tmp_path: pathli
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
     run_root = tmp_path / "run"
+    profile=tmp_path/"legacy.json";profile.write_text('{"mode":"legacy"}')
     env = os.environ.copy()
+    env["CGKN_APPLICATION_PROFILE"]=str(profile)
     env.update({
         "CGKN_PROVIDER_GATEWAY_ENABLED": "1",
         "CGKN_PROVIDER_GATEWAY_BASE_URL": f"http://127.0.0.1:{server.server_port}/v1",

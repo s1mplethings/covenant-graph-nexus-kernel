@@ -10,6 +10,14 @@ from .execution_dag import compile_tree
 SUPPORTED_OPERATIONS = {"add_node", "remove_node", "replace_node", "move_node", "add_dependency", "remove_dependency", "replace_executor", "update_config", "retry_node", "request_run", "finish"}
 
 
+EDIT_PAYLOAD_KEYS = {
+    "add_node": {"parent_id", "capability_ref", "depends_on", "config"}, "remove_node": set(),
+    "replace_node": {"capability_ref", "config"}, "move_node": {"parent_id"},
+    "add_dependency": {"dependency"}, "remove_dependency": {"dependency"},
+    "replace_executor": {"executor_ref"}, "update_config": {"config"},
+    "retry_node": set(), "request_run": set(), "finish": set(),
+}
+
 @dataclass(frozen=True)
 class TreeEdit:
     edit_id: str
@@ -23,15 +31,9 @@ class TreeEdit:
             raise ValueError("invalid tree edit identity or operation")
         if not self.provenance:
             raise ValueError("tree edit provenance is required")
-        allowed = {
-            "add_node": {"parent_id", "capability_ref", "depends_on", "config"}, "remove_node": set(),
-            "replace_node": {"capability_ref", "config"}, "move_node": {"parent_id"},
-            "add_dependency": {"dependency"}, "remove_dependency": {"dependency"},
-            "replace_executor": {"executor_ref"}, "update_config": {"config"},
-            "retry_node": set(), "request_run": set(), "finish": set(),
-        }
+        allowed = EDIT_PAYLOAD_KEYS
         if set(self.payload) - allowed[self.operation]:
-            raise ValueError("invalid tree edit payload")
+            raise ValueError(f"invalid tree edit payload for {self.operation} on {self.node_id}: unexpected keys {sorted(set(self.payload)-allowed[self.operation])}; allowed keys {sorted(allowed[self.operation])}. Empty allowed keys require payload={{}}; provenance belongs outside payload")
         object.__setattr__(self, "payload", _freeze(self.payload))
         object.__setattr__(self, "provenance", _freeze(self.provenance))
 
@@ -42,12 +44,12 @@ def apply_tree_edits(tree: CapabilityTree, edits: tuple[TreeEdit, ...], *, known
         raise ValueError("duplicate tree edit id")
     preview = tree
     for edit in edits:
-        preview = apply_tree_edit(preview, edit, known_capabilities=known_capabilities)
+        preview = apply_tree_edit(preview, edit, known_capabilities=known_capabilities, _batch_preview=True)
     compile_tree(preview)
     return preview
 
 
-def apply_tree_edit(tree: CapabilityTree, edit: TreeEdit, *, known_capabilities: set[str] | frozenset[str]) -> CapabilityTree:
+def apply_tree_edit(tree: CapabilityTree, edit: TreeEdit, *, known_capabilities: set[str] | frozenset[str], _batch_preview=False) -> CapabilityTree:
     nodes = list(tree.nodes)
     index = {node.id: position for position, node in enumerate(nodes)}
     if edit.operation in {"retry_node", "request_run", "finish"}:
@@ -90,12 +92,17 @@ def apply_tree_edit(tree: CapabilityTree, edit: TreeEdit, *, known_capabilities:
                 if dependency not in values:
                     raise ValueError("dependency does not exist on node")
                 values.remove(dependency)
-            nodes[index[edit.node_id]] = replace(old, depends_on=tuple(values))
+            config = dict(old.config)
+            if 'leaf_contract' in config:
+                config['leaf_contract'] = {**dict(config['leaf_contract']), 'dependencies':values}
+            nodes[index[edit.node_id]] = replace(old, depends_on=tuple(values), config=config)
         elif edit.operation == "replace_executor":
             config = dict(old.config)
             executor_ref = str(edit.payload.get("executor_ref", ""))
             if not executor_ref: raise ValueError("executor_ref is required")
             config["executor_ref"] = executor_ref
+            if 'leaf_contract' in config:
+                config['leaf_contract'] = {**dict(config['leaf_contract']), 'executor_ref':executor_ref}
             nodes[index[edit.node_id]] = replace(old, config=config)
         elif edit.operation == "update_config":
             if not isinstance(edit.payload.get("config", {}), Mapping): raise ValueError("config must be an object")
@@ -103,5 +110,5 @@ def apply_tree_edit(tree: CapabilityTree, edit: TreeEdit, *, known_capabilities:
             config.update(dict(edit.payload.get("config", {})))
             nodes[index[edit.node_id]] = replace(old, config=config)
     preview = CapabilityTree(tree.goal, tuple(nodes))
-    compile_tree(preview)
+    compile_tree(preview, historical_read_only=_batch_preview)
     return preview

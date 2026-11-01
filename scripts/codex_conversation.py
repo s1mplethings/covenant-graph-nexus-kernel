@@ -6540,6 +6540,10 @@ def finish_supervision_recovery_stop(
     mark_public_delivery_rework(client, conversation_id, session_dir, session, project_dir, gate)
 
 
+from cgkn.telemetry.lean import observed
+
+@observed("provider_project", lambda a: agent_session_path(a["session_dir"], a["conversation_id"]).with_suffix(".reports"),
+          receipt=lambda a: load_session(a["session_dir"], a["conversation_id"]).get("generation", {}))
 def run_provider_generation_job(
     client: CodexConversation,
     conversation_id: int | str,
@@ -9070,6 +9074,7 @@ def formal_generation_requires_new_run(status: object) -> bool:
     return str(status or "").strip().lower() in FORMAL_RESTARTABLE_FAILURE_STATUSES
 
 
+@observed("formal_project", lambda a: pathlib.Path(a["project_root"]) / ".cgkn" / "agent-kit", expose=True)
 def run_formal_generation_once(
     project_root: str | pathlib.Path,
     *,

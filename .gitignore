@@ -3,6 +3,8 @@ __pycache__/
 *$py.class
 
 .venv/
+.venv-substrate/
+.venv-substrate-check/
 venv/
 env/
 

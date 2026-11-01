@@ -122,12 +122,20 @@ def test_mcp_protocol_lists_typed_tools_with_honest_annotations(client: MCPClien
         "cgkn_diagnose_failure",
         "cgkn_test_generated",
         "cgkn_status",
+        "cgkn_streaming_acceptance_status",
+        "cgkn_get_progress",
+        "cgkn_verify_api_pair",
     }
     for tool in tools:
         assert tool["inputSchema"]["additionalProperties"] is False
         assert tool["outputSchema"]["type"] == "object"
         assert tool["annotations"]["destructiveHint"] is False
         assert "api_key" not in json.dumps(tool["inputSchema"]).lower()
+    historical = next(tool for tool in tools if tool['name']=='cgkn_streaming_acceptance_status')
+    assert historical['annotations']['readOnlyHint'] is True
+    assert historical['annotations']['openWorldHint'] is False
+    assert historical['annotations']['idempotentHint'] is True
+    assert 'action' not in historical['inputSchema']['properties']
     generation = next(tool for tool in tools if tool["name"] == "cgkn_generate")
     assert generation["inputSchema"]["properties"]["usage_beta"]["default"] is False
     assert generation["annotations"]["openWorldHint"] is True

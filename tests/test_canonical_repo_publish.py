@@ -45,6 +45,9 @@ def init_repo(tmp_path: pathlib.Path) -> tuple[pathlib.Path, pathlib.Path]:
         ("credentials.json", "SECRET", "BLOCK"),
         ("tests/test_app.py", "TEST", "COMMIT"),
         ("pytest.ini", "TEST", "COMMIT"),
+        ("requirements-network.txt", "CONTRACT", "COMMIT"),
+        ("requirements-metrics.txt", "CONTRACT", "COMMIT"),
+        ("PROJECT_MANAGEMENT.md", "CURRENT_DOC", "COMMIT"),
         ("benchmarks/project_generation_v1/cases.json", "TEST", "COMMIT"),
         ("examples/mvp-runtime/hello-pipeline/tree.json", "TEST", "COMMIT"),
         ("config/provider_profiles/project-generation-external-api.json", "CONTRACT", "COMMIT"),
@@ -94,6 +97,22 @@ def test_literal_key_remains_secret_content(tmp_path: pathlib.Path) -> None:
     literal = "const request = { apiKey: '" + "sk-super-secret-value-123456" + "' };\n"
     path.write_text(literal, encoding="utf-8")
     assert gate.classify_path("src/provider.ts", tmp_path)[0] == "SECRET"
+
+
+@pytest.mark.parametrize('quoted', [False, True])
+def test_python_keyword_reference_does_not_allow_literal_credentials(tmp_path, quoted):
+    folder=tmp_path/'scripts';folder.mkdir()
+    value='info.access_token'
+    text='session = dict(access_token='+ (repr(value) if quoted else value) +')\n'
+    (folder/'session.py').write_text(text,encoding='utf-8')
+    assert gate.classify_path('scripts/session.py',tmp_path)[0]==('SECRET' if quoted else 'SOURCE')
+
+
+def test_dependency_file_still_rejects_secret_and_unknown_names(tmp_path):
+    value='sk-'+'sensitive-value-123456789'
+    (tmp_path/'requirements-network.txt').write_text('api_key='+value,encoding='utf-8')
+    assert gate.classify_path('requirements-network.txt',tmp_path)[0]=='SECRET'
+    assert gate.classify_path('arbitrary.txt',tmp_path)[0]=='UNKNOWN'
 
 
 def test_staged_path_validation_counts_rename_as_delete_plus_add(tmp_path: pathlib.Path) -> None:

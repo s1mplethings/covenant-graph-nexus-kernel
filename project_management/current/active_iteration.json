@@ -1,94 +1,72 @@
 {
   "kind": "CGKNAdaptiveIteration",
   "schema_version": "1.0",
-  "iteration_id": "ITER-015",
+  "iteration_id": "ITER-131",
   "project_id": "cgkn",
-  "goal": "Integrate the independent loopback Provider gateway as a bounded CompletionClient and prove Qwen Agent plus DeepSeek Worker through real CGKN runtime and acceptance without exposing credentials or adding a second pipeline.",
+  "goal": "Full-system penetration, declaration reliability, isolated downstream controls, fresh V5 then conditional Promotion Studio V2",
   "backlog_item_ids": [
-    "PB-021"
+    "PB-028"
   ],
   "workflow_state": "closed",
-  "evidence_status": "PASS_WITH_LIMITS",
+  "evidence_status": "FAIL",
   "acceptance_criteria": [
-    "GatewayCompletionClient preserves system/user role boundaries, JSON Schema, limits, usage, request identity, and error categories",
-    "routing admits only qwen, deepseek, and grok, writes an immutable credential-free snapshot, and denies fallback",
-    "existing process-safe budget reservations block excess calls before transport and settle actual or unavailable usage",
-    "Agent MVP and SoftwareProjectGenerationService select the gateway only when explicitly enabled",
-    "one HTTP Mock Gateway run completes seeded repair through real DAG, pytest, snapshot, and external acceptance",
-    "affected regressions and the product direction gate pass"
+    "No arbitrary local context hard cap",
+    "Complete immutable Worker contract and exact safe projection",
+    "Scoped context expansion within same semantic decision",
+    "Current-source offline and real smoke pass",
+    "Fresh V5 independent acceptance and verified goal before Promotion"
   ],
   "quality_metrics": [
     {
-      "id": "QM-GATEWAY-ROUTING",
-      "measure": "role route accuracy",
-      "target": "observed qwen,deepseek,qwen sequence in the accepted seeded repair",
-      "method": "gateway E2E test"
-    },
-    {
-      "id": "QM-GATEWAY-FAIL-CLOSED",
-      "measure": "negative-path coverage",
-      "target": "auth, invalid model, stopped gateway, truncation, schema, 429, timeout, budget, fallback, and immutability covered",
-      "method": "provider gateway focused tests"
-    },
-    {
-      "id": "QM-GATEWAY-SECURITY",
-      "measure": "credential boundary",
-      "target": "no vendor key access and no gateway token in configuration, snapshots, exceptions, or repr",
-      "method": "security tests and repository scan"
-    },
-    {
-      "id": "QM-GATEWAY-REGRESSION",
-      "measure": "affected regression",
-      "target": "all applicable provider, Agent, Executor, runtime, state, application, acceptance, and contract tests pass",
-      "method": "pytest and direction gate"
+      "id": "QM-131",
+      "measure": "mandatory context retained; exported contracts closed; repair reaches Worker and independent acceptance",
+      "target": "all critical facts retained and V5 complete before Promotion",
+      "method": "property tests, exact old request replay, frozen consumer and receipts"
     }
   ],
   "quality_activities": {
     "prevention": [
-      "Reuse CompletionClient, Provider budget, CapabilityTree, DAG, and acceptance authorities; add no alternate pipeline"
+      "historical seal and bounded contracts"
     ],
     "assurance": [
-      "Exercise protocol and failure behavior offline before any user-authorized paid call"
+      "independent checker registration and current identity"
     ],
     "control": [
-      "Run focused gateway/E2E tests, affected regressions, direction gate, and secret-like scan"
+      "distribution tests",
+      "four focused real protocol smoke cases",
+      "fresh independent small-project gate"
     ],
     "improvement": [
-      "Record the smallest reusable lesson only after accepted runtime evidence"
+      "single authority for contract goal and executor binding"
     ]
   },
   "interface_expectations": [
-    "API Lab owns vendor credentials and protocol conversion; CGKN sees only loopback URL, ephemeral token, and Provider IDs",
-    "Agent and Worker retain one CompletionClient contract while using independent role configurations",
-    "CapabilityTree, ExecutionDAG, bounded actions, acceptance, local_packager, and public delivery authorities are unchanged"
+    "One GoalAcceptance/FileRunStore authority",
+    "Measurement uses existing Block/Executor registry boundary",
+    "Metrics consume trusted evidence exports and never change routing"
   ],
   "evidence_refs": [
-    "api-lab:46 passed and package build",
-    "pytest:362 passed,1 skipped source-bound unit and full-core profiles",
-    "pytest:2183 passed,350 skipped source-bound active-repository profile",
-    "kernel receipt:b9d38fc616632b5362114958d7ae6926dc3924b179f31ea13eefc10242582eba",
-    "gates:receipt freshness,architecture,test mapping,completeness,product direction PASS"
+    "F:\\CGKN-ITER-131\\full-penetration-closure-v1\\END_TO_END_V5_RESULT.json",
+    "F:\\CGKN-ITER-131\\full-penetration-closure-v1\\FINAL_REPORT.md",
+    "F:\\CGKN-ITER-131\\full-penetration-closure-v1\\FULL_SYSTEM_COVERAGE.json",
+    "F:\\CGKN-ITER-131\\full-penetration-closure-v1\\PROMOTION_RESULT.json"
   ],
   "review": {
-    "outcome": "accepted_with_limits",
+    "outcome": "rejected",
     "feedback": [
-      "HTTP mock gateway proved qwen Agent and deepseek Worker through Agent MVP and software-project acceptance.",
-      "Live Qwen, DeepSeek, and Grok credentials and paid interoperability remain NOT_EVALUATED."
+      "Full boundary qualification completed; V5 accepted; Promotion outcome PRODUCT_NOT_READY; no formal calibration."
     ],
-    "accepted_backlog_item_ids": [
-      "PB-021"
-    ]
+    "accepted_backlog_item_ids": []
   },
   "retrospective": {
     "worked": [
-      "Reusing CompletionClient, Provider budget, CapabilityTree, DAG, and acceptance boundaries kept the increment small and auditable."
+      "Generic declaration, structured test facts, public feedback and negative provenance controls; preserved history and accounting."
     ],
     "did_not_work": [
-      "The repository-root direction gate traversed ignored service worktrees and obsolete benchmark directories outside this branch identity.",
-      "One evidence run exhausted the C-drive pytest temporary area and produced cascading environment failures."
+      "Historical invalid witnesses remain invalid; earlier timing variance root cause remains unresolved. Product closure: The full Promotion product declaration repeatedly failed exported-exception test binding; after three completed model responses the unchanged schema repair bound terminated. No product Worker, candidate or GUI was produced. Earlier corrected declaration changed immutable reason_summary; a separate catalog timeout was preserved and subsequent read-only diagnostics recovered."
     ],
     "experiments": [
-      "Run direction and source-bound evidence gates from a clean committed-source snapshot to exclude ignored desktop state."
+      "Use the actual final failed predicates in bounded Agent/Worker repair; retain full public diagnostic and contract context."
     ]
   }
 }

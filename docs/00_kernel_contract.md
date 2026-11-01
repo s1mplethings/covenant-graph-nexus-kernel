@@ -175,3 +175,58 @@ or delivery authority. `CapabilityTree`, `ExecutionDAG`, bounded Executor
 validation, real tests, external acceptance, and the canonical delivery route
 remain unchanged. When gateway mode is not explicitly enabled, the reviewed
 `OpenAICompatibleClient` path remains the default.
+
+## Bounded graph commits (ITER-088)
+
+Ordinary `DAGRunner.run(resume=True)` requires the saved graph, including node
+configuration and dependencies. `AgentProjectLoop` explicitly commits edits with
+`accept_edits=True`: it may append executable nodes and change unfinished nodes.
+Changing a succeeded node or its affected succeeded dependents requires the
+existing explicit `retry_node` contract. Goal changes and node removals within
+an existing run are rejected. This is a bounded runtime capability addition,
+not a claim that arbitrary incremental edits were previously supported.
+
+The committed DAG, graph revision and node records are atomically saved in the
+canonical `RunState`. Existing definition files remain readable mirrors. A
+legacy state must have its matching saved definition to be resumed; missing or
+incompatible records fail closed. Attempts and unaffected successful results
+are retained. A failed commit cannot authorize execution against a different
+graph. No second scheduler, state store or planner is introduced.
+
+## Rejected Agent decisions (ITER-089)
+
+Model decision parsing and pre-execution tree-edit validation failures are
+recorded verbatim and returned at the next bounded Agent decision. A rejected
+edit batch commits no partial tree and executes no tools. Rejected decisions
+consume the existing decision/request budget; no silent semantic repair or
+extra decision allowance is introduced. Transport, store and runtime failures
+are not recategorized as model syntax errors. The experiment's timeout recovery
+policy is separate from this canonical decision contract.
+
+### ITER-090 engineering DEV adapter
+
+The optional compact Agent interface binds a selected catalog capability to its
+unique executor and emits ordinary tree edits. Agent-authored summaries are
+preserved; this is not a second planner or scheduler. The same canonical DAG,
+executor registry and FileRunStore execute and persist all nodes. The project
+loop accepts a caller-specified positive decision resource bound; the former
+four-decision constructor ceiling is removed. Paid callers must enforce their
+shared request/token/time/cost limits across Agent and worker calls.
+
+Success and failure outputs enter the next Agent checkpoint. A mechanical six
+result window avoids replaying all source content; the isolated engineering
+adapter publishes complete own-run result references. Compact requests include
+unmodified Agent action summaries and bounded raw prefixes with hashes for long
+results. No host semantic context selection or business summaries are supplied.
+
+Failed/timed-out/blocked nodes are not replayed by an ordinary continuation.
+Explicit retry or validated edit invalidation is required. Successful nodes
+retain the prior reuse and affected-subgraph checks. Bounded workers may read
+iteratively, then return their own write/patch actions; completed outputs retain
+read observations, modified paths and expected outputs. Runtime action failures
+are not transactional filesystem rollback; partial effects must be inspected
+before explicit retries. Entire proposal field validation precedes action use.
+
+ITER-090 is engineering DEV with exposed feedback and versioned continuations,
+not a blind benchmark or public publication route. Candidate development remains
+isolated; shipping/publication continues to use the existing reviewed gates.

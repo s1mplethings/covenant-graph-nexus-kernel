@@ -4,7 +4,6 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Protocol
 
-from scripts import check_connectivity, provider_transport
 
 
 @dataclass(frozen=True)
@@ -15,14 +14,17 @@ class ModelRoleConfig:
     max_output_tokens: int = 2200
     temperature: float = 0.0
     reasoning_effort: str = "none"
+    model_id: str | None = None
 
     def __post_init__(self) -> None:
+        if self.model_id is not None and (not isinstance(self.model_id, str) or not self.model_id.strip() or len(self.model_id) > 200):
+            raise ValueError("invalid concrete model identity")
         if self.role not in {"agent", "worker"} or not self.model.strip():
             raise ValueError("model role and model are required")
         if not 1 <= int(self.timeout_seconds) <= 600:
             raise ValueError("model timeout must be between 1 and 600 seconds")
-        if not 1 <= int(self.max_output_tokens) <= 131_072:
-            raise ValueError("model output limit must be between 1 and 131072 tokens")
+        if type(self.max_output_tokens) is not int or self.max_output_tokens < 1:
+            raise ValueError("model output limit must be a positive integer; model-specific capacity is enforced by the sourced envelope/provider")
         if not 0.0 <= float(self.temperature) <= 2.0:
             raise ValueError("model temperature must be between 0 and 2")
 
@@ -34,6 +36,8 @@ class ProviderCompletion:
     request_id: str = ""
     usage: Mapping[str, Any] = field(default_factory=dict)
     attempts: int = 1
+    routing: Mapping[str, Any] = field(default_factory=dict)
+    raw_finish_reason: str | None = None
 
 
 class CompletionClient(Protocol):
@@ -51,28 +55,9 @@ def parse_json_object(text: str) -> dict[str, Any]:
     return value
 
 
-class OpenAICompatibleClient:
-    """Thin adapter over the repository's reviewed Provider transport and credentials."""
-
-    def complete(self, *, system: str, user: str, schema_name: str, schema: Mapping[str, Any], config: ModelRoleConfig) -> ProviderCompletion:
-        credentials = check_connectivity._resolve_api_credentials()
-        token = str(credentials.get("api_key", "")).strip()
-        base_url = str(credentials.get("base_url", "")).strip()
-        if not token or not base_url:
-            raise RuntimeError("Provider credentials are unavailable")
-        response_format = {"type": "json_schema", "json_schema": {"name": schema_name, "strict": True, "schema": dict(schema)}}
-        payload = check_connectivity._build_openai_compatible_payload(
-            base_url,
-            {"model": config.model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}], "temperature": config.temperature, "max_tokens": config.max_output_tokens, "response_format": response_format},
-            model=config.model,
-            reasoning_effort=config.reasoning_effort,
-        )
-        endpoint = check_connectivity._openai_compatible_endpoint(base_url, model=config.model)
-        transport = provider_transport.post_json_with_retry(endpoint, payload, token, config.timeout_seconds, max_attempts=3, base_delay_sec=0.5)
-        if transport.doc is None:
-            raise RuntimeError(provider_transport._redact(transport.error, token))
-        text = check_connectivity._extract_text(transport.doc)
-        if not text:
-            raise RuntimeError("Provider returned an empty response")
-        usage = transport.doc.get("usage", {}) if isinstance(transport.doc.get("usage"), dict) else {}
-        return ProviderCompletion(text, str(transport.doc.get("model") or config.model), str(transport.doc.get("id", "")), usage, len(transport.attempts))
+def __getattr__(name):
+    # Import compatibility only on explicit access; keep stable historical import.
+    if name=='OpenAICompatibleClient':
+        from .legacy_client import OpenAICompatibleClient
+        return OpenAICompatibleClient
+    raise AttributeError(name)

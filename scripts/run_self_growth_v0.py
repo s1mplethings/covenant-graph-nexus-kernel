@@ -17,6 +17,19 @@ from cgkn.orchestration.capability_tree import CapabilityNode, CapabilityTree
 from cgkn.orchestration.execution_dag import compile_tree
 from cgkn.runtime import DAGRunner
 from cgkn.state import FileRunStore
+from cgkn.orchestration.leaf_contract import build_leaf_contract
+from cgkn.execution.deliverables import SubjectDeliverableChecker
+from cgkn.state.task_feedback import digest
+
+
+def qualified_runner(executors,store):
+    def check(request,contract):
+        original=contract['source_text']
+        actual=request.as_dict()['input_values']['execution_receipt']['outputs']
+        return {'passed':actual.get('object')==json.loads(original),'observed':actual,
+                'evidence_refs':[dict(request.input_values['execution_receipt_ref'])]}
+    executors.register(SubjectDeliverableChecker(lambda c:{'input-json':digest(c['source_text'])},{'parsed-object':check}))
+    return DAGRunner(executors,store,deliverable_checkers={'json-parse':'deliverable.subjects@1'})
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -37,14 +50,19 @@ def main(argv: list[str] | None = None) -> int:
     except KeyError:
         pass
     first_growth = loop.ensure(first_gap)
-    tree = CapabilityTree("parse JSON", (CapabilityNode("parse", capability_ref="json.parse@1", config={"executor_ref": "python.stdlib.json@1", "inputs": {"text": "{\"answer\": 42}"}}),))
-    runner = DAGRunner(executors, FileRunStore(args.run_root / "runs"))
+    text='{"answer": 42}'
+    contract=build_leaf_contract(goal='Parse the exact public JSON input',kind='READ_ONLY_ANALYSIS',
+        scope=['input-json'],acceptance=['parsed-object'],checker='json-parse',output_identity='parsed-object',
+        effect_domains=['input-json'],executor='python.stdlib.json@1',source_refs=['input-json'],
+        completion_criterion='object equals deterministic parse of input',source_text=text)
+    tree = CapabilityTree("parse JSON", (CapabilityNode("parse", capability_ref="json.parse@1", config={"executor_ref": "python.stdlib.json@1", "inputs": {"text":text},'leaf_contract':contract}),))
+    runner = qualified_runner(executors, FileRunStore(args.run_root / "runs"))
     first_run = runner.run(project_id="growth-project", run_id="growth-run-1", tree=tree, dag=compile_tree(tree))
     loaded = CapabilityRegistry.load(registry_path, {component.ref: component})
     second_executors = ExecutorRegistry()
     second_loop = GrowthLoop(loaded, second_executors, LocalDiscoverySource(), LocalSandbox(), factories=default_growth_executor_factories(), registry_path=registry_path, evidence_root=args.run_root)
     second_growth = second_loop.ensure(CapabilityGap("gap-json-2", "growth-project", "growth-run-2", "json.parse", ("text",), ("object",), (), "reuse admitted capability", "parse", "LOW"))
-    second_run = DAGRunner(second_executors, FileRunStore(args.run_root / "runs")).run(project_id="growth-project", run_id="growth-run-2", tree=tree, dag=compile_tree(tree))
+    second_run = qualified_runner(second_executors, FileRunStore(args.run_root / "runs")).run(project_id="growth-project", run_id="growth-run-2", tree=tree, dag=compile_tree(tree))
     result = {"status": "PASS" if initial_missing and first_run.status == second_run.status == "SUCCEEDED" and first_growth.growth_invoked and second_growth.reused else "FAIL", "initial_capability_missing": initial_missing, "growth_invoked_count": loop.invoked_count + second_loop.invoked_count, "discovery_candidate_count": first_growth.candidate_count, "trial_count": first_growth.trial_count, "admission_verdict": first_growth.receipt.verdict if first_growth.receipt else None, "registered_capability": first_growth.capability.ref, "first_run": first_run.as_dict(), "second_run": second_run.as_dict(), "second_run_reused_registry": second_growth.reused, "kernel_files_modified_by_growth": 0, "provider_calls": 0, "network_calls": 0, "registry_path": str(registry_path)}
     print(json.dumps(result, indent=2, sort_keys=True) if args.json else result["status"])
     return 0 if result["status"] == "PASS" else 1

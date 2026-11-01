@@ -32,15 +32,17 @@ class RunState:
     created_at: str = field(default_factory=utc_now)
     updated_at: str = field(default_factory=utc_now)
     schema_version: str = "1.0"
+    execution_dag: dict[str, Any] | None = None
+    graph_revision: int = 0
 
     def as_dict(self) -> dict[str, Any]:
-        return {"kind": "CGKNRunState", "schema_version": self.schema_version, "project_id": self.project_id, "run_id": self.run_id, "status": self.status, "nodes": {key: value.as_dict() for key, value in self.nodes.items()}, "created_at": self.created_at, "updated_at": self.updated_at}
+        return {"kind": "CGKNRunState", "schema_version": self.schema_version, "project_id": self.project_id, "run_id": self.run_id, "status": self.status, "nodes": {key: value.as_dict() for key, value in self.nodes.items()}, "created_at": self.created_at, "updated_at": self.updated_at, "execution_dag": self.execution_dag, "graph_revision": self.graph_revision}
 
     @classmethod
     def from_dict(cls, value: Mapping[str, Any]) -> "RunState":
         if value.get("kind") != "CGKNRunState" or value.get("schema_version") != "1.0":
             raise ValueError("unsupported or corrupt run state")
-        return cls(project_id=str(value["project_id"]), run_id=str(value["run_id"]), status=str(value.get("status", "PENDING")), nodes={key: NodeExecutionRecord.from_dict(item) for key, item in dict(value.get("nodes", {})).items()}, created_at=str(value["created_at"]), updated_at=str(value["updated_at"]))
+        return cls(project_id=str(value["project_id"]), run_id=str(value["run_id"]), status=str(value.get("status", "PENDING")), nodes={key: NodeExecutionRecord.from_dict(item) for key, item in dict(value.get("nodes", {})).items()}, created_at=str(value["created_at"]), updated_at=str(value["updated_at"]), execution_dag=dict(value["execution_dag"]) if value.get("execution_dag") is not None else None, graph_revision=int(value.get("graph_revision", 0)))
 
 
 @dataclass
