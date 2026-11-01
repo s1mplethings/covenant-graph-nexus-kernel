@@ -125,6 +125,10 @@ def _blocked_without_api(args: argparse.Namespace) -> dict[str, Any]:
     return result
 
 
+from cgkn.telemetry.lean import observed
+
+
+@observed("provider_pipeline", lambda a: pathlib.Path(getattr(a["args"], "resume_run_dir", "") or a["args"].run_dir), expose=True)
 def execute(args: argparse.Namespace) -> dict[str, Any]:
     provider_mode = str(getattr(args, "provider_mode", "live") or "live").strip().lower()
     if provider_mode == "live" and not bool(getattr(args, "use_api", False)):

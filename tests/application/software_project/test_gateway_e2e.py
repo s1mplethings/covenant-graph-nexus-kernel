@@ -49,17 +49,17 @@ class ProjectGateway(BaseHTTPRequestHandler):
             else:
                 value = {"schema_version": "1.0", "decision_id": "d2", "summary": "finish", "reason": "acceptance passed", "edits": [], "request_run": False, "finish": True, "needs_escalation": False, "escalation_reason": ""}
         body = json.dumps({"id": f"mock-{len(self.models)}", "status": "completed", "model": model, "output_text": json.dumps(value), "usage": {"input_tokens": 10, "output_tokens": 10, "total_tokens": 20}}).encode()
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+        from tests.providers.stream_fixtures import send_gateway
+        send_gateway(self,payload,json.loads(body))
+
 
 
 @pytest.mark.happy_path
 @pytest.mark.local_functional
 @pytest.mark.generation
-def test_qwen_agent_deepseek_worker_crosses_real_runtime_pytest_and_external_acceptance(tmp_path: pathlib.Path) -> None:
+def test_qwen_agent_deepseek_worker_crosses_real_runtime_pytest_and_external_acceptance(tmp_path: pathlib.Path,monkeypatch) -> None:
+    profile=tmp_path/"legacy.json";profile.write_text('{"mode":"legacy"}')
+    monkeypatch.setenv("CGKN_APPLICATION_PROFILE",str(profile))
     ProjectGateway.models = []
     ProjectGateway.agent_calls = 0
     server = ThreadingHTTPServer(("127.0.0.1", 0), ProjectGateway)

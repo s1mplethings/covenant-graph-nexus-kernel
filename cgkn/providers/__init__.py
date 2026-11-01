@@ -1,6 +1,6 @@
 from .client import (
     CompletionClient, DirectGenerationClient, GenerationClient, GenerationRequest,
-    GenerationResult, ModelRoleConfig, OpenAICompatibleClient, ProviderCompletion,
+    GenerationResult, ModelRoleConfig, ProviderCompletion,
     as_generation_client, parse_json_object,
 )
 from .connection_contracts import ModelBindingSource, ProviderConnectionError, ProviderConnectionHealth, ProviderConnectionSnapshot, ProviderModelBinding, StructuredOutputMode
@@ -28,3 +28,10 @@ __all__ = [
     "ProviderProgressEvent", "ProviderRequestComplexity", "SupervisedExecutionResult", "SupervisedHttpTransport",
     "SupervisionMode", "SupervisionReceipt", "SupervisorDecision",
 ]
+
+
+def __getattr__(name):
+    if name == "OpenAICompatibleClient":
+        from .legacy_client import OpenAICompatibleClient
+        return OpenAICompatibleClient
+    raise AttributeError(name)

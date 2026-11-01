@@ -180,3 +180,22 @@ def test_failure_before_http_send_cancels_reservation(
     value = json.loads(ledger.read_text(encoding="utf-8"))
     assert value["calls"][0]["status"] == "CANCELLED_BEFORE_SEND"
     assert value["totals"]["api_calls"] == 0
+
+
+def test_accounting_only_is_call_scoped_and_retains_unknowns(tmp_path, monkeypatch):
+    ledger=tmp_path/'ledger.json';_configure(monkeypatch,ledger)
+    common=dict(case_id='continuous',purpose='planning',model='agent',estimated_input_tokens=200,requested_output_tokens=100,retry_count=0)
+    with pytest.raises(ValueError,match='authorization'):
+        provider_api_budget.reserve_call(**common,request_identity='denied',execution_policy='accounting_only')
+    first=provider_api_budget.reserve_call(**common,request_identity='one',execution_policy='accounting_only',authorization_reference='user-v2.1')
+    provider_api_budget.mark_request_started(first)
+    provider_api_budget.finalize_call(first,usage=None,http_status='UNKNOWN',status='FAILED')
+    second=provider_api_budget.reserve_call(**common,request_identity='two',execution_policy='accounting_only',authorization_reference='user-v2.1')
+    usage={'prompt_tokens':10,'completion_tokens':5}
+    provider_api_budget.finalize_call(second,usage=usage,http_status=200,status='PASS')
+    provider_api_budget.finalize_call(second,usage=usage,http_status=200,status='PASS')
+    data=json.loads(ledger.read_text())
+    assert len(data['calls'])==2 and not data['totals']['actual_token_usage_complete']
+    assert data['totals']['input_tokens']==210
+    with pytest.raises(provider_api_budget.ProviderBudgetExhausted):
+        provider_api_budget.reserve_call(**common,request_identity='limited')

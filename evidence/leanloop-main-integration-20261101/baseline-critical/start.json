@@ -1,0 +1,19 @@
+{
+  "pid": 22212,
+  "source": "F:\\CGKN-Main-Baseline-20261101",
+  "command": [
+    "C:\\Users\\sunom\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/application/test_project_loop.py",
+    "tests/providers/test_gateway_client.py",
+    "tests/application/project_corpus",
+    "tests/test_knowledge_persistence_v2.py",
+    "--junitxml=F:\\CGKN-LeanLoop-Main-Integration-20261101\\artifacts\\leanloop-main-integration\\baseline-critical\\results.xml"
+  ],
+  "epoch": 1793545316.371135,
+  "environment": "shared offline legacy profile, external socket guard, identical watchdog stack timer"
+}

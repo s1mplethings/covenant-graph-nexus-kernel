@@ -1,0 +1,86 @@
+FF..............s....................................................... [ 79%]
+...................                                                      [100%]
+================================== FAILURES ===================================
+___ test_fake_greenfield_runs_real_filesystem_pytest_and_hidden_acceptance ____
+
+tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23193/test_fake_greenfield_runs_real0')
+
+    def test_fake_greenfield_runs_real_filesystem_pytest_and_hidden_acceptance(tmp_path: pathlib.Path) -> None:
+        client = QueueClient([
+            _bundle("core", {"csv_cleaner/__init__.py": "from .core import clean_file, clean_rows\n__all__=['clean_file','clean_rows']\n", "csv_cleaner/__main__.py": MAIN, "csv_cleaner/core.py": CORE}),
+            _bundle("docs", {"README.md": "# CSV Cleaner\n\n`python -m csv_cleaner INPUT OUTPUT [--dedupe-column COLUMN] [--fill VALUE] [--preview N]`\n"}),
+            _bundle("tests", {"tests/test_csv_cleaner.py": "from csv_cleaner.core import clean_rows\ndef test_dedupe():\n assert clean_rows(['id'],[{'id':'1'},{'id':'1'}]) == [{'id':'1'}]\n"}),
+        ])
+        agent, worker = _configs(); workspace = tmp_path / "workspace"
+>       outcome = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", client, agent, worker).run(_csv_blueprint(), workspace, case_id="cli_csv_cleaner")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:384: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\application\project_loop.py:1750: in run
+    run_id = f"blueprint-{blueprint.project_id}-{uuid.uuid4().hex[:10]}"; tree = compile_blueprint(blueprint, case_id=case_id); dag = compile_tree(tree)
+                                                                                                                                      ^^^^^^^^^^^^^^^^^^
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+>           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError
+____ test_fake_repair_preserves_blueprint_and_reruns_only_owner_and_checks ____
+
+tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23193/test_fake_repair_preserves_blu0')
+
+    def test_fake_repair_preserves_blueprint_and_reruns_only_owner_and_checks(tmp_path: pathlib.Path) -> None:
+        units = (BlueprintUnit("core", "math implementation", "implementation", ("math_utils.py",), executor_ref="llm.cheap@1", instruction="implement add", required_interfaces=("add",), acceptance=("addition",), allowed_effects=("filesystem.write",)),)
+        checks = (BlueprintCheck("pytest", "verification", (sys.executable, "-m", "pytest", "-q"), ("core",), ("public tests",)), BlueprintCheck("accept", "acceptance", (), ("pytest",), get_case("seeded_repair").public_acceptance))
+        blueprint = ProjectBlueprint("1.0", "seeded_repair", 1, "repair arithmetic", ("smallest change",), units, checks).freeze()
+        client = QueueClient([_bundle("core", {"math_utils.py": "def add(a, b):\n    return a - b\n"}), _patch("core", "math_utils.py", "return a - b", "return a + b")])
+        workspace = tmp_path / "workspace"; workspace.mkdir(); (workspace / "test_math_utils.py").write_text("from math_utils import add\ndef test_add(): assert add(2,3)==5\n", encoding="utf-8")
+>       agent, worker = _configs(); outcome = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", client, agent, worker).run(blueprint, workspace, case_id="seeded_repair")
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:397: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\application\project_loop.py:1750: in run
+    run_id = f"blueprint-{blueprint.project_id}-{uuid.uuid4().hex[:10]}"; tree = compile_blueprint(blueprint, case_id=case_id); dag = compile_tree(tree)
+                                                                                                                                      ^^^^^^^^^^^^^^^^^^
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:5192b4aa0ecec0e76d18dee3cd378c305dc9a3f453b1a2beb0fafea6abda2147'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+>           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError
+=========================== short test summary info ===========================
+FAILED tests/application/test_project_loop.py::test_fake_greenfield_runs_real_filesystem_pytest_and_hidden_acceptance
+FAILED tests/application/test_project_loop.py::test_fake_repair_preserves_blueprint_and_reruns_only_owner_and_checks
+2 failed, 88 passed, 1 skipped in 22.72s

@@ -1,3 +1,6 @@
+> **REGRESSION FAILED / 尚未通过回归：本分支仅供审阅，不要合并 main 或部署。**
+> 21 个新增失败，详见 [本轮状态及测试报告](INTEGRATION_STATUS.md)。
+
 # CGNK
 
 CGNK (Covenant Graph Nexus Kernel) is a composable autonomous project-team kernel.

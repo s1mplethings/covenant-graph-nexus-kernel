@@ -17,9 +17,10 @@ from datetime import datetime, timezone
 from typing import Any
 
 try:
-    from . import model_policy
+    from . import model_policy, provider_transport as _transport
 except ImportError:  # pragma: no cover - script execution path
     import model_policy  # type: ignore
+    import provider_transport as _transport
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -60,23 +61,10 @@ def _normalize_base_url(value: str) -> str:
     return root
 
 
-def _is_gptsapi_base_url(value: str) -> bool:
-    root = _normalize_base_url(value).lower()
-    if root.endswith("/v1"):
-        root = root[:-3].rstrip("/")
-    return root in {
-        "https://api.gptsapi.net",
-        "http://api.gptsapi.net",
-        "https://gptsapi.net",
-        "http://gptsapi.net",
-    }
+_is_gptsapi_base_url = _transport._is_gptsapi_base_url
 
 
-def _is_alibaba_model_studio_base_url(value: str) -> bool:
-    hostname = str(urlparse(_normalize_base_url(value)).hostname or "").lower()
-    return hostname in {"dashscope.aliyuncs.com", "dashscope-intl.aliyuncs.com"} or hostname.endswith(
-        ".maas.aliyuncs.com"
-    )
+_is_alibaba_model_studio_base_url = _transport._is_alibaba_model_studio_base_url
 
 
 def _supports_alibaba_qwen_reasoning_none(model: str) -> bool:
@@ -206,14 +194,11 @@ def _build_provider_probe_payload(
     )
 
 
-def _tls_verify_enabled() -> bool:
-    raw = str(os.environ.get("CGKN_API_TLS_VERIFY", os.environ.get("OPENAI_TLS_VERIFY", "1"))).strip().lower()
-    return raw not in {"0", "false", "no", "off"}
+_tls_verify_enabled = _transport.tls_verify_enabled
 
 
 def _urlopen(req: urllib.request.Request, timeout_sec: int):
-    context = None if _tls_verify_enabled() else ssl._create_unverified_context()
-    return urllib.request.urlopen(req, timeout=timeout_sec, context=context)
+    return _transport._urlopen(req, timeout_sec)
 
 
 def _request_error_summary(exc: BaseException, endpoint: str) -> str:
@@ -339,6 +324,9 @@ def _credential_conflict_sources(candidates: list[tuple[str, str]], selected_val
 
 
 def _resolve_api_credentials() -> dict[str, str]:
+    from cgkn.providers.application_network import credentials
+    selected=credentials()
+    if selected is not None:return selected
     defaults = _load_local_notes_defaults()
     override_key = str(os.environ.get("CGKN_OPENAI_API_KEY_OVERRIDE", "")).strip()
     override_base_url = str(os.environ.get("CGKN_OPENAI_BASE_URL_OVERRIDE", "")).strip()
@@ -416,74 +404,7 @@ def _resolve_api_credentials() -> dict[str, str]:
     }
 
 
-def _post_json(endpoint: str, payload: dict[str, Any], token: str, timeout_sec: int) -> tuple[dict[str, Any] | None, str]:
-    data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    started = time.monotonic()
-    timing: dict[str, Any] = {
-        "request_started_at": datetime.now(timezone.utc).isoformat(),
-        "request_body_bytes": len(data),
-        "timeout_seconds": int(timeout_sec),
-        "response_headers_received": False,
-        "response_body_received": False,
-    }
-    _set_last_transport_timing(timing)
-    req = urllib.request.Request(
-        endpoint,
-        data=data,
-        method="POST",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent": "CGNK-Connectivity/1",
-            "Connection": "close",
-        },
-    )
-    response_opened = False
-    try:
-        with _urlopen(req, timeout_sec) as resp:
-            response_opened = True
-            timing["response_headers_received"] = True
-            timing["response_headers_elapsed_ms"] = round(
-                (time.monotonic() - started) * 1000
-            )
-            timing["response_status"] = int(getattr(resp, "status", 0) or 0)
-            body = resp.read().decode("utf-8", errors="replace")
-            timing["response_body_received"] = bool(body)
-            timing["response_body_bytes"] = len(body.encode("utf-8"))
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace").strip()
-        timing["failure_phase"] = "http_response"
-        timing["response_headers_received"] = True
-        timing["response_status"] = int(getattr(exc, "code", 0) or 0)
-        timing["response_body_received"] = bool(detail)
-        timing["response_body_bytes"] = len(detail.encode("utf-8"))
-        timing["total_elapsed_ms"] = round((time.monotonic() - started) * 1000)
-        _set_last_transport_timing(timing)
-        return None, _http_error_summary(exc, endpoint, detail)
-    except (urllib.error.URLError, TimeoutError, ConnectionError, ConnectionResetError, ssl.SSLError) as exc:
-        timing["failure_phase"] = (
-            "response_body" if response_opened else "connect_or_response_headers"
-        )
-        timing["total_elapsed_ms"] = round((time.monotonic() - started) * 1000)
-        _set_last_transport_timing(timing)
-        return None, f"request failed: {_request_error_summary(exc, endpoint)}"
-    except Exception as exc:
-        timing["failure_phase"] = (
-            "response_body" if response_opened else "connect_or_response_headers"
-        )
-        timing["total_elapsed_ms"] = round((time.monotonic() - started) * 1000)
-        _set_last_transport_timing(timing)
-        return None, f"request failed: {_request_error_summary(exc, endpoint)}"
-    timing["total_elapsed_ms"] = round((time.monotonic() - started) * 1000)
-    _set_last_transport_timing(timing)
-    try:
-        doc = json.loads(body)
-    except Exception as exc:
-        return None, f"non-json response: {exc}"
-    if not isinstance(doc, dict):
-        return None, "response is not object"
-    return doc, ""
+_post_json = _transport.post_json_once
 
 
 @dataclass
@@ -514,33 +435,11 @@ def _post_json_with_retry(
     max_attempts: int = 3,
     base_delay_sec: float = 0.5,
 ) -> ProviderTransportResult:
-    attempts: list[ProviderTransportAttempt] = []
-    doc: dict[str, Any] | None = None
-    error = ""
-    for number in range(1, max(1, max_attempts) + 1):
-        started = time.monotonic()
-        doc, error = _post_json(endpoint, payload, token, timeout_sec)
-        attempts.append(
-            ProviderTransportAttempt(
-                attempt=number,
-                elapsed_ms=round((time.monotonic() - started) * 1000),
-                ok=doc is not None,
-                error=error,
-                error_type=_provider_error_type(error) if error else "",
-                retryable=bool(error and _error_is_retryable(error)),
-            )
-        )
-        if doc is not None or not _error_is_retryable(error):
-            break
-        if os.environ.get("CGKN_PROVIDER_RETRY_FAST") != "1":
-            time.sleep(max(0.0, base_delay_sec) * number)
-    return ProviderTransportResult(
-        doc=doc,
-        error=error,
-        attempts=attempts,
-        error_type=_provider_error_type(error) if error else "",
-        recovered=doc is not None and len(attempts) > 1,
-    )
+    from scripts.provider_transport import post_json_with_retry
+    result=post_json_with_retry(endpoint,payload,token,timeout_sec,max_attempts=max_attempts,base_delay_sec=base_delay_sec)
+    return ProviderTransportResult(result.doc,result.error,
+        [ProviderTransportAttempt(x.attempt,x.elapsed_ms,x.ok,x.error,x.error_type,x.retryable) for x in result.attempts],
+        result.error_type,result.recovered)
 
 
 def _extract_text(doc: dict[str, Any]) -> str:
@@ -587,6 +486,28 @@ def _structured_probe_valid(text: str) -> bool:
 
 
 def check_api(live: bool, timeout_sec: int, model: str, *, structured: bool = False) -> dict[str, Any]:
+    from cgkn.providers.application_network import settings,probe_models,network_status
+    config=settings()
+    if config:
+        if structured:
+            return dict(ok=False,configured=True,status='BLOCKED',model_calls=0,
+                error='DOMESTIC_STRUCTURED_GENERATION_NOT_AUTHORIZED',structured_output_valid=False,
+                generation_verified=False,scope='NO_CAPABILITY_OR_GENERATION_VERIFICATION')
+        rows=probe_models() if live else []
+        ok=bool(rows) and all(row.get('upstream_http_status')==200 and row.get('ok') is True for row in rows)
+        roles=json.loads(pathlib.Path(config['model_routing']).read_text(encoding='utf-8'))['roles']
+        result=dict(ok=ok,configured=True,status='DOMESTIC_NON_GENERATION_MODELS' if live else 'NOT_RUN',
+            saved_roles=roles,checked_providers=[row['provider'] for row in rows],
+            gateway_state=network_status(),generation_executed=False,
+            base_url='local_domestic_gateway',base_url_source='saved_application_profile',
+            api_key_source='application_domestic_gateway',api_key_conflict_sources=[],
+            endpoint='GET /v1/network/models/{provider}',endpoint_mode='non_generation_models',
+            attempts=len(rows),tls_verify=True,model_calls=0,network_route_evidence=rows,
+            generation_verified=False,structured_output_valid=False,scope='NETWORK_AND_AUTHENTICATION_ONLY')
+        if live:
+            output=pathlib.Path(config['gateway_state_dir'])/'last-route-probe.json'
+            output.write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
+        return result
     creds = _resolve_api_credentials()
     token = creds["api_key"]
     root = creds["base_url"]

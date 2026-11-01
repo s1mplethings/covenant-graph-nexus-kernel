@@ -1,0 +1,22 @@
+[
+  {
+    "run": "baseline-critical",
+    "pid": 22212,
+    "original_process_alive": false
+  },
+  {
+    "run": "baseline-full",
+    "pid": 21588,
+    "original_process_alive": false
+  },
+  {
+    "run": "candidate-critical",
+    "pid": 12524,
+    "original_process_alive": false
+  },
+  {
+    "run": "integration-smoke",
+    "pid": 41932,
+    "original_process_alive": false
+  }
+]

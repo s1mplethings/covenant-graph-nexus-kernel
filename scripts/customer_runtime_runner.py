@@ -195,6 +195,50 @@ def _start_process(argv: list[str], cwd: pathlib.Path) -> subprocess.Popen[str]:
     return subprocess.Popen(argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 
+def _stop_owned_process(proc: subprocess.Popen[str]) -> None:
+    """Stop the live runtime and its descendants, including Windows launchers.
+
+    Capture descendants before stopping the parent. psutil Process handles check
+    creation identity before signalling, avoiding a recycled PID. Never search
+    by executable name or terminate unrelated Python/server processes.
+    """
+    import psutil
+
+    if proc.poll() is not None:
+        return
+    try:
+        parent = psutil.Process(proc.pid)
+        if proc.poll() is not None:
+            return
+        owned = parent.children(recursive=True) + [parent]
+    except psutil.NoSuchProcess:
+        proc.wait(timeout=3)
+        return
+    for process in owned:
+        try:
+            process.terminate()
+        except psutil.NoSuchProcess:
+            pass
+    # Popen must reap its own child so its real returncode is retained on POSIX.
+    _, alive = psutil.wait_procs(owned[:-1], timeout=3)
+    for process in alive:
+        try:
+            process.kill()
+        except psutil.NoSuchProcess:
+            pass
+    _, alive = psutil.wait_procs(alive, timeout=3)
+    try:
+        proc.wait(timeout=3)
+    except subprocess.TimeoutExpired:
+        try:
+            parent.kill()
+        except psutil.NoSuchProcess:
+            pass
+        proc.wait(timeout=3)
+    if alive:
+        raise RuntimeError('owned runtime descendants did not stop')
+
+
 def run(
     project_dir: str | pathlib.Path,
     *,
@@ -316,12 +360,7 @@ def run(
                         observed = health_body
             finally:
                 if proc is not None:
-                    proc.terminate()
-                    try:
-                        proc.wait(timeout=3)
-                    except subprocess.TimeoutExpired:
-                        proc.kill()
-                        proc.wait(timeout=3)
+                    _stop_owned_process(proc)
                     shutdown_result = {"stopped": proc.poll() is not None, "returncode": proc.returncode}
         cleanup_result = {"removed": bool(str(execution_root) and not execution_root.exists())}
     except Exception as exc:
@@ -329,9 +368,12 @@ def run(
         status = EvidenceStatus.FAIL.value
     finally:
         if proc is not None and proc.poll() is None:
-            proc.kill()
-            proc.wait(timeout=3)
-            shutdown_result = {"stopped": proc.poll() is not None, "returncode": proc.returncode, "forced": True}
+            try:
+                _stop_owned_process(proc)
+                shutdown_result = {"stopped": proc.poll() is not None, "returncode": proc.returncode, "forced": True}
+            except Exception as cleanup_error:
+                status = EvidenceStatus.FAIL.value
+                shutdown_result = {"stopped": False, "error": f"{type(cleanup_error).__name__}: {cleanup_error}"}
     if not cleanup_result.get("removed"):
         status = EvidenceStatus.FAIL.value
     if browser_capture_required and browser_capture_receipt.get("capture_status") != EvidenceStatus.PASS.value:

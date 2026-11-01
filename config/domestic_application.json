@@ -1,0 +1,11 @@
+{
+  "kind": "CGKNApplicationNetwork",
+  "schema_version": "1.0",
+  "mode": "domestic",
+  "network_config": "network_routes.json",
+  "model_routing": "provider_profiles/domestic_model_routing.json",
+  "gateway_state_dir": "../.cgkn/domestic-gateway",
+  "interface_guid": "31fde520-1fc1-4a43-a5a9-8ca730ff5821",
+  "gateway_python": "C:\\Users\\sunom\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+  "auto_start_gateway": true
+}

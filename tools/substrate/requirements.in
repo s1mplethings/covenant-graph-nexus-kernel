@@ -1,0 +1,10 @@
+# Trusted-host development environment; never a generated-project dependency.
+-r ../../requirements-network.txt
+-r ../../requirements-metrics.txt
+pytest==9.0.3
+jsonschema>=4.23,<5
+playwright==1.60.0
+cryptography==45.0.6
+Pillow==11.3.0
+ruff==0.17.3
+

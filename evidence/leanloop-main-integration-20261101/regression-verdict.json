@@ -1,0 +1,133 @@
+{
+  "verdict": "REJECTED_FOR_MAIN_PUBLICATION",
+  "baseline_commit": "1f8425dbba7c7b44d4273e25b2db20be6f8bd4f5",
+  "feature_commit": "61f525520273cf45ea833bcce01656313c2aaed5",
+  "remote_main": "1f8425dbba7c7b44d4273e25b2db20be6f8bd4f5",
+  "staged_paths": [],
+  "matched_cases": 178,
+  "baseline": {
+    "PASS": 177,
+    "FAIL": 0,
+    "SKIP": 1
+  },
+  "candidate_matched": {
+    "PASS": 156,
+    "FAIL": 21,
+    "SKIP": 1
+  },
+  "candidate_smoke": {
+    "PASS": 312,
+    "FAIL": 21,
+    "SKIP": 1
+  },
+  "new_failures": [
+    {
+      "id": "tests.application.test_project_loop::test_acceptance_ambiguous_candidates_call_coordinator_once",
+      "status": "FAIL",
+      "message": "cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required"
+    },
+    {
+      "id": "tests.application.test_project_loop::test_acceptance_attribution_failure_never_guesses_owner[error0]",
+      "status": "FAIL",
+      "message": "cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required"
+    },
+    {
+      "id": "tests.application.test_project_loop::test_acceptance_attribution_failure_never_guesses_owner[error1]",
+      "status": "FAIL",
+      "message": "cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required"
+    },
+    {
+      "id": "tests.application.test_project_loop::test_acceptance_invalid_unmaterialized_or_stop_decisions_fail_closed[decisions0-skip0]",
+      "status": "FAIL",
+      "message": "cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required"
+    },
+    {
+      "id": "tests.application.test_project_loop::test_acceptance_invalid_unmaterialized_or_stop_decisions_fail_closed[decisions1-skip1]",
+      "status": "FAIL",
+      "message": "cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required"
+    },
+    {
+      "id": "tests.application.test_project_loop::test_acceptance_invalid_unmaterialized_or_stop_decisions_fail_closed[decisions2-skip2]",
+      "status": "FAIL",
+      "message": "cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required"
+    },
+    {
+      "id": "tests.application.test_project_loop::test_acceptance_unique_exact_interface_owner_is_deterministic",
+      "status": "FAIL",
+      "message": "cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required"
+    },
+    {
+      "id": "tests.application.test_project_loop::test_coordinator_attribution_prompt_and_failure_report_never_include_hidden_markers",
+      "status": "FAIL",
+      "message": "cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required"
+    },
+    {
+      "id": "tests.application.test_project_loop::test_corpus_capture_failure_cannot_fail_project_run",
+      "status": "FAIL",
+      "message": "cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required"
+    },
+    {
+      "id": "tests.application.test_project_loop::test_cross_unit_attribution_uses_evidence_and_never_implementation_fallback",
+      "status": "FAIL",
+      "message": "cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required"
+    },
+    {
+      "id": "tests.application.test_project_loop::test_fake_greenfield_runs_real_filesystem_pytest_and_hidden_acceptance",
+      "status": "FAIL",
+      "message": "cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required"
+    },
+    {
+      "id": "tests.application.test_project_loop::test_fake_repair_preserves_blueprint_and_reruns_only_owner_and_checks",
+      "status": "FAIL",
+      "message": "cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required"
+    },
+    {
+      "id": "tests.application.test_project_loop::test_generation_and_repair_thinking_policies_are_independent",
+      "status": "FAIL",
+      "message": "cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required"
+    },
+    {
+      "id": "tests.application.test_project_loop::test_generation_and_repair_use_single_bounded_prompt_projection",
+      "status": "FAIL",
+      "message": "cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required"
+    },
+    {
+      "id": "tests.application.test_project_loop::test_harness_mapping_unavailable_stops_without_attribution_call",
+      "status": "FAIL",
+      "message": "cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required"
+    },
+    {
+      "id": "tests.application.test_project_loop::test_initial_generation_failure_retries_generation_before_any_repair",
+      "status": "FAIL",
+      "message": "cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required"
+    },
+    {
+      "id": "tests.application.test_project_loop::test_initial_repair_without_materialized_baseline_is_forbidden",
+      "status": "FAIL",
+      "message": "AssertionError: Regex pattern did not match.\n  Expected regex: 'REPAIR_WITHOUT_BASELINE'\n  Actual message: 'INVALID_CONTRACT:core:ExecutionLeafContract required'"
+    },
+    {
+      "id": "tests.application.test_project_loop::test_partial_tests_generation_continues_only_missing_path_without_failure_report",
+      "status": "FAIL",
+      "message": "cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required"
+    },
+    {
+      "id": "tests.application.test_project_loop::test_project_loop_automatically_captures_failure_repair_pass_chain",
+      "status": "FAIL",
+      "message": "cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required"
+    },
+    {
+      "id": "tests.providers.test_gateway_client::test_failure_path_preserves_gateway_request_id",
+      "status": "FAIL",
+      "message": "KeyError: 'request_id'"
+    },
+    {
+      "id": "tests.providers.test_gateway_client::test_rate_limit_and_truncation_propagate_without_fallback",
+      "status": "FAIL",
+      "message": "AssertionError: assert 'truncated_response' == 'PROVIDER_OUTPUT_TRUNCATED'\n  \n  - PROVIDER_OUTPUT_TRUNCATED\n  + truncated_response"
+    }
+  ],
+  "full_regression": "NOT_COMPLETED; full baseline stopped deliberately after definite matched regressions; cancellation.json records owned-process cleanup",
+  "publication": "No staging, commit, merge of main, or push performed",
+  "updated_utc": "2026-11-01T15:06:23.708807+00:00"
+}

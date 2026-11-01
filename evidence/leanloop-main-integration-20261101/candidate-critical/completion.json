@@ -1,0 +1,8 @@
+{
+  "pytest_exit_code": 1,
+  "wrapper_exit_code": 1,
+  "seconds": 23.65715765953064,
+  "postprocessing": "complete",
+  "raw_xml_sha256": "97a42d8e58c8ef3748646b4a2dac09655374cf368897b5ebfc9b1d41959e9bc0",
+  "raw_log_sha256": "bbc590f70255cadf986c2f44d4e528504cf6e340d68d3476162d2f74f7f37d95"
+}

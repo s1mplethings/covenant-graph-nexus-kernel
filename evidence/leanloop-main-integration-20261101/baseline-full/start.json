@@ -1,0 +1,15 @@
+{
+  "pid": 21588,
+  "source": "F:\\CGKN-Main-Baseline-20261101",
+  "command": [
+    "C:\\Users\\sunom\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "-q",
+    "--junitxml=F:\\CGKN-LeanLoop-Main-Integration-20261101\\artifacts\\leanloop-main-integration\\baseline-full\\results.xml"
+  ],
+  "epoch": 1793544851.2334957,
+  "environment": "shared offline legacy profile, external socket guard, identical watchdog stack timer"
+}

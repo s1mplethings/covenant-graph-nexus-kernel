@@ -76,6 +76,16 @@ class ObligationWorkUnitExecutor:
         self.generation = client if isinstance(client, ProductionGenerationClient) else default_production_client(client)
         self.root, self.client, self.config = root.resolve(), self.generation.client, config
 
+    @property
+    def candidate_root(self):
+        return self.root
+
+    def in_candidate_workspace(self, directory):
+        from copy import copy
+        worker = copy(self)
+        worker.root = pathlib.Path(directory).resolve()
+        return worker
+
     def execute(self, request: BlockExecutionRequest) -> BlockExecutionResult:
         started, clock = utc_now(), time.perf_counter()
         usage: dict[str, Any] = {}

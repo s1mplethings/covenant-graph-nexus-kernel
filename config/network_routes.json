@@ -1,0 +1,78 @@
+{
+  "version": "NET-ROUTE-V4-DOMESTIC-PHYSICAL-DIRECT",
+  "trust_env": false,
+  "verify_tls": true,
+  "health_policy": {
+    "threshold": 2,
+    "cooldown": 30,
+    "recovery_successes": 2
+  },
+  "provider_bindings": {
+    "qwen": "qwen_direct",
+    "deepseek": "deepseek_direct",
+    "grok": "grok_proxy"
+  },
+  "probe_endpoints": {
+    "qwen": "https://dashscope.aliyuncs.com/compatible-mode/v1/models",
+    "deepseek": "https://api.deepseek.com/v1/models",
+    "grok": "https://api.x.ai/v1/models"
+  },
+  "probe_timeout": 8,
+  "transport_profiles": {
+    "qwen_direct": {
+      "proxy_url": null,
+      "interface_index": 14,
+      "local_address": "192.168.1.100",
+      "dns_servers": [
+        "119.29.29.29",
+        "182.254.116.116"
+      ],
+      "allowed_hosts": [
+        "dashscope.aliyuncs.com"
+      ],
+      "fault_domain": "physical-WLAN",
+      "connect": 10,
+      "read": 60,
+      "write": 20,
+      "pool": 10,
+      "deadline": 90,
+      "interface_guid": "31fde520-1fc1-4a43-a5a9-8ca730ff5821",
+      "first_response": 180,
+      "progress": 120
+    },
+    "deepseek_direct": {
+      "proxy_url": null,
+      "interface_index": 14,
+      "local_address": "192.168.1.100",
+      "dns_servers": [
+        "119.29.29.29",
+        "182.254.116.116"
+      ],
+      "allowed_hosts": [
+        "api.deepseek.com"
+      ],
+      "fault_domain": "physical-WLAN",
+      "connect": 10,
+      "read": 60,
+      "write": 20,
+      "pool": 10,
+      "deadline": 90,
+      "interface_guid": "31fde520-1fc1-4a43-a5a9-8ca730ff5821",
+      "first_response": 180,
+      "progress": 120
+    },
+    "grok_proxy": {
+      "proxy_url": "http://127.0.0.1:17890",
+      "fault_domain": "optional-proxy",
+      "connect": 10,
+      "read": 60,
+      "write": 20,
+      "pool": 10,
+      "deadline": 90
+    }
+  },
+  "disabled_providers": [
+    "grok"
+  ],
+  "network_policy": "domestic"
+}

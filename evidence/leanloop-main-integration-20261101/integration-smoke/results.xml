@@ -1,0 +1,792 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="21" skipped="1" tests="334" time="248.613" timestamp="2026-11-01T22:59:56.213359+08:00" hostname="test"><testcase classname="tests.application.test_project_blueprint" name="test_blueprint_round_trip_hash_freeze_and_compile" time="0.011" /><testcase classname="tests.application.test_project_blueprint" name="test_blueprint_rejects_invalid_structure[units0-duplicate unit]" time="0.001" /><testcase classname="tests.application.test_project_blueprint" name="test_blueprint_rejects_invalid_structure[units1-ownership collision]" time="0.001" /><testcase classname="tests.application.test_project_blueprint" name="test_blueprint_rejects_invalid_structure[units2-cycle]" time="0.001" /><testcase classname="tests.application.test_project_blueprint" name="test_freeze_requires_acceptance_and_edit_is_atomic" time="0.001" /><testcase classname="tests.application.test_project_blueprint" name="test_file_and_patch_bundles_are_strict_and_mutually_exclusive" time="0.001" /><testcase classname="tests.application.test_project_blueprint" name="test_interface_extractor_is_stable_and_guard_detects_breaks" time="0.001" /><testcase classname="tests.application.test_project_blueprint" name="test_failure_report_is_hashable_and_versioned_by_content" time="0.001" /><testcase classname="tests.application.test_project_blueprint" name="test_public_contract_failure_can_route_to_existing_implementation" time="0.000" /><testcase classname="tests.application.test_project_blueprint" name="test_minimal_payload_round_trip_and_strict_schema" time="0.001" /><testcase classname="tests.application.test_project_blueprint" name="test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[owns]" time="0.001" /><testcase classname="tests.application.test_project_blueprint" name="test_minimal_payload_enforces_uniqueness_after_provider_schema_selection[requirement_ids]" time="0.001" /><testcase classname="tests.application.test_project_blueprint" name="test_assembler_expands_defaults_checks_and_stable_hash" time="0.002" /><testcase classname="tests.application.test_project_blueprint" name="test_assembler_rejects_invalid_paths_ownership_and_dependencies[units0-unsafe]" time="0.001" /><testcase classname="tests.application.test_project_blueprint" name="test_assembler_rejects_invalid_paths_ownership_and_dependencies[units1-ownership collision]" time="0.001" /><testcase classname="tests.application.test_project_blueprint" name="test_assembler_requires_tests_and_readme_coverage" time="0.001" /><testcase classname="tests.application.test_project_blueprint" name="test_minimal_payload_rejects_unit_and_file_count_limits" time="0.001" /><testcase classname="tests.application.test_project_blueprint" name="test_assembler_rejects_unknown_and_normalizes_missing_or_duplicate_requirement_owners" time="0.002" /><testcase classname="tests.application.test_project_blueprint" name="test_assembler_semantic_owner_overrides_wrong_provider_claim" time="0.001" /><testcase classname="tests.application.test_project_blueprint" name="test_assembler_coalesces_small_same_kind_slices" time="0.001" /><testcase classname="tests.application.test_project_blueprint" name="test_provider_unit_order_normalizes_to_the_same_frozen_blueprint" time="0.002" /><testcase classname="tests.application.test_project_blueprint" name="test_normalized_responsibility_signature_ignores_path_naming" time="0.001" /><testcase classname="tests.application.test_project_blueprint" name="test_frozen_blueprint_worker_scope_contract_is_monotonic" time="0.001" /><testcase classname="tests.application.test_project_loop" name="test_dependency_prompt_projection_excludes_volatile_execution_metadata" time="0.001" /><testcase classname="tests.application.test_project_loop" name="test_coordinator_request_is_minimal_public_only_and_has_stable_requirement_ids" time="0.001" /><testcase classname="tests.application.test_project_loop" name="test_test_authority_conflict_retries_before_atomic_commit" time="0.780" /><testcase classname="tests.application.test_project_loop" name="test_implementation_repair_forces_tests_authority_revalidation_before_pytest" time="0.029" /><testcase classname="tests.application.test_project_loop" name="test_tests_staged_pytest_retries_before_atomic_commit" time="1.658" /><testcase classname="tests.application.test_project_loop" name="test_canonical_staged_assertion_failure_routes_to_implementation" time="1.089" /><testcase classname="tests.application.test_project_loop" name="test_tests_repair_receives_projection_and_can_replace_wrong_assertion" time="2.071" /><testcase classname="tests.application.test_project_loop" name="test_fake_greenfield_runs_real_filesystem_pytest_and_hidden_acceptance" time="0.037"><failure message="cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_fake_greenfield_runs_real0')
+
+    def test_fake_greenfield_runs_real_filesystem_pytest_and_hidden_acceptance(tmp_path: pathlib.Path) -&gt; None:
+        client = QueueClient([
+            _bundle("core", {"csv_cleaner/__init__.py": "from .core import clean_file, clean_rows\n__all__=['clean_file','clean_rows']\n", "csv_cleaner/__main__.py": MAIN, "csv_cleaner/core.py": CORE}),
+            _bundle("docs", {"README.md": "# CSV Cleaner\n\n`python -m csv_cleaner INPUT OUTPUT [--dedupe-column COLUMN] [--fill VALUE] [--preview N]`\n"}),
+            _bundle("tests", {"tests/test_csv_cleaner.py": "from csv_cleaner.core import clean_rows\ndef test_dedupe():\n assert clean_rows(['id'],[{'id':'1'},{'id':'1'}]) == [{'id':'1'}]\n"}),
+        ])
+        agent, worker = _configs(); workspace = tmp_path / "workspace"
+&gt;       outcome = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", client, agent, worker).run(_csv_blueprint(), workspace, case_id="cli_csv_cleaner")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:384: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\application\project_loop.py:1750: in run
+    run_id = f"blueprint-{blueprint.project_id}-{uuid.uuid4().hex[:10]}"; tree = compile_blueprint(blueprint, case_id=case_id); dag = compile_tree(tree)
+                                                                                                                                      ^^^^^^^^^^^^^^^^^^
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError</failure></testcase><testcase classname="tests.application.test_project_loop" name="test_fake_repair_preserves_blueprint_and_reruns_only_owner_and_checks" time="0.013"><failure message="cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_fake_repair_preserves_blu0')
+
+    def test_fake_repair_preserves_blueprint_and_reruns_only_owner_and_checks(tmp_path: pathlib.Path) -&gt; None:
+        units = (BlueprintUnit("core", "math implementation", "implementation", ("math_utils.py",), executor_ref="llm.cheap@1", instruction="implement add", required_interfaces=("add",), acceptance=("addition",), allowed_effects=("filesystem.write",)),)
+        checks = (BlueprintCheck("pytest", "verification", (sys.executable, "-m", "pytest", "-q"), ("core",), ("public tests",)), BlueprintCheck("accept", "acceptance", (), ("pytest",), get_case("seeded_repair").public_acceptance))
+        blueprint = ProjectBlueprint("1.0", "seeded_repair", 1, "repair arithmetic", ("smallest change",), units, checks).freeze()
+        client = QueueClient([_bundle("core", {"math_utils.py": "def add(a, b):\n    return a - b\n"}), _patch("core", "math_utils.py", "return a - b", "return a + b")])
+        workspace = tmp_path / "workspace"; workspace.mkdir(); (workspace / "test_math_utils.py").write_text("from math_utils import add\ndef test_add(): assert add(2,3)==5\n", encoding="utf-8")
+&gt;       agent, worker = _configs(); outcome = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", client, agent, worker).run(blueprint, workspace, case_id="seeded_repair")
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:397: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\application\project_loop.py:1750: in run
+    run_id = f"blueprint-{blueprint.project_id}-{uuid.uuid4().hex[:10]}"; tree = compile_blueprint(blueprint, case_id=case_id); dag = compile_tree(tree)
+                                                                                                                                      ^^^^^^^^^^^^^^^^^^
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:5192b4aa0ecec0e76d18dee3cd378c305dc9a3f453b1a2beb0fafea6abda2147'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError</failure></testcase><testcase classname="tests.application.test_project_loop" name="test_generation_and_repair_thinking_policies_are_independent" time="0.014"><failure message="cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_generation_and_repair_thi0')
+
+    def test_generation_and_repair_thinking_policies_are_independent(tmp_path: pathlib.Path) -&gt; None:
+        units = (BlueprintUnit("core", "math", "implementation", ("math_utils.py",), executor_ref="llm.cheap@1", instruction="implement add", required_interfaces=("add",), acceptance=("addition",), allowed_effects=("filesystem.write",)),)
+        checks = (
+            BlueprintCheck("pytest", "verification", (sys.executable, "-m", "pytest", "-q"), ("core",), ("tests",)),
+            BlueprintCheck("accept", "acceptance", (), ("pytest",), get_case("seeded_repair").public_acceptance),
+        )
+        blueprint = ProjectBlueprint("1.0", "seeded_repair", 1, "repair", ("smallest change",), units, checks).freeze()
+        client = QueueClient([_bundle("core", {"math_utils.py": "def add(a, b):\n    return a - b\n"}), _patch("core", "math_utils.py", "return a - b", "return a + b")])
+        workspace = tmp_path / "workspace"; workspace.mkdir()
+        (workspace / "test_math_utils.py").write_text("from math_utils import add\ndef test_add(): assert add(2,3)==5\n", encoding="utf-8")
+        agent = ModelRoleConfig("agent", "qwen")
+        generation = ModelRoleConfig("worker", "deepseek", thinking_mode="disabled")
+        repair = ModelRoleConfig("worker", "deepseek", thinking_mode="default")
+&gt;       outcome = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", client, agent, generation, repair).run(blueprint, workspace, case_id="seeded_repair")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:422: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\application\project_loop.py:1750: in run
+    run_id = f"blueprint-{blueprint.project_id}-{uuid.uuid4().hex[:10]}"; tree = compile_blueprint(blueprint, case_id=case_id); dag = compile_tree(tree)
+                                                                                                                                      ^^^^^^^^^^^^^^^^^^
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:5192b4aa0ecec0e76d18dee3cd378c305dc9a3f453b1a2beb0fafea6abda2147'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError</failure></testcase><testcase classname="tests.application.test_project_loop" name="test_generation_and_repair_use_single_bounded_prompt_projection" time="0.013"><failure message="cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_generation_and_repair_use0')
+
+    def test_generation_and_repair_use_single_bounded_prompt_projection(tmp_path: pathlib.Path) -&gt; None:
+        units = (BlueprintUnit("core", "math", "implementation", ("math_utils.py",), executor_ref="llm.cheap@1", instruction="implement add", required_interfaces=("add",), acceptance=("addition",), allowed_effects=("filesystem.write",)),)
+        checks = (
+            BlueprintCheck("pytest", "verification", (sys.executable, "-m", "pytest", "-q"), ("core",), ("tests",)),
+            BlueprintCheck("accept", "acceptance", (), ("pytest",), get_case("seeded_repair").public_acceptance),
+        )
+        blueprint = ProjectBlueprint("1.0", "seeded_repair", 1, "repair", ("smallest change",), units, checks).freeze()
+        client = QueueClient([_bundle("core", {"math_utils.py": "def add(a, b):\n    return a - b\n"}), _patch("core", "math_utils.py", "return a - b", "return a + b")])
+        workspace = tmp_path / "workspace"; workspace.mkdir()
+        (workspace / "test_math_utils.py").write_text("from math_utils import add\ndef test_add(): assert add(2,3)==5\n", encoding="utf-8")
+        agent = ModelRoleConfig("agent", "qwen")
+        worker = ModelRoleConfig("worker", "deepseek", thinking_mode="disabled")
+&gt;       outcome = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", client, agent, worker, worker).run(blueprint, workspace, case_id="seeded_repair")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:439: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\application\project_loop.py:1750: in run
+    run_id = f"blueprint-{blueprint.project_id}-{uuid.uuid4().hex[:10]}"; tree = compile_blueprint(blueprint, case_id=case_id); dag = compile_tree(tree)
+                                                                                                                                      ^^^^^^^^^^^^^^^^^^
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:5192b4aa0ecec0e76d18dee3cd378c305dc9a3f453b1a2beb0fafea6abda2147'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError</failure></testcase><testcase classname="tests.application.test_project_loop" name="test_unchanged_committed_downstream_unit_reuses_baseline_without_provider_call" time="0.032" /><testcase classname="tests.application.test_project_loop" name="test_failed_worker_provider_call_is_recorded_with_reported_usage" time="0.036" /><testcase classname="tests.application.test_project_loop" name="test_failed_worker_provider_call_keeps_unknown_usage_null" time="0.048" /><testcase classname="tests.application.test_project_loop" name="test_initial_generation_failure_retries_generation_before_any_repair" time="0.030"><failure message="cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_initial_generation_failur0')
+
+    def test_initial_generation_failure_retries_generation_before_any_repair(tmp_path: pathlib.Path) -&gt; None:
+        first_failure = GatewayCompletionError(
+            "PROVIDER_OUTPUT_TRUNCATED", "first generation failed before materialization",
+            evidence={"request_id": "failed-generation", "finish_reason": "length"},
+        )
+        client = QueueClient([
+            first_failure,
+            _bundle("core", {
+                "csv_cleaner/__init__.py": "from .core import clean_file, clean_rows\n",
+                "csv_cleaner/__main__.py": MAIN,
+                "csv_cleaner/core.py": CORE,
+            }),
+            _bundle("docs", {"README.md": "# CSV Cleaner\n\nUsage documented.\n"}),
+            _bundle("tests", {"tests/test_csv_cleaner.py": "def test_ok():\n    assert True\n"}),
+        ])
+        agent, worker = _configs()
+        outcome = MinimalProjectLoop(
+            pathlib.Path(__file__).parents[2], tmp_path / "runs", client, agent, worker,
+&gt;       ).run(_csv_blueprint(), tmp_path / "workspace", case_id="cli_csv_cleaner")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:540: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\application\project_loop.py:1750: in run
+    run_id = f"blueprint-{blueprint.project_id}-{uuid.uuid4().hex[:10]}"; tree = compile_blueprint(blueprint, case_id=case_id); dag = compile_tree(tree)
+                                                                                                                                      ^^^^^^^^^^^^^^^^^^
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError</failure></testcase><testcase classname="tests.application.test_project_loop" name="test_partial_tests_generation_continues_only_missing_path_without_failure_report" time="0.027"><failure message="cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_partial_tests_generation_0')
+
+    def test_partial_tests_generation_continues_only_missing_path_without_failure_report(tmp_path: pathlib.Path) -&gt; None:
+        client = QueueClient([
+            _bundle("core", {"csv_cleaner/__init__.py": "from .core import clean_file, clean_rows\n", "csv_cleaner/__main__.py": MAIN, "csv_cleaner/core.py": CORE}),
+            _bundle("docs", {"README.md": "# CSV Cleaner\n\nUsage documented.\n"}),
+            _bundle("tests", {"tests/test_csv_cleaner.py": "def test_partial():\n    assert True\n"}),
+            _bundle("tests", {"tests/test_cli.py": "def test_cli():\n    assert True\n"}),
+        ])
+        blueprint = _csv_blueprint()
+        tests = blueprint.by_id["tests"]
+        widened = BlueprintUnit.from_dict(tests.as_dict() | {"owns": ["tests/test_csv_cleaner.py", "tests/test_cli.py"], "max_files": 2})
+        blueprint = ProjectBlueprint("1.0", blueprint.project_id, blueprint.revision, blueprint.goal, blueprint.constraints, tuple(widened if unit.unit_id == "tests" else unit for unit in blueprint.units), blueprint.checks).freeze()
+        agent, worker = _configs()
+&gt;       outcome = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", client, agent, worker).run(blueprint, tmp_path / "workspace", case_id="cli_csv_cleaner")
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:564: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\application\project_loop.py:1750: in run
+    run_id = f"blueprint-{blueprint.project_id}-{uuid.uuid4().hex[:10]}"; tree = compile_blueprint(blueprint, case_id=case_id); dag = compile_tree(tree)
+                                                                                                                                      ^^^^^^^^^^^^^^^^^^
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError</failure></testcase><testcase classname="tests.application.test_project_loop" name="test_incremental_materialization_two_slices_commits_atomically" time="0.139" /><testcase classname="tests.application.test_project_loop" name="test_incremental_materialization_three_single_file_slices_passes" time="0.084" /><testcase classname="tests.application.test_project_loop" name="test_continuation_repeating_staged_path_is_scope_violation_and_discards" time="0.025" /><testcase classname="tests.application.test_project_loop" name="test_incremental_materialization_rejects_extra_path_without_workspace_effect" time="0.013" /><testcase classname="tests.application.test_project_loop" name="test_invalid_continuation_syntax_preserves_staging_for_generation_retry" time="0.116" /><testcase classname="tests.application.test_project_loop" name="test_provider_failure_after_partial_preserves_staging_for_retry" time="0.078" /><testcase classname="tests.application.test_project_loop" name="test_materialization_call_budget_exhaustion_discards_partial_state" time="0.101" /><testcase classname="tests.application.test_project_loop" name="test_duplicate_file_in_slice_is_invalid_and_never_committed" time="0.011" /><testcase classname="tests.application.test_project_loop" name="test_empty_python_source_is_retried_before_atomic_commit" time="0.092" /><testcase classname="tests.application.test_project_loop" name="test_complete_first_materialization_call_preserves_original_success_path" time="0.050" /><testcase classname="tests.application.test_project_loop" name="test_continuation_ledger_records_bounded_context_and_slice_identity" time="0.055" /><testcase classname="tests.application.test_project_loop" name="test_two_no_progress_responses_for_same_missing_set_are_stalled" time="0.025" /><testcase classname="tests.application.test_project_loop" name="test_whole_unit_required_interface_failure_keeps_workspace_unchanged" time="0.084" /><testcase classname="tests.application.test_project_loop" name="test_test_unit_validates_required_interfaces_from_bounded_read_dependencies" time="0.982" /><testcase classname="tests.application.test_project_loop" name="test_whole_unit_cross_file_import_failure_keeps_workspace_unchanged" time="0.022" /><testcase classname="tests.application.test_project_loop" name="test_controlled_commit_failure_rolls_back_and_is_classified" time="0.044" /><testcase classname="tests.application.test_project_loop" name="test_continuation_request_contains_no_hidden_acceptance_payload" time="0.056" /><testcase classname="tests.application.test_project_loop" name="test_full_retry_benchmark_policy_discards_partial_and_requests_whole_unit_again" time="0.076" /><testcase classname="tests.application.test_project_loop" name="test_initial_repair_without_materialized_baseline_is_forbidden" time="0.010"><failure message="AssertionError: Regex pattern did not match.&#10;  Expected regex: 'REPAIR_WITHOUT_BASELINE'&#10;  Actual message: 'INVALID_CONTRACT:core:ExecutionLeafContract required'">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_initial_repair_without_ma0')
+
+    def test_initial_repair_without_materialized_baseline_is_forbidden(tmp_path: pathlib.Path) -&gt; None:
+        unit = BlueprintUnit("core", "core", "implementation", ("core.py",), executor_ref="llm.cheap@1", instruction="core", acceptance=("works",), allowed_effects=("filesystem.write",))
+        blueprint = ProjectBlueprint("1.0", "no-baseline", 1, "repair", (), (unit,), (BlueprintCheck("accept", "acceptance", depends_on=("core",), acceptance=("hidden",)),)).freeze()
+        failure = FailureReport("pytest", "TEST_FAILURE", failure_stage=FailureStage.TEST.value, owner_unit_id="core", recovery_action=FailureAction.REPAIR_EXISTING.value, materialized_baseline=True)
+        agent, worker = _configs()
+        with pytest.raises(ValueError, match="REPAIR_WITHOUT_BASELINE"):
+&gt;           MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", QueueClient([]), agent, worker).run(blueprint, tmp_path / "workspace", case_id="seeded_repair", initial_failure=failure)
+
+tests\application\test_project_loop.py:899: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\application\project_loop.py:1750: in run
+    run_id = f"blueprint-{blueprint.project_id}-{uuid.uuid4().hex[:10]}"; tree = compile_blueprint(blueprint, case_id=case_id); dag = compile_tree(tree)
+                                                                                                                                      ^^^^^^^^^^^^^^^^^^
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:5192b4aa0ecec0e76d18dee3cd378c305dc9a3f453b1a2beb0fafea6abda2147'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_initial_repair_without_ma0')
+
+    def test_initial_repair_without_materialized_baseline_is_forbidden(tmp_path: pathlib.Path) -&gt; None:
+        unit = BlueprintUnit("core", "core", "implementation", ("core.py",), executor_ref="llm.cheap@1", instruction="core", acceptance=("works",), allowed_effects=("filesystem.write",))
+        blueprint = ProjectBlueprint("1.0", "no-baseline", 1, "repair", (), (unit,), (BlueprintCheck("accept", "acceptance", depends_on=("core",), acceptance=("hidden",)),)).freeze()
+        failure = FailureReport("pytest", "TEST_FAILURE", failure_stage=FailureStage.TEST.value, owner_unit_id="core", recovery_action=FailureAction.REPAIR_EXISTING.value, materialized_baseline=True)
+        agent, worker = _configs()
+&gt;       with pytest.raises(ValueError, match="REPAIR_WITHOUT_BASELINE"):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AssertionError: Regex pattern did not match.
+E         Expected regex: 'REPAIR_WITHOUT_BASELINE'
+E         Actual message: 'INVALID_CONTRACT:core:ExecutionLeafContract required'
+
+tests\application\test_project_loop.py:898: AssertionError</failure></testcase><testcase classname="tests.application.test_project_loop" name="test_materialized_baseline_requires_current_workspace_identity" time="0.032" /><testcase classname="tests.application.test_project_loop" name="test_repair_accepts_one_of_four_files_with_two_ordered_hunks" time="0.379" /><testcase classname="tests.application.test_project_loop" name="test_repair_accepts_two_of_four_owned_files" time="0.319" /><testcase classname="tests.application.test_project_loop" name="test_repair_rejects_undeclared_or_duplicate_file_objects_atomically[payload0]" time="0.039" /><testcase classname="tests.application.test_project_loop" name="test_repair_rejects_undeclared_or_duplicate_file_objects_atomically[payload1]" time="0.032" /><testcase classname="tests.application.test_project_loop" name="test_failed_patch_hunk_leaves_whole_transaction_unchanged[edits0-False]" time="0.036" /><testcase classname="tests.application.test_project_loop" name="test_failed_patch_hunk_leaves_whole_transaction_unchanged[edits1-True]" time="0.073" /><testcase classname="tests.application.test_project_loop" name="test_cross_unit_attribution_uses_evidence_and_never_implementation_fallback" time="0.064"><failure message="cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_cross_unit_attribution_us0')
+
+    def test_cross_unit_attribution_uses_evidence_and_never_implementation_fallback(tmp_path: pathlib.Path) -&gt; None:
+        blueprint = _csv_blueprint()
+        agent, worker_config = _configs()
+        executor = BlueprintUnitExecutor(tmp_path, QueueClient([]), worker_config)
+        for unit_id in ("core", "tests"):
+            unit = blueprint.by_id[unit_id]
+            for relative in unit.owns:
+                target = tmp_path / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text("# materialized\n", encoding="utf-8")
+            executor.register_materialized_baseline(unit)
+&gt;       dag = compile_tree(compile_blueprint(blueprint, case_id="cli_csv_cleaner"))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:979: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError</failure></testcase><testcase classname="tests.application.test_project_loop" name="test_acceptance_unique_exact_interface_owner_is_deterministic" time="0.100"><failure message="cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_acceptance_unique_exact_i0')
+
+    def test_acceptance_unique_exact_interface_owner_is_deterministic(tmp_path: pathlib.Path) -&gt; None:
+        blueprint = _csv_blueprint(); executor = _materialized_executor(tmp_path, blueprint)
+        fake = FakeAttributor(error=AssertionError("Coordinator attribution must not be called"))
+        loop = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", QueueClient([]), *_configs(), acceptance_attributor=fake)
+&gt;       dag = compile_tree(compile_blueprint(blueprint, case_id="cli_csv_cleaner"))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:1050: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError</failure></testcase><testcase classname="tests.application.test_project_loop" name="test_acceptance_ambiguous_candidates_call_coordinator_once" time="0.057"><failure message="cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_acceptance_ambiguous_cand0')
+
+    def test_acceptance_ambiguous_candidates_call_coordinator_once(tmp_path: pathlib.Path) -&gt; None:
+        blueprint = _csv_blueprint(); executor = _materialized_executor(tmp_path, blueprint)
+        fake = FakeAttributor((AcceptanceAttributionDecision("public-requirement-1", "core", FailureAction.REPAIR_EXISTING.value),))
+        loop = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", QueueClient([]), *_configs(), acceptance_attributor=fake)
+&gt;       dag = compile_tree(compile_blueprint(blueprint, case_id="cli_csv_cleaner"))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:1064: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError</failure></testcase><testcase classname="tests.application.test_project_loop" name="test_acceptance_invalid_unmaterialized_or_stop_decisions_fail_closed[decisions0-skip0]" time="0.059"><failure message="cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_acceptance_invalid_unmate0')
+decisions = (AcceptanceAttributionDecision(requirement_id='public-requirement-1', owner_unit_id='invented', action='REPAIR_EXISTING'),)
+skip = ()
+
+    @pytest.mark.parametrize("decisions,skip", [
+        ((AcceptanceAttributionDecision("public-requirement-1", "invented", FailureAction.REPAIR_EXISTING.value),), ()),
+        ((AcceptanceAttributionDecision("public-requirement-1", "core", FailureAction.REPAIR_EXISTING.value),), ("core",)),
+        ((AcceptanceAttributionDecision("public-requirement-1", "", FailureAction.STOP.value),), ()),
+    ])
+    def test_acceptance_invalid_unmaterialized_or_stop_decisions_fail_closed(tmp_path: pathlib.Path, decisions, skip) -&gt; None:
+        blueprint = _csv_blueprint(); executor = _materialized_executor(tmp_path, blueprint, skip=skip)
+        fake = FakeAttributor(decisions)
+        loop = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", QueueClient([]), *_configs(), acceptance_attributor=fake)
+&gt;       dag = compile_tree(compile_blueprint(blueprint, case_id="cli_csv_cleaner"))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:1082: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError</failure></testcase><testcase classname="tests.application.test_project_loop" name="test_acceptance_invalid_unmaterialized_or_stop_decisions_fail_closed[decisions1-skip1]" time="0.039"><failure message="cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_acceptance_invalid_unmate1')
+decisions = (AcceptanceAttributionDecision(requirement_id='public-requirement-1', owner_unit_id='core', action='REPAIR_EXISTING'),)
+skip = ('core',)
+
+    @pytest.mark.parametrize("decisions,skip", [
+        ((AcceptanceAttributionDecision("public-requirement-1", "invented", FailureAction.REPAIR_EXISTING.value),), ()),
+        ((AcceptanceAttributionDecision("public-requirement-1", "core", FailureAction.REPAIR_EXISTING.value),), ("core",)),
+        ((AcceptanceAttributionDecision("public-requirement-1", "", FailureAction.STOP.value),), ()),
+    ])
+    def test_acceptance_invalid_unmaterialized_or_stop_decisions_fail_closed(tmp_path: pathlib.Path, decisions, skip) -&gt; None:
+        blueprint = _csv_blueprint(); executor = _materialized_executor(tmp_path, blueprint, skip=skip)
+        fake = FakeAttributor(decisions)
+        loop = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", QueueClient([]), *_configs(), acceptance_attributor=fake)
+&gt;       dag = compile_tree(compile_blueprint(blueprint, case_id="cli_csv_cleaner"))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:1082: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError</failure></testcase><testcase classname="tests.application.test_project_loop" name="test_acceptance_invalid_unmaterialized_or_stop_decisions_fail_closed[decisions2-skip2]" time="0.055"><failure message="cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_acceptance_invalid_unmate2')
+decisions = (AcceptanceAttributionDecision(requirement_id='public-requirement-1', owner_unit_id='', action='STOP'),)
+skip = ()
+
+    @pytest.mark.parametrize("decisions,skip", [
+        ((AcceptanceAttributionDecision("public-requirement-1", "invented", FailureAction.REPAIR_EXISTING.value),), ()),
+        ((AcceptanceAttributionDecision("public-requirement-1", "core", FailureAction.REPAIR_EXISTING.value),), ("core",)),
+        ((AcceptanceAttributionDecision("public-requirement-1", "", FailureAction.STOP.value),), ()),
+    ])
+    def test_acceptance_invalid_unmaterialized_or_stop_decisions_fail_closed(tmp_path: pathlib.Path, decisions, skip) -&gt; None:
+        blueprint = _csv_blueprint(); executor = _materialized_executor(tmp_path, blueprint, skip=skip)
+        fake = FakeAttributor(decisions)
+        loop = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", QueueClient([]), *_configs(), acceptance_attributor=fake)
+&gt;       dag = compile_tree(compile_blueprint(blueprint, case_id="cli_csv_cleaner"))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:1082: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError</failure></testcase><testcase classname="tests.application.test_project_loop" name="test_acceptance_attribution_failure_never_guesses_owner[error0]" time="0.064"><failure message="cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_acceptance_attribution_fa0')
+error = ValueError('invalid attribution schema')
+
+    @pytest.mark.parametrize("error", [
+        ValueError("invalid attribution schema"),
+        GatewayCompletionError("transport_failure", "bounded"),
+    ])
+    def test_acceptance_attribution_failure_never_guesses_owner(tmp_path: pathlib.Path, error: Exception) -&gt; None:
+        blueprint = _csv_blueprint(); executor = _materialized_executor(tmp_path, blueprint)
+        loop = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", QueueClient([]), *_configs(), acceptance_attributor=FakeAttributor(error=error))
+&gt;       dag = compile_tree(compile_blueprint(blueprint, case_id="cli_csv_cleaner"))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:1095: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError</failure></testcase><testcase classname="tests.application.test_project_loop" name="test_acceptance_attribution_failure_never_guesses_owner[error1]" time="0.063"><failure message="cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_acceptance_attribution_fa1')
+error = GatewayCompletionError('transport_failure: bounded')
+
+    @pytest.mark.parametrize("error", [
+        ValueError("invalid attribution schema"),
+        GatewayCompletionError("transport_failure", "bounded"),
+    ])
+    def test_acceptance_attribution_failure_never_guesses_owner(tmp_path: pathlib.Path, error: Exception) -&gt; None:
+        blueprint = _csv_blueprint(); executor = _materialized_executor(tmp_path, blueprint)
+        loop = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", QueueClient([]), *_configs(), acceptance_attributor=FakeAttributor(error=error))
+&gt;       dag = compile_tree(compile_blueprint(blueprint, case_id="cli_csv_cleaner"))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:1095: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError</failure></testcase><testcase classname="tests.application.test_project_loop" name="test_coordinator_attribution_prompt_and_failure_report_never_include_hidden_markers" time="0.102"><failure message="cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_coordinator_attribution_p0')
+
+    def test_coordinator_attribution_prompt_and_failure_report_never_include_hidden_markers(tmp_path: pathlib.Path) -&gt; None:
+        marker_name = "SUPER_SECRET_HIDDEN_TEST_NAME"; marker_value = "SUPER_SECRET_EXPECTED_VALUE"
+        blueprint = _csv_blueprint(); executor = _materialized_executor(tmp_path, blueprint)
+        client = QueueClient([{
+            "schema_version": "1.0",
+            "decisions": [{"requirement_id": "public-requirement-1", "owner_unit_id": "core", "action": "REPAIR_EXISTING"}],
+        }])
+        loop = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", client, *_configs())
+&gt;       dag = compile_tree(compile_blueprint(blueprint, case_id="cli_csv_cleaner"))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:1109: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError</failure></testcase><testcase classname="tests.application.test_project_loop" name="test_harness_mapping_unavailable_stops_without_attribution_call" time="0.058"><failure message="cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_harness_mapping_unavailab0')
+
+    def test_harness_mapping_unavailable_stops_without_attribution_call(tmp_path: pathlib.Path) -&gt; None:
+        blueprint = _csv_blueprint(); executor = _materialized_executor(tmp_path, blueprint)
+        fake = FakeAttributor(error=AssertionError("must not call attributor"))
+        loop = MinimalProjectLoop(pathlib.Path(__file__).parents[2], tmp_path / "runs", QueueClient([]), *_configs(), acceptance_attributor=fake)
+&gt;       dag = compile_tree(compile_blueprint(blueprint, case_id="cli_csv_cleaner"))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:1124: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError</failure></testcase><testcase classname="tests.application.test_project_loop" name="test_project_loop_automatically_captures_failure_repair_pass_chain" time="0.013"><failure message="cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_project_loop_automaticall0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000029A991FFBB0&gt;
+
+    def test_project_loop_automatically_captures_failure_repair_pass_chain(
+        tmp_path: pathlib.Path, monkeypatch,
+    ) -&gt; None:
+        corpus_root = tmp_path / "corpus"
+        monkeypatch.setenv("CGNK_PROJECT_CORPUS_ROOT", str(corpus_root))
+        monkeypatch.setenv("CGNK_SOURCE_VERSION", "source-closure-test")
+        units = (
+            BlueprintUnit(
+                "core", "math implementation", "implementation", ("math_utils.py",),
+                executor_ref="llm.cheap@1", instruction="implement add", required_interfaces=("add",),
+                acceptance=("addition",), allowed_effects=("filesystem.write",),
+            ),
+        )
+        checks = (
+            BlueprintCheck("pytest", "verification", (sys.executable, "-m", "pytest", "-q"), ("core",), ("public tests",)),
+            BlueprintCheck("accept", "acceptance", (), ("pytest",), get_case("seeded_repair").public_acceptance),
+        )
+        blueprint = ProjectBlueprint("1.0", "seeded_repair", 1, "repair arithmetic", ("smallest change",), units, checks).freeze()
+        client = QueueClient([
+            _bundle("core", {"math_utils.py": "def add(a, b):\n    return a - b\n"}),
+            _patch("core", "math_utils.py", "return a - b", "return a + b"),
+        ])
+        workspace = tmp_path / "workspace"
+        workspace.mkdir()
+        (workspace / "test_math_utils.py").write_text(
+            "from math_utils import add\ndef test_add(): assert add(2,3)==5\n", encoding="utf-8",
+        )
+    
+        outcome = MinimalProjectLoop(
+            pathlib.Path(__file__).parents[2], tmp_path / "runs", client, *_configs(),
+&gt;       ).run(blueprint, workspace, case_id="seeded_repair")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:1163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\application\project_loop.py:1750: in run
+    run_id = f"blueprint-{blueprint.project_id}-{uuid.uuid4().hex[:10]}"; tree = compile_blueprint(blueprint, case_id=case_id); dag = compile_tree(tree)
+                                                                                                                                      ^^^^^^^^^^^^^^^^^^
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:5192b4aa0ecec0e76d18dee3cd378c305dc9a3f453b1a2beb0fafea6abda2147'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError</failure></testcase><testcase classname="tests.application.test_project_loop" name="test_corpus_capture_failure_cannot_fail_project_run" time="0.030"><failure message="cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required">tmp_path = WindowsPath('C:/Users/sunom/AppData/Local/Temp/pytest-of-sunom/pytest-23177/test_corpus_capture_failure_ca0')
+monkeypatch = &lt;_pytest.monkeypatch.MonkeyPatch object at 0x0000029A993D5490&gt;
+
+    def test_corpus_capture_failure_cannot_fail_project_run(tmp_path: pathlib.Path, monkeypatch) -&gt; None:
+        impossible_root = tmp_path / "not-a-directory"
+        impossible_root.write_text("occupied", encoding="utf-8")
+        monkeypatch.setenv("CGNK_PROJECT_CORPUS_ROOT", str(impossible_root))
+        client = QueueClient([
+            _bundle("core", {"csv_cleaner/__init__.py": "from .core import clean_file, clean_rows\n__all__=['clean_file','clean_rows']\n", "csv_cleaner/__main__.py": MAIN, "csv_cleaner/core.py": CORE}),
+            _bundle("docs", {"README.md": "# CSV Cleaner\n\nUsage documented.\n"}),
+            _bundle("tests", {"tests/test_csv_cleaner.py": "def test_ok():\n    assert True\n"}),
+        ])
+        outcome = MinimalProjectLoop(
+            pathlib.Path(__file__).parents[2], tmp_path / "runs", client, *_configs(),
+&gt;       ).run(_csv_blueprint(), tmp_path / "workspace", case_id="cli_csv_cleaner")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests\application\test_project_loop.py:1188: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+cgkn\application\project_loop.py:1750: in run
+    run_id = f"blueprint-{blueprint.project_id}-{uuid.uuid4().hex[:10]}"; tree = compile_blueprint(blueprint, case_id=case_id); dag = compile_tree(tree)
+                                                                                                                                      ^^^^^^^^^^^^^^^^^^
+cgkn\orchestration\execution_dag.py:108: in compile_tree
+    validate_tree_leaves(tree)
+cgkn\orchestration\leaf_contract.py:114: in validate_tree_leaves
+    return {n.id: validate_leaf(n, has_children=n.id in parents) for n in tree.nodes}
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+node = CapabilityNode(id='core', parent_id='', capability_ref='project.unit.implementation@1', depends_on=(), config=mappingp...sh': 'sha256:d694cd2c6bb100148ef56c8476bc228d73fcd5c644dec42026f4b0ca107484b1'}), 'owned_public_requirement_ids': ()}))
+
+    def validate_leaf(node, *, has_children=False, max_artifacts=8):
+        if not node.executable:
+            return 'COMPOSITE'
+        if has_children:
+            raise LeafContractError(node.id, 'NEEDS_DECOMPOSITION', ['composite nodes cannot execute'])
+        c = node.config.get('leaf_contract')
+        errors = []
+        if not isinstance(c, Mapping):
+&gt;           raise LeafContractError(node.id, 'INVALID_CONTRACT', ['ExecutionLeafContract required'])
+E           cgkn.orchestration.leaf_contract.LeafContractError: INVALID_CONTRACT:core:ExecutionLeafContract required
+
+cgkn\orchestration\leaf_contract.py:73: LeafContractError</failure></testcase><testcase classname="tests.application.project_corpus.test_cli" name="test_corpus_cli_init_stats_search_and_verify" time="0.347" /><testcase classname="tests.application.project_corpus.test_contract_schemas" name="test_snapshot_and_entry_examples_validate_against_versioned_schemas" time="0.007" /><testcase classname="tests.application.project_corpus.test_contract_schemas" name="test_benchmark_manifest_validates_and_hash_is_stable" time="0.003" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_contract_round_trip_and_strict_paths" time="0.002" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_capture_reconstruct_verify_and_file_level_dedup" time="0.186" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_failure_repair_pass_chain_is_preserved" time="0.148" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_private_evaluator_is_separate_and_never_exported" time="0.158" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_private_field_in_public_packet_fails_closed" time="0.051" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_secret_or_machine_path_quarantines_without_storing_content[API_KEY=test-abcdefghijklmno\n]" time="0.084" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_secret_or_machine_path_quarantines_without_storing_content[Authorization: Bearer abcdefghijklmnop\n]" time="0.086" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_secret_or_machine_path_quarantines_without_storing_content[path = r'C:\\Users\\alice\\secret.txt'\n]" time="0.084" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_secret_or_machine_path_quarantines_without_storing_content[key = 'sk-abcdefghijklmnopqrstuvwxyz'\n]" time="0.076" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_unknown_or_unlicensed_provenance_is_quarantined" time="0.099" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_directory_capture_ignores_junk_and_rejects_symlink" time="0.013"><skipped type="pytest.skip" message="symlink creation unavailable">F:\CGKN-LeanLoop-Main-Integration-20261101\tests\application\project_corpus\test_project_corpus.py:168: symlink creation unavailable</skipped></testcase><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_catalog_rebuild_and_split_is_family_stable" time="0.249" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_split_leakage_detects_same_task_across_splits" time="0.118" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_export_import_portable_bundle" time="0.348" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_malicious_archive_and_oversized_archive_are_rejected" time="0.091" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_zip_bomb_ratio_and_inconsistent_bundle_are_rejected_before_import" time="0.144" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_missing_object_is_integrity_failure" time="0.114" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_catalog_never_exposes_entry_when_indexing_fails" time="0.068" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_deterministic_sampling_excludes_quarantine" time="0.309" /><testcase classname="tests.application.project_corpus.test_project_corpus" name="test_100_snapshot_scale_and_10k_references_deduplicate" time="8.939" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_new_v2_empty_pack_is_explicit_and_round_trips" time="0.052" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_new_pack_defaults_to_v2_after_adoption_gate" time="0.053" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_explicit_v1_new_pack_remains_readable_without_auto_migration" time="0.044" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_single_append_is_bounded_and_visible" time="0.081" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_one_hundred_sequential_mutations_have_strict_sequences" time="4.608" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_relation_history_survives_restart[SUPERSEDING-Port is 9000.-overrides0]" time="0.121" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_relation_history_survives_restart[CONTRADICTING-Port is not 8000.-overrides1]" time="0.122" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_relation_history_survives_restart[CORRECTION-Port is 8080.-overrides2]" time="0.114" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_relation_history_survives_restart[RETRACTION-Retract port evidence.-overrides3]" time="0.119" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_duplicate_ingestion_persists_merged_provenance" time="0.109" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_stale_derived_invalidation_persists" time="0.157" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_checkpoint_creation_and_valid_load" time="0.146" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_embedded_v2_checkpoint_layout_remains_readable" time="0.156" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_invalid_checkpoint_is_rejected_and_authority_replayed[corrupt]" time="0.143" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_invalid_checkpoint_is_rejected_and_authority_replayed[missing]" time="0.148" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_invalid_checkpoint_is_rejected_and_authority_replayed[authority_mismatch]" time="0.155" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_invalid_checkpoint_is_rejected_and_authority_replayed[index_missing]" time="0.153" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_split_checkpoint_component_damage_falls_back_to_authority_replay[authority]" time="0.134" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_split_checkpoint_component_damage_falls_back_to_authority_replay[index]" time="0.145" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_split_checkpoint_index_policy_mismatch_falls_back_to_authority_replay" time="0.130" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_tail_replay_after_checkpoint" time="0.175" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_referenced_segment_damage_fails_closed[checksum]" time="0.083" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_referenced_segment_damage_fails_closed[missing]" time="0.062" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_referenced_segment_damage_fails_closed[partial]" time="0.075" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_manifest_sequence_attacks_fail_closed[gap]" time="0.078" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_manifest_sequence_attacks_fail_closed[duplicate]" time="0.087" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_manifest_sequence_attacks_fail_closed[rollback]" time="0.084" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_orphan_complete_and_partial_segments_are_never_truth" time="0.051" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_crash_points_expose_only_old_or_new_state[C1_BEFORE_SEGMENT_WRITE-False]" time="0.046" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_crash_points_expose_only_old_or_new_state[C2_DURING_SEGMENT_WRITE-False]" time="0.048" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_crash_points_expose_only_old_or_new_state[C3_SEGMENT_COMPLETE_BEFORE_MANIFEST-False]" time="0.048" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_crash_points_expose_only_old_or_new_state[C4_DURING_MANIFEST_WRITE-False]" time="0.050" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_crash_points_expose_only_old_or_new_state[C5_BEFORE_MANIFEST_REPLACE-False]" time="0.057" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_crash_points_expose_only_old_or_new_state[C6_AFTER_MANIFEST_REPLACE-True]" time="0.073" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_checkpoint_interruption_never_changes_authority" time="0.049" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_split_checkpoint_interruption_before_manifest_stays_rebuildable[1]" time="0.056" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_split_checkpoint_interruption_before_manifest_stays_rebuildable[2]" time="0.061" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_split_checkpoint_interruption_before_manifest_stays_rebuildable[3]" time="0.061" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_compaction_preserves_records_semantics_and_as_of_history" time="0.359" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_interrupted_compaction_keeps_old_layout" time="0.155" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_legacy_load_migration_and_explicit_rollback" time="0.184" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_migration_failure_rolls_back_without_touching_legacy" time="0.059" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_retrieval_and_conversation_are_equal_between_v1_and_v2" time="0.162" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_raw_evidence_byte_fidelity" time="0.086" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_path_traversal_and_cross_pack_injection_fail_closed" time="0.060" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_pack_write_lock_is_enforced" time="0.046" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_oversized_record_is_rejected_without_commit" time="0.045" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_unknown_format_fails_closed" time="0.012" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_schema_documents_accept_written_v2_artifacts" time="0.177" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_policy_reports_checkpoint_and_compaction_due_without_hiding_maintenance" time="0.110" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_manifest_tampering_and_unknown_future_version_fail_closed" time="0.074" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_cross_pack_segment_and_record_checksum_spoof_fail_closed" time="0.218" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_old_checkpoint_replay_is_rejected_then_segments_replay" time="0.311" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_untrusted_evidence_cannot_choose_physical_metadata" time="0.077" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_migration_compatibility_gate_ten_shapes[empty]" time="0.201" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_migration_compatibility_gate_ten_shapes[novel]" time="0.233" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_migration_compatibility_gate_ten_shapes[duplicate]" time="0.206" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_migration_compatibility_gate_ten_shapes[supersession]" time="0.194" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_migration_compatibility_gate_ten_shapes[contradiction]" time="0.191" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_migration_compatibility_gate_ten_shapes[correction]" time="0.177" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_migration_compatibility_gate_ten_shapes[retraction]" time="0.179" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_migration_compatibility_gate_ten_shapes[derived]" time="0.187" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_migration_compatibility_gate_ten_shapes[raw_bytes]" time="0.180" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_migration_compatibility_gate_ten_shapes[cross_domain]" time="0.188" /><testcase classname="tests.test_knowledge_persistence_v2" name="test_application_service_commits_delta_and_detects_stale_writer" time="0.075" /><testcase classname="tests.test_knowledge_store_retrieve.KnowledgeStoreRetrieveTests" name="test_project_pack_can_be_saved_loaded_and_sorted" time="0.040" /><testcase classname="tests.test_knowledge_store_retrieve.KnowledgeStoreRetrieveTests" name="test_retrieval_filters_and_ranks" time="0.003" /><testcase classname="tests.providers.test_gateway_client" name="test_responses_preserve_roles_schema_usage_and_provider_alias" time="1.932" /><testcase classname="tests.providers.test_gateway_client" name="test_thinking_policy_is_propagated_without_conflicting_reasoning" time="0.760" /><testcase classname="tests.providers.test_gateway_client" name="test_worker_default_thinking_policy_is_unchanged" time="0.777" /><testcase classname="tests.providers.test_gateway_client" name="test_chat_completions_compatibility_path_preserves_schema" time="0.774" /><testcase classname="tests.providers.test_gateway_client" name="test_all_supported_provider_routes_are_explicit[qwen]" time="0.745" /><testcase classname="tests.providers.test_gateway_client" name="test_all_supported_provider_routes_are_explicit[deepseek]" time="0.775" /><testcase classname="tests.providers.test_gateway_client" name="test_all_supported_provider_routes_are_explicit[grok]" time="0.790" /><testcase classname="tests.providers.test_gateway_client" name="test_invalid_schema_output_auth_error_and_no_secret_leak" time="1.007" /><testcase classname="tests.providers.test_gateway_client" name="test_rate_limit_and_truncation_propagate_without_fallback" time="0.927"><failure message="AssertionError: assert 'truncated_response' == 'PROVIDER_OUTPUT_TRUNCATED'&#10;  &#10;  - PROVIDER_OUTPUT_TRUNCATED&#10;  + truncated_response">gateway = &lt;http.server.ThreadingHTTPServer object at 0x0000029A98BE2950&gt;
+
+    @pytest.mark.fault_injection
+    def test_rate_limit_and_truncation_propagate_without_fallback(gateway) -&gt; None:
+        Handler.status = 429
+        Handler.error_type = "provider_rate_limited"
+        with pytest.raises(GatewayCompletionError) as limited:
+            client(gateway).complete(system="s", user="u", schema_name="x", schema=SCHEMA, config=ModelRoleConfig("worker", "deepseek"))
+        assert limited.value.category == "provider_rate_limited"
+        assert len(Handler.requests) == 1 and Handler.requests[0]["payload"]["model"] == "deepseek"
+        Handler.status = 200
+        Handler.completion_status = "incomplete"
+        with pytest.raises(GatewayCompletionError) as truncated:
+            client(gateway).complete(system="s", user="u", schema_name="x", schema=SCHEMA, config=ModelRoleConfig("agent", "grok"))
+&gt;       assert truncated.value.category == "PROVIDER_OUTPUT_TRUNCATED"
+E       AssertionError: assert 'truncated_response' == 'PROVIDER_OUTPUT_TRUNCATED'
+E         
+E         - PROVIDER_OUTPUT_TRUNCATED
+E         + truncated_response
+
+tests\providers\test_gateway_client.py:197: AssertionError</failure></testcase><testcase classname="tests.providers.test_gateway_client" name="test_timeout_after_send_is_outcome_unknown_and_not_retried" time="0.525" /><testcase classname="tests.providers.test_gateway_client" name="test_invalid_model_remote_address_and_stopped_gateway_fail_closed" time="2.841" /><testcase classname="tests.providers.test_gateway_client" name="test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/admin-token-responses-path]" time="0.011" /><testcase classname="tests.providers.test_gateway_client" name="test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/v1--responses-token]" time="0.014" /><testcase classname="tests.providers.test_gateway_client" name="test_gateway_constructor_rejects_unsafe_settings[http://127.0.0.1:8123/v1-token-other-method]" time="0.012" /><testcase classname="tests.providers.test_gateway_client" name="test_safe_error_and_environment_factory_fail_closed" time="0.016" /><testcase classname="tests.providers.test_gateway_client" name="test_reasoning_request_size_and_response_shapes_are_bounded" time="0.517" /><testcase classname="tests.providers.test_gateway_client" name="test_chat_extraction_rejects_invalid_and_truncated_choices" time="0.525" /><testcase classname="tests.providers.test_gateway_client" name="test_budget_reservation_blocks_before_second_send" time="0.853" /><testcase classname="tests.providers.test_gateway_client" name="test_paid_gateway_mode_requires_complete_budget_before_send" time="0.525" /><testcase classname="tests.providers.test_gateway_client" name="test_routing_switch_grok_and_snapshot_are_immutable" time="0.047" /><testcase classname="tests.providers.test_gateway_client" name="test_project_route_separates_coordinator_and_worker_thinking_policies" time="0.067" /><testcase classname="tests.providers.test_gateway_client" name="test_worker_retry_receipts_remain_auditable_without_relabeling_failure" time="0.013" /><testcase classname="tests.providers.test_gateway_client" name="test_fallback_configuration_is_rejected" time="0.026" /><testcase classname="tests.providers.test_gateway_client" name="test_benchmark_budget_purpose_is_explicit_and_bounded" time="0.014" /><testcase classname="tests.providers.test_gateway_client" name="test_gateway_selects_unique_schema_valid_object_and_returns_receipt" time="0.807" /><testcase classname="tests.providers.test_gateway_client" name="test_gateway_binds_versioned_raw_defer_metadata_and_receipt" time="0.728" /><testcase classname="tests.providers.test_gateway_client" name="test_truncation_evidence_preserves_forwarded_thinking_and_attempts" time="0.685" /><testcase classname="tests.providers.test_gateway_client" name="test_gateway_rejects_two_schema_valid_objects_with_receipt" time="0.748" /><testcase classname="tests.providers.test_gateway_client" name="test_selector_never_selects_reasoning_text" time="0.747" /><testcase classname="tests.providers.test_gateway_client" name="test_failure_path_preserves_gateway_request_id" time="0.734"><failure message="KeyError: 'request_id'">gateway = &lt;http.server.ThreadingHTTPServer object at 0x0000029A99617110&gt;
+
+    def test_failure_path_preserves_gateway_request_id(gateway) -&gt; None:
+        Handler.status = 502
+        Handler.error_type = "provider_error"
+        Handler.raw_defer = {
+            "contract_version": "1.1", "raw_text": "", "provider_id": "deepseek",
+            "model": "deepseek-flash", "request_id": "failed-provider-request",
+            "finish_reason": None, "usage": {}, "transport_attempts": [{"attempt": 1}],
+            "transport_status": "FAILED", "reasoning_tokens": None,
+        }
+        with pytest.raises(GatewayCompletionError) as caught:
+            client(gateway).complete(system="s", user="u", schema_name="x", schema=SCHEMA, config=ModelRoleConfig("agent", "deepseek", thinking_mode="disabled"))
+&gt;       assert caught.value.evidence["request_id"] == "failed-provider-request"
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       KeyError: 'request_id'
+
+tests\providers\test_gateway_client.py:515: KeyError</failure></testcase><testcase classname="tests.providers.test_gateway_client" name="test_routing_rejects_malformed_documents[&lt;lambda&gt;-unsupported]" time="0.021" /><testcase classname="tests.providers.test_gateway_client" name="test_routing_rejects_malformed_documents[&lt;lambda&gt;-unknown or missing]" time="0.024" /><testcase classname="tests.providers.test_gateway_client" name="test_routing_rejects_malformed_documents[&lt;lambda&gt;-exactly]" time="0.023" /><testcase classname="tests.providers.test_gateway_client" name="test_routing_rejects_malformed_documents[&lt;lambda&gt;-unsupported Provider]" time="0.026" /><testcase classname="tests.providers.test_gateway_client" name="test_routing_rejects_malformed_documents[&lt;lambda&gt;-routing fields]" time="0.027" /><testcase classname="tests.providers.test_gateway_client" name="test_routing_rejects_malformed_documents[&lt;lambda&gt;-not allowed]" time="0.026" /><testcase classname="tests.test_leanloop" name="test_discovery_ablation_real_runtime_reuse_and_independent_oracle" time="7.753" /><testcase classname="tests.test_leanloop" name="test_invalid_policy_restores_full_execution[source]" time="6.302" /><testcase classname="tests.test_leanloop" name="test_invalid_policy_restores_full_execution[profile]" time="6.270" /><testcase classname="tests.test_leanloop" name="test_invalid_policy_restores_full_execution[age]" time="6.518" /><testcase classname="tests.test_leanloop" name="test_invalid_policy_restores_full_execution[evidence]" time="6.302" /><testcase classname="tests.test_leanloop" name="test_invalid_policy_restores_full_execution[contract]" time="6.768" /><testcase classname="tests.test_leanloop" name="test_invalid_policy_restores_full_execution[environment]" time="6.568" /><testcase classname="tests.test_leanloop" name="test_unqualified_and_disabled_run_do_not_reuse" time="1.284" /><testcase classname="tests.test_leanloop" name="test_old_environment_receipt_cannot_be_promoted_or_rebound" time="6.593" /><testcase classname="tests.test_leanloop" name="test_every_controlled_terminal_report_preserves_business_status[SUCCEEDED]" time="0.040" /><testcase classname="tests.test_leanloop" name="test_every_controlled_terminal_report_preserves_business_status[FAILED]" time="0.046" /><testcase classname="tests.test_leanloop" name="test_every_controlled_terminal_report_preserves_business_status[BUDGET_EXHAUSTED]" time="0.038" /><testcase classname="tests.test_leanloop" name="test_every_controlled_terminal_report_preserves_business_status[UNKNOWN]" time="0.044" /><testcase classname="tests.test_leanloop" name="test_every_controlled_terminal_report_preserves_business_status[TIMED_OUT]" time="0.041" /><testcase classname="tests.test_leanloop" name="test_every_controlled_terminal_report_preserves_business_status[WORKER_FAILED]" time="0.035" /><testcase classname="tests.test_leanloop" name="test_every_controlled_terminal_report_preserves_business_status[RECOVERY_FAILED]" time="0.040" /><testcase classname="tests.test_leanloop" name="test_exception_and_cancellation_emit_incomplete_without_swallowing[CancelledError]" time="0.037" /><testcase classname="tests.test_leanloop" name="test_exception_and_cancellation_emit_incomplete_without_swallowing[TimeoutError]" time="0.038" /><testcase classname="tests.test_leanloop" name="test_exception_and_cancellation_emit_incomplete_without_swallowing[RuntimeError]" time="0.038" /><testcase classname="tests.test_leanloop" name="test_crash_report_is_compensated_on_next_entry" time="0.078" /><testcase classname="tests.test_leanloop" name="test_report_failure_is_visible_but_does_not_change_result" time="0.016" /><testcase classname="tests.test_leanloop" name="test_policy_is_frozen_during_run_and_emergency_off_works" time="0.052" /><testcase classname="tests.test_leanloop" name="test_required_checks_cannot_be_qualified[budget]" time="0.018" /><testcase classname="tests.test_leanloop" name="test_required_checks_cannot_be_qualified[unknown]" time="0.016" /><testcase classname="tests.test_leanloop" name="test_required_checks_cannot_be_qualified[permission]" time="0.017" /><testcase classname="tests.test_leanloop" name="test_required_checks_cannot_be_qualified[approval]" time="0.018" /><testcase classname="tests.test_leanloop" name="test_required_checks_cannot_be_qualified[oracle]" time="0.016" /><testcase classname="tests.test_leanloop" name="test_required_checks_cannot_be_qualified[delivery]" time="0.016" /><testcase classname="tests.test_leanloop" name="test_required_checks_cannot_be_qualified[evidence]" time="0.017" /><testcase classname="tests.test_leanloop" name="test_required_checks_cannot_be_qualified[cancel]" time="0.018" /><testcase classname="tests.test_leanloop" name="test_required_checks_cannot_be_qualified[recovery]" time="0.017" /><testcase classname="tests.test_leanloop" name="test_required_checks_cannot_be_qualified[required]" time="0.019" /><testcase classname="tests.test_leanloop" name="test_no_progress_and_communication_are_only_candidates" time="0.001" /><testcase classname="tests.test_leanloop" name="test_cooldown_avoids_no_progress_experiments" time="5.952" /><testcase classname="tests.test_leanloop" name="test_state_machine_requires_evidence_and_structural_proof" time="0.001" /><testcase classname="tests.test_leanloop" name="test_independent_failure_revokes_policy_and_next_run_recovers" time="7.189" /><testcase classname="tests.test_leanloop" name="test_optimizer_cost_budget_suspends_future_cuts" time="6.302" /><testcase classname="tests.test_leanloop" name="test_corrupt_cache_falls_back_without_replaying_unknown[{bad]" time="6.483" /><testcase classname="tests.test_leanloop" name="test_corrupt_cache_falls_back_without_replaying_unknown[{&quot;outputs&quot;:[{}]}]" time="6.492" /><testcase classname="tests.test_leanloop" name="test_needed_step_removal_fails_independent_acceptance" time="11.010" /><testcase classname="tests.test_leanloop" name="test_insufficient_holdout_blocks_experiment" time="5.652" /><testcase classname="tests.test_leanloop" name="test_structural_candidate_does_not_equate_unused_with_dead" time="0.001" /><testcase classname="tests.test_leanloop" name="test_corrupt_snapshot_never_enables_current_policy" time="0.013" /><testcase classname="tests.test_leanloop" name="test_true_process_exit_rebuilds_existing_checkpoint" time="0.607" /><testcase classname="tests.test_leanloop" name="test_phase_projection_does_not_copy_secrets_or_invent_attempts" time="0.026" /><testcase classname="tests.test_leanloop" name="test_bounded_combination_cannot_inherit_individual_passes" time="22.218" /><testcase classname="tests.test_leanloop" name="test_review_cannot_revoke_newer_operator_policy" time="0.026" /><testcase classname="tests.test_leanloop" name="test_subject_path_cannot_leave_isolated_workspace[../outside.py]" time="0.021" /><testcase classname="tests.test_leanloop" name="test_subject_path_cannot_leave_isolated_workspace[C:outside.py]" time="0.020" /><testcase classname="tests.test_leanloop" name="test_optional_identity_failure_never_becomes_business_failure[OFF]" time="0.717" /><testcase classname="tests.test_leanloop" name="test_optional_identity_failure_never_becomes_business_failure[OBSERVE]" time="0.643" /><testcase classname="tests.test_leanloop" name="test_optional_identity_failure_never_becomes_business_failure[AUTO_QUALIFIED]" time="0.661" /><testcase classname="tests.test_leanloop" name="test_unwritable_revocation_does_not_fail_original_execution" time="7.491" /><testcase classname="tests.test_leanloop" name="test_nested_same_run_unknown_never_executes_original_twice[False-OFF]" time="0.047" /><testcase classname="tests.test_leanloop" name="test_nested_same_run_unknown_never_executes_original_twice[False-OBSERVE]" time="0.042" /><testcase classname="tests.test_leanloop" name="test_nested_same_run_unknown_never_executes_original_twice[False-AUTO_QUALIFIED]" time="0.040" /><testcase classname="tests.test_leanloop" name="test_nested_same_run_unknown_never_executes_original_twice[True-OFF]" time="0.043" /><testcase classname="tests.test_leanloop" name="test_nested_same_run_unknown_never_executes_original_twice[True-OBSERVE]" time="0.040" /><testcase classname="tests.test_leanloop" name="test_nested_same_run_unknown_never_executes_original_twice[True-AUTO_QUALIFIED]" time="0.038" /><testcase classname="tests.test_leanloop" name="test_post_result_metadata_failure_preserves_original_result" time="0.036" /><testcase classname="tests.test_leanloop" name="test_formal_resume_report_adopts_actual_frozen_run_policy" time="0.095" /><testcase classname="tests.test_leanloop" name="test_nested_distinct_runs_preserve_each_step_policy_version" time="0.079" /><testcase classname="tests.test_leanloop" name="test_unknown_source_cannot_qualify[None]" time="0.017" /><testcase classname="tests.test_leanloop" name="test_unknown_source_cannot_qualify[UNKNOWN]" time="0.017" /><testcase classname="tests.test_leanloop" name="test_unknown_source_cannot_qualify[not-a-source-hash]" time="0.020" /><testcase classname="tests.test_leanloop" name="test_environment_identity_binds_execution_runtime_source" time="1.170" /><testcase classname="tests.test_leanloop" name="test_native_cache_is_not_assumed_source_proof_for_extra_reuse" time="7.223" /><testcase classname="tests.test_leanloop" name="test_source_identity_binds_loaded_code_and_is_stable_across_processes" time="1.049" /><testcase classname="tests.test_leanloop_reporting" name="test_one_final_json_survives_optional_reporting_failures[None]" time="0.048" /><testcase classname="tests.test_leanloop_reporting" name="test_one_final_json_survives_optional_reporting_failures[markdown]" time="0.044" /><testcase classname="tests.test_leanloop_reporting" name="test_one_final_json_survives_optional_reporting_failures[revocation]" time="0.040" /><testcase classname="tests.test_leanloop_reporting" name="test_observation_hashes_source_once_per_node_with_real_oracle" time="0.599" /><testcase classname="tests.test_leanloop_reporting" name="test_artifact_identity_existing_call_signature_is_preserved" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[mystery.bin-UNKNOWN-BLOCK]" time="0.002" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[artifacts/run.json-RUNTIME-EXCLUDE]" time="0.002" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[generated/app.py-GENERATED-EXCLUDE]" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[credentials.json-SECRET-BLOCK]" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[tests/test_app.py-TEST-COMMIT]" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[pytest.ini-TEST-COMMIT]" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[requirements-network.txt-CONTRACT-COMMIT]" time="0.002" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[requirements-metrics.txt-CONTRACT-COMMIT]" time="0.002" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[PROJECT_MANAGEMENT.md-CURRENT_DOC-COMMIT]" time="0.002" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[benchmarks/project_generation_v1/cases.json-TEST-COMMIT]" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[examples/mvp-runtime/hello-pipeline/tree.json-TEST-COMMIT]" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[config/provider_profiles/project-generation-external-api.json-CONTRACT-COMMIT]" time="0.002" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[src/app.py-SOURCE-COMMIT]" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[.github/workflows/ci.yml-SOURCE-COMMIT]" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[.gitignore-CURRENT_DOC-COMMIT]" time="0.002" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[LICENSE-CURRENT_DOC-COMMIT]" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[CITATION.cff-CURRENT_DOC-COMMIT]" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[CONTRIBUTING.md-CURRENT_DOC-COMMIT]" time="0.002" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[SECURITY.md-CURRENT_DOC-COMMIT]" time="0.002" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[CHANGELOG.md-CURRENT_DOC-COMMIT]" time="0.002" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[FINAL_BASELINE_NOTES.md-CURRENT_DOC-COMMIT]" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[implementation_plan/CGNK_PHASED_IMPLEMENTATION_PLAN.md-CURRENT_DOC-COMMIT]" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[pyproject.toml-SOURCE-COMMIT]" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[legacy/pre_mvp_reset/README.md-SOURCE-COMMIT]" time="0.002" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[experiments/semantic_artifact_design/README.md-CURRENT_DOC-COMMIT]" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_file_policy[.cgnk/governance/governance.lock.json-CURRENT_GOVERNANCE-COMMIT]" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_product_authority_documents_are_publishable_current_docs" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_force_push_options_are_always_blocked" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_consumer_migrations_require_explicit_review" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_experiment_receipts_require_explicit_review" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_research_artifacts_require_explicit_review" time="0.001" /><testcase classname="tests.test_canonical_repo_publish" name="test_environment_key_reference_is_not_secret_content" time="0.028" /><testcase classname="tests.test_canonical_repo_publish" name="test_literal_key_remains_secret_content" time="0.020" /><testcase classname="tests.test_canonical_repo_publish" name="test_python_keyword_reference_does_not_allow_literal_credentials[False]" time="0.021" /><testcase classname="tests.test_canonical_repo_publish" name="test_python_keyword_reference_does_not_allow_literal_credentials[True]" time="0.023" /><testcase classname="tests.test_canonical_repo_publish" name="test_dependency_file_still_rejects_secret_and_unknown_names" time="0.022" /><testcase classname="tests.test_canonical_repo_publish" name="test_staged_path_validation_counts_rename_as_delete_plus_add" time="1.849" /><testcase classname="tests.test_canonical_repo_publish" name="test_manifest_staging_is_batched" time="0.008" /><testcase classname="tests.test_canonical_repo_publish" name="test_reviewed_durable_binary_is_publishable" time="1.856" /><testcase classname="tests.test_canonical_repo_publish" name="test_test_receipt_decodes_utf8_output_independent_of_windows_locale" time="2.830" /><testcase classname="tests.test_canonical_repo_publish" name="test_versioned_config_is_classified_as_source" time="0.008" /><testcase classname="tests.test_canonical_repo_publish" name="test_target_branch_requires_local_baseline_match" time="6.418" /><testcase classname="tests.test_canonical_repo_publish" name="test_publish_can_create_a_new_remote_branch_from_bound_baseline" time="5.861" /><testcase classname="tests.test_canonical_repo_publish" name="test_resume_pushes_only_verified_commit_after_post_commit_interruption" time="4.578" /><testcase classname="tests.test_canonical_repo_publish" name="test_git_failure_is_blocked_not_clean" time="0.007" /><testcase classname="tests.test_canonical_repo_publish" name="test_staging_set_mismatch_is_blocked" time="0.006" /><testcase classname="tests.test_canonical_repo_publish" name="test_stale_or_partial_test_receipt_is_blocked" time="2.627" /><testcase classname="tests.test_canonical_repo_publish" name="test_preexisting_staged_change_is_blocked" time="2.252" /><testcase classname="tests.test_canonical_repo_publish" name="test_version_gate_failure_is_classified" time="1.517" /><testcase classname="tests.test_canonical_repo_publish" name="test_explicit_consumer_version_gate_runs_through_command_shell" time="1.594" /><testcase classname="tests.test_canonical_repo_publish" name="test_remote_sha_mismatch_blocks_false_success" time="0.008" /><testcase classname="tests.test_canonical_repo_publish" name="test_happy_path_commits_pushes_and_verifies_remote" time="6.483" /><testcase classname="tests.test_canonical_repo_publish" name="test_post_commit_command_dirtying_tree_blocks_push" time="5.346" /><testcase classname="tests.test_canonical_repo_publish" name="test_remote_race_is_detected_before_push" time="0.009" /><testcase classname="tests.test_canonical_repo_publish" name="test_transient_push_retry_rechecks_remote_without_force" time="0.009" /><testcase classname="tests.test_canonical_repo_publish" name="test_generated_project_uses_same_lightweight_file_policy" time="0.002" /><testcase classname="tests.test_canonical_repo_publish" name="test_fast_ci_workflow_is_bounded_and_provider_free" time="0.017" /><testcase classname="tests.test_canonical_repo_publish" name="test_source_has_no_implicit_or_force_staging" time="0.005" /></testsuite></testsuites>

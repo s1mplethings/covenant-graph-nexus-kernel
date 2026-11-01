@@ -13,7 +13,7 @@ from cgkn.execution.contracts import utc_now
 from cgkn.executors.protocol import ExecutorDescriptor
 
 
-EXCLUDED_PARTS = {".git", ".cgkn", "__pycache__", ".pytest_cache", ".coverage", "htmlcov"}
+EXCLUDED_PARTS = {".git", ".cgkn", ".cgkn-publication.lock", "__pycache__", ".pytest_cache", ".coverage", "htmlcov"}
 
 
 @dataclass(frozen=True)

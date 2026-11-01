@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import pathlib
+import re
 import os
 import subprocess
 import sys
 import tempfile
 import time
+from dataclasses import replace
 from typing import Any, Mapping
 
 from cgkn.execution import BlockExecutionRequest, BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode
@@ -76,7 +78,7 @@ class CommandExecutor:
             if not isinstance(command, (list, tuple)) or not command or not all(isinstance(item, str) and item for item in command):
                 raise ValueError("command must be a non-empty argv list")
             rendered = " ".join(command).lower()
-            if any(token in rendered for token in self._blocked):
+            if any(re.search(r"(?<!\w)" + re.escape(token) + r"(?!\w)", rendered) for token in self._blocked):
                 raise PermissionError("dangerous command rejected")
             cwd = _within(self.root, str(config.get("cwd", ".")))
             environment = os.environ.copy()
@@ -99,10 +101,22 @@ class PythonTestExecutor(CommandExecutor):
     def execute(self, request: BlockExecutionRequest) -> BlockExecutionResult:
         with tempfile.TemporaryDirectory(prefix="cgkn-pycache-") as pycache:
             config = dict(request.task_context.node_config)
-            config["command"] = [sys.executable, "-m", "pytest", *list(config.get("pytest_args", ["-q"]))]
+            report=pathlib.Path(pycache)/'current-tests.xml'
+            config["command"] = [sys.executable, "-m", "pytest", *list(config.get("pytest_args", ["-q"])),
+                                 '-o','junit_family=xunit1','--junitxml',str(report)]
             config["environment"] = {"PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1", "PYTHONPYCACHEPREFIX": pycache}
             context = type(request.task_context)(node_goal=request.task_context.node_goal, node_config=config, dependency_results=request.task_context.dependency_results, artifact_refs=request.task_context.artifact_refs, project_constraints=request.task_context.project_constraints, acceptance=request.task_context.acceptance)
-            return super().execute(type(request)(**{**request.__dict__, "task_context": context}))
+            result=super().execute(type(request)(**{**request.__dict__, "task_context": context}))
+            from cgkn.execution.test_results import read_pytest_report
+            try:observed_root=_within(self.root,str(config.get('cwd','.')))
+            except PermissionError:observed_root=self.root
+            observation=read_pytest_report(report,observed_root,result.outputs.get('returncode'))
+            outputs={**result.outputs,'test_observation':observation}
+            if result.succeeded and observation['status']!='PASS':
+                return replace(result,status=BlockStatus.FAILED,outputs=outputs,
+                    error=ExecutionError(ExecutionErrorCode.INVALID_OUTPUT,'No valid passing tests bound to current candidate',
+                                         {'failure_domain':'HARNESS' if observation['status']=='INVALID' else 'BUSINESS','test_observation_status':observation['status']}),retryable=False)
+            return replace(result,outputs=outputs)
 
 
 class LocalActionExecutorAdapter:

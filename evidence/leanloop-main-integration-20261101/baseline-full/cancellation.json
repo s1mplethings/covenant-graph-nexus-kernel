@@ -1,0 +1,14 @@
+{
+  "reason": "Stopped incomplete full baseline after completed matched critical suite established new main-feature regressions in integration candidate; not a failed baseline or completed full regression.",
+  "epoch": 1793545478.5045667,
+  "owned_processes": [
+    {
+      "pid": 21588,
+      "created": 1793544851.2361665,
+      "name": "python.exe",
+      "threads": 5,
+      "rss": 256471040
+    }
+  ],
+  "survivors": []
+}

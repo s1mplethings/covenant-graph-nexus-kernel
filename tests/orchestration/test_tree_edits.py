@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pytest
+from tests.qualification_support import probe_node
 
 from cgkn.orchestration.capability_tree import CapabilityNode, CapabilityTree
 from cgkn.orchestration.tree_edits import TreeEdit, apply_tree_edit, apply_tree_edits
@@ -12,7 +13,7 @@ pytestmark = [pytest.mark.happy_path, pytest.mark.boundary, pytest.mark.security
 
 
 def base() -> CapabilityTree:
-    return CapabilityTree("goal", (CapabilityNode("root"), CapabilityNode("a", "root", "a@1"), CapabilityNode("b", "root", "b@1", ("a",), {"executor_ref": "old"})))
+    return CapabilityTree("goal", (probe_node("root"), probe_node("group", "root"), probe_node("a", "root", "a@1"), probe_node("b", "root", "b@1", ("a",), {"executor_ref": "old"})))
 
 
 def edit(identifier, operation, node, payload=None): return TreeEdit(identifier, operation, node, payload or {}, P)
@@ -20,14 +21,14 @@ def edit(identifier, operation, node, payload=None): return TreeEdit(identifier,
 
 def test_all_mutating_operations_and_control_edits() -> None:
     tree = base()
-    tree = apply_tree_edit(tree, edit("1", "add_node", "c", {"parent_id": "root", "capability_ref": "c@1", "depends_on": ["b"], "config": {}}), known_capabilities=KNOWN)
-    tree = apply_tree_edit(tree, edit("2", "move_node", "c", {"parent_id": "a"}), known_capabilities=KNOWN)
+    tree = apply_tree_edit(tree, edit("1", "add_node", "c", {"parent_id": "root", "capability_ref": "c@1", "depends_on": ["b"], "config": probe_node("c",capability_ref="c@1",depends_on=("b",)).as_dict()["config"]}), known_capabilities=KNOWN)
+    tree = apply_tree_edit(tree, edit("2", "move_node", "c", {"parent_id": "group"}), known_capabilities=KNOWN)
     tree = apply_tree_edit(tree, edit("3", "remove_dependency", "c", {"dependency": "b"}), known_capabilities=KNOWN)
     tree = apply_tree_edit(tree, edit("4", "add_dependency", "c", {"dependency": "a"}), known_capabilities=KNOWN)
     tree = apply_tree_edit(tree, edit("5", "replace_executor", "c", {"executor_ref": "local@1"}), known_capabilities=KNOWN)
     tree = apply_tree_edit(tree, edit("6", "update_config", "c", {"config": {"nested": {"x": 1}}}), known_capabilities=KNOWN)
-    tree = apply_tree_edit(tree, edit("7", "replace_node", "c", {"capability_ref": "b@1", "config": {"executor_ref": "other"}}), known_capabilities=KNOWN)
-    assert tree.by_id["c"].capability_ref == "b@1" and tree.by_id["c"].parent_id == "a"
+    tree = apply_tree_edit(tree, edit("7", "replace_node", "c", {"capability_ref": "b@1", "config": probe_node("c",capability_ref="b@1",depends_on=("a",),config={"executor_ref":"other"}).as_dict()["config"]}), known_capabilities=KNOWN)
+    assert tree.by_id["c"].capability_ref == "b@1" and tree.by_id["c"].parent_id == "group"
     tree = apply_tree_edit(tree, edit("8", "remove_node", "c"), known_capabilities=KNOWN)
     assert "c" not in tree.by_id
     assert apply_tree_edit(tree, edit("9", "retry_node", "a"), known_capabilities=KNOWN) is tree

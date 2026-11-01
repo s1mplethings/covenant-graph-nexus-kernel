@@ -12,6 +12,41 @@ from cgkn.orchestration.execution_dag import compile_tree
 from cgkn.runtime import DAGRunner
 from cgkn.state import FileRunStore
 from cgkn.state import RunState, NodeExecutionRecord, StateStoreError
+from tests.qualification_support import probe_node, check_probe
+from cgkn.orchestration.leaf_contract import build_leaf_contract
+from cgkn.execution.deliverables import FileDeliverableChecker, SubjectDeliverableChecker
+from cgkn.state.task_feedback import digest
+
+
+def case_node(id, parent_id='', capability_ref='', depends_on=(), config=None):
+    cfg=dict(config or {})
+    if cfg.get('executor_ref')=='local.file@1' and cfg.get('action')=='write_file':
+        cfg['leaf_contract']=build_leaf_contract(goal='Materialize the explicitly requested fixture source',
+            kind='IMPLEMENTATION',scope=[cfg['path']],acceptance=['source-bytes'],checker='source',
+            output_identity=cfg['path'],effect_domains=['fixture-source'],executor='local.file@1',
+            dependencies=depends_on,expected_delta='requested source bytes',expected_content=cfg['content'])
+        return CapabilityNode(id,parent_id,capability_ref,depends_on,cfg)
+    return probe_node(id,parent_id,capability_ref,depends_on,cfg)
+
+
+def case_runner(registry,store,**kwargs):
+    def observe(r,c):
+        value=check_probe(r,c)
+        o=r.as_dict()['input_values']['execution_receipt']['outputs']
+        if r.task_context.node_config['executor_ref']=='local.command@1':
+            value['passed']=(o.get('stdout','').strip()=='runtime hello' or
+                (o.get('expected')=='runtime hello' and 'runtime hello' in o.get('observed_stdout','')))
+        return value
+    registry.register(SubjectDeliverableChecker(lambda c:{k:digest(k) for k in c['target_scope']},
+        {'probe_observation':observe}))
+    checkers={'fixture.probe':'deliverable.subjects@1'}
+    files=[e for e in registry.list() if isinstance(e,FileExecutor)]
+    if files:
+        registry.register(FileDeliverableChecker(files[0].root,{'source-bytes':lambda root,c:
+            {'passed':(root/c['target_scope'][0]).read_text()==c['expected_content'],
+             'observed':{'content':(root/c['target_scope'][0]).read_text()}}}))
+        checkers['source']='deliverable.files@1'
+    return DAGRunner(registry,store,deliverable_checkers=checkers,**kwargs)
 
 
 pytestmark = [pytest.mark.happy_path, pytest.mark.boundary]
@@ -26,10 +61,10 @@ def registry(project_root):
 
 def hello_tree() -> CapabilityTree:
     return CapabilityTree("hello", (
-        CapabilityNode("project"),
-        CapabilityNode("write", "project", "source.write@1", config={"executor_ref": "local.file@1", "action": "write_file", "path": "hello.py", "content": "print('runtime hello')\n"}),
-        CapabilityNode("run", "project", "program.run@1", ("write",), {"executor_ref": "local.command@1", "command": [sys.executable, "hello.py"]}),
-        CapabilityNode("verify", "project", "output.verify@1", ("run",), {"executor_ref": "local.command@1", "assert_dependency_stdout_contains": "runtime hello"}),
+        case_node("project"),
+        case_node("write", "project", "source.write@1", config={"executor_ref": "local.file@1", "action": "write_file", "path": "hello.py", "content": "print('runtime hello')\n"}),
+        case_node("run", "project", "program.run@1", ("write",), {"executor_ref": "local.command@1", "command": [sys.executable, "hello.py"]}),
+        case_node("verify", "project", "output.verify@1", ("run",), {"executor_ref": "local.command@1", "assert_dependency_stdout_contains": "runtime hello"}),
     ))
 
 
@@ -37,7 +72,7 @@ def test_real_vertical_slice_and_resume(tmp_path) -> None:
     project, runs = tmp_path / "project", tmp_path / "runs"
     project.mkdir()
     tree = hello_tree()
-    runner = DAGRunner(registry(project), FileRunStore(runs))
+    runner = case_runner(registry(project), FileRunStore(runs))
     first = runner.run(project_id="p", run_id="r", tree=tree, dag=compile_tree(tree))
     assert first.status == "SUCCEEDED"
     assert first.actual_executions == ("write", "run", "verify")
@@ -51,11 +86,11 @@ def test_failure_propagation_and_retry_history(tmp_path) -> None:
     project, runs = tmp_path / "project", tmp_path / "runs"
     project.mkdir()
     tree = CapabilityTree("broken", (
-        CapabilityNode("write", capability_ref="source.write@1", config={"executor_ref": "local.file@1", "action": "write_file", "path": "broken.py", "content": "raise RuntimeError('broken')\n"}),
-        CapabilityNode("run", capability_ref="program.run@1", depends_on=("write",), config={"executor_ref": "local.command@1", "command": [sys.executable, "broken.py"]}),
-        CapabilityNode("verify", capability_ref="output.verify@1", depends_on=("run",), config={"executor_ref": "local.command@1", "assert_dependency_stdout_contains": "never"}),
+        case_node("write", capability_ref="source.write@1", config={"executor_ref": "local.file@1", "action": "write_file", "path": "broken.py", "content": "raise RuntimeError('broken')\n"}),
+        case_node("run", capability_ref="program.run@1", depends_on=("write",), config={"executor_ref": "local.command@1", "command": [sys.executable, "broken.py"]}),
+        case_node("verify", capability_ref="output.verify@1", depends_on=("run",), config={"executor_ref": "local.command@1", "assert_dependency_stdout_contains": "never"}),
     ))
-    runner = DAGRunner(registry(project), FileRunStore(runs))
+    runner = case_runner(registry(project), FileRunStore(runs))
     first = runner.run(project_id="p", run_id="r", tree=tree, dag=compile_tree(tree))
     assert first.failed_nodes == ("run",)
     assert first.blocked_nodes == ("verify",)
@@ -81,18 +116,18 @@ class RecordingExecutor:
 
 def test_affected_subgraph_rerun_reuses_unaffected_successes(tmp_path) -> None:
     nodes = (
-        CapabilityNode("inspect", capability_ref="inspect@1", config={"executor_ref": "recording@1"}),
-        CapabilityNode("research", capability_ref="research@1", config={"executor_ref": "recording@1"}),
-        CapabilityNode("implement", capability_ref="implement@1", depends_on=("inspect", "research"), config={"executor_ref": "recording@1"}),
-        CapabilityNode("test", capability_ref="test@1", depends_on=("implement",), config={"executor_ref": "recording@1"}),
-        CapabilityNode("report", capability_ref="report@1", depends_on=("test",), config={"executor_ref": "recording@1"}),
+        case_node("inspect", capability_ref="inspect@1", config={"executor_ref": "recording@1"}),
+        case_node("research", capability_ref="research@1", config={"executor_ref": "recording@1"}),
+        case_node("implement", capability_ref="implement@1", depends_on=("inspect", "research"), config={"executor_ref": "recording@1"}),
+        case_node("test", capability_ref="test@1", depends_on=("implement",), config={"executor_ref": "recording@1"}),
+        case_node("report", capability_ref="report@1", depends_on=("test",), config={"executor_ref": "recording@1"}),
     )
     tree = CapabilityTree("local repair", nodes)
     executor = RecordingExecutor()
     executors = ExecutorRegistry()
     executors.register(executor)
     store = FileRunStore(tmp_path / "runs")
-    runner = DAGRunner(executors, store)
+    runner = case_runner(executors, store)
     first = runner.run(project_id="p", run_id="r", tree=tree, dag=compile_tree(tree))
     assert first.failed_nodes == ("test",) and first.blocked_nodes == ("report",)
     executor.fail.clear()
@@ -109,22 +144,22 @@ def test_affected_subgraph_rerun_reuses_unaffected_successes(tmp_path) -> None:
 
 @pytest.mark.negative
 def test_runner_rejects_tree_dag_and_persisted_state_mismatch(tmp_path) -> None:
-    tree = CapabilityTree("goal", (CapabilityNode("n", capability_ref="c@1", config={"executor_ref": "recording@1"}),))
+    tree = CapabilityTree("goal", (case_node("n", capability_ref="c@1", config={"executor_ref": "recording@1"}),))
     empty = compile_tree(CapabilityTree("empty", ()))
-    runner = DAGRunner(ExecutorRegistry(), FileRunStore(tmp_path / "runs"))
+    runner = case_runner(ExecutorRegistry(), FileRunStore(tmp_path / "runs"))
     with pytest.raises(ValueError, match="does not match"):
         runner.run(project_id="p", run_id="r", tree=tree, dag=empty)
     store = FileRunStore(tmp_path / "runs2")
     store.save_run(RunState("p", "r", nodes={"other": NodeExecutionRecord("other")}))
     with pytest.raises(ValueError, match="persisted run state"):
-        DAGRunner(ExecutorRegistry(), store).run(project_id="p", run_id="r", tree=tree, dag=compile_tree(tree), resume=True)
+        case_runner(ExecutorRegistry(), store).run(project_id="p", run_id="r", tree=tree, dag=compile_tree(tree), resume=True)
 
 
 @pytest.mark.recovery
 def test_missing_resume_state_fails_but_new_run_recovers_from_initial_load_race(tmp_path, monkeypatch) -> None:
     tree = CapabilityTree("empty", ())
     store = FileRunStore(tmp_path / "runs")
-    runner = DAGRunner(ExecutorRegistry(), store)
+    runner = case_runner(ExecutorRegistry(), store)
     with pytest.raises(StateStoreError):
         runner.run(project_id="p", run_id="missing", tree=tree, dag=compile_tree(tree), resume=True)
     original = store.load_run
@@ -142,24 +177,37 @@ class RaisingExecutor:
 
 @pytest.mark.fault_injection
 def test_executor_resolution_and_unhandled_exception_fail_closed(tmp_path) -> None:
-    missing_tree = CapabilityTree("missing", (CapabilityNode("missing", capability_ref="c@1", config={"executor_ref": "absent@1"}),))
-    runner = DAGRunner(ExecutorRegistry(), FileRunStore(tmp_path / "missing"))
+    missing_tree = CapabilityTree("missing", (case_node("missing", capability_ref="c@1", config={"executor_ref": "absent@1"}),))
+    runner = case_runner(ExecutorRegistry(), FileRunStore(tmp_path / "missing"))
     result = runner.run(project_id="p", run_id="r", tree=missing_tree, dag=compile_tree(missing_tree))
     assert result.failed_nodes == ("missing",)
     assert runner.store.load_result("p", "r", "missing").error.code is ExecutionErrorCode.EXECUTOR_NOT_FOUND
     registry = ExecutorRegistry(); registry.register(RaisingExecutor())
-    raised_tree = CapabilityTree("raised", (CapabilityNode("raised", capability_ref="c@1", config={"executor_ref": "raising@1"}),))
-    raised_runner = DAGRunner(registry, FileRunStore(tmp_path / "raised"))
+    raised_tree = CapabilityTree("raised", (case_node("raised", capability_ref="c@1", config={"executor_ref": "raising@1"}),))
+    raised_runner = case_runner(registry, FileRunStore(tmp_path / "raised"))
     raised = raised_runner.run(project_id="p", run_id="r", tree=raised_tree, dag=compile_tree(raised_tree))
     failure = raised_runner.store.load_result("p", "r", "raised")
-    assert raised.failed_nodes == ("raised",) and failure.retryable
+    assert raised.failed_nodes == ("raised",) and not failure.retryable and failure.error.details["failure_domain"]=="HARNESS"
 
 
 @pytest.mark.determinism
 def test_summary_and_event_order_are_deterministic(tmp_path) -> None:
     project = tmp_path / "project"; project.mkdir()
     store = FileRunStore(tmp_path / "runs")
-    summary = DAGRunner(registry(project), store).run(project_id="p", run_id="r", tree=hello_tree(), dag=compile_tree(hello_tree()))
+    summary = case_runner(registry(project), store).run(project_id="p", run_id="r", tree=hello_tree(), dag=compile_tree(hello_tree()))
     assert summary.as_dict()["actual_executions"] == ["write", "run", "verify"]
     event_types = [event.event_type for event in store.load_events("p", "r")]
     assert event_types[0] == "RUN_CREATED" and event_types[-1] == "RUN_FINISHED"
+
+
+@pytest.mark.parametrize("condition", ["current object survives restart", ["current object survives restart"]])
+def test_worker_receives_whole_acceptance_condition(tmp_path, condition):
+    class Capture(RecordingExecutor):
+        def execute(self, request):
+            self.condition = request.task_context.acceptance
+            return super().execute(request)
+    executor=Capture(); executors=ExecutorRegistry(); executors.register(executor)
+    tree=CapabilityTree("handoff", (case_node("work", capability_ref="work@1", config={"executor_ref":"recording@1", "acceptance":condition}),))
+    result=case_runner(executors, FileRunStore(tmp_path)).run(project_id="p",run_id="r",tree=tree,dag=compile_tree(tree))
+    assert result.status == "SUCCEEDED"
+    assert executor.condition == ("current object survives restart",)

@@ -13,6 +13,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import agent_conversation_loop
+from cgkn.telemetry.lean import observed
 import check_connectivity
 import local_agent_actions
 import local_model_router
@@ -839,90 +840,25 @@ def _run_agent_turn(
 ) -> dict[str, Any]:
     role = _role_by_id(manifest, str(step.get("role", "")))
     allowed_actions = {str(item) for item in step.get("allowed_actions", [])}
-    last_error = ""
-    for turn in range(1, max(1, max_turns) + 1):
-        system_prompt = _system_prompt(role, step, manifest)
-        events = _history_for_step(session_file, system_prompt)
-        try:
-            response = agent(events, model, timeout) if agent else _call_step_agent(events, model, timeout, role=role, step=step)
-        except Exception as exc:
-            last_error = str(exc)
-            agent_conversation_loop.append_event(
-                session_file,
-                {"kind": "agent_error", "role": role.get("id"), "step_id": step.get("id"), "turn": turn, "error": last_error},
-            )
-            continue
-        parsed = agent_conversation_loop.parse_agent_response(response)
-        actions = parsed.get("actions", [])
-        parse_error = str(parsed.get("parse_error", "")).strip()
-        agent_conversation_loop.append_event(
-            session_file,
-            {
-                "kind": "assistant",
-                "role": role.get("id"),
-                "step_id": step.get("id"),
-                "turn": turn,
-                "message": parsed.get("message", ""),
-                "actions": actions,
-                "parse_error": parse_error,
-            },
-        )
-        if not actions:
-            last_error = f"agent returned malformed JSON: {parse_error}" if parse_error else "agent returned no actions"
-            agent_conversation_loop.append_event(
-                session_file,
-                {
-                    "kind": "tool_result",
-                    "role": role.get("id"),
-                    "step_id": step.get("id"),
-                    "turn": turn,
-                    "ok": False,
-                    "error": last_error,
-                    "repair_instruction": "Return strict JSON with a non-empty actions array for this same manifest step.",
-                    "raw_preview": str(parsed.get("raw", ""))[:1000],
-                },
-            )
-            continue
-        failed = bool(parse_error)
-        if parse_error:
-            last_error = f"agent response was partially recovered from malformed JSON: {parse_error}"
-            agent_conversation_loop.append_event(
-                session_file,
-                {
-                    "kind": "tool_result",
-                    "role": role.get("id"),
-                    "step_id": step.get("id"),
-                    "turn": turn,
-                    "ok": False,
-                    "error": last_error,
-                    "repair_instruction": "Some complete write_file actions were executed, but the same manifest step must return strict JSON to finish.",
-                    "raw_preview": str(parsed.get("raw", ""))[:1000],
-                },
-            )
-        package_result: dict[str, Any] | None = None
-        for action in actions:
-            if str(action.get("type") or action.get("action") or "") == "package_project":
-                audit = pre_package_audit(session_file, executor.project_dir, manifest)
-                merged_limits = list(action.get("known_limits", []) if isinstance(action.get("known_limits"), list) else [])
-                merged_limits.extend(audit.get("known_limits", []))
-                action = dict(action)
-                action["known_limits"] = merged_limits
-            agent_conversation_loop.append_event(session_file, {"kind": "action", "role": role.get("id"), "step_id": step.get("id"), "turn": turn, "action": action})
-            result = _execute_manifest_action(executor, action, allowed_actions)
-            agent_conversation_loop.append_event(
-                session_file,
-                {"kind": "tool_result", "role": role.get("id"), "step_id": step.get("id"), "turn": turn, "action": action, "result": result},
-            )
-            if not result.get("ok"):
-                failed = True
-                last_error = str(result.get("error") or "action failed")
-            if str(action.get("type") or action.get("action") or "") == "package_project" and result.get("ok"):
-                package_result = result
-        if package_result:
-            return {"status": "ok", "summary": "package_project action completed", "package_result": package_result}
-        if not failed:
-            return {"status": "ok", "summary": str(parsed.get("message") or "step completed")}
-    return {"status": "failed", "summary": last_error or "agent step failed"}
+
+    def prepare_action(action):
+        if str(action.get("type") or action.get("action") or "") != "package_project":
+            return action
+        audit = pre_package_audit(session_file, executor.project_dir, manifest)
+        limits = list(action.get("known_limits", []) if isinstance(action.get("known_limits"), list) else [])
+        limits.extend(audit.get("known_limits", []))
+        return {**action, "known_limits": limits}
+
+    return agent_conversation_loop._run_action_loop(
+        session_file=session_file, project=executor.project_dir, model=model,
+        timeout=timeout, max_turns=max_turns,
+        agent=agent or (lambda events, model, timeout: _call_step_agent(events, model, timeout, role=role, step=step)),
+        execute=lambda action: _execute_manifest_action(executor, action, allowed_actions),
+        event_context={"role": role.get("id"), "step_id": step.get("id")},
+        read_events=lambda: _history_for_step(session_file, _system_prompt(role, step, manifest)),
+        prepare_action=prepare_action,
+    )
+
 
 
 def _fallback_to_agent_loop(
@@ -946,6 +882,7 @@ def _fallback_to_agent_loop(
     return result
 
 
+@observed("dynamic_pipeline", lambda a: pathlib.Path(a["session_path"]).with_suffix(".reports"), session=lambda a:a["session_path"])
 def run_dynamic_pipeline(
     *,
     session_path: str | pathlib.Path,

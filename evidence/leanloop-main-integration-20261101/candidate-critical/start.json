@@ -1,0 +1,20 @@
+{
+  "pid": 12524,
+  "source": "F:\\CGKN-LeanLoop-Main-Integration-20261101",
+  "command": [
+    "C:\\Users\\sunom\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "-q",
+    "tests/application/test_project_loop.py::test_fake_greenfield_runs_real_filesystem_pytest_and_hidden_acceptance",
+    "tests/application/test_project_loop.py::test_fake_repair_preserves_blueprint_and_reruns_only_owner_and_checks",
+    "tests/application/test_project_loop.py::test_unchanged_committed_downstream_unit_reuses_baseline_without_provider_call",
+    "tests/application/project_corpus",
+    "tests/test_knowledge_persistence_v2.py",
+    "--junitxml=F:\\CGKN-LeanLoop-Main-Integration-20261101\\artifacts\\leanloop-main-integration\\candidate-critical\\results.xml"
+  ],
+  "epoch": 1793545345.17678,
+  "environment": "shared offline legacy profile, external socket guard, identical watchdog stack timer"
+}

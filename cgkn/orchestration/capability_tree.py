@@ -1,20 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from types import MappingProxyType
+from cgkn.component.spec import _freeze, _thaw
 from typing import Any, Iterable, Mapping
-
-
-def _freeze(value: Any) -> Any:
-    if isinstance(value, Mapping): return MappingProxyType({str(key): _freeze(item) for key, item in value.items()})
-    if isinstance(value, (list, tuple)): return tuple(_freeze(item) for item in value)
-    return value
-
-
-def _thaw(value: Any) -> Any:
-    if isinstance(value, Mapping): return {key: _thaw(item) for key, item in value.items()}
-    if isinstance(value, tuple): return [_thaw(item) for item in value]
-    return value
 
 
 def _items(values: Iterable[str]) -> tuple[str, ...]:
@@ -45,7 +33,13 @@ class CapabilityNode:
         object.__setattr__(self, "parent_id", self.parent_id.strip())
         object.__setattr__(self, "capability_ref", self.capability_ref.strip())
         object.__setattr__(self, "depends_on", _items(self.depends_on))
-        object.__setattr__(self, "config", _freeze(self.config))
+        config = dict(self.config)
+        contract = config.get('leaf_contract')
+        # The explicit versioned contract can supply the legacy dispatch alias.
+        # Never invent an executor or silently replace a conflicting binding.
+        if isinstance(contract, Mapping) and 'executor_ref' not in config and contract.get('executor_ref'):
+            config['executor_ref'] = contract['executor_ref']
+        object.__setattr__(self, "config", _freeze(config))
 
     @property
     def executable(self) -> bool:

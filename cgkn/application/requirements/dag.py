@@ -130,6 +130,13 @@ class ObligationDAGService:
             CapabilityNode("snapshot", capability_ref="project.snapshot@1", depends_on=("pytest", "runtime", "oracle"), config={"executor_ref": "project.snapshot@1", "goal": "snapshot", "entrypoints": [entrypoint_path], "test_commands": [f"{sys.executable} -m pytest -q"], "runtime_commands": [f"{sys.executable} -m {entrypoint} --help"]}),
             CapabilityNode("accept", capability_ref="project.acceptance.external@1", depends_on=("snapshot",), config={"executor_ref": "project.acceptance@1", "goal": "hidden acceptance", "case_id": project_id, "dependency_policy": next(item.dependency_policy.as_dict() for item in compilation.obligations.obligations if item.dependency_policy), "timeout_seconds": 60}),
         ))
+        from dataclasses import replace
+        from cgkn.application.software_project.qualification import new_contract, install
+        # Canonical tests derive only from immutable public contracts, not worker
+        # output. Keep them outside the affected worker repair closure.
+        nodes = [replace(n, depends_on=()) if n.id == 'contract-tests' else
+                 replace(n, depends_on=(*worker_ids, 'contract-tests')) if n.id == 'compile' else n for n in nodes]
+        nodes = [replace(n, config={**dict(n.config), 'leaf_contract': new_contract(n.id, n.config, n.depends_on)}) for n in nodes]
         tree = CapabilityTree(f"execute compiled {variant} obligations", tuple(nodes))
         registry = ExecutorRegistry()
         registry.register(ObligationWorkUnitExecutor(workspace, self.client, self.worker))
@@ -139,7 +146,8 @@ class ObligationDAGService:
         registry.register(ProjectSnapshotExecutor(workspace)); registry.register(ExternalAcceptanceExecutor(workspace, self.root / "benchmarks" / "real_project_generation" / "acceptance"))
         run_id = f"{variant}-obligation-{uuid.uuid4().hex[:10]}"
         store = FileRunStore(run_root)
-        summary = DAGRunner(registry, store).run(
+        acceptance, checkers = install(registry, store, workspace, project_id, run_id, tree.goal)
+        summary = DAGRunner(registry, store, deliverable_checkers=checkers).run(
             project_id=project_id, run_id=run_id, tree=tree, dag=compile_tree(tree),
             constraints=("compiled obligations are authoritative", "no hidden acceptance access", "no outbound network"),
         )
@@ -209,9 +217,9 @@ class ObligationDAGService:
                 TreeEdit(f"repair-config-{repair_rounds}", "update_config", owner, {"config": {"failure_evidence": failure}}, {"authority": "obligation-dag", "reason": "affected-only repair"}),
                 TreeEdit(f"repair-retry-{repair_rounds}", "retry_node", owner, {}, {"authority": "obligation-dag", "reason": "affected-only repair"}),
             ), known_capabilities={node.capability_ref for node in tree.nodes if node.capability_ref})
-            summary = DAGRunner(registry, store).run(
+            summary = DAGRunner(registry, store, deliverable_checkers=checkers).run(
                 project_id=project_id, run_id=run_id, tree=tree, dag=compile_tree(tree), resume=True,
-                retry_node=owner, constraints=("compiled obligations are authoritative", "no hidden acceptance access", "no outbound network"),
+                retry_node=owner, accept_edits=True, constraints=("compiled obligations are authoritative", "no hidden acceptance access", "no outbound network"),
             )
             repair_rounds += 1
         hidden = "FAIL"
@@ -240,7 +248,9 @@ class ObligationDAGService:
             contract_test_reused = bool(contract_test_result.outputs.get("reused", False))
         except Exception:
             pass
-        status = "PASS" if summary.status == "SUCCEEDED" and hidden == "PASS" and public_pytest == "PASS" and oracle_status == "PASS" else "FAIL"
+        if hidden == 'PASS':
+            acceptance.record('project', store.load_result(project_id, run_id, 'accept'), executor_ref='project.acceptance@1')
+        status = "PASS" if summary.status == "SUCCEEDED" and acceptance.view()['complete'] and hidden == "PASS" and public_pytest == "PASS" and oracle_status == "PASS" else "FAIL"
         calls = len(getattr(self.client, "calls", ()))
         tokens = 0
         for unit in units:

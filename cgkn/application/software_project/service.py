@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from cgkn.telemetry.lean import observed
+
 import ast
 import hashlib
 import json
@@ -117,6 +119,9 @@ class SoftwareProjectAgentComposer:
                 if capability_ref == "project.tests.generate@1":
                     config["goal"] = str(config.get("goal", "")) + " Test only the declared public contract. Fixtures must be structurally valid unless a test explicitly expects an input error; never assert successful behavior from malformed fixtures or invent alternate CLI flags. Subprocess tests must run from the project root or set an explicit project-root PYTHONPATH."
                 dependencies = list(payload.get("depends_on", [])) + dependency_aliases.get(str(edit.get("node_id", "")), [])
+                from .qualification import new_contract
+                if 'leaf_contract' not in config:
+                    config['leaf_contract'] = new_contract(str(edit['node_id']), config, list(dict.fromkeys(dependencies)))
                 payload = {"capability_ref": payload.get("capability_ref", ""), "parent_id": payload.get("parent_id", ""), "depends_on": list(dict.fromkeys(dependencies)), "config": config}
             elif edit.get("operation") == "update_config":
                 config = dict(payload.get("config", {}))
@@ -127,6 +132,10 @@ class SoftwareProjectAgentComposer:
                 payload = {"config": config}
                 existing = context.tree.by_id.get(str(edit.get("node_id", "")))
                 effective_executor = config.get("executor_ref") or (existing.config.get("executor_ref") if existing else "")
+                if existing and 'leaf_contract' not in config:
+                    from .qualification import new_contract
+                    effective = {**dict(existing.config), **config}
+                    config['leaf_contract'] = new_contract(existing.id, effective, existing.depends_on)
                 if effective_executor == "llm.cheap@1" and not retry_candidate:
                     config["allow_patch"] = True
                     retry_candidate = str(edit.get("node_id", ""))
@@ -167,6 +176,8 @@ class SoftwareProjectGenerationService:
         self.client = client or completion_client_from_environment()
         self.config = dict(config or {})
         default_routing = self.repository_root / "config" / "provider_profiles" / "gateway_model_routing.json"
+        from cgkn.providers.application_network import routing_path
+        default_routing = routing_path(default_routing)
         self.routing = routing or (CGKNModelRouting.load(default_routing) if isinstance(self.client, GatewayCompletionClient) else None)
         self.bundle = SoftwareProjectBundle.build()
         self.acceptance_root = self.repository_root / "benchmarks" / "real_project_generation" / "acceptance"
@@ -197,6 +208,7 @@ class SoftwareProjectGenerationService:
         assert final is not None
         return final
 
+    @observed("software_project", lambda a: a["run_dir"])
     def _run_round(self, case: ProjectCase, run_id: str, run_dir: pathlib.Path, workspace: pathlib.Path, round_number: int, failure_summary: str) -> GenerationRunResult:
         started = time.perf_counter()
         config = self._resolved_config()
@@ -221,10 +233,12 @@ class SoftwareProjectGenerationService:
         goal = self._goal(case, round_number, failure_summary, workspace)
         catalog = self._catalog(case)
         composer = SoftwareProjectAgentComposer(run_client, high)
+        from .qualification import install
+        acceptance, checkers = install(registry, store, workspace, case.case_id, run_id, case.public_goal)
         loop = AgentProjectLoop(
-            composer, DAGRunner(registry, store), store,
-            known_capabilities=self.bundle.known_capabilities, worker_model=worker.model,
-            capability_catalog=catalog, max_decisions=int(config.get("max_agent_decisions", 4)),
+            composer, DAGRunner(registry, store, deliverable_checkers=checkers), store,
+            known_capabilities=set(catalog), worker_model=worker.model,
+            capability_catalog=catalog, max_decisions=int(config.get("max_agent_decisions", 4)), acceptance=acceptance,
         )
         try:
             result = loop.run(project_id=case.case_id, run_id=run_id, goal=goal, constraints=(f"public project contract: {case.public_goal}", f"public acceptance: {list(case.public_acceptance)}", "stdlib-only", "no outbound network", "no hidden acceptance access", "no absolute paths", "no placeholders", "worker writes only declared target_paths"))
@@ -250,7 +264,7 @@ class SoftwareProjectGenerationService:
         return GenerationRunResult(case.case_id, run_id, run_dir, workspace, status, receipt)
 
     def _validate_completion(self, case: ProjectCase, run_id: str, workspace: pathlib.Path, store: FileRunStore, result: Any) -> tuple[ProjectResultStatus, dict[str, Any]]:
-        if result.status != "SUCCEEDED" or not result.run_summary:
+        if result.status != "GOALS_VERIFIED" or not result.run_summary:
             summary = "Agent/DAG run did not complete"
             if result.run_summary and result.run_summary.failed_nodes:
                 failed = result.run_summary.failed_nodes[-1]
@@ -401,6 +415,8 @@ class SoftwareProjectGenerationService:
 
     def _catalog(self, case: ProjectCase) -> dict[str, Any]:
         catalog = self.bundle.catalog
+        # The Direct benchmark remains a compatibility experiment, not an Agent capability.
+        catalog.pop("direct_agent_execute@1", None)
         catalog["workspace.inspect@1"] |= {"executor_ref": "local.file@1", "config": {"action": "list_files", "path": ".", "goal": "Inspect public workspace files"}}
         catalog["project.python.compile@1"] |= {"executor_ref": "local.command@1", "config": {"command": [sys.executable, "-m", "compileall", "-q", "."], "goal": "Compile all Python sources"}}
         catalog["project.python.pytest@1"] |= {"executor_ref": "local.python-test@1", "config": {"pytest_args": ["-q"], "goal": "Run public project tests"}}

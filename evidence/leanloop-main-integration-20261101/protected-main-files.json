@@ -1,0 +1,74 @@
+[
+  {
+    "path": "AGENTS.md",
+    "main_blob": "e726ee2655575ab66757839b656a0860c09bba61",
+    "candidate_sha256": "8f2392f8704223039bfedc6397d5914deb68fce3cd565e5f4aa7367ce9a2ef44",
+    "content_matches_main": true
+  },
+  {
+    "path": "PRODUCT_GOAL.md",
+    "main_blob": "01506ce0c9e75b04ab188aabc9323c99233dc07f",
+    "candidate_sha256": "74bfed1dfd7f2cbf7aa322fb1ab280403fd060ee2d8c593d03c674f369898ae5",
+    "content_matches_main": true
+  },
+  {
+    "path": "MVP_SCOPE.md",
+    "main_blob": "4b2ce72ef3c6e4d4a6933230ae74dac78556e11d",
+    "candidate_sha256": "8dfe01f7a3b8e51c71d194e98bb74887fdbfe88140ccb84748a6c7e009bdd707",
+    "content_matches_main": true
+  },
+  {
+    "path": "governance/product_invariants.json",
+    "main_blob": "a78f79c1dfbc12a0d9b00bb1afd9908d07d043bc",
+    "candidate_sha256": "f6c4b5722e280912240b4a0ff8b215ef78d30802415fe393c035742563c09b93",
+    "content_matches_main": true
+  },
+  {
+    "path": "governance/current_architecture.json",
+    "main_blob": "17a9fe73bf8378fb96546957ad19ed9c32e829d3",
+    "candidate_sha256": "e170588422ce914268b617e590aec157c4ac64848152d964a2f893b52be9a289",
+    "content_matches_main": true
+  },
+  {
+    "path": "cgkn/application/project_loop.py",
+    "main_blob": "9e9123f8bfddbdd36aa60a21fd6bc6937a776e7e",
+    "candidate_sha256": "cde17709de9657f580d476b446d3987baa4c00f0ca436963e42ad92c19da9606",
+    "content_matches_main": true
+  },
+  {
+    "path": "cgkn/application/project_blueprint.py",
+    "main_blob": "8e4e6d91b6fd0303e732d48e9066d2a07d68f2d1",
+    "candidate_sha256": "a3640021d8c04862bbfeba747e727672d9b75ab744722a64458daf07ea9cfb73",
+    "content_matches_main": true
+  },
+  {
+    "path": "src/cgnk_knowledge/store.py",
+    "main_blob": "c42ef25dc3f3422ab8b6d0400b797bdcb1f6dbde",
+    "candidate_sha256": "dde95b114d66d9c554641f38b3ca60e9f785542c4d32089b3c84ef08f027ec4a",
+    "content_matches_main": true
+  },
+  {
+    "path": "cgkn/application/project_corpus/contracts.py",
+    "main_blob": "5a2c177a1cec7c5a2d2009da9499c7780acc7809",
+    "candidate_sha256": "06e04890ab1e90867beda4acfd2a0d31912ebada59a9826e76404b8152f22062",
+    "content_matches_main": true
+  },
+  {
+    "path": "cgkn/application/project_corpus/hook.py",
+    "main_blob": "3def898be15cf8c2f99fa806d9f5d001c3235275",
+    "candidate_sha256": "9fa6af85731a109d1afc7abdcef1add1e8dced64415b64c6d068127297683b48",
+    "content_matches_main": true
+  },
+  {
+    "path": "cgkn/application/project_corpus/store.py",
+    "main_blob": "90052aebf8cd802f9bd075716ff357ff1e012ebc",
+    "candidate_sha256": "41463c2f01d2397d877d6fd7696a879e8c55c4c02a0d0a99423bc7de2785d1b3",
+    "content_matches_main": true
+  },
+  {
+    "path": "cgkn/application/project_corpus/__init__.py",
+    "main_blob": "662e59bec52284209ea4355892b076563f856497",
+    "candidate_sha256": "f05e3f6849d84e200d057fb7b509232d760c1be262ebe59880da6984d189c519",
+    "content_matches_main": true
+  }
+]

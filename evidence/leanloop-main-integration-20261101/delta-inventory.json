@@ -1,0 +1,1885 @@
+[
+  {
+    "path": ".gitignore",
+    "status": "apply",
+    "base": "4cb06cc01f5365ee85b7f36f1800b43b244a169f",
+    "main": "4cb06cc01f5365ee85b7f36f1800b43b244a169f",
+    "branch": "5239e0685dbd14ca71e861fd37747455ff8f029c"
+  },
+  {
+    "path": "PROJECT_MANAGEMENT.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "c8a2d001ab8c318b3dda06ee00502b8d3be7faaa"
+  },
+  {
+    "path": "cgkn/agent/action_composer.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "42069a4fcb6ac85d566cf44a060d2031b96d548f"
+  },
+  {
+    "path": "cgkn/agent/composer.py",
+    "status": "conflict",
+    "base": "b2c5768ba2a6091cbcaeb9eb4a8fb62254d48ef8",
+    "main": "237e31cff57f4776a83d887fdf45680b7096e4c3",
+    "branch": "d54a195d8608ad0aa2b8271f29b908f827db6c84"
+  },
+  {
+    "path": "cgkn/agent/project_loop.py",
+    "status": "apply",
+    "base": "02f0bd55d5c7621cb7692a46f47d221b2d7a69e8",
+    "main": "02f0bd55d5c7621cb7692a46f47d221b2d7a69e8",
+    "branch": "5dbaa72cd9914d0e962b272767ab4c72c3aaa5e6"
+  },
+  {
+    "path": "cgkn/application/mvp_qualification.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "2093281acd230f7ec059646dbd0f9836c21ea5cb"
+  },
+  {
+    "path": "cgkn/application/requirements/dag.py",
+    "status": "apply",
+    "base": "3c208b04cdafc44a5ab65a7bd529f9cc95460a11",
+    "main": "3c208b04cdafc44a5ab65a7bd529f9cc95460a11",
+    "branch": "259a34781ce7bc4152c8399c006f2939b71fb733"
+  },
+  {
+    "path": "cgkn/application/requirements/execution.py",
+    "status": "conflict",
+    "base": "ace6b909c156349f326f7e5d6f4f6dd01299baf5",
+    "main": "be0710d0a8c7ea5d78dd3b66cd30c75b77899020",
+    "branch": "42e9ef700228707a05cdcc75df31685cee3d47d1"
+  },
+  {
+    "path": "cgkn/application/software_project/qualification.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "a0e333316e7cebecab7ba28dc7419d7167226d7c"
+  },
+  {
+    "path": "cgkn/application/software_project/scope.py",
+    "status": "conflict",
+    "base": "3aeb86de787ed321937816585130701e9b9d1cc6",
+    "main": "58473b0c7acffad1f266e84b2d4be9d841bf3ea6",
+    "branch": "623b94301e626a52c182fdbe74d5b859beeb5ea1"
+  },
+  {
+    "path": "cgkn/application/software_project/service.py",
+    "status": "conflict",
+    "base": "38f3f0979d9ee5043e013bfa7b5f2ced6a99af5e",
+    "main": "c98add72054aad64b1188a721b502dc8af0bcf8a",
+    "branch": "47e946383dfbf8b4097d22ea72c9c12165cb38c6"
+  },
+  {
+    "path": "cgkn/application/software_project/snapshot.py",
+    "status": "apply",
+    "base": "f095c79b4aed4bc486b25f57c4cb24a245dcb90f",
+    "main": "f095c79b4aed4bc486b25f57c4cb24a245dcb90f",
+    "branch": "a5c18a187e55faf8ad20e6d1e401c5139917d707"
+  },
+  {
+    "path": "cgkn/application/verification/adapter.py",
+    "status": "conflict",
+    "base": "ca9c6fb231a11a8f20d521a96c2ad22e6ecbcfbb",
+    "main": "3782c43174c4fd59d2bbd0a44f2ab55849fd0f56",
+    "branch": "650238a7f3695b90905db31998b8112f7115b33e"
+  },
+  {
+    "path": "cgkn/application/verification/executor.py",
+    "status": "conflict",
+    "base": "974f1037cad2a9455d1875f62fa9d6582c7c7fd5",
+    "main": "007ffdcbdf7ee705ee6bf491d881b39b2538867a",
+    "branch": "0e53eca64299fb655281c16fa34b0cf763047177"
+  },
+  {
+    "path": "cgkn/execution/check_evidence.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "b2ae7719e1f8113a30e7631a8a1518121252c0c2"
+  },
+  {
+    "path": "cgkn/execution/checker_bindings.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "8719f31ee723203a39968420d35f46200bf64b9b"
+  },
+  {
+    "path": "cgkn/execution/contracts.py",
+    "status": "apply",
+    "base": "1e0e6c49db07cba8d6f3e9738931dac05672c26a",
+    "main": "1e0e6c49db07cba8d6f3e9738931dac05672c26a",
+    "branch": "e5698dec6cf8e1d9cc58fb1848f7016b57ebc1ae"
+  },
+  {
+    "path": "cgkn/execution/deliverables.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "e725c4b7fc478ada9ffa79b8e8e2b6ef69225f65"
+  },
+  {
+    "path": "cgkn/execution/materialization.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "f6aeb97538bedcf33226a55645b196862e65afb8"
+  },
+  {
+    "path": "cgkn/execution/observations.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "91ea5e46adb5a8507d67005e4a6d0894177ac8c7"
+  },
+  {
+    "path": "cgkn/execution/python_exports.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "f5602d8fa63e48b4dadfce3e278ad3ce7b6376e4"
+  },
+  {
+    "path": "cgkn/execution/test_results.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "55f033b54fc03ba09be796892e65f230ebd74029"
+  },
+  {
+    "path": "cgkn/executors/llm.py",
+    "status": "conflict",
+    "base": "fcfbe10e88bc87e7398365ea9c671bcff782c436",
+    "main": "b29b6a6121039b6218974f84afb4a24f014a2f25",
+    "branch": "bb62b4d2e81fec71e3e1f08ecbd63c51bebe3d0c"
+  },
+  {
+    "path": "cgkn/executors/local.py",
+    "status": "apply",
+    "base": "b4c4d5f4a4a82d89eda058bdf895f1969e1ad5c6",
+    "main": "b4c4d5f4a4a82d89eda058bdf895f1969e1ad5c6",
+    "branch": "1c219646764b99bb5b4d2e4fbd4aef685da0e674"
+  },
+  {
+    "path": "cgkn/executors/measurement.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "9a5b741b18409982a225b23d03e79929865e84d6"
+  },
+  {
+    "path": "cgkn/executors/network_health.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "f9dcd99383c9a3caea06ec4c39dcb5e1b48c0e49"
+  },
+  {
+    "path": "cgkn/executors/observation.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "cc3bb832865aa426810f8ccdff85220244a110a3"
+  },
+  {
+    "path": "cgkn/executors/task_evaluation.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "19a7000c769555e90cf9761d56c8fee8c6208991"
+  },
+  {
+    "path": "cgkn/orchestration/capability_tree.py",
+    "status": "apply",
+    "base": "3b204e7ffa357d064ace5cdd199a55b46ce6bbe3",
+    "main": "3b204e7ffa357d064ace5cdd199a55b46ce6bbe3",
+    "branch": "9a3cc791725c06724c751259a6d324cc013ece9d"
+  },
+  {
+    "path": "cgkn/orchestration/execution_dag.py",
+    "status": "apply",
+    "base": "5c45f67c698db13d6c84895d06578ee4c49be185",
+    "main": "5c45f67c698db13d6c84895d06578ee4c49be185",
+    "branch": "e49d4fc5e66fbd23f5e994c3b68c25b9697fc29d"
+  },
+  {
+    "path": "cgkn/orchestration/leaf_contract.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "0b83946a5c249dd2861affd40bcbf6fa036e144a"
+  },
+  {
+    "path": "cgkn/orchestration/tree_edits.py",
+    "status": "apply",
+    "base": "1f6697a5dbd995f027acd1a9214922c94b4af0f4",
+    "main": "1f6697a5dbd995f027acd1a9214922c94b4af0f4",
+    "branch": "ea1980d1c918a76d1adcb1bd87ba076f8d0f8bf2"
+  },
+  {
+    "path": "cgkn/protocol/__init__.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "570df57332f1ee5d1c258a4e88e3fa67c21ada26"
+  },
+  {
+    "path": "cgkn/protocol/adapters.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "b737e7b9630eafe857524ccf2db4505ff61af5e5"
+  },
+  {
+    "path": "cgkn/protocol/adaptive_context.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "82b89ab51d996b25bc0d507e0c79e52d8d5fda2f"
+  },
+  {
+    "path": "cgkn/protocol/admission.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "0c49b86f63d15079da124b0a15c4761a7435f306"
+  },
+  {
+    "path": "cgkn/protocol/compiler.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "c0a78cbbf26b8fff58d112e000a302087fb048fc"
+  },
+  {
+    "path": "cgkn/protocol/context_pack.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "9d2f207ce192bc49bd8dfff1269fb26f53afb3cb"
+  },
+  {
+    "path": "cgkn/protocol/contract_integrity.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "bfb29ebdb3002143c3844c4f5891aa8a7b7654ea"
+  },
+  {
+    "path": "cgkn/protocol/declaration.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "8d38ece5c4e9ab7fe3144b89f7a640eb050c8034"
+  },
+  {
+    "path": "cgkn/protocol/exchange.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "8da72edf0a6305786d9db6344bd9a3a19de4032d"
+  },
+  {
+    "path": "cgkn/protocol/normalization.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "ee1b1885e9fb3baa0793c147bac791524e85b0d3"
+  },
+  {
+    "path": "cgkn/protocol/repair.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "37f53875cb05eee257c9678852cca99324c8174c"
+  },
+  {
+    "path": "cgkn/protocol/repair_compiler.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "47736578300b474a3d0b4d27617bcfcb9f93b220"
+  },
+  {
+    "path": "cgkn/protocol/tables.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "0b9930580cd7d32098dde2d3e3474c6dabc29d80"
+  },
+  {
+    "path": "cgkn/providers/__init__.py",
+    "status": "conflict",
+    "base": "52f591c0718c443dc747f30a4f3ee6db08f63887",
+    "main": "c18ea58ed9b878a019b5ff6570e2c398767e544b",
+    "branch": "d507715879ca50315fad8334f194b9f53440bb8b"
+  },
+  {
+    "path": "cgkn/providers/application_network.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "fc3ce9b74c23e4d71987322549f1f85573d7cabc"
+  },
+  {
+    "path": "cgkn/providers/canonical_gateway_adapter.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "787249f83d4549fc483746c89f467db9dd77c762"
+  },
+  {
+    "path": "cgkn/providers/client.py",
+    "status": "conflict",
+    "base": "4068b66ab56de0bf024cc855a04942db0a8c6e94",
+    "main": "db38256e40f12ddce843561f0e810b60475abc64",
+    "branch": "bba6a5901a8ba04a837c086747342a33d04f3c8b"
+  },
+  {
+    "path": "cgkn/providers/direct_transport.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "5c89c4b707b9ef5b897378b2e43d7ffba384e19e"
+  },
+  {
+    "path": "cgkn/providers/domestic_gateway.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "41c136978ac553802a9b32b94191dbda5a804ba5"
+  },
+  {
+    "path": "cgkn/providers/domestic_mode.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "5983f0473b429f7ae727da8f6babbbba1dbc97a7"
+  },
+  {
+    "path": "cgkn/providers/evidence_journal.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "8c989cf454f0519a6230fc643e95b411eba8367c"
+  },
+  {
+    "path": "cgkn/providers/finish_reason.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "63545a51a5db989ac47f079fc88604f16bdc579a"
+  },
+  {
+    "path": "cgkn/providers/gateway_client.py",
+    "status": "conflict",
+    "base": "5102e44457cf3e226419741319592966214e23f1",
+    "main": "a2db7f836d7bc5f269740a80a5b7bc69a04c05d6",
+    "branch": "6ee2ed4a3d3d2c73f9f9e5562bd8ec6427240e2c"
+  },
+  {
+    "path": "cgkn/providers/gateway_stream.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "134832debcf30274b5e54a08669c772dece56e56"
+  },
+  {
+    "path": "cgkn/providers/legacy_client.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "2b3acf8353a5d53f44b953328825417d0b3a1395"
+  },
+  {
+    "path": "cgkn/providers/legacy_transport.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "020a5651e2826f990cde294c1b41cc52a4a7a175"
+  },
+  {
+    "path": "cgkn/providers/model_binding.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "d1c1d1a95735b2cf44117015246602100a252cf5"
+  },
+  {
+    "path": "cgkn/providers/network_health.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "626b502bdef59f56b72515257b3c1ce60fe4688d"
+  },
+  {
+    "path": "cgkn/providers/network_transport.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "89c889d2494ae3f09f111f2eba764a093b28846d"
+  },
+  {
+    "path": "cgkn/providers/progress_clock.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "f1e2f17df9f488b359f2b27e35d0d9655ec1fdd3"
+  },
+  {
+    "path": "cgkn/providers/progress_io.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "43c88c4ecf4a540f9867243faceb43a4253766fb"
+  },
+  {
+    "path": "cgkn/providers/recording.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "3efc540a527fd0d79ae93f2d8e55226521d9e59e"
+  },
+  {
+    "path": "cgkn/providers/route_diagnostics.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "11d64b50549fb2e033d4b8bb09d91a86d89d2a7f"
+  },
+  {
+    "path": "cgkn/providers/routing.py",
+    "status": "conflict",
+    "base": "6212f9623d44cad3ecf974e7620dfb7aa274d4e8",
+    "main": "b07c8495db5480aee95e2b66d234aebaab8687c4",
+    "branch": "a71367bc350058248d33066b850b6568c2661718"
+  },
+  {
+    "path": "cgkn/providers/streaming_bound_adapter.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "92045ae36ddb71a4760dae1d9b72f19fae7b7964"
+  },
+  {
+    "path": "cgkn/providers/streaming_sse.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "572d8b1e6c96f978db6383943dff6239195f1cb3"
+  },
+  {
+    "path": "cgkn/providers/windows_interface.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "cf6e67c49f874be91478c9702f1828b0ca10e531"
+  },
+  {
+    "path": "cgkn/runtime/dag_runner.py",
+    "status": "apply",
+    "base": "dfd6631f6e6dd849523d7c0dafa634a81ed1dc42",
+    "main": "dfd6631f6e6dd849523d7c0dafa634a81ed1dc42",
+    "branch": "3654a7fc48bb32c93e135b08385a4ed7ea0dde6a"
+  },
+  {
+    "path": "cgkn/runtime/runner.py",
+    "status": "conflict",
+    "base": "418eaae2820e1024eecf1f02486146c47f92a9fb",
+    "main": "597f1db3589371afccbf680740d6d795a7eb352d",
+    "branch": "c3332169e718964aa9b6ee8e3cbed1d5a5a46f03"
+  },
+  {
+    "path": "cgkn/state/acceptance.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "b28d92ca9d63f841ab45c476e24b5ea7755cf1bf"
+  },
+  {
+    "path": "cgkn/state/capability_ledger.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "c02edb54ef738367416927c5d0e3c6169fccdd5c"
+  },
+  {
+    "path": "cgkn/state/models.py",
+    "status": "apply",
+    "base": "af59d3cebcf6f86b545db23d043298f582b2c5f3",
+    "main": "af59d3cebcf6f86b545db23d043298f582b2c5f3",
+    "branch": "7778c03e7c8487b0686f28791835b7b9e2ac7ce7"
+  },
+  {
+    "path": "cgkn/state/provenance.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "7709690527e2b3bcc4cd55c18f7e4e64f07c6a4b"
+  },
+  {
+    "path": "cgkn/state/repair.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "d95d9002f058789fe5806c70b80675ed277f8fa5"
+  },
+  {
+    "path": "cgkn/state/store.py",
+    "status": "apply",
+    "base": "442a3ab1f2141e12a6a1cce85edd8fb30ec73001",
+    "main": "442a3ab1f2141e12a6a1cce85edd8fb30ec73001",
+    "branch": "1eba4cb4301a6b97395212c59d5e5e93656dd772"
+  },
+  {
+    "path": "cgkn/state/task_feedback.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "dfc952381f81bf9ff1098b09504c07597bb5871f"
+  },
+  {
+    "path": "cgkn/telemetry/effectiveness.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "cccea5345c0293ca7f427ddb51a790a1581e2b53"
+  },
+  {
+    "path": "cgkn/telemetry/lean.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "d1817b68054d99e91ef83aed09d662125f2d5b6c"
+  },
+  {
+    "path": "cgkn/telemetry/lean_policy.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "2efe06036e75783ea8298ee86a6e67c3d012d9b7"
+  },
+  {
+    "path": "cgkn/telemetry/trusted_samples.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "dcf964cca068a5c3d5079b0cf95759bcf428a28c"
+  },
+  {
+    "path": "config/context_envelope_policy.json",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "0f2bf67eeb9f2434a07f6be6dfa7f5e87cd447fe"
+  },
+  {
+    "path": "config/domestic_application.json",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "ebf07fa010d883573147bdfaaf4d69e99a55b2e6"
+  },
+  {
+    "path": "config/network_routes.json",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "31850870b66f7400bcf5ef82064da0c5b7e09220"
+  },
+  {
+    "path": "config/provider_profiles/domestic_model_routing.json",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "1ea44324f1b63f17ba32334c76d463eea59c9087"
+  },
+  {
+    "path": "docs/00_kernel_contract.md",
+    "status": "conflict",
+    "base": "d04b55eb71ebdd28cac4c2b7d98b26c1045c49f8",
+    "main": "67d47b92ed0f08588033c506a2f2ba88ccc4249e",
+    "branch": "757028ce4784054c74fb69158934d59d87a42799"
+  },
+  {
+    "path": "docs/api_network_operations.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "fef0d471ae8ac242c6611317830cd57b18ed2d93"
+  },
+  {
+    "path": "docs/api_route_acceptance.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "10d24a25ac8026a55065d26fa0d1c82a0d16af61"
+  },
+  {
+    "path": "docs/default_domestic_startup.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "85d81d5d0dedd27cbb6525d974da4e96556d4546"
+  },
+  {
+    "path": "docs/domestic_final_acceptance.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "fe7b947aad448526dc00b9774c9d6eacb030349c"
+  },
+  {
+    "path": "docs/domestic_network_operations.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "9f2307f21dc2f1235f398a8033ce599c3f058cbc"
+  },
+  {
+    "path": "docs/goal_acceptance.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "c5ea46db044c0e2d84238ca4e7f629b989365983"
+  },
+  {
+    "path": "docs/leanloop-v1.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "5c490d74fcf8eb5e4b20e8192d57bde7fbd6ff19"
+  },
+  {
+    "path": "docs/streaming_api_operations.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "b0204e1dd6e443b57e7f864f749292af92aa919a"
+  },
+  {
+    "path": "docs/task_feedback_parallel.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "dfd9522051615e989fa85d5e36414e5a0b37dd9d"
+  },
+  {
+    "path": "evidence/leanloop-v1/selfcheck.json",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "3ba2f1daba0c5cef1d5607e714a4570a61f8563a"
+  },
+  {
+    "path": "experiments/api_acceptance/archive_20261029/api_final_acceptance.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "b13c168468159f34fd60201e9c9c85c2f80d802d"
+  },
+  {
+    "path": "experiments/api_acceptance/archive_20261029/streaming_acceptance_worker.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "849f360a5ae78c0579cbaed8263ebfbc4e2e08c8"
+  },
+  {
+    "path": "experiments/api_acceptance/archive_20261029/streaming_live_acceptance.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "cdda6bf0575da5979d59024aed505a370596f779"
+  },
+  {
+    "path": "experiments/api_acceptance/iter119_pair.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "8546d7a3e2e3e8cd97b9ab060155fec993dace19"
+  },
+  {
+    "path": "experiments/product_dev_089/__init__.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+  },
+  {
+    "path": "experiments/product_dev_089/isolation.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "de97642d586bac5beb889b366480665100fc9763"
+  },
+  {
+    "path": "experiments/product_dev_113/__init__.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
+  },
+  {
+    "path": "experiments/product_dev_113/budget_policy.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "29a0856189b9da06c2c9956647f53bb4c6e3315a"
+  },
+  {
+    "path": "experiments/product_dev_113/goal_check.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "971cd68ce454a1db377b0502d23dcc67340a11b6"
+  },
+  {
+    "path": "experiments/product_dev_113/live_provider.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "f4c876304301c0ad3bd96bef20a44f6aa550f4ec"
+  },
+  {
+    "path": "experiments/product_dev_113/network_client.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "5e78518d1a48ee28b7d93689917076eaac111e40"
+  },
+  {
+    "path": "experiments/product_dev_113/observer.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "23ca5f4a0c5f2b96a5ecd721d4f65c816da161f8"
+  },
+  {
+    "path": "experiments/product_dev_113/paths.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "fa6b417265730d7a4f31cdf7550832cb2b23c9c8"
+  },
+  {
+    "path": "experiments/product_dev_113/routes.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "b3026198afb0cc152fd3c2163dd24a9865f9108e"
+  },
+  {
+    "path": "experiments/product_eval_076_v8/freeze_candidate.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "d00b7822ebe87a55651fe26fcabe50b3a4def9df"
+  },
+  {
+    "path": "experiments/product_eval_076_v8/isolation.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "f7a6859c950289e3e8ccff0398c4839579ed3cca"
+  },
+  {
+    "path": "governance/current_architecture.json",
+    "status": "conflict",
+    "base": "8adfb570a58f2f91ffb425a977bf30e8bff1affd",
+    "main": "17a9fe73bf8378fb96546957ad19ed9c32e829d3",
+    "branch": "b1ddc1b040e6e9c04c56417177a1d595746cc510"
+  },
+  {
+    "path": "plugins/cgkn/scripts/cgkn_mcp_server.py",
+    "status": "conflict",
+    "base": "ef2f3a4238cb84a1e1815c12f2caae8de7d06bc5",
+    "main": "671565f1a2bcccb5199b3ad56a2db2eda445dc8b",
+    "branch": "555fc01bc85ecfed1dfdd0a6451149e907b5fa5d"
+  },
+  {
+    "path": "project_management/current/PROJECT_MANAGEMENT.md",
+    "status": "conflict",
+    "base": "9fbddb4b7381ad713f03fc4250c61bcd46127cf8",
+    "main": "4697e426e241d26edd0dd42abad244588a8a589f",
+    "branch": "6ec70b3822460a0da67aa9c7271139102f2fd739"
+  },
+  {
+    "path": "project_management/current/active_iteration.json",
+    "status": "conflict",
+    "base": "5fd7323ece8f98eb855829867ee8ee3207075039",
+    "main": "0f670f3a43b3d8c68e7befe7556b4233fb638733",
+    "branch": "26af1ae8435bffa31091115132ec1da0ef81790a"
+  },
+  {
+    "path": "project_management/current/backlog.json",
+    "status": "conflict",
+    "base": "981778045cdde63116af0f6db3185854087b466e",
+    "main": "e6151aa8066c6f01e0face3bfa8fda29bcefb428",
+    "branch": "b8c66440e55ea9d0293588a06515437733c1dec0"
+  },
+  {
+    "path": "project_management/current/risks.json",
+    "status": "conflict",
+    "base": "dc6eb6251d4c0a2ca4bfc54ba6a809e0b43248ed",
+    "main": "74470e6137e8ec47dc179bbb0e7ffef8a0e05df5",
+    "branch": "c82189d98bd91681d1eaf57b71f2ec14cbe2a25e"
+  },
+  {
+    "path": "project_management/summaries/DEFAULT-DOMESTIC-20261028.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "93081c3534e455b07774f4f7a48f30e1950e3f66"
+  },
+  {
+    "path": "project_management/summaries/DOMESTIC-DIRECT-20261028.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "1e58ef7aac0850ad4ac28006055de169c2a38ea7"
+  },
+  {
+    "path": "project_management/summaries/DOMESTIC-FINAL-20261028.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "0772b21533d8360006a4262bc64e8efe3724c705"
+  },
+  {
+    "path": "project_management/summaries/DOMESTIC-FIX-20261028.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "cf1e203e1bfcf33338533813c7b47a81f5135bab"
+  },
+  {
+    "path": "project_management/summaries/ITER-076-isolation-continuation.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "577768f61c26578691343ef24ea7c0736f01a347"
+  },
+  {
+    "path": "project_management/summaries/ITER-076-product-evaluation-v7.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "40a0a97c3d0a102633408071ac4879e31c1c66d1"
+  },
+  {
+    "path": "project_management/summaries/ITER-076-product-evaluation-v8.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "75fc84518752df254021b50196c1152f3aa80779"
+  },
+  {
+    "path": "project_management/summaries/ITER-076-real-product-evaluation-preflight.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "e1a6f03c03b233075ed4f9bc02de8917bc8a37a3"
+  },
+  {
+    "path": "project_management/summaries/ITER-088-real-dev-pair.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "6bab6266e469cfb93653818e3f6813fd819098b6"
+  },
+  {
+    "path": "project_management/summaries/ITER-088-state-budget-dev-preparation.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "ce8ff679ccb76a6e221cb0cdac6b8b5ed2d7c589"
+  },
+  {
+    "path": "project_management/summaries/ITER-089-lifecycle-feedback-real-dev.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "15450a2d2eebef49a578c1373fc471fa4841dd6b"
+  },
+  {
+    "path": "project_management/summaries/ITER-090-cgnk-video-engineering-dev.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "80ab53293b7d8b263e20f3a39d2981a7628b8087"
+  },
+  {
+    "path": "project_management/summaries/ITER-113-adaptive-checks-multi-api-video-dev.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "ab5fcaa6b3330f6d55e059c989dd80755a3ebdb9"
+  },
+  {
+    "path": "project_management/summaries/ITER-113-continuation-v6-acceptance.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "94926739f94ffe3601d1df4b0dc40e0c7ebd5728"
+  },
+  {
+    "path": "project_management/summaries/ITER-113-continuation-v7-restart-acceptance.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "d4fca2d2ec47fa80e1efc560e8294ec71f4b1616"
+  },
+  {
+    "path": "project_management/summaries/ITER-113-stage08-09-independent-acceptance.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "1df41a8a7e9a7611752ffe5ba09116b11d683abc"
+  },
+  {
+    "path": "project_management/summaries/ITER-114-api-network-routing-recovery.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "85a889287c5a1bf3bba42442ba1074d67987bba4"
+  },
+  {
+    "path": "project_management/summaries/ITER-115-goal-stage-real-validation.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "6976bab32813d91a5cef3d0920757ecb71a95c37"
+  },
+  {
+    "path": "project_management/summaries/ITER-116-feedback-parallel-validation.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "6162369a44a2b19431dd53f21e1bd83a8064f1f9"
+  },
+  {
+    "path": "project_management/summaries/ITER-116-real-dev01-network-outcome.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "0a427c36049750f3407daa6917e50667bfebc0b2"
+  },
+  {
+    "path": "project_management/summaries/ITER-116-real-dev01-recovery.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "7ca1a99dfd6a8b14e05719ea61df5d1deab8f459"
+  },
+  {
+    "path": "project_management/summaries/LEANLOOP-SELFCHECK-20261101.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "97c0c4cfc959a9ba46657b196c21bc7e3692613a"
+  },
+  {
+    "path": "project_management/summaries/NETWORK-RELIABILITY-20261028.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "aeb62b26819adfcffc39c65e76a3b0bfc17bba95"
+  },
+  {
+    "path": "requirements-metrics.txt",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "062aa6841675b419977f2e133f178c68b3f68204"
+  },
+  {
+    "path": "requirements-network.txt",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "304b36657b655f37230a1f92bc31da76969f01fe"
+  },
+  {
+    "path": "scripts/agent_conversation_loop.py",
+    "status": "apply",
+    "base": "44f9f79e689d479a33a044ab9612c3bb2d46aa2a",
+    "main": "44f9f79e689d479a33a044ab9612c3bb2d46aa2a",
+    "branch": "faabcb19546e29f86452bae72282b8aa8b5911e7"
+  },
+  {
+    "path": "scripts/canonical_repo_publish.py",
+    "status": "conflict",
+    "base": "932a145bbebb45975d2e5d180460efeafcdc9a85",
+    "main": "b3685ba0e34e0ccb82508adefaeccf995345fffc",
+    "branch": "dabda8806f21bb3ecaf5fea3995db9bea92cdf55"
+  },
+  {
+    "path": "scripts/check_connectivity.py",
+    "status": "apply",
+    "base": "e291af21731215b8479ac06a25bccf1d06f06fc2",
+    "main": "e291af21731215b8479ac06a25bccf1d06f06fc2",
+    "branch": "b496af78ee7eabb50a251f36f18ee82d5bf846a8"
+  },
+  {
+    "path": "scripts/codex_conversation.py",
+    "status": "apply",
+    "base": "06019c4ff4f80e2cde2ffd95efeacd05aec66201",
+    "main": "06019c4ff4f80e2cde2ffd95efeacd05aec66201",
+    "branch": "2041ae4db165603953c7234f1a6fee44b8cc6d65"
+  },
+  {
+    "path": "scripts/customer_runtime_runner.py",
+    "status": "apply",
+    "base": "aa8565158c4bafa05749239822afa1a3a9b872d3",
+    "main": "aa8565158c4bafa05749239822afa1a3a9b872d3",
+    "branch": "8b979989873df0eb29dabf8691910dd3959d30c4"
+  },
+  {
+    "path": "scripts/domestic_gateway.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "4469c590026c5095113c6b49f2afe5b36b2ad0b8"
+  },
+  {
+    "path": "scripts/domestic_network.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "f49db8d056baf968271e5e0bdcf01dfb428234c3"
+  },
+  {
+    "path": "scripts/domestic_task_acceptance.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "955a4b5a4e8f9309b5b8fe2072ba04c96ef59bec"
+  },
+  {
+    "path": "scripts/dynamic_pipeline_runner.py",
+    "status": "apply",
+    "base": "d2e74e540117a32ba513010fe484fc426ff1830a",
+    "main": "d2e74e540117a32ba513010fe484fc426ff1830a",
+    "branch": "06e1a622cf5b44460b1c6f2a32591ae0d84c5f60"
+  },
+  {
+    "path": "scripts/network_proxy_config.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "fbf4d41406cf67e9dc5859958feea122bd89f051"
+  },
+  {
+    "path": "scripts/network_watchdog.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "564a129fcdb090ed277f4108caae06d50f5a8577"
+  },
+  {
+    "path": "scripts/network_watchdog_task.ps1",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "2cc018b413b39a35cde7ad049e20eb357573a4cf"
+  },
+  {
+    "path": "scripts/product_direction_gate.py",
+    "status": "apply",
+    "base": "8abaf957946b7b5d793d60441eb343a919cc1fa2",
+    "main": "8abaf957946b7b5d793d60441eb343a919cc1fa2",
+    "branch": "d3dbf5897a66a90641fbcdc4c0d00f47bd2b4932"
+  },
+  {
+    "path": "scripts/provider_api_budget.py",
+    "status": "conflict",
+    "base": "d60ed9b7f95150c93e60c33824dce9d70443f0ea",
+    "main": "bdbe69bf1f751a4c46bdd97d713cc83364f625dd",
+    "branch": "6ce6f73b48c580f2e33128fcbb6591cc26c804a9"
+  },
+  {
+    "path": "scripts/provider_transport.py",
+    "status": "apply",
+    "base": "5bc948d06c79a7cd6e5eeda84b844b68a2d14a37",
+    "main": "5bc948d06c79a7cd6e5eeda84b844b68a2d14a37",
+    "branch": "bb2932fa909e8ac44eae57c82702f425b343c9e8"
+  },
+  {
+    "path": "scripts/real_test_execution.py",
+    "status": "apply",
+    "base": "7ad0861ab3c3e9423290aaf9599b9fae468dacae",
+    "main": "7ad0861ab3c3e9423290aaf9599b9fae468dacae",
+    "branch": "254427836d2f6936d3278d76c48ea03bd7b8f936"
+  },
+  {
+    "path": "scripts/render_goal_progress.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "98ca756dec25aa8e515bb3af1341a24098da384f"
+  },
+  {
+    "path": "scripts/run_agent_mvp.py",
+    "status": "apply",
+    "base": "15fcde1f8ac76dbbcf9356615325e670419ea45b",
+    "main": "15fcde1f8ac76dbbcf9356615325e670419ea45b",
+    "branch": "0d4c899c0bc14126e07156c6b915768426d72874"
+  },
+  {
+    "path": "scripts/run_artifact_flow.py",
+    "status": "apply",
+    "base": "8fc8b92b6993f0f9375284cc6d2397b89a6f6039",
+    "main": "8fc8b92b6993f0f9375284cc6d2397b89a6f6039",
+    "branch": "3967fa7d625a72fe949252eca04ab1f2aa32642a"
+  },
+  {
+    "path": "scripts/run_codex_conversation_generation.py",
+    "status": "apply",
+    "base": "d25c2f7b90e0a42c34908cf0246b1ed6851e2681",
+    "main": "d25c2f7b90e0a42c34908cf0246b1ed6851e2681",
+    "branch": "957e9efc453b09fccd530b7ce18bdd032ee108eb"
+  },
+  {
+    "path": "scripts/run_local_pipeline.py",
+    "status": "apply",
+    "base": "a3795711f0fbb6aaf663219afbf7b13532163bb2",
+    "main": "a3795711f0fbb6aaf663219afbf7b13532163bb2",
+    "branch": "2db2b63e790d67ae5360bda0bd10d7e6e24364b8"
+  },
+  {
+    "path": "scripts/run_local_pipeline_impl.py",
+    "status": "conflict",
+    "base": "6394793a51ebfdf6ec8762aa20eff0d1275542d3",
+    "main": "1c15d0d55153331e189b7c044e6034423feeaf91",
+    "branch": "bfcc2acbb2f2749bc5bae4ebc600d81e6ee37234"
+  },
+  {
+    "path": "scripts/run_mvp_runtime.py",
+    "status": "apply",
+    "base": "cb66e685595005dd1dd7735f3805a1b665285f8d",
+    "main": "cb66e685595005dd1dd7735f3805a1b665285f8d",
+    "branch": "d943532b95f3447460dc8f8cfdd776059f3343d6"
+  },
+  {
+    "path": "scripts/run_self_growth_v0.py",
+    "status": "apply",
+    "base": "f83abf4774a6beaafad1d489710cc02e79bcd397",
+    "main": "f83abf4774a6beaafad1d489710cc02e79bcd397",
+    "branch": "2082a65feef552e7946d9b2c94dd6e02933c0936"
+  },
+  {
+    "path": "scripts/task_metrics.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "4f88ae635d1ff4d71ef5c16648b8bd81c3e12c8d"
+  },
+  {
+    "path": "src/cgnk_knowledge/store.py",
+    "status": "conflict",
+    "base": "36ff1a3088caaae9dab4f6a86a8708cd12146c2d",
+    "main": "c42ef25dc3f3422ab8b6d0400b797bdcb1f6dbde",
+    "branch": "46d7c85a5edc59fca99cc535723d29aeedcb94b2"
+  },
+  {
+    "path": "tests/agent/test_agent_mvp.py",
+    "status": "apply",
+    "base": "6f6ea39d68eac0225cbd04db58d2de75107413b2",
+    "main": "6f6ea39d68eac0225cbd04db58d2de75107413b2",
+    "branch": "68e25a5569eda9b46149f24cd6420e55b26715bd"
+  },
+  {
+    "path": "tests/agent/test_agent_mvp_gateway_cli.py",
+    "status": "apply",
+    "base": "6b2f2471c09f42638c9b741e2eae701816ad5410",
+    "main": "6b2f2471c09f42638c9b741e2eae701816ad5410",
+    "branch": "bf42774df1b06103a54d187b291f024ae671a103"
+  },
+  {
+    "path": "tests/agent/test_archive_member_boundary.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "60902d14f9f84ee6c3da5f7d4adb35da333efb74"
+  },
+  {
+    "path": "tests/agent/test_capability_routing_qualification.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "6191a03042a497d45ee042fd8ad768600cc7bf57"
+  },
+  {
+    "path": "tests/agent/test_composer_schema.py",
+    "status": "apply",
+    "base": "9a95c1f96e05092041f80c3224b14c5296f8c273",
+    "main": "9a95c1f96e05092041f80c3224b14c5296f8c273",
+    "branch": "598989afa4ed2e0eefb71a933fc578bd78bfbf8f"
+  },
+  {
+    "path": "tests/agent/test_evaluation_loop.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "33c222e512840bb40a1a7ade860c2104744273de"
+  },
+  {
+    "path": "tests/agent/test_evaluation_recovery.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "8a0982939607dd745e601f0d51716cc43f5db5c2"
+  },
+  {
+    "path": "tests/agent/test_explicit_role_route.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "e16ac37406ccac7b7c0cb33312e9b7b58a1dc983"
+  },
+  {
+    "path": "tests/agent/test_feedback_requests.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "67fc08e940d362c19cf0df15d06b75ad0932f84f"
+  },
+  {
+    "path": "tests/agent/test_goal_acceptance_integration.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "c2a662e766a77c6d76504d0d087b021b7113abd8"
+  },
+  {
+    "path": "tests/agent/test_goal_domains.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "c6f8641d792b270bfeed93a47a369e9638463e8f"
+  },
+  {
+    "path": "tests/agent/test_observer_references.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "f0e9f593640a78e90d256dd0805a6f5746e1e8ce"
+  },
+  {
+    "path": "tests/agent/test_project_loop_boundaries.py",
+    "status": "apply",
+    "base": "50d3f36105af4919847dfc248124bd29dea84498",
+    "main": "50d3f36105af4919847dfc248124bd29dea84498",
+    "branch": "c133d17cba06ef5e4ef3d72e3a88ebee27993789"
+  },
+  {
+    "path": "tests/application/software_project/test_gateway_e2e.py",
+    "status": "apply",
+    "base": "92ced9da9e286795aa82cf99a1bab821f850aa79",
+    "main": "92ced9da9e286795aa82cf99a1bab821f850aa79",
+    "branch": "ef17002ad58c3dd2754bb960089992d6623b9d84"
+  },
+  {
+    "path": "tests/application/software_project/test_qualification_bindings.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "192bf6308e8116af81b64f5a17aeeca8534b236a"
+  },
+  {
+    "path": "tests/execution/test_migration_contracts.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "fb10b6b6e1ca14dddcbc563442c112ab09615ec2"
+  },
+  {
+    "path": "tests/execution/test_observation_contract.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "755f6be75aaab69484fa44eef2c66e59c46413ae"
+  },
+  {
+    "path": "tests/execution/test_python_export_deliverables.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "51faba568894dbcbe50a1bd8c5f840e1205bf409"
+  },
+  {
+    "path": "tests/execution/test_qualified_entrypoints.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "b0198f78d4356cc7b4c8b7db322db7b0b6d81952"
+  },
+  {
+    "path": "tests/executors/test_llm_executor.py",
+    "status": "apply",
+    "base": "ba2a7b7141450bfe085566d5623183a78d0f923c",
+    "main": "ba2a7b7141450bfe085566d5623183a78d0f923c",
+    "branch": "a4f951f1dbd2ed6788820c1cb6657e6187acd9db"
+  },
+  {
+    "path": "tests/executors/test_public_test_feedback.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "a6a40f11842d94d44fda2ce0b83fe25a663c25e6"
+  },
+  {
+    "path": "tests/executors/test_test_observation.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "14f1c77eac1dc5dd83f6dabb8162b83b7970c355"
+  },
+  {
+    "path": "tests/fixtures/goal_domains.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "0038186c0bbd14ee25688ffec7b975d9dd32dadf"
+  },
+  {
+    "path": "tests/fixtures/provenance.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "a4712102fed85104e16b44c4af2e6e9fc2d34ba4"
+  },
+  {
+    "path": "tests/leanloop_support.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "b4ccd126d9c0b22c953c494a0c21f0d8b2e70454"
+  },
+  {
+    "path": "tests/orchestration/test_capability_tree.py",
+    "status": "apply",
+    "base": "27ed725a0561d20cee302b1d9a07ea972aef261c",
+    "main": "27ed725a0561d20cee302b1d9a07ea972aef261c",
+    "branch": "08fb5518c4adbef374fd48572e940e96b3ff30d6"
+  },
+  {
+    "path": "tests/orchestration/test_tree_edits.py",
+    "status": "apply",
+    "base": "c6807e7f3abf273964dd97c4ce7e004f7ce18a93",
+    "main": "c6807e7f3abf273964dd97c4ce7e004f7ce18a93",
+    "branch": "186d772aafb4ddbbe364c0ecf6eaee6883c3ce0d"
+  },
+  {
+    "path": "tests/protocol/test_adaptive_context.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "64bcceb46fc0c3dfc58206510d74712df60a2fd9"
+  },
+  {
+    "path": "tests/protocol/test_admission.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "a0c0e621059dce7efb559ba854fcee9ea76b31a5"
+  },
+  {
+    "path": "tests/protocol/test_composite_goal_binding.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "ca23bb3e46e113e2cc1495fca030c964dc45bb39"
+  },
+  {
+    "path": "tests/protocol/test_declaration.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "cf8715274a596cd9effa690a631825a49bd7ed62"
+  },
+  {
+    "path": "tests/protocol/test_repair_path.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "6d033e62f421b66ffefee5b7c1c539a3bbee48e1"
+  },
+  {
+    "path": "tests/protocol/test_repair_runtime.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "6f8698bedac51629311a2a8d58c29d0fbc480561"
+  },
+  {
+    "path": "tests/protocol/test_semantic_integration.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "b1a8d3b7df4e57c9c83d28192f0fa63805b3e52c"
+  },
+  {
+    "path": "tests/protocol/test_semantic_ir.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "9d9469f937b0877db3bea207503799218586e27a"
+  },
+  {
+    "path": "tests/providers/stream_fixtures.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "6782ea354a33edb0759578d993fa68dfaae1df14"
+  },
+  {
+    "path": "tests/providers/test_application_network.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "5dbbb2e78be286d4733e90e50e870d3056b9860b"
+  },
+  {
+    "path": "tests/providers/test_client.py",
+    "status": "conflict",
+    "base": "3fae4213008e77e83b8d3433154384a62f436eb3",
+    "main": "4976b8019997e3d9384233416bf4bde64bf1474d",
+    "branch": "cff0add7a04e01869879ef0a685607f100e0f249"
+  },
+  {
+    "path": "tests/providers/test_concrete_models.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "54b8e36aec3e1874700c9cc833a3fb875032eb00"
+  },
+  {
+    "path": "tests/providers/test_domestic_concurrency.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "620daa19f2c15d71b87b152eb4fc9d12c7af7d04"
+  },
+  {
+    "path": "tests/providers/test_domestic_final.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "b616b7913b8a18834caf45898132fbdfe01c8929"
+  },
+  {
+    "path": "tests/providers/test_domestic_mode.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "f74921d626bdc36da0e343a830556fe6d3af6561"
+  },
+  {
+    "path": "tests/providers/test_domestic_repair.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "350f8da0f3237ac1aaa93aebffbcc3662720569c"
+  },
+  {
+    "path": "tests/providers/test_evidence_journal.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "5507f4bfd84e3b8572c7219a8d007c3138d725d4"
+  },
+  {
+    "path": "tests/providers/test_gateway_client.py",
+    "status": "conflict",
+    "base": "349c508b30439213af9af81d408c85a888fc398f",
+    "main": "fe16c26c8872c618c4740ab42e808b64e2401fdb",
+    "branch": "09d78cc7fed66df76a34fe0ff818c37643d407ca"
+  },
+  {
+    "path": "tests/providers/test_gateway_progress_only.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "833dac3479b35efebc40baa18ba795d020962a5a"
+  },
+  {
+    "path": "tests/providers/test_iter117_bounded_acceptance.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "4d5249a42a680ef20e14055f7498f2418cf84daa"
+  },
+  {
+    "path": "tests/providers/test_iter117_long_acceptance.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "1b00dac25d688f7dbc15e03f8fe483ac322a905b"
+  },
+  {
+    "path": "tests/providers/test_iter117_thinking_mode.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "9bb03745ca04e4cdf0bf05366caaecf31aa95e51"
+  },
+  {
+    "path": "tests/providers/test_iter118_acceptance.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "15084edf8aa90d11b34886a240ff1427bbfa8308"
+  },
+  {
+    "path": "tests/providers/test_iter119_pair.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "84b14c9c4b7feb81fcbe923665dbdff4d364bd9f"
+  },
+  {
+    "path": "tests/providers/test_iter120_budget_lock.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "a0a9b7ed0b79a6741dcc11d13c69f65c0ff6f8c4"
+  },
+  {
+    "path": "tests/providers/test_iter120_formal_parallel.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "83755426b1b205a3ac6b3869be35a528a0455374"
+  },
+  {
+    "path": "tests/providers/test_model_binding_qualification.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "5b61b76c0eb6a859b5ce96dd736f050bc25e11e9"
+  },
+  {
+    "path": "tests/providers/test_network_reliability.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "fe8fb534399915629d3638bc7b42d46225fa45d7"
+  },
+  {
+    "path": "tests/providers/test_progress_clock.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "fae37ba6c0dfe5ca2fe380f957cff19aa94f17f2"
+  },
+  {
+    "path": "tests/providers/test_progress_queue_cancel.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "0735a62d923af1a7811b2c11f0b005b8f7352119"
+  },
+  {
+    "path": "tests/providers/test_progress_transport.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "8519c9ca46959f865c0b6a58f032582311f84019"
+  },
+  {
+    "path": "tests/providers/test_readonly_recovery.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "db045734acd40ba5d2daa06baf77a4d9ed86ebab"
+  },
+  {
+    "path": "tests/providers/test_streaming_bound_adapter.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "57bfe8ce92572c72d480ec61f910dd4ec54fafe1"
+  },
+  {
+    "path": "tests/providers/test_streaming_http.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "5e02a921696d8367902d139862b2b1d7c8e83661"
+  },
+  {
+    "path": "tests/providers/test_streaming_independent.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "e6633a23fcf3ca9e54c65b4e26256ea893bb1664"
+  },
+  {
+    "path": "tests/providers/test_streaming_installed_plugin.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "dd86db0cc3ae769c5608a54bec355eb9113ae022"
+  },
+  {
+    "path": "tests/providers/test_streaming_progress_only.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "30515836790f6429c64b3d967659fcb663034e49"
+  },
+  {
+    "path": "tests/providers/test_streaming_runtime.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "dc6779fe1ef1e5ddbf2d5161351447b9fdc5ed4b"
+  },
+  {
+    "path": "tests/providers/test_streaming_sse.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "7b152e5f2b668a498bfb45c09ab887b9437864cb"
+  },
+  {
+    "path": "tests/qualification_support.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "34b7d6bf7ef224dd4013476fcf3f9cbc8666b8e1"
+  },
+  {
+    "path": "tests/recovery/test_publication_recovery.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "09575de4c3654145dc2ba1414e90e8e1e4ba64fb"
+  },
+  {
+    "path": "tests/runtime/test_dag_runner.py",
+    "status": "apply",
+    "base": "8d9d08fa1a879fd8daa9f421c1de05ac83b7bcdd",
+    "main": "8d9d08fa1a879fd8daa9f421c1de05ac83b7bcdd",
+    "branch": "e6addb94d042f193eeb4216830f5707020ba0701"
+  },
+  {
+    "path": "tests/runtime/test_event_frontier.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "c554a8420fea244bcf96e3e985d9433bea2f72e9"
+  },
+  {
+    "path": "tests/runtime/test_execution_continuity.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "c4826e296f76a8b1a1f12401513183bffd71cbd7"
+  },
+  {
+    "path": "tests/runtime/test_feedback_acceptance_statistics.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "159fac67903caeaebe0c816f77421ff54c21d379"
+  },
+  {
+    "path": "tests/runtime/test_graph_commit.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "cb2e67ebdb248af117343ca7df4be9686ee874b7"
+  },
+  {
+    "path": "tests/runtime/test_invalidation_and_edits.py",
+    "status": "apply",
+    "base": "dd921471dd5bb46faef76491df89d54b8a0d414d",
+    "main": "dd921471dd5bb46faef76491df89d54b8a0d414d",
+    "branch": "2e9948c7762ff9c8fc912ad1f3c7bea683b65368"
+  },
+  {
+    "path": "tests/runtime/test_knowledge_feedback_qualification.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "46367f8ce26c95369d1c1982f6919569e602ddbc"
+  },
+  {
+    "path": "tests/runtime/test_parallel_processes.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "f58b09271e805752c4039c567df4123a61430d27"
+  },
+  {
+    "path": "tests/runtime/test_parallel_qualification.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "15ae34f2460fc5abeeeda691536f8bd97878e522"
+  },
+  {
+    "path": "tests/runtime/test_task_feedback.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "5b4c8c7a8896fc053a7d59c26f5eca9eb47e0c50"
+  },
+  {
+    "path": "tests/state/test_file_run_store.py",
+    "status": "apply",
+    "base": "fdfc0b28ac97a71346390235dd14e1bf3e17af6c",
+    "main": "fdfc0b28ac97a71346390235dd14e1bf3e17af6c",
+    "branch": "7bb558904cf0d6d023b25b719e9ca54544f7fd05"
+  },
+  {
+    "path": "tests/state/test_negative_business_provenance.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "54d46af8dae08633b0a38f3ad65efba94ed951a3"
+  },
+  {
+    "path": "tests/state/test_provenance_v5.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "c011d10877038c8ff36769e5ad07a4c9a381e374"
+  },
+  {
+    "path": "tests/telemetry/test_acv4_independent.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "ca757f9d71bc5c094a4c86e1ab6d8145e4d8681a"
+  },
+  {
+    "path": "tests/test_action_loop_convergence.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "11966f589e55ebb89b60c09617d4fbe4dd61458a"
+  },
+  {
+    "path": "tests/test_agent_conversation_mainline.py",
+    "status": "apply",
+    "base": "58f3cfc61b9cd857affe21a8f8668f1ce8cdd41e",
+    "main": "58f3cfc61b9cd857affe21a8f8668f1ce8cdd41e",
+    "branch": "49181deebf8bad06952d2bc1288033f0b652526e"
+  },
+  {
+    "path": "tests/test_canonical_repo_publish.py",
+    "status": "conflict",
+    "base": "c49767c4763d3112b5c604270a7d4d1b0b269a84",
+    "main": "08a2f732e8c2f1da6d6fa61136edf27a58ea8215",
+    "branch": "33a4f9c132428b2ea533ccb59c5548ebf60337a3"
+  },
+  {
+    "path": "tests/test_capability_tree_mvp.py",
+    "status": "apply",
+    "base": "f1e52b9fc0789ff9f23d369341dfebd5bf5c879f",
+    "main": "f1e52b9fc0789ff9f23d369341dfebd5bf5c879f",
+    "branch": "593341901d89a4c52cb03c24f0b467b8e94c7857"
+  },
+  {
+    "path": "tests/test_cgkn_mcp_plugin.py",
+    "status": "conflict",
+    "base": "8cd3268d7d824b7ace53696b5f515aaeee615d2b",
+    "main": "5e09d1779b3a4c6a224028c9559d0eee0cffbd31",
+    "branch": "87796206b86cced0e8c45421fb201f78d7efa17c"
+  },
+  {
+    "path": "tests/test_leanloop.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "48355b8c2eff360896c6d361deb2b847c72f76c9"
+  },
+  {
+    "path": "tests/test_leanloop_reporting.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "fe3b682b8aacde4a79e5bf0c45ca82de3a4be5c9"
+  },
+  {
+    "path": "tests/test_owned_runtime_processes.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "37c0e282e7b942e7c1f9367e34f8951ff41968a1"
+  },
+  {
+    "path": "tests/test_progress_only_outer_layers.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "31b918959c526cc7a96cc2fcf042d5ad834088c1"
+  },
+  {
+    "path": "tests/test_provider_api_budget.py",
+    "status": "conflict",
+    "base": "2b90cbc7a70c6dcada89c283866f15da8d21a1f0",
+    "main": "021476ed545536f97bfcf223863a4559ffa2b0aa",
+    "branch": "b1ca9bb2578a2b94ff01871fcd0382cbdfaffddc"
+  },
+  {
+    "path": "tests/test_real_test_observation.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "b2aaddf7a5e148877ec964f7ff7f80e3bed40206"
+  },
+  {
+    "path": "tests/test_shared_contract_boundaries.py",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "33b2294ab0096c0b3162cfb947b9ff72dd5416ed"
+  },
+  {
+    "path": "tools/cgkn-agent-kit/src/cgkn_agent_kit/core.py",
+    "status": "apply",
+    "base": "0811bd1c01e9bb53f8c6567f7ee676d45c3e4e2c",
+    "main": "0811bd1c01e9bb53f8c6567f7ee676d45c3e4e2c",
+    "branch": "a022b8622b18f4a5ddc1f3294eca6e449e00bab8"
+  },
+  {
+    "path": "tools/substrate/README.md",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "40fabe78e5c863837552fc535f429e9f92017d8d"
+  },
+  {
+    "path": "tools/substrate/requirements.in",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "5f64839e5fced94ff5affadc4d227d6d6919ce62"
+  },
+  {
+    "path": "tools/substrate/requirements.lock",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "b8bd7cf97c85fcdef9782ffd56497ff685eadd86"
+  },
+  {
+    "path": "tools/substrate/ruff.toml",
+    "status": "apply",
+    "base": null,
+    "main": null,
+    "branch": "a6a7081f7fa2e1207d5a95bd91733531ed8d3abb"
+  }
+]

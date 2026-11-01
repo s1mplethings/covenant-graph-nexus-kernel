@@ -16,6 +16,19 @@ from scripts import provider_api_budget
 pytestmark = [pytest.mark.happy_path, pytest.mark.boundary]
 
 
+@pytest.fixture(autouse=True)
+def isolated_profile(tmp_path,monkeypatch):
+    profile=tmp_path/'legacy.json';profile.write_text('{"kind":"CGKNApplicationNetwork","mode":"legacy"}')
+    monkeypatch.setenv('CGKN_APPLICATION_PROFILE',str(profile))
+    monkeypatch.setenv('CGKN_PROVIDER_CACHE_MODE','off')
+    import socket
+    connect=socket.socket.connect
+    def local(sock,address):
+        assert address[0] in ('127.0.0.1','::1','localhost'),'Unit test must not use a production route'
+        return connect(sock,address)
+    monkeypatch.setattr(socket.socket,'connect',local)
+
+
 SCHEMA = {
     "type": "object",
     "additionalProperties": False,
@@ -55,6 +68,9 @@ class Handler(BaseHTTPRequestHandler):
             }
             if type(self).raw_defer is not None:
                 body["cgkn_raw_defer"] = type(self).raw_defer
+        if self.status==200:
+            from tests.providers.stream_fixtures import send_gateway
+            return send_gateway(self,payload,body)
         encoded = json.dumps(body).encode()
         self.send_response(self.status)
         self.send_header("Content-Type", "application/json")
@@ -132,10 +148,8 @@ def test_chat_completions_compatibility_path_preserves_schema(gateway) -> None:
         payload = json.loads(self.rfile.read(length))
         type(self).requests.append({"path": self.path, "authorization": self.headers.get("Authorization"), "payload": payload})
         body = json.dumps({"id": "chat-request", "model": payload["model"], "choices": [{"message": {"content": json.dumps({"ok": True})}, "finish_reason": "stop"}], "usage": {"prompt_tokens": 2, "completion_tokens": 2, "total_tokens": 4}}).encode()
-        self.send_response(200)
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+        from tests.providers.stream_fixtures import send_gateway
+        send_gateway(self,payload,json.loads(body))
 
     Handler.do_POST = chat_response
     try:
@@ -196,7 +210,7 @@ def test_timeout_after_send_is_outcome_unknown_and_not_retried(gateway, monkeypa
         calls += 1
         raise TimeoutError("timed out")
 
-    monkeypatch.setattr("cgkn.providers.gateway_client.request.urlopen", timeout)
+    monkeypatch.setattr("cgkn.providers.gateway_client._open_loopback", timeout)
     with pytest.raises(GatewayCompletionError) as caught:
         client(gateway).complete(system="s", user="u", schema_name="x", schema=SCHEMA, config=ModelRoleConfig("agent", "qwen"))
     assert caught.value.category == "outcome_unknown" and caught.value.outcome_unknown is True
@@ -254,33 +268,20 @@ def test_reasoning_request_size_and_response_shapes_are_bounded(gateway, monkeyp
         )
     assert oversized.value.category == "request_too_large"
 
-    class Response:
-        status = 200
-
-        def __init__(self, body: bytes):
-            self.body = body
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *_args):
-            return False
-
-        def read(self, _limit: int) -> bytes:
-            return self.body
-
-    monkeypatch.setattr("cgkn.providers.gateway_client.MAX_REQUEST_BYTES", 1_048_576)
-    monkeypatch.setattr("cgkn.providers.gateway_client.request.urlopen", lambda *_args, **_kwargs: Response(b"[]"))
-    with pytest.raises(GatewayCompletionError) as invalid_root:
-        client(gateway).complete(system="s", user="u", schema_name="x", schema=SCHEMA, config=ModelRoleConfig("agent", "qwen"))
-    assert invalid_root.value.category == "invalid_response"
-    monkeypatch.setattr(
-        "cgkn.providers.gateway_client.request.urlopen",
-        lambda *_args, **_kwargs: Response(json.dumps({"status": "completed", "output_text": ""}).encode()),
-    )
-    with pytest.raises(GatewayCompletionError) as empty:
-        client(gateway).complete(system="s", user="u", schema_name="x", schema=SCHEMA, config=ModelRoleConfig("agent", "qwen"))
-    assert empty.value.category == "empty_response"
+    import io
+    from tests.providers.stream_fixtures import gateway_wire
+    class Response(io.BytesIO):
+        status=200
+        headers={'Content-Type':'text/event-stream'}
+    monkeypatch.setattr('cgkn.providers.gateway_client.MAX_REQUEST_BYTES',1_048_576)
+    def serve(doc):
+        return lambda req,**kwargs:Response(gateway_wire(json.loads(req.data),doc))
+    monkeypatch.setattr('cgkn.providers.gateway_client._open_loopback',serve([]))
+    with pytest.raises(GatewayCompletionError,match='gateway_stream_invalid_terminal'):
+        client(gateway).complete(system='s',user='u',schema_name='x',schema=SCHEMA,config=ModelRoleConfig('agent','qwen'))
+    monkeypatch.setattr('cgkn.providers.gateway_client._open_loopback',serve(dict(id='x',model='qwen',status='completed',output_text='',usage={'input_tokens':1,'output_tokens':1})))
+    with pytest.raises(GatewayCompletionError,match='empty_response'):
+        client(gateway).complete(system='s',user='u',schema_name='x',schema=SCHEMA,config=ModelRoleConfig('agent','qwen'))
 
 
 @pytest.mark.negative
