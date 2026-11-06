@@ -56,10 +56,13 @@ def _consumer_evidence(consumer_ids, goals, checks, subjects):
 
 
 def plan_acceptance_changes(dag, acceptance, changed_nodes, *, new_blocks=None,
+                            external_context_unchanged=False,
+                            unmapped_consumers=None,
                             expand_breaking=True):
     """Return one plan per changed node; no scheduling or persistence."""
     goals, checks, subjects = _index(acceptance)
     new_blocks = new_blocks or {}
+    unmapped_consumers = set(unmapped_consumers or ())
     dependents = {}
     for node in dag.nodes:
         for dependency in node.depends_on:
@@ -73,6 +76,10 @@ def plan_acceptance_changes(dag, acceptance, changed_nodes, *, new_blocks=None,
             raise ValueError("no buildable frozen block for changed node: " + changed)
         new_block = new_blocks.get(changed, old_block)
         consumers = {node_id: ("response",) for node_id in dependents.get(changed, ())}
+        for node_id in consumers:
+            consumer_block = node_block(node_id, acceptance)
+            if consumer_block is None or not consumer_block.input_ports:
+                unmapped_consumers.add(node_id)
         adjacency = {key: tuple(sorted(value)) for key, value in dependents.items()}
         old_keys, authenticated, observations = _consumer_evidence(
             tuple(consumers), goals, checks, subjects)
@@ -90,6 +97,8 @@ def plan_acceptance_changes(dag, acceptance, changed_nodes, *, new_blocks=None,
             old_keys=old_keys, authenticated_keys=authenticated,
             observations=observations,
             input_producers=input_producers, producer_ports=producer_ports,
+            unmapped_consumers=tuple(sorted(unmapped_consumers)),
+            external_context_unchanged=external_context_unchanged,
             expand_breaking=expand_breaking,
         ))
     return tuple(plans)
@@ -102,11 +111,15 @@ def node_block(node_id, acceptance):
 
 
 def shadow_report(dag, acceptance, changed_nodes, *, new_blocks=None,
+                  external_context_unchanged=False,
+                  unmapped_consumers=None,
                   expand_breaking=True):
     """Compare planner scope with host downstream closure and default local scope."""
     changed = set(changed_nodes)
     plans = plan_acceptance_changes(dag, acceptance, changed_nodes,
                                     new_blocks=new_blocks,
+                                    external_context_unchanged=external_context_unchanged,
+                                    unmapped_consumers=unmapped_consumers,
                                     expand_breaking=expand_breaking)
     by_node = {}
     relations = {}
@@ -148,6 +161,9 @@ def shadow_report(dag, acceptance, changed_nodes, *, new_blocks=None,
         "reuse_execute": sorted(node for node, value in reuse.items() if value == "EXECUTE"),
         "reuse_unverified": sorted(node for node, value in reuse.items() if value == "UNVERIFIED"),
         "reuse_no_novel_delta": sorted(node for node, value in reuse.items() if value == "NO_NOVEL_DELTA"),
+        "consumer_reuse_allowed": all(plan.consumer_reuse_allowed for plan in plans) if plans else False,
+        "reuse_gate": sorted({plan.reuse_gate for plan in plans}),
+        "unmapped_consumers": sorted({node for plan in plans for node in plan.unmapped_consumers}),
         "plans": [plan.as_dict() for plan in plans],
         "authority": "shadow advice only; host execution and scheduling unchanged",
     }
