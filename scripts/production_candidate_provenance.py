@@ -66,6 +66,27 @@ def _manifest_hash(manifest: dict[str, str]) -> str:
     )
 
 
+_RELEASE_CONTEXT: dict[str, str] = {}
+
+
+def configure_release_trust(release_trust_anchor=None, release_authorization=None) -> None:
+    """Controller-only injection point for the protected Ed25519 trust anchor.
+
+    The anchor path must be outside the agent-writable run store and workspace;
+    the verifier enforces that.  This is a controller-only entry point: if
+    agent-controlled code can call it, it can point at an anchor it controls,
+    so the anchor path must come from a protected controller configuration.
+    A signature cannot be forged, but a writable anchor is not a trust root.
+    """
+    _RELEASE_CONTEXT.clear()
+    if release_trust_anchor is not None:
+        _RELEASE_CONTEXT["release_trust_anchor"] = str(
+            pathlib.Path(release_trust_anchor).resolve())
+    if release_authorization is not None:
+        _RELEASE_CONTEXT["release_authorization"] = str(
+            pathlib.Path(release_authorization).resolve())
+
+
 def _parse_time(value: Any) -> datetime | None:
     try:
         parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
@@ -352,7 +373,11 @@ def inspect(
     expected_candidate_id: str | None = None,
     expected_candidate_hash: str | None = None,
     expected_commit_sha: str | None = None,
+    release_trust_anchor: str | pathlib.Path | None = None,
+    release_authorization: str | pathlib.Path | None = None,
 ) -> dict[str, Any]:
+    release_trust_anchor = release_trust_anchor or _RELEASE_CONTEXT.get("release_trust_anchor")
+    release_authorization = release_authorization or _RELEASE_CONTEXT.get("release_authorization")
     path = pathlib.Path(provenance_ref).resolve()
     failures: list[str] = []
     if path.name != FILE_NAME or not path.is_file() or path.is_symlink():
@@ -362,6 +387,12 @@ def inspect(
             "provenance_ref": str(path),
         }
     document = _read(path)
+    if document.get('schema_version')=='2.0' and document.get('generation_route')=='project_session':
+        return _inspect_project_session(path,document,
+            expected_candidate_dir=expected_candidate_dir,expected_production_run_dir=expected_production_run_dir,
+            expected_run_id=expected_run_id,expected_candidate_id=expected_candidate_id,
+            expected_candidate_hash=expected_candidate_hash,expected_commit_sha=expected_commit_sha,
+            release_trust_anchor=release_trust_anchor,release_authorization=release_authorization)
     if (
         document.get("kind") != KIND
         or document.get("schema_version") != SCHEMA_VERSION
@@ -543,3 +574,138 @@ def inspect(
         "candidate_hash_recomputed": recomputed_candidate_hash,
         "document": document,
     }
+
+
+def _project_session_projection(store, project_id, run_id, candidate, *,
+                                release_trust_anchor=None, release_authorization=None):
+    """Rebuild existing core facts; no legacy stage attribution is synthesized."""
+    from cgkn.state.acceptance import GoalAcceptance
+    from cgkn.state.provenance import ProvenanceGate,reference
+    root=store.run_dir(project_id,run_id)
+    names=('project_profile.json','goal_acceptance.json','capability_tree.json',
+           'execution_dag.json','provenance_contract.json')
+    refs={name:reference(store.root,root/name) for name in names}
+    profile=_read(root/'project_profile.json')
+    if (profile.get('kind')!='CGKNProjectSessionProfile' or profile.get('project_id')!=project_id
+            or profile.get('run_id')!=run_id or pathlib.Path(profile['workspace']).resolve()!=candidate):
+        raise ValueError('project-session profile/candidate binding mismatch')
+    data=_read(root/'goal_acceptance.json')
+    acceptance=GoalAcceptance(store,project_id,run_id,profile['requirements'],data['checker_bindings'])
+    manifest=canonical_evidence_hash.candidate_source_manifest(candidate)
+    sources=ProvenanceGate(store,project_id,run_id,
+        release_trust_anchor=release_trust_anchor,
+        release_authorization=release_authorization).delivery_sources(acceptance,candidate,manifest)
+    audit=[];failures=[];agent_bound=False
+    for request_path in sorted((root/'provider_calls').glob('*/request.json')):
+        request=_read(request_path);response_path=request_path.with_name('response.json');error_path=request_path.with_name('error.json')
+        row={'request_ref':reference(store.root,request_path),'role':request['config']['role']}
+        if response_path.is_file():
+            response=_read(response_path);route=response.get('routing',{});config=request['config']
+            real=bool(request.get('transport_kind')=='recorded_gateway' and config.get('model_id')
+                and route.get('identity_status')=='MATCH' and route.get('provider_id')==config['model']
+                and route.get('actual_model')==response.get('model')==config['model_id']
+                and route.get('requested_model')==route.get('bound_model')==config['model_id']
+                and request['identity']==response.get('identity'))
+            row.update(response_ref=reference(store.root,response_path),actual_model=response.get('model'),
+                request_id=response.get('request_id'),usage=response.get('usage',{}),attempts=response.get('attempts'),
+                real_provider_identity_bound=real,status='RESPONSE_RECORDED')
+            agent_bound=agent_bound or (row['role']=='agent' and real)
+            if not real: failures.append('provider_identity_not_qualified')
+        elif error_path.is_file():
+            error=_read(error_path)
+            row.update(error_ref=reference(store.root,error_path),status='ERROR_RECORDED',
+                       outcome_unknown=error.get('outcome_unknown') is not False)
+            if row['outcome_unknown']: failures.append('provider_outcome_unknown')
+        else:
+            row.update(status='OUTCOME_UNKNOWN',outcome_unknown=True)
+            failures.append('provider_outcome_unknown')
+        audit.append(row)
+    if not sources['real_provider_backed'] or not agent_bound:
+        failures.append('real_provider_planner_and_worker_required')
+    return {'core_refs':refs,'core_sources':sources,'provider_call_audit':audit,
+        'candidate_source_manifest':manifest,'failures':sorted(set(failures))}
+
+
+def produce_project_session(store, project_id, run_id, *, candidate_dir, commit_sha,
+                            release_trust_anchor=None, release_authorization=None):
+    """Versioned input to the same production provenance/delivery authority."""
+    root=store.run_dir(project_id,run_id);candidate=pathlib.Path(candidate_dir).resolve()
+    if not commit_sha or _candidate_symlinks(candidate):
+        raise ValueError('source commit and regular candidate files required')
+    projection=_project_session_projection(store,project_id,run_id,candidate,
+        release_trust_anchor=release_trust_anchor,
+        release_authorization=release_authorization)
+    path=root/FILE_NAME;previous=_read(path) if path.exists() else {}
+    if previous and previous.get('generation_route')!='project_session':
+        raise ValueError('historical provenance cannot be reinterpreted; use a new run')
+    manifest=projection['candidate_source_manifest']
+    candidate_hash=canonical_evidence_hash.candidate_source_hash(candidate)
+    unchanged=previous and all(previous.get(k)==v for k,v in projection.items())
+    document={'kind':KIND,'schema_version':'2.0','generation_route':'project_session',
+        'producer':'scripts.production_candidate_provenance.produce_project_session',
+        'production_entrypoint':'cgkn.application.software_project.service.SoftwareProjectGenerationService.run_profile',
+        'generation_function':'cgkn.agent.project_loop.ProjectSession.run',
+        'created_at':previous['created_at'] if unchanged else _now(),
+        'run_id':run_id,'project_id':project_id,'candidate_id':'core-'+hashlib.sha256((project_id+'/'+run_id+'/'+candidate_hash).encode()).hexdigest()[:24],
+        'candidate_hash':candidate_hash,'commit_sha':commit_sha,'candidate_root':str(candidate),
+        'production_run_root':str(root),'core_store_root':str(store.root),
+        'candidate_source_manifest_hash':_manifest_hash(manifest),
+        'candidate_hash_method':'scripts.canonical_evidence_hash.candidate_source_hash',
+        'status':'PASS' if not projection['failures'] else 'NEEDS_REWORK',
+        **projection,'artifact_hash':''}
+    if path.exists():
+        digest=hashlib.sha256(path.read_bytes()).hexdigest()
+        store.immutable_blob(root/'provenance_history'/(digest+'.json'),path.read_bytes())
+    _write_hashed(path,document)
+    return {**document,'provenance_ref':str(path),'provenance_hash':canonical_evidence_hash.sha256_file(path)}
+
+
+def _inspect_project_session(path,document,**expected):
+    failures=[];projection={}
+    try:
+        from cgkn.state import FileRunStore
+        store_root=pathlib.Path(document['core_store_root']).resolve()
+        if not store_root.is_dir(): raise ValueError('core store is missing')
+        FileRunStore._validate_segment(document['project_id']);FileRunStore._validate_segment(document['run_id'])
+        existing_root=(store_root/document['project_id']/document['run_id']).resolve()
+        if not existing_root.is_dir() or not existing_root.is_relative_to(store_root):
+            raise ValueError('core run is missing')
+        store=FileRunStore(store_root)
+        root=store.run_dir(document['project_id'],document['run_id'])
+        candidate=pathlib.Path(document['candidate_root']).resolve()
+        if (path!=root/FILE_NAME or str(root)!=document['production_run_root']
+                or document.get('kind')!=KIND or document.get('status')!='PASS'
+                or document.get('producer')!='scripts.production_candidate_provenance.produce_project_session'
+                or document.get('production_entrypoint')!='cgkn.application.software_project.service.SoftwareProjectGenerationService.run_profile'
+                or document.get('generation_function')!='cgkn.agent.project_loop.ProjectSession.run'
+                or document.get('candidate_hash_method')!='scripts.canonical_evidence_hash.candidate_source_hash'
+                or not document.get('commit_sha')
+                or document.get('candidate_id')!='core-'+hashlib.sha256((document['project_id']+'/'+document['run_id']+'/'+document['candidate_hash']).encode()).hexdigest()[:24]
+                or _candidate_symlinks(candidate)):
+            raise ValueError('invalid core production provenance contract')
+        if document['artifact_hash']!=canonical_evidence_hash.canonical_json_hash(document,('artifact_hash',)):
+            raise ValueError('core production provenance hash mismatch')
+        for key,field in [('expected_candidate_dir','candidate_root'),('expected_production_run_dir','production_run_root'),
+                          ('expected_run_id','run_id'),('expected_candidate_id','candidate_id'),
+                          ('expected_candidate_hash','candidate_hash'),('expected_commit_sha','commit_sha')]:
+            if expected.get(key) is not None and str(expected[key])!=document[field]:
+                raise ValueError('core production identity mismatch: '+field)
+        projection=_project_session_projection(store,document['project_id'],document['run_id'],candidate,
+            release_trust_anchor=expected.get('release_trust_anchor'),
+            release_authorization=expected.get('release_authorization'))
+        if any(document.get(k)!=v for k,v in projection.items()):
+            raise ValueError('core production evidence changed')
+        failures.extend(projection['failures'])
+        if (canonical_evidence_hash.candidate_source_hash(candidate)!=document['candidate_hash']
+                or _manifest_hash(projection['candidate_source_manifest'])!=document['candidate_source_manifest_hash']):
+            raise ValueError('core candidate source identity changed')
+    except (OSError,ValueError,KeyError,TypeError,RuntimeError) as exc:
+        failures.append('project_session_provenance:'+str(exc))
+    return {'status':'PASS' if not failures else 'NEEDS_REWORK','failures':sorted(set(failures)),
+        'provenance_ref':str(path),'provenance_hash':canonical_evidence_hash.sha256_file(path),
+        'identity':{k:document.get(k,'') for k in ('run_id','candidate_id','candidate_hash','commit_sha')},
+        'candidate_root':document.get('candidate_root'),'production_run_root':document.get('production_run_root'),
+        'candidate_source_manifest':projection.get('candidate_source_manifest',{}),
+        'candidate_source_manifest_hash':_manifest_hash(projection.get('candidate_source_manifest',{})),
+        'candidate_hash_recomputed':canonical_evidence_hash.candidate_source_hash(candidate) if projection else '',
+        'document':document}

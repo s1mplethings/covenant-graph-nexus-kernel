@@ -7,17 +7,23 @@ from typing import Any
 try:
     import artifact_integrity
     import formal_model_contract
+    import production_candidate_provenance
     from pipeline_contracts import base_result
 except ModuleNotFoundError:  # pragma: no cover - package import path
     from scripts import artifact_integrity
     from scripts import formal_model_contract
+    from scripts import production_candidate_provenance
     from scripts.pipeline_contracts import base_result
 
 
-def evaluate(project_dir: pathlib.Path, manifest: dict[str, Any] | None = None, session: dict[str, Any] | None = None, *, evidence: dict[str, Any] | None = None, phase: str = "final") -> dict[str, Any]:
+def evaluate(project_dir: pathlib.Path, manifest: dict[str, Any] | None = None, session: dict[str, Any] | None = None, *, evidence: dict[str, Any] | None = None, phase: str = "final", production_provenance_ref: str | pathlib.Path | None = None, release_trust_anchor: str | pathlib.Path | None = None, release_authorization: str | pathlib.Path | None = None) -> dict[str, Any]:
     import codex_conversation as bridge
 
     project = pathlib.Path(project_dir)
+    production_candidate_provenance.configure_release_trust(
+        release_trust_anchor=release_trust_anchor,
+        release_authorization=release_authorization,
+    )
     if (project / "_CGNK_CANDIDATE_ONLY_DO_NOT_DELIVER.json").exists():
         return base_result(
             status="fail",
@@ -25,7 +31,8 @@ def evaluate(project_dir: pathlib.Path, manifest: dict[str, Any] | None = None, 
             blockers=["candidate project cannot pass final delivery"],
             metadata={"delivery_allowed": False, "phase": phase},
         )
-    gate = bridge.evaluate_public_delivery_gate(project, manifest or {}, session or {}, evidence=evidence, phase=phase)
+    gate = bridge.evaluate_public_delivery_gate(project, manifest or {}, session or {}, evidence=evidence, phase=phase,
+                                                production_provenance_ref=production_provenance_ref)
     integrity = artifact_integrity.validate_final_package(project, project / "final_project_bundle.zip", project / "delivery_manifest.json")
     evidence_doc = evidence or {}
     run_dir = evidence_doc.get("run_dir") or (manifest or {}).get("run_dir") or (session or {}).get("run_dir") or project
