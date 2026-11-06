@@ -69,6 +69,7 @@ def main(argv=None):
     parser.add_argument("--run-dir", required=True)
     parser.add_argument("--changed-node")
     parser.add_argument("--change", choices=("internal", "breaking", "input"), default="internal")
+    parser.add_argument("--port-mapping-complete", action="store_true")
     parser.add_argument("--json-out")
     args = parser.parse_args(argv)
     dag, acceptance = _load(args.run_dir)
@@ -77,7 +78,8 @@ def main(argv=None):
     if old is None:
         raise SystemExit("changed node has no buildable frozen block: " + changed)
     new = _changed_block(old, args.change)
-    report = shadow_report(dag, acceptance, [changed], new_blocks={changed: new})
+    report = shadow_report(dag, acceptance, [changed], new_blocks={changed: new},
+                           port_mapping_complete=args.port_mapping_complete)
     payload = json.dumps(report, ensure_ascii=False, indent=2)
     if args.json_out:
         pathlib.Path(args.json_out).resolve().write_text(payload + "\n", encoding="utf-8")
