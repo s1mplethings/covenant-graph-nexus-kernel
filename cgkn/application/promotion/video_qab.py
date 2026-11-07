@@ -1793,28 +1793,46 @@ def tree_edit_negative(workdir: Path, spec: dict, run_id: str) -> dict:
     tree, _ = build_video_tree(workdir, spec, run_id + "-edit")
     plan = video_obligations(spec)
     known = {node.capability_ref for node in tree.nodes if node.capability_ref}
-    edits = (
+    tests = []
+
+    def evaluate(name, edits, expected_fragment):
+        rejected = False
+        detail = ""
+        try:
+            edited = apply_tree_edits(tree, edits, known_capabilities=known)
+            validate_required_obligations(edited, plan)
+            detail = "edited tree unexpectedly passed the required-obligation gate"
+        except Exception as exc:
+            rejected = True
+            detail = str(exc)
+        result = {"name": name, "injected": True,
+                  "expected": "reject missing " + expected_fragment,
+                  "actual": detail,
+                  "passed": rejected and expected_fragment in detail}
+        tests.append(result)
+
+    evaluate("delete_required_quality_node", (
         TreeEdit("edit-remove-dependency", "remove_dependency", "qab",
                  {"dependency": "subtitle"},
                  {"reason": "negative control: remove required subtitle check"}),
         TreeEdit("edit-remove-subtitle", "remove_node", "subtitle", {},
                  {"reason": "negative control: remove required subtitle check"}),
-    )
-    rejected = False
-    detail = ""
-    try:
-        edited = apply_tree_edits(tree, edits, known_capabilities=known)
-        validate_required_obligations(edited, plan)
-        detail = "edited tree unexpectedly passed the required-obligation gate"
-    except Exception as exc:
-        rejected = True
-        detail = str(exc)
-    result = {"name": "delete_required_quality_node", "injected": True,
-              "expected": "reject missing video.subtitles_burned",
-              "actual": detail, "passed": rejected and "video.subtitles_burned" in detail}
-    output = workdir / "negative" / "tree_edit_negative.json"
-    write_json(output, result)
-    return result
+    ), "video.subtitles_burned")
+
+    subtitle = tree.by_id["subtitle"]
+    config = dict(subtitle.config)
+    contract = dict(config["leaf_contract"])
+    contract["acceptance"] = ["video.duration"]
+    config["leaf_contract"] = contract
+    evaluate("weaken_required_quality_contract", (
+        TreeEdit("edit-weaken-subtitle", "update_config", "subtitle",
+                 {"config": config},
+                 {"reason": "negative control: remove required acceptance"}),
+    ), "video.subtitles_burned")
+
+    payload = {"tests": tests, "passed": all(item["passed"] for item in tests)}
+    write_json(workdir / "negative" / "tree_edit_negative.json", payload)
+    return payload
 
 
 if __name__ == "__main__":
