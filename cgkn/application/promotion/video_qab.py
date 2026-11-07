@@ -1185,11 +1185,13 @@ def build_video_tree(workdir: Path, spec: dict, run_id: str) -> tuple[Capability
     nodes = [CapabilityNode("video", capability_ref="")]
     nodes.append(_node(
         "spec", "promotion.video.spec@1", [],
-        _contract("spec", "freeze the video task specification", "IMPLEMENTATION",
+        _contract("spec", "freeze the video task specification", "INSPECTION",
                   ["video_task_spec.json", "VIDEO_GOAL_RESOLUTION.md"],
                   ["video.spec.frozen"], "promotion.checker.spec@1",
                   "promotion.video.spec@1", [],
-                  expected_delta="write canonical spec and goal resolution"),
+                  subject="video_task_spec.json",
+                  expected_observation="frozen provisional spec present",
+                  pass_fail_rule="spec and goal resolution are readable"),
         workdir, run_id))
     nodes.append(_node(
         "gui", "promotion.video.gui@1", ["spec"],
@@ -1482,6 +1484,9 @@ def exec_captions(request: BlockExecutionRequest) -> BlockExecutionResult:
         timing = next(item for item in timeline if item["scene"] == scene["scene"])
         values.append({"scene": scene["scene"], "text": scene["text"],
                        "start": timing["start"], "end": timing["end"]})
+    suffix = cfg.get("caption_suffix")
+    if suffix:
+        values[0]["text"] = values[0]["text"] + str(suffix)
     captions = build_captions(workdir, values)
     return _result(request, captions, started=request.created_at, clock=started)
 
@@ -2401,6 +2406,248 @@ def run_production_test(workdir: Path, spec: dict, run_id: str) -> dict:
     }
     write_json(test / "production_test.json", payload)
     write_json(workdir / "trace" / "production_test.json", payload)
+    return payload
+
+
+def _record_goal_acceptance(store, project_id, run_id, tree, qab_result, final):
+    from cgkn.state.acceptance import GoalAcceptance
+    condition = {"obligation": "QAB_VIDEO", "technical_required": True,
+                 "perceptual_pending_allowed": True}
+    requirements = {"qab": {"must": True, "weight": 1, "operator": "AND"}}
+    checkers = {"qab.checker": "promotion.video.qab@1"}
+    acceptance = GoalAcceptance(store, project_id, run_id, requirements, checkers)
+    acceptance.bind_subjects({"final.mp4": sha256(final)})
+    plan = {"phases": [{"id": "quality", "depends_on": []}],
+            "goals": [{"id": "qab.video", "phase_id": "quality",
+                       "requirement_refs": ["qab"], "acceptance": condition,
+                       "checker": "qab.checker", "subject_refs": ["final.mp4"],
+                       "task_refs": ["qab"], "checker_version": "1"}]}
+    acceptance.propose(plan, tree)
+    acceptance.commit(plan)
+    row = acceptance.record("qab.video", qab_result,
+                            executor_ref="promotion.video.qab@1")
+    return row, acceptance.view()
+
+
+def run_full_production_dagrunner(workdir: Path, spec: dict, run_id: str,
+                                  *, interrupt_at: str | None = None) -> dict:
+    """Execute the complete capture/render/check/qab production chain once.
+
+    All writes are confined to ``workdir``. No prior draft or delivered video is
+    read as a production output; only the frozen spec/design inputs are copied.
+    """
+    from datetime import datetime, timezone
+    from cgkn.runtime import DAGRunner
+    from cgkn.state import FileRunStore
+    from cgkn.executors import ExecutorRegistry
+    from cgkn.execution.deliverables import FileDeliverableChecker
+
+    tree, dag = build_video_tree(workdir, spec, run_id)
+    checks = {}
+    deliverable_checkers = {}
+    for node in tree.nodes:
+        contract = node.config.get("leaf_contract")
+        if not isinstance(contract, Mapping):
+            continue
+        for name in contract.get("acceptance", ()):
+            checks[str(name)] = _generic_deliverable_check
+        deliverable_checkers[contract["checker_ref"]] = "deliverable.files@1"
+    checker = FileDeliverableChecker(workdir, checks)
+    registry = ExecutorRegistry()
+    registry.register(checker)
+    for node in tree.nodes:
+        if not node.executable:
+            continue
+        capability = node.capability_ref
+        function = EXECUTORS[capability]
+        if interrupt_at and node.id == interrupt_at:
+            original = function
+            def interrupted(request, _original=original):
+                os._exit(17)
+                return _original(request)
+            function = interrupted
+        registry.register(_HostExecutor(capability, function,
+                                        executor_ref=node.config["executor_ref"]))
+    store = FileRunStore(workdir / "state")
+    host_run = run_id
+    runner = DAGRunner(registry, store, max_parallel=1,
+                       deliverable_checkers=deliverable_checkers)
+    summary = runner.run(project_id="promotion-qab-full",
+                         run_id=host_run, tree=tree, dag=dag)
+    results = {}
+    for node in tree.nodes:
+        if node.executable:
+            result = store.load_result("promotion-qab-full", host_run, node.id)
+            results[node.id] = {"status": result.status.value,
+                                "outputs": dict(result.outputs)}
+    final = workdir / "out" / "final.mp4"
+    qab_result = store.load_result("promotion-qab-full", host_run, "qab")
+    row, view = _record_goal_acceptance(store, "promotion-qab-full", host_run,
+                                         tree, qab_result, final)
+    payload = {
+        "kind": "FullProductionDAGRunnerRun",
+        "scope": "same provisional video work; new candidate in isolated closeout directory",
+        "summary": summary.as_dict(),
+        "executed": list(summary.actual_executions),
+        "reused": list(summary.reused_nodes),
+        "node_results": results,
+        "candidate_final": str(final),
+        "candidate_final_sha256": sha256(final),
+        "candidate_duration": duration_of(final),
+        "qab_node_status": qab_result.status.value,
+        "goal_verdict": row.get("verdict"),
+        "goal_view": view,
+        "host_acceptance": str(store.run_dir("promotion-qab-full", host_run) / "goal_acceptance.json"),
+        "interrupted_at": interrupt_at,
+    }
+    write_json(workdir / "trace" / "full_production.json", payload)
+    return payload
+
+
+def build_caption_probe_tree(workdir: Path, spec: dict, run_id: str) -> CapabilityTree:
+    nodes = [CapabilityNode("video", capability_ref="")]
+    def add(node_id, capability, deps, contract):
+        nodes.append(CapabilityNode(
+            node_id, parent_id="video", capability_ref=capability,
+            depends_on=tuple(deps),
+            config={"executor_ref": contract["executor_ref"], "workdir": str(workdir),
+                    "run_id": run_id, "leaf_contract": contract}))
+    add("spec", "promotion.video.cached@1", [], _cached_contract(
+        "spec", ["video_task_spec.json", "VIDEO_GOAL_RESOLUTION.md"], []))
+    add("script", "promotion.video.cached@1", ["spec"], _cached_contract(
+        "script", ["trace/narration_text.json"], ["spec"]))
+    add("tts", "promotion.video.cached@1", ["script"], _cached_contract(
+        "tts", ["evidence/audio/narration.wav", "trace/tts_manifest.json"], ["script"]))
+    add("render", "promotion.video.cached@1", ["spec"], _cached_contract(
+        "render", ["out/draft_no_subs.mp4", "trace/shot_manifest.json"], ["spec"]))
+    add("captions", "promotion.video.captions@1", ["tts", "script"],
+        _production_contract("captions", "probe a controlled subtitle caption change",
+                             "IMPLEMENTATION", ["out/demo.srt", "trace/captions.json"],
+                             ["video.subtitle_presence"], "promotion.checker.captions@1",
+                             "promotion.video.captions@1", ["tts", "script"],
+                             expected_delta="probe suffix in one cue"))
+    add("mux", "promotion.video.mux@1", ["render", "captions", "tts"],
+        _production_contract("mux", "mux the controlled probe candidate", "IMPLEMENTATION",
+                             ["out/final.mp4", "out/demo.srt", "evidence/audio/narration.wav"],
+                             ["video.subtitle_presence", "video.final_audio_stream"],
+                             "promotion.checker.mux@1", "promotion.video.mux@1",
+                             ["render", "captions", "tts"],
+                             expected_delta="probe final changes in subtitle band"))
+    add("technical", "promotion.video.technical@1", ["mux"],
+        _production_contract("technical", "check probe technical output", "TEST",
+                             ["out/final.mp4", "evidence/results/technical.json"],
+                             ["video.container_decodable", "video.duration",
+                              "video.resolution", "video.final_audio_stream"],
+                             "promotion.checker.technical@1", "promotion.video.technical@1",
+                             ["mux"], subject="final.mp4",
+                             expected_observation="probe remains decodable",
+                             pass_fail_rule="all technical checks true"))
+    add("subtitle", "promotion.video.subtitle@1", ["mux", "captions"],
+        _production_contract("subtitle", "check probe subtitle presence", "TEST",
+                             ["out/final.mp4", "out/demo.srt", "evidence/results/subtitle.json"],
+                             ["video.subtitle_presence"], "promotion.checker.subtitle@1",
+                             "promotion.video.subtitle@1", ["mux", "captions"],
+                             subject="final.mp4", expected_observation="bright subtitle band",
+                             pass_fail_rule="timing and encoded-frame checks true"))
+    return CapabilityTree("Caption probe over candidate draft", tuple(nodes))
+
+
+def run_caption_probe(workdir: Path, spec: dict, run_id: str) -> dict:
+    """Controlled requirement change through TreeEdit; not a user quality claim."""
+    from cgkn.runtime import DAGRunner
+    from cgkn.state import FileRunStore
+    from cgkn.executors import ExecutorRegistry
+    from cgkn.execution.deliverables import FileDeliverableChecker
+    from cgkn.orchestration.tree_edits import TreeEdit, apply_tree_edits
+
+    probe = workdir / "probe"
+    if probe.exists():
+        shutil.rmtree(probe)
+    (probe / "trace").mkdir(parents=True)
+    (probe / "out").mkdir(parents=True)
+    shutil.copy2(workdir / "video_task_spec.json", probe / "video_task_spec.json")
+    shutil.copy2(workdir / "VIDEO_GOAL_RESOLUTION.md", probe / "VIDEO_GOAL_RESOLUTION.md")
+    shutil.copy2(workdir / "trace" / "narration_text.json", probe / "trace" / "narration_text.json")
+    shutil.copy2(workdir / "trace" / "tts_manifest.json", probe / "trace" / "tts_manifest.json")
+    shutil.copy2(workdir / "out" / "draft_no_subs.mp4", probe / "out" / "draft_no_subs.mp4")
+    shutil.copy2(workdir / "trace" / "shot_manifest.json", probe / "trace" / "shot_manifest.json")
+    (probe / "evidence" / "audio").mkdir(parents=True)
+    shutil.copy2(workdir / "evidence" / "audio" / "narration.wav",
+                 probe / "evidence" / "audio" / "narration.wav")
+    shutil.copy2(workdir / "out" / "final.mp4", probe / "out" / "candidate_reference.mp4")
+    reference = probe / "out" / "candidate_reference.mp4"
+    reference_hash = sha256(reference)
+    tree = build_caption_probe_tree(probe, spec, run_id)
+    known = {node.capability_ref for node in tree.nodes if node.capability_ref}
+    captions = tree.by_id["captions"]
+    config = dict(captions.config)
+    config["caption_suffix"] = " [PROBE]"
+    edited = apply_tree_edits(tree, (
+        TreeEdit("probe-caption-suffix", "update_config", "captions",
+                 {"config": config},
+                 {"reason": "CONTROLLED_REQUIREMENT_CHANGE: visible subtitle marker"}),
+    ), known_capabilities=known)
+    dag = compile_tree(edited)
+    checks = {}
+    deliverable_checkers = {}
+    for node in edited.nodes:
+        contract = node.config.get("leaf_contract")
+        if not isinstance(contract, Mapping):
+            continue
+        for name in contract.get("acceptance", ()):
+            checks[str(name)] = _generic_deliverable_check
+        deliverable_checkers[contract["checker_ref"]] = "deliverable.files@1"
+    registry = ExecutorRegistry()
+    registry.register(FileDeliverableChecker(probe, checks))
+    for node in edited.nodes:
+        if not node.executable:
+            continue
+        cap = node.capability_ref
+        fn = exec_cached if cap == "promotion.video.cached@1" else EXECUTORS[cap]
+        registry.register(_HostExecutor(cap, fn, executor_ref=node.config["executor_ref"]))
+    store = FileRunStore(probe / "state")
+    runner = DAGRunner(registry, store, max_parallel=1,
+                       deliverable_checkers=deliverable_checkers)
+    summary = runner.run(project_id="promotion-qab-probe", run_id=run_id,
+                         tree=edited, dag=dag)
+    final = probe / "out" / "final.mp4"
+    technical = store.load_result("promotion-qab-probe", run_id, "technical")
+    subtitle = store.load_result("promotion-qab-probe", run_id, "subtitle")
+    cue = json.loads((probe / "trace" / "captions.json").read_text(encoding="utf-8"))["cues"][0]
+    at = (float(cue["start"]) + float(cue["end"])) / 2
+    before = probe / "evidence" / "before_band.png"
+    after = probe / "evidence" / "after_band.png"
+    for source, target in ((reference, before), (final, after)):
+        run([str(FFMPEG), "-y", "-ss", f"{at:.3f}", "-i", str(source),
+             "-frames:v", "1", "-vf", "crop=1920:260:0:780", str(target)], timeout=60)
+    ssim = run([str(FFMPEG), "-hide_banner", "-i", str(before), "-i", str(after),
+                "-lavfi", "ssim", "-f", "null", "-"], check=False)
+    matches = re.findall(r"All:([0-9.]+)", ssim.stderr)
+    band_ssim = float(matches[-1]) if matches else 0.0
+    payload = {
+        "kind": "CONTROLLED_REQUIREMENT_CHANGE",
+        "object_hash": reference_hash,
+        "time_range": [cue["start"], cue["end"]],
+        "quality_obligation": "video.subtitle_presence",
+        "observation": "first cue text changed by TreeEdit caption_suffix",
+        "responsible_node": "captions",
+        "change_reason": "CONTROLLED_REQUIREMENT_CHANGE: visible [PROBE] marker",
+        "invalidation_scope": ["captions", "mux", "technical", "subtitle"],
+        "reused": ["spec", "script", "tts", "render"],
+        "executed": list(summary.actual_executions),
+        "summary": summary.as_dict(),
+        "candidate_reference_sha256": reference_hash,
+        "probe_final_sha256": sha256(final),
+        "final_hash_changed": sha256(final) != reference_hash,
+        "band_ssim_before_after": band_ssim,
+        "band_pixels_changed": band_ssim < 0.999,
+        "technical_status": technical.status.value,
+        "subtitle_status": subtitle.status.value,
+        "improvement_claimed": False,
+        "scope": "probe only; candidate_reference.mp4 remains the delivery candidate",
+    }
+    write_json(probe / "probe.json", payload)
+    write_json(workdir / "trace" / "caption_probe.json", payload)
     return payload
 
 
