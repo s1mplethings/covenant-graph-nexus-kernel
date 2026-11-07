@@ -2206,5 +2206,196 @@ def run_host_acceptance(workdir: Path, spec: dict, run_id: str) -> dict:
     return payload
 
 
+_production_contract = _contract
+
+
+def build_production_test_tree(workdir: Path, spec: dict, run_id: str) -> CapabilityTree:
+    """Minimal production-node tree for an isolated test copy.
+    GUI capture, SAPI TTS and FFmpeg mux are real production executors. The
+    existing draft/spec/script are read-only cached inputs, not new marketing
+    work, and the delivered final.mp4 is never touched.
+    """
+    nodes = [CapabilityNode("video", capability_ref="")]
+    def add(node_id, capability, deps, contract):
+        nodes.append(CapabilityNode(
+            node_id, parent_id="video", capability_ref=capability,
+            depends_on=tuple(deps),
+            config={"executor_ref": contract["executor_ref"], "workdir": str(workdir),
+                    "run_id": run_id, "leaf_contract": contract}))
+    add("spec", "promotion.video.cached@1", [], _cached_contract(
+        "spec", ["video_task_spec.json", "VIDEO_GOAL_RESOLUTION.md"], []))
+    add("gui", "promotion.video.gui@1", ["spec"],
+        _production_contract(
+            "gui", "capture real GUI in the isolated production test copy", "IMPLEMENTATION",
+            ["evidence/gui/01_projects.png", "evidence/gui/02_campaigns.png",
+             "evidence/gui/03_content_draft.png", "evidence/gui/04_approved.png",
+             "evidence/gui/05_published.png", "evidence/gui/06_receipts.png",
+             "evidence/gui/page.html", "evidence/gui/gui_observations.json"],
+            ["gui.key_pages"], "promotion.checker.gui@1", "promotion.video.gui@1",
+            ["spec"], expected_delta="real browser screenshots and recording in test copy"))
+    add("gui_layout", "promotion.video.gui-check@1", ["gui"],
+        _production_contract(
+            "gui_layout", "check real GUI labels in the test copy", "TEST",
+            ["evidence/gui/gui_observations.json", "evidence/results/gui.json"],
+            ["gui.key_pages"], "promotion.checker.gui@1", "promotion.video.gui-check@1",
+            ["gui"], subject="gui_observations.json",
+            expected_observation="labels and PUBLISHED receipt visible",
+            pass_fail_rule="all GUI checks true"))
+    add("script", "promotion.video.cached@1", ["spec"],
+        _cached_contract("script", ["trace/narration_text.json"], ["spec"]))
+    add("tts", "promotion.video.tts@1", ["script"],
+        _production_contract(
+            "tts", "synthesize local narration in the test copy", "IMPLEMENTATION",
+            ["evidence/audio/narration.wav", "trace/tts_manifest.json"],
+            ["video.audio_narration"], "promotion.checker.tts@1",
+            "promotion.video.tts@1", ["script"],
+            expected_delta="new SAPI narration in test copy"))
+    add("audio", "promotion.video.audio@1", ["tts"],
+        _production_contract(
+            "audio", "check the new test-copy narration", "TEST",
+            ["evidence/audio/narration.wav", "evidence/results/audio.json"],
+            ["video.audio_narration"], "promotion.checker.audio@1",
+            "promotion.video.audio@1", ["tts"],
+            subject="narration.wav", expected_observation="non-silent narration",
+            pass_fail_rule="mean > -45 dB and peak > -12 dB"))
+    add("captions", "promotion.video.captions@1", ["tts", "script"],
+        _production_contract(
+            "captions", "create test-copy SRT from new narration timing", "IMPLEMENTATION",
+            ["out/demo.srt", "trace/captions.json"],
+            ["video.subtitle_presence"], "promotion.checker.captions@1",
+            "promotion.video.captions@1", ["tts", "script"],
+            expected_delta="new SRT in test copy"))
+    add("render", "promotion.video.cached@1", ["spec"],
+        _cached_contract("render", ["out/draft_no_subs.mp4", "trace/shot_manifest.json"],
+                         ["spec"]))
+    add("mux", "promotion.video.mux@1", ["render", "captions", "tts"],
+        _production_contract(
+            "mux", "mux the test-copy final with real FFmpeg", "IMPLEMENTATION",
+            ["out/final.mp4", "out/demo.srt", "evidence/audio/narration.wav"],
+            ["video.subtitle_presence", "video.final_audio_stream"],
+            "promotion.checker.mux@1", "promotion.video.mux@1",
+            ["render", "captions", "tts"],
+            expected_delta="test-copy MP4, never the delivered final"))
+    add("technical", "promotion.video.technical@1", ["mux"],
+        _production_contract(
+            "technical", "check test-copy technical output", "TEST",
+            ["out/final.mp4", "evidence/results/technical.json"],
+            ["video.container_decodable", "video.duration", "video.resolution",
+             "video.final_audio_stream"], "promotion.checker.technical@1",
+            "promotion.video.technical@1", ["mux"],
+            subject="final.mp4", expected_observation="decodable H.264/AAC",
+            pass_fail_rule="all technical checks true"))
+    add("subtitle", "promotion.video.subtitle@1", ["mux", "captions"],
+        _production_contract(
+            "subtitle", "check test-copy encoded subtitle frames", "TEST",
+            ["out/final.mp4", "out/demo.srt", "evidence/results/subtitle.json"],
+            ["video.subtitle_presence"], "promotion.checker.subtitle@1",
+            "promotion.video.subtitle@1", ["mux", "captions"],
+            subject="final.mp4", expected_observation="bright subtitle band",
+            pass_fail_rule="timing and encoded-frame checks true"))
+    return CapabilityTree("Minimal production test in isolated copy", tuple(nodes))
+
+
+def run_production_test(workdir: Path, spec: dict, run_id: str) -> dict:
+    """Invoke real GUI/SAPI/FFmpeg production executors through DAGRunner.
+
+    All writes are confined to production_test/. The delivered final.mp4 is
+    never opened for writing.
+    """
+    from datetime import datetime, timezone
+    from cgkn.runtime import DAGRunner
+    from cgkn.state import FileRunStore
+    from cgkn.executors import ExecutorRegistry
+    from cgkn.execution.deliverables import FileDeliverableChecker
+
+    test = workdir / "production_test"
+    if test.exists():
+        shutil.rmtree(test)
+    (test / "trace").mkdir(parents=True)
+    (test / "out").mkdir(parents=True)
+    shutil.copy2(workdir / "video_task_spec.json", test / "video_task_spec.json")
+    shutil.copy2(workdir / "VIDEO_GOAL_RESOLUTION.md", test / "VIDEO_GOAL_RESOLUTION.md")
+    shutil.copy2(workdir / "trace" / "narration_text.json", test / "trace" / "narration_text.json")
+    shutil.copy2(workdir / "out" / "draft_no_subs.mp4", test / "out" / "draft_no_subs.mp4")
+    shutil.copy2(workdir / "trace" / "shot_manifest.json", test / "trace" / "shot_manifest.json")
+    delivered = workdir / "out" / "final.mp4"
+    delivered_before = sha256(delivered)
+    tree = build_production_test_tree(test, spec, run_id)
+    dag = compile_tree(tree)
+    checks = {}
+    deliverable_checkers = {}
+    for node in tree.nodes:
+        contract = node.config.get("leaf_contract")
+        if not isinstance(contract, Mapping):
+            continue
+        for name in contract.get("acceptance", ()):
+            checks[str(name)] = _generic_deliverable_check
+        deliverable_checkers[contract["checker_ref"]] = "deliverable.files@1"
+    checker = FileDeliverableChecker(test, checks)
+    registry = ExecutorRegistry()
+    registry.register(checker)
+    for node in tree.nodes:
+        if not node.executable:
+            continue
+        capability = node.capability_ref
+        if capability == "promotion.video.cached@1":
+            function = exec_cached
+            executor_ref = node.config["executor_ref"]
+        else:
+            function = EXECUTORS[capability]
+            executor_ref = capability
+        registry.register(_HostExecutor(capability, function, executor_ref=executor_ref))
+    store = FileRunStore(test / "state")
+    host_run = run_id + "-" + datetime.now(timezone.utc).strftime("%H%M%S")
+    runner = DAGRunner(registry, store, max_parallel=1,
+                       deliverable_checkers=deliverable_checkers)
+    summary = runner.run(project_id="promotion-production-test",
+                         run_id=host_run, tree=tree, dag=dag)
+    results = {}
+    for node in tree.nodes:
+        if node.executable:
+            result = store.load_result("promotion-production-test", host_run, node.id)
+            results[node.id] = {"status": result.status.value,
+                                "outputs": dict(result.outputs)}
+    delivered_after = sha256(delivered)
+    cached_nodes = ["spec", "script", "render"]
+    executed_nodes = [node for node in summary.actual_executions
+                      if node not in cached_nodes]
+    payload = {
+        "kind": "ProductionDAGRunnerIntegration",
+        "scope": "minimal production test in isolated copy; delivered final.mp4 untouched",
+        "summary": summary.as_dict(),
+        "dagrunner_reported_executions": list(summary.actual_executions),
+        "executed": executed_nodes,
+        "reused": cached_nodes,
+        "reused_bindings": {
+            "spec": {"path": str(test / "video_task_spec.json"),
+                     "sha256": sha256(test / "video_task_spec.json")},
+            "script": {"path": str(test / "trace" / "narration_text.json"),
+                       "sha256": sha256(test / "trace" / "narration_text.json")},
+            "render": {"draft": str(test / "out" / "draft_no_subs.mp4"),
+                       "draft_sha256": sha256(test / "out" / "draft_no_subs.mp4"),
+                       "shot_manifest": str(test / "trace" / "shot_manifest.json"),
+                       "shot_manifest_sha256": sha256(test / "trace" / "shot_manifest.json")},
+        },
+        "cached_reader_note": "spec/script/render are read-only cached inputs; DAGRunner invokes a cached reader but they are marked REUSED, not new production work",
+        "node_results": results,
+        "test_final": str(test / "out" / "final.mp4"),
+        "test_final_sha256": sha256(test / "out" / "final.mp4"),
+        "delivered_final_sha256_before": delivered_before,
+        "delivered_final_sha256_after": delivered_after,
+        "delivered_final_unchanged": delivered_before == delivered_after,
+        "real_executors": {
+            "playwright": "gui",
+            "sapi": "tts",
+            "ffmpeg": "mux",
+            "checks": ["technical", "subtitle", "audio", "gui_layout"],
+        },
+    }
+    write_json(test / "production_test.json", payload)
+    write_json(workdir / "trace" / "production_test.json", payload)
+    return payload
+
+
 if __name__ == "__main__":
     raise SystemExit(main())
