@@ -2194,6 +2194,13 @@ def run_host_acceptance(workdir: Path, spec: dict, run_id: str) -> dict:
         output.write_bytes(host_acceptance.read_bytes())
     payload = {"kind": "HostDAGRunnerAcceptanceIntegration",
                "summary": summary.as_dict(),
+               "cached_reader_nodes": ["spec", "gui", "design", "script", "tts",
+                                       "captions", "render", "mux"],
+               "reused": ["spec", "gui", "design", "script", "tts", "captions",
+                          "render", "mux"],
+               "executed": [node for node in summary.actual_executions
+                            if node not in {"spec", "gui", "design", "script", "tts",
+                                            "captions", "render", "mux"}],
                "qab_node_status": qab_result.status.value,
                "qab_node_outputs": dict(qab_result.outputs),
                "goal_verdict": row.get("verdict"),
