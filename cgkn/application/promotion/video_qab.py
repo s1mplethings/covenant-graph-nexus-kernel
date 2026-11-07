@@ -773,7 +773,7 @@ def check_subtitles(workdir: Path, final: Path, srt: Path) -> dict:
             "status": status, "checks": checks, "cue_count": len(cues),
             "cue_ymax": cue_frame, "cue_yavg": cue_yavg, "base_ymax": base_frame,
             "duration": duration,
-            "obligations": ["video.subtitles_burned"],
+            "obligations": ["video.subtitle_presence"],
             "object_versions": {"final.mp4": sha256(final), "demo.srt": sha256(srt)},
             "checker_versions": {"subtitle@1": "1"},
             "evidence_refs": ["evidence/results/subtitle.json"],
@@ -783,7 +783,7 @@ def check_subtitles(workdir: Path, final: Path, srt: Path) -> dict:
         return value
     except Exception as exc:
         value = {"status": "ERROR", "error": repr(exc),
-                 "obligations": ["video.subtitles_burned"],
+                 "obligations": ["video.subtitle_presence"],
                  "object_versions": {"final.mp4": sha256(final) if final.is_file() else "",
                                      "demo.srt": sha256(srt) if srt.is_file() else ""},
                  "checker_versions": {"subtitle@1": "1"},
@@ -949,13 +949,14 @@ def video_obligations(spec: dict) -> QualityPlan:
     audio_required = spec.get("audio", {}).get("mode") == "required"
     def ob(oid, subject, checker, kind=QualityKind.DETERMINISTIC,
            required=True, behavior="", criterion="", basis="", scope=("final_mp4",)):
+        subject_refs = (subject,) if isinstance(subject, str) else tuple(subject)
         return QualityObligation(
             id=oid, version="1", source="provisional-video-spec",
             scope=scope, trigger=("video",), behavior=behavior,
             observable=behavior, criterion=criterion, criterion_basis=basis,
-            checker=checker, checker_version="1", subject_refs=(subject,),
+            checker=checker, checker_version="1", subject_refs=subject_refs,
             required=required, kind=kind,
-            invalidation_keys=(subject,),
+            invalidation_keys=tuple(subject_refs),
             failure_owner="promotion.video",
             pending_review_reason=(
                 "human visual/audio review has not been performed"
@@ -983,11 +984,26 @@ def video_obligations(spec: dict) -> QualityPlan:
            behavior="real GUI slides and browser recording appear in final",
            criterion=">=3 real scenes pass similarity/luma checks",
            basis="provisional content gate"),
-        ob("video.subtitles_burned", "final.mp4", "subtitle@1",
+        ob("video.subtitle_presence", "final.mp4", "subtitle@1",
            kind=QualityKind.MEASURED,
-           behavior="subtitles are readable in encoded frames",
-           criterion="cue timing/text safe and cue frame has bright text",
-           basis="provisional subtitle gate"),
+           behavior="subtitle band is encoded and visible at declared cue times",
+           criterion="cue timing, nonempty source text, bright encoded glyph band",
+           basis="provisional technical presence gate"),
+        ob("video.subtitle_content_correctness", ("final.mp4", "demo.srt"),
+           "subtitle_human@1", kind=QualityKind.PERCEPTUAL,
+           behavior="encoded subtitles reproduce the intended Chinese text",
+           criterion="OCR or human text comparison required",
+           basis="no OCR/ASR evidence in this run"),
+        ob("video.subtitle_readability", ("final.mp4", "demo.srt"),
+           "subtitle_human@1", kind=QualityKind.PERCEPTUAL,
+           behavior="subtitle font, contrast and line layout are comfortably readable",
+           criterion="human readability review required",
+           basis="no human visual review in this run"),
+        ob("video.subtitle_no_occlusion", ("final.mp4", "demo.srt"),
+           "subtitle_human@1", kind=QualityKind.PERCEPTUAL,
+           behavior="subtitles do not cover critical business content",
+           criterion="human occlusion/safe-area review required",
+           basis="no semantic occlusion review in this run"),
         ob("video.audio_narration", "narration.wav", "audio@1",
            kind=QualityKind.MEASURED, required=audio_required,
            behavior="local Chinese narration is present and non-silent",
@@ -1001,7 +1017,7 @@ def video_obligations(spec: dict) -> QualityPlan:
            behavior="storyboard HTML renders required text",
            criterion="title, QAB and technical text present",
            basis="second-domain HTML control"),
-        ob("video.visual_quality", "contact_sheet.png", "visual@1",
+        ob("video.visual_quality", ("final.mp4", "contact_sheet.png"), "visual@1",
            kind=QualityKind.PERCEPTUAL,
            behavior="visual composition is acceptable to a human reviewer",
            criterion="human review required",
@@ -1049,14 +1065,22 @@ def _quality_evidence(results: Mapping[str, Mapping[str, Any]],
     final_hash = str(results.get("technical", {}).get("object_versions", {}).get("final.mp4", ""))
     contact = str(results.get("visual", {}).get("object_versions", {}).get("contact_sheet.png", ""))
     narration = str(results.get("audio", {}).get("object_versions", {}).get("narration.wav", ""))
-    for oid, subject, value, checker in (
-        ("video.visual_quality", "contact_sheet.png", contact, "visual@1"),
-        ("video.audio_intelligibility", "narration.wav", narration, "audio_human@1"),
+    srt_hash = str(results.get("subtitle", {}).get("object_versions", {}).get("demo.srt", ""))
+    for oid, objects, checker in (
+        ("video.visual_quality",
+         {"contact_sheet.png": contact, "final.mp4": final_hash}, "visual@1"),
+        ("video.audio_intelligibility", {"narration.wav": narration}, "audio_human@1"),
+        ("video.subtitle_content_correctness",
+         {"final.mp4": final_hash, "demo.srt": srt_hash}, "subtitle_human@1"),
+        ("video.subtitle_readability",
+         {"final.mp4": final_hash, "demo.srt": srt_hash}, "subtitle_human@1"),
+        ("video.subtitle_no_occlusion",
+         {"final.mp4": final_hash, "demo.srt": srt_hash}, "subtitle_human@1"),
     ):
         evidence.append(QualityEvidence(
             obligation_id=oid, obligation_version="1",
             verdict=QualityVerdict.PENDING_REVIEW,
-            object_versions={subject: value}, checker_versions={checker: "1"},
+            object_versions=objects, checker_versions={checker: "1"},
             evidence_refs=("evidence/results/review_pending.json",),
             notes="human review pending",
         ))
@@ -1078,7 +1102,7 @@ def qab_acceptance(workdir: Path, spec: dict, results: Mapping[str, Mapping[str,
     checker_versions = {
         "technical@1": "1", "content@1": "1", "subtitle@1": "1",
         "audio@1": "1", "gui@1": "1", "html@1": "1",
-        "visual@1": "1", "audio_human@1": "1",
+        "visual@1": "1", "audio_human@1": "1", "subtitle_human@1": "1",
     }
     report = plan.coverage(evidence, object_versions=object_versions,
                            checker_versions=checker_versions)
@@ -1106,6 +1130,28 @@ def qab_acceptance(workdir: Path, spec: dict, results: Mapping[str, Mapping[str,
         "object_versions": object_versions,
         "checker_versions": checker_versions,
         "scope_note": "local QAB acceptance; not a formal P11 trust-anchored delivery",
+    }
+    from cgkn.state.acceptance import identity
+    goal_condition = {
+        "obligation": "QAB_VIDEO",
+        "technical_required": True,
+        "perceptual_pending_allowed": True,
+    }
+    acceptance["goal_check"] = {
+        "execution": "VALID",
+        "goal_id": "qab.video",
+        "condition_hash": identity(goal_condition),
+        "subjects": {"final.mp4": object_versions["final.mp4"]},
+        "verdict": ("FAILED" if technical_status != "PASS"
+                    else "VERIFIED" if overall == "PASS"
+                    else "HUMAN_DECISION_REQUIRED"),
+        "observed": {"technical_status": technical_status,
+                     "overall_status": overall,
+                     "missing_required": list(report.missing_required),
+                     "pending_review": list(report.pending_review)},
+        "evidence_refs": ["evidence/results/technical.json",
+                          "trace/qab_report.json"],
+        "checker_version": "1",
     }
     write_json(workdir / "trace" / "qab_report.json", {
         "plan": plan.as_dict(), "evidence": [item.as_dict() for item in evidence],
@@ -1198,7 +1244,7 @@ def build_video_tree(workdir: Path, spec: dict, run_id: str) -> tuple[Capability
         "captions", "promotion.video.captions@1", ["tts", "script"],
         _contract("captions", "create deterministic Chinese subtitles", "IMPLEMENTATION",
                   ["out/demo.srt", "trace/captions.json"],
-                  ["video.subtitles_burned"], "promotion.checker.captions@1",
+                  ["video.subtitle_presence"], "promotion.checker.captions@1",
                   "promotion.video.captions@1", ["tts", "script"],
                   expected_delta="SRT cues tied to narration timing"),
         workdir, run_id))
@@ -1215,7 +1261,7 @@ def build_video_tree(workdir: Path, spec: dict, run_id: str) -> tuple[Capability
         "mux", "promotion.video.mux@1", ["render", "captions", "tts"],
         _contract("mux", "burn subtitles and mux narration into final.mp4", "IMPLEMENTATION",
                   ["out/final.mp4", "out/demo.srt", "evidence/audio/narration.wav"],
-                  ["video.subtitles_burned", "video.final_audio_stream"],
+                  ["video.subtitle_presence", "video.final_audio_stream"],
                   "promotion.checker.mux@1", "promotion.video.mux@1",
                   ["render", "captions", "tts"],
                   expected_delta="final H.264/AAC MP4 with burned subtitles"),
@@ -1243,10 +1289,23 @@ def build_video_tree(workdir: Path, spec: dict, run_id: str) -> tuple[Capability
         "subtitle", "promotion.video.subtitle@1", ["mux", "captions"],
         _contract("subtitle", "inspect encoded subtitle frames and SRT safety", "TEST",
                   ["out/final.mp4", "out/demo.srt", "evidence/results/subtitle.json"],
-                  ["video.subtitles_burned"], "promotion.checker.subtitle@1",
+                  ["video.subtitle_presence"], "promotion.checker.subtitle@1",
                   "promotion.video.subtitle@1", ["mux", "captions"],
                   subject="final.mp4", expected_observation="bright subtitle text at cue frame",
                   pass_fail_rule="timing and encoded-frame checks true"),
+        workdir, run_id))
+    nodes.append(_node(
+        "subtitle_review", "promotion.video.subtitle-review@1", ["subtitle"],
+        _contract("subtitle_review", "record subtitle content/readability/occlusion review as pending",
+                  "INSPECTION",
+                  ["evidence/results/subtitle_review_pending.json"],
+                  ["video.subtitle_content_correctness", "video.subtitle_readability",
+                   "video.subtitle_no_occlusion"],
+                  "promotion.checker.subtitle_human@1", "promotion.video.subtitle-review@1",
+                  ["subtitle"],
+                  subject="subtitle_review_pending.json",
+                  expected_observation="OCR/human subtitle review pending",
+                  pass_fail_rule="PENDING_REVIEW is not a quality PASS"),
         workdir, run_id))
     nodes.append(_node(
         "audio", "promotion.video.audio@1", ["tts"],
@@ -1289,17 +1348,17 @@ def build_video_tree(workdir: Path, spec: dict, run_id: str) -> tuple[Capability
     nodes.append(_node(
         "qab", "promotion.video.qab@1",
         ["technical", "content", "subtitle", "audio", "visual", "gui_layout",
-         "html_control", "review"],
+         "html_control", "review", "subtitle_review"],
         _contract("qab", "compute required quality-obligation coverage", "INSPECTION",
                   ["trace/qab_report.json", "trace/goal_acceptance.json"],
                   ["video.container_decodable", "video.duration", "video.resolution",
                    "video.final_audio_stream", "video.content_real_gui",
-                   "video.subtitles_burned", "video.audio_narration",
+                   "video.subtitle_presence", "video.audio_narration",
                    "gui.key_pages", "html.storyboard_text", "video.visual_quality",
-                   "video.audio_intelligibility"],
+                   "video.audio_intelligibility", "video.subtitle_content_correctness", "video.subtitle_readability", "video.subtitle_no_occlusion"],
                   "promotion.checker.qab@1", "promotion.video.qab@1",
                   ["technical", "content", "subtitle", "audio", "visual", "gui_layout",
-                   "html_control", "review"],
+                   "html_control", "review", "subtitle_review"],
                   subject="qab_report.json", expected_observation="required coverage",
                   pass_fail_rule="technical PASS; perceptual pending review"),
         workdir, run_id))
@@ -1515,6 +1574,23 @@ def exec_review(request: BlockExecutionRequest) -> BlockExecutionResult:
     return _result(request, value, started=request.created_at, clock=started)
 
 
+def exec_subtitle_review(request: BlockExecutionRequest) -> BlockExecutionResult:
+    started = time.perf_counter(); cfg = _config(request); deps = _deps(request)
+    workdir = Path(cfg["workdir"])
+    final_hash = deps["subtitle"].get("object_versions", {}).get("final.mp4", "")
+    srt_hash = deps["subtitle"].get("object_versions", {}).get("demo.srt", "")
+    value = {"status": "PENDING_REVIEW",
+             "obligations": ["video.subtitle_content_correctness",
+                             "video.subtitle_readability",
+                             "video.subtitle_no_occlusion"],
+             "object_versions": {"final.mp4": final_hash, "demo.srt": srt_hash},
+             "checker_versions": {"subtitle_human@1": "1"},
+             "evidence_refs": ["evidence/results/subtitle_review_pending.json"],
+             "notes": "OCR/human text comparison, readability and occlusion review not performed"}
+    write_json(workdir / "evidence" / "results" / "subtitle_review_pending.json", value)
+    return _result(request, value, started=request.created_at, clock=started)
+
+
 EXECUTORS: dict[str, Callable[[BlockExecutionRequest], BlockExecutionResult]] = {
     "promotion.video.spec@1": exec_spec,
     "promotion.video.gui@1": exec_gui,
@@ -1528,6 +1604,7 @@ EXECUTORS: dict[str, Callable[[BlockExecutionRequest], BlockExecutionResult]] = 
     "promotion.video.technical@1": exec_technical,
     "promotion.video.content@1": exec_content,
     "promotion.video.subtitle@1": exec_subtitle,
+    "promotion.video.subtitle-review@1": exec_subtitle_review,
     "promotion.video.audio@1": exec_audio,
     "promotion.video.visual@1": exec_visual,
     "promotion.video.review@1": exec_review,
@@ -1675,11 +1752,10 @@ def run_incremental(workdir: Path, spec: dict, results: Mapping[str, Mapping[str
     old_srt = Path(results["captions"]["srt"])
     text = old_srt.read_text(encoding="utf-8")
     new_srt = inc / "demo_incremental.srt"
-    new_text = text.replace("Promotion Studio 是一个本地优先的内容审批与发布工作台。",
-                            "Promotion Studio 是一个本地优先的工作台。", 1)
-    if new_text == text:
-        new_text = text.replace("真实界面", "真实界面（局部修订）", 1)
-    if new_text == text:
+    import re
+    marker = "\uff08\u5c40\u90e8\u4fee\u8ba2\uff09"
+    new_text, count = re.subn(r"(Promotion Studio[^\n]*)", r"\1" + marker, text, count=1)
+    if count == 0:
         raise RuntimeError("incremental subtitle mutation did not apply")
     new_srt.write_text(new_text, encoding="utf-8")
     new_final = inc / "final_incremental.mp4"
@@ -1690,10 +1766,21 @@ def run_incremental(workdir: Path, spec: dict, results: Mapping[str, Mapping[str
                             Path(results["render"]["shot_manifest"]),
                             read_json(workdir / "evidence" / "design" / "design_manifest.json"))
     subtitle = check_subtitles(workdir, new_final, new_srt)
-    # Audio and GUI/HTML evidence are reused: their subjects are unchanged.
+    visual = check_visual(workdir, new_final)
+    pending = {"status": "PENDING_REVIEW",
+               "obligations": ["video.subtitle_content_correctness",
+                               "video.subtitle_readability",
+                               "video.subtitle_no_occlusion"],
+               "object_versions": {"final.mp4": sha256(new_final),
+                                   "demo.srt": sha256(new_srt)},
+               "checker_versions": {"subtitle_human@1": "1"},
+               "evidence_refs": ["incremental/subtitle_review_pending.json"]}
+    write_json(inc / "subtitle_review_pending.json", pending)
+    # Audio, design, GUI and HTML subjects are unchanged. Visual evidence is
+    # explicitly bound to final.mp4 and must be re-exported when final changes.
     reused_results = {
         "technical": technical, "content": content, "subtitle": subtitle,
-        "audio": results["audio"], "visual": results["visual"],
+        "audio": results["audio"], "visual": visual,
         "gui_layout": results["gui_layout"], "html_control": results["html_control"],
     }
     reuse_acceptance_path = workdir / "trace" / "goal_acceptance.json"
@@ -1711,9 +1798,10 @@ def run_incremental(workdir: Path, spec: dict, results: Mapping[str, Mapping[str
         "old_srt_sha256": sha256(old_srt), "new_srt_sha256": sha256(new_srt),
         "old_final_sha256": results["mux"]["final_sha256"],
         "new_final_sha256": muxed["final_sha256"],
-        "executed": ["mux", "technical", "content", "subtitle", "qab"],
+        "executed": ["mux", "technical", "content", "subtitle", "visual",
+                     "subtitle_review", "qab"],
         "reused": ["spec", "gui", "design", "gui_layout", "html_control",
-                   "script", "tts", "audio", "visual"],
+                   "script", "tts", "audio"],
         "technical": technical, "content": content, "subtitle": subtitle,
         "acceptance": acceptance,
         "object_versions": {"old_final.mp4": results["mux"]["final_sha256"],
@@ -1751,6 +1839,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--run-id", default="qab-run-01")
     parser.add_argument("--skip-negative", action="store_true")
     parser.add_argument("--skip-incremental", action="store_true")
+    parser.add_argument("--skip-host", action="store_true")
     args = parser.parse_args(argv)
     workdir = Path(args.workdir).resolve()
     spec = ensure_spec(workdir)
@@ -1771,6 +1860,11 @@ def main(argv: list[str] | None = None) -> int:
         if frames_initial.exists():
             shutil.rmtree(frames_initial)
         shutil.copytree(workdir / "evidence" / "frames", frames_initial)
+    if not args.skip_host:
+        host = run_host_acceptance(workdir, spec, args.run_id)
+        print(json.dumps({"host_dagrunner": host["qab_node_status"],
+                          "goal_verdict": host["goal_verdict"]}, ensure_ascii=False))
+        shutil.copytree(results_initial, workdir / "evidence" / "results", dirs_exist_ok=True)
     if not args.skip_negative:
         negative = run_negative_controls(workdir, spec, run["results"])
         print(json.dumps({"negative_controls": negative["all_expected"]}, ensure_ascii=False))
@@ -1812,12 +1906,17 @@ def tree_edit_negative(workdir: Path, spec: dict, run_id: str) -> dict:
         tests.append(result)
 
     evaluate("delete_required_quality_node", (
-        TreeEdit("edit-remove-dependency", "remove_dependency", "qab",
+        TreeEdit("edit-remove-dependency-subtitle", "remove_dependency", "qab",
                  {"dependency": "subtitle"},
+                 {"reason": "negative control: remove required subtitle check"}),
+        TreeEdit("edit-remove-dependency-subtitle-review", "remove_dependency", "qab",
+                 {"dependency": "subtitle_review"},
+                 {"reason": "negative control: remove required subtitle check"}),
+        TreeEdit("edit-remove-subtitle-review", "remove_node", "subtitle_review", {},
                  {"reason": "negative control: remove required subtitle check"}),
         TreeEdit("edit-remove-subtitle", "remove_node", "subtitle", {},
                  {"reason": "negative control: remove required subtitle check"}),
-    ), "video.subtitles_burned")
+    ), "video.subtitle_presence")
 
     subtitle = tree.by_id["subtitle"]
     config = dict(subtitle.config)
@@ -1828,10 +1927,282 @@ def tree_edit_negative(workdir: Path, spec: dict, run_id: str) -> dict:
         TreeEdit("edit-weaken-subtitle", "update_config", "subtitle",
                  {"config": config},
                  {"reason": "negative control: remove required acceptance"}),
-    ), "video.subtitles_burned")
+    ), "video.subtitle_presence")
 
     payload = {"tests": tests, "passed": all(item["passed"] for item in tests)}
     write_json(workdir / "negative" / "tree_edit_negative.json", payload)
+    return payload
+
+
+
+
+def exec_cached(request: BlockExecutionRequest) -> BlockExecutionResult:
+    """Read the already-produced production artifacts; never render or capture."""
+    started = time.perf_counter(); cfg = _config(request)
+    workdir = Path(cfg["workdir"]); node = request.node_id
+    evidence = workdir / "evidence"
+    if node == "spec":
+        value = {"spec": str(workdir / "video_task_spec.json"),
+                 "spec_sha256": sha256(workdir / "video_task_spec.json"),
+                 "goal": str(workdir / "VIDEO_GOAL_RESOLUTION.md")}
+    elif node == "gui":
+        observations = evidence / "gui" / "gui_observations.json"
+        data = read_json(observations)
+        value = {"gui": data, "observations": str(observations),
+                 "observations_sha256": sha256(observations)}
+    elif node == "design":
+        manifest_path = evidence / "design" / "design_manifest.json"
+        value = read_json(manifest_path)
+        value["design_manifest_sha256"] = sha256(manifest_path)
+    elif node == "script":
+        value = read_json(workdir / "trace" / "narration_text.json")
+    elif node == "tts":
+        manifest = read_json(workdir / "trace" / "tts_manifest.json")
+        value = manifest
+    elif node == "captions":
+        value = read_json(workdir / "trace" / "captions.json")
+    elif node == "render":
+        manifest_path = workdir / "trace" / "shot_manifest.json"
+        manifest = read_json(manifest_path)
+        value = {"draft": str(workdir / "out" / "draft_no_subs.mp4"),
+                 "draft_sha256": sha256(workdir / "out" / "draft_no_subs.mp4"),
+                 "shot_manifest": str(manifest_path),
+                 "shot_manifest_sha256": sha256(manifest_path),
+                 "duration": manifest.get("duration")}
+    elif node == "mux":
+        final = workdir / "out" / "final.mp4"
+        value = {"final": str(final), "final_sha256": sha256(final),
+                 "duration": duration_of(final)}
+    else:
+        raise ValueError("no cached executor for node " + node)
+    return _result(request, value, started=request.created_at, clock=started)
+
+
+class _HostExecutor:
+    def __init__(self, capability: str, function, *, executor_ref: str | None = None):
+        self.capability = capability
+        self.function = function
+        ref = executor_ref or capability
+        self.descriptor = ExecutorDescriptor(
+            ref, "video_qab", (capability,), ("filesystem.read", "filesystem.write"),
+            default_timeout_seconds=600,
+        )
+
+    def execute(self, request: BlockExecutionRequest) -> BlockExecutionResult:
+        return self.function(request)
+
+
+def _cached_contract(node_id: str, scope: list[str], deps: list[str]) -> dict:
+    return _contract(node_id, "reuse already-produced " + node_id, "INSPECTION",
+                     scope, ["cached." + node_id], "promotion.checker.cached." + node_id + "@1",
+                     "promotion.video.cached." + node_id + "@1", deps,
+                     subject=scope[0], expected_observation="existing artifact readable",
+                     pass_fail_rule="file exists and hash is current")
+
+
+def build_acceptance_tree(workdir: Path, spec: dict, run_id: str) -> CapabilityTree:
+    nodes = [CapabilityNode("video", capability_ref="")]
+    def add(node_id, capability, deps, contract):
+        nodes.append(CapabilityNode(
+            node_id, parent_id="video", capability_ref=capability,
+            depends_on=tuple(deps),
+            config={"executor_ref": contract["executor_ref"], "workdir": str(workdir),
+                    "run_id": run_id, "leaf_contract": contract}))
+    add("spec", "promotion.video.cached@1", [], _cached_contract(
+        "spec", ["video_task_spec.json", "VIDEO_GOAL_RESOLUTION.md"], []))
+    add("gui", "promotion.video.cached@1", ["spec"], _cached_contract(
+        "gui", ["evidence/gui/gui_observations.json", "evidence/gui/page.html"], ["spec"]))
+    add("design", "promotion.video.cached@1", ["gui"], _cached_contract(
+        "design", ["evidence/design/design_manifest.json", "evidence/design/storyboard.html"], ["gui"]))
+    add("gui_layout", "promotion.video.gui-check@1", ["gui"],
+        _contract("gui_layout", "inspect real GUI labels and browser errors", "TEST",
+                  ["evidence/gui/gui_observations.json", "evidence/results/gui.json"],
+                  ["gui.key_pages"], "promotion.checker.gui@1",
+                  "promotion.video.gui-check@1", ["gui"],
+                  subject="gui_observations.json",
+                  expected_observation="key labels, no page errors, PUBLISHED receipt",
+                  pass_fail_rule="all key labels and receipt state present"))
+    add("html_control", "promotion.video.html@1", ["design"],
+        _contract("html_control", "verify storyboard HTML text rendering", "TEST",
+                  ["evidence/design/storyboard.html", "evidence/results/html.json"],
+                  ["html.storyboard_text"], "promotion.checker.html@1",
+                  "promotion.video.html@1", ["design"],
+                  subject="storyboard.html", expected_observation="title/QAB/technical text present",
+                  pass_fail_rule="all text checks true"))
+    add("script", "promotion.video.cached@1", ["spec", "gui", "design"], _cached_contract(
+        "script", ["trace/narration_text.json"], ["spec", "gui", "design"]))
+    add("tts", "promotion.video.cached@1", ["script"], _cached_contract(
+        "tts", ["evidence/audio/narration.wav", "trace/tts_manifest.json"], ["script"]))
+    add("audio", "promotion.video.audio@1", ["tts"],
+        _contract("audio", "measure narration presence and loudness", "TEST",
+                  ["evidence/audio/narration.wav", "evidence/results/audio.json"],
+                  ["video.audio_narration"], "promotion.checker.audio@1",
+                  "promotion.video.audio@1", ["tts"],
+                  subject="narration.wav", expected_observation="non-silent local narration",
+                  pass_fail_rule="mean > -45 dB and peak > -12 dB"))
+    add("captions", "promotion.video.cached@1", ["tts", "script"], _cached_contract(
+        "captions", ["out/demo.srt", "trace/captions.json"], ["tts", "script"]))
+    add("render", "promotion.video.cached@1", ["gui", "design", "tts", "script"], _cached_contract(
+        "render", ["out/draft_no_subs.mp4", "trace/shot_manifest.json"],
+        ["gui", "design", "tts", "script"]))
+    add("mux", "promotion.video.cached@1", ["render", "captions", "tts"], _cached_contract(
+        "mux", ["out/final.mp4", "out/demo.srt", "evidence/audio/narration.wav"],
+        ["render", "captions", "tts"]))
+    add("technical", "promotion.video.technical@1", ["mux"],
+        _contract("technical", "measure container, decode, duration and codecs", "TEST",
+                  ["out/final.mp4", "evidence/results/technical.json"],
+                  ["video.container_decodable", "video.duration", "video.resolution",
+                   "video.final_audio_stream"], "promotion.checker.technical@1",
+                  "promotion.video.technical@1", ["mux"],
+                  subject="final.mp4", expected_observation="decodable 1920x1080 H.264/AAC, 30-60s",
+                  pass_fail_rule="all technical checks true"))
+    add("content", "promotion.video.content@1", ["mux", "render"],
+        _contract("content", "verify real GUI slides and recording in final frames", "TEST",
+                  ["out/final.mp4", "trace/shot_manifest.json", "evidence/results/content.json"],
+                  ["video.content_real_gui"], "promotion.checker.content@1",
+                  "promotion.video.content@1", ["mux", "render"],
+                  subject="final.mp4", expected_observation="real scenes visible at declared times",
+                  pass_fail_rule="at least three real scenes pass"))
+    add("subtitle", "promotion.video.subtitle@1", ["mux", "captions"],
+        _contract("subtitle", "inspect encoded subtitle frames and SRT safety", "TEST",
+                  ["out/final.mp4", "out/demo.srt", "evidence/results/subtitle.json"],
+                  ["video.subtitle_presence"], "promotion.checker.subtitle@1",
+                  "promotion.video.subtitle@1", ["mux", "captions"],
+                  subject="final.mp4", expected_observation="bright subtitle text at cue frame",
+                  pass_fail_rule="timing and encoded-frame checks true"))
+    add("subtitle_review", "promotion.video.subtitle-review@1", ["subtitle"],
+        _contract("subtitle_review", "record subtitle content/readability/occlusion review as pending",
+                  "INSPECTION",
+                  ["evidence/results/subtitle_review_pending.json"],
+                  ["video.subtitle_content_correctness", "video.subtitle_readability",
+                   "video.subtitle_no_occlusion"],
+                  "promotion.checker.subtitle_human@1", "promotion.video.subtitle-review@1",
+                  ["subtitle"],
+                  subject="subtitle_review_pending.json",
+                  expected_observation="OCR/human subtitle review pending",
+                  pass_fail_rule="PENDING_REVIEW is not a quality PASS"))
+    add("visual", "promotion.video.visual@1", ["mux"],
+        _contract("visual", "export key frames for human visual review", "INSPECTION",
+                  ["out/final.mp4", "evidence/contact_sheet.png", "evidence/results/visual.json"],
+                  ["video.visual_quality"], "promotion.checker.visual@1",
+                  "promotion.video.visual@1", ["mux"],
+                  subject="contact_sheet.png", expected_observation="key frame contact sheet",
+                  pass_fail_rule="contact sheet generated; aesthetic PASS is human-only"))
+    add("review", "promotion.video.review@1", ["visual", "audio"],
+        _contract("review", "record perceptual review as pending, not PASS", "INSPECTION",
+                  ["evidence/results/review_pending.json"],
+                  ["video.visual_quality", "video.audio_intelligibility"],
+                  "promotion.checker.audio_human@1", "promotion.video.review@1",
+                  ["visual", "audio"],
+                  subject="review_pending.json",
+                  expected_observation="human visual/listening review pending",
+                  pass_fail_rule="PENDING_REVIEW is not a quality PASS"))
+    add("qab", "promotion.video.qab@1",
+        ["technical", "content", "subtitle", "audio", "visual", "gui_layout", "html_control", "review", "subtitle_review"],
+        _contract("qab", "compute required quality-obligation coverage", "INSPECTION",
+                  ["trace/qab_report.json", "trace/goal_acceptance.json"],
+                  ["video.container_decodable", "video.duration", "video.resolution",
+                   "video.final_audio_stream", "video.content_real_gui",
+                   "video.subtitle_presence", "video.audio_narration",
+                   "gui.key_pages", "html.storyboard_text", "video.visual_quality",
+                   "video.audio_intelligibility", "video.subtitle_content_correctness", "video.subtitle_readability", "video.subtitle_no_occlusion"],
+                  "promotion.checker.qab@1", "promotion.video.qab@1",
+                  ["technical", "content", "subtitle", "audio", "visual", "gui_layout",
+                   "html_control", "review", "subtitle_review"],
+                  subject="qab_report.json", expected_observation="required coverage",
+                  pass_fail_rule="technical PASS; perceptual pending review"))
+    tree = CapabilityTree("QAB acceptance phase over existing artifacts", tuple(nodes))
+    validate_required_obligations(tree, video_obligations(spec))
+    return tree
+
+
+def _generic_deliverable_check(root: Path, contract: dict) -> dict:
+    missing = [name for name in contract["target_scope"]
+               if not (root / name).is_file() or (root / name).stat().st_size == 0]
+    return {"passed": not missing, "observed": {"scope": list(contract["target_scope"]),
+                                                 "missing": missing},
+            "evidence_refs": []}
+
+
+def run_host_acceptance(workdir: Path, spec: dict, run_id: str) -> dict:
+    """Run the existing check/acceptance nodes through Host DAGRunner/FileRunStore.
+
+    Production nodes are read-only cached artifacts; this does not render another
+    video and does not replace the production coordinator.
+    """
+    from datetime import datetime, timezone
+    from cgkn.runtime import DAGRunner
+    from cgkn.state import FileRunStore
+    from cgkn.executors import ExecutorRegistry
+    from cgkn.execution.deliverables import FileDeliverableChecker
+    from cgkn.state.acceptance import GoalAcceptance
+
+    tree = build_acceptance_tree(workdir, spec, run_id)
+    dag = compile_tree(tree)
+    checks = {}
+    deliverable_checkers = {}
+    for node in tree.nodes:
+        contract = node.config.get("leaf_contract")
+        if not isinstance(contract, Mapping):
+            continue
+        for name in contract.get("acceptance", ()):
+            checks[str(name)] = _generic_deliverable_check
+        deliverable_checkers[contract["checker_ref"]] = "deliverable.files@1"
+    checker = FileDeliverableChecker(workdir, checks)
+    registry = ExecutorRegistry()
+    registry.register(checker)
+    for node in tree.nodes:
+        if not node.executable:
+            continue
+        capability = node.capability_ref
+        if capability == "promotion.video.cached@1":
+            function = exec_cached
+            executor_ref = node.config["executor_ref"]
+        else:
+            function = EXECUTORS[capability]
+            executor_ref = capability
+        registry.register(_HostExecutor(capability, function, executor_ref=executor_ref))
+    store = FileRunStore(workdir / "host_acceptance_state")
+    host_run = run_id + "-" + datetime.now(timezone.utc).strftime("%H%M%S")
+    runner = DAGRunner(registry, store, max_parallel=1,
+                       deliverable_checkers=deliverable_checkers)
+    summary = runner.run(project_id="promotion-qab", run_id=host_run,
+                         tree=tree, dag=dag)
+    qab_result = store.load_result("promotion-qab", host_run, "qab")
+    final = workdir / "out" / "final.mp4"
+    final_sha = sha256(final)
+    condition = {"obligation": "QAB_VIDEO", "technical_required": True,
+                 "perceptual_pending_allowed": True}
+    requirements = {"qab": {"must": True, "weight": 1, "operator": "AND"}}
+    checkers = {"qab.checker": "promotion.video.qab@1"}
+    acceptance = GoalAcceptance(store, "promotion-qab", host_run,
+                                requirements, checkers)
+    acceptance.bind_subjects({"final.mp4": final_sha})
+    plan = {"phases": [{"id": "quality", "depends_on": []}],
+            "goals": [{"id": "qab.video", "phase_id": "quality",
+                       "requirement_refs": ["qab"], "acceptance": condition,
+                       "checker": "qab.checker", "subject_refs": ["final.mp4"],
+                       "task_refs": ["qab"], "checker_version": "1"}]}
+    acceptance.propose(plan, tree)
+    acceptance.commit(plan)
+    row = acceptance.record("qab.video", qab_result,
+                            executor_ref="promotion.video.qab@1")
+    view = acceptance.view()
+    host_acceptance = store.run_dir("promotion-qab", host_run) / "goal_acceptance.json"
+    output = workdir / "trace" / "host_goal_acceptance.json"
+    if host_acceptance.exists():
+        output.write_bytes(host_acceptance.read_bytes())
+    payload = {"kind": "HostDAGRunnerAcceptanceIntegration",
+               "summary": summary.as_dict(),
+               "qab_node_status": qab_result.status.value,
+               "qab_node_outputs": dict(qab_result.outputs),
+               "goal_verdict": row.get("verdict"),
+               "goal_view": view,
+               "scope": "check/acceptance phase only; production nodes are read-only cached artifacts",
+               "host_acceptance": str(output),
+               "run_dir": str(store.run_dir("promotion-qab", host_run)),
+               "no_second_video": True}
+    write_json(workdir / "trace" / "host_acceptance.json", payload)
     return payload
 
 
