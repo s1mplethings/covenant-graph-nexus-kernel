@@ -598,10 +598,17 @@ def render_draft(workdir: Path, spec: dict, design: dict, timings: dict,
 
 
 def mux_final(workdir: Path, draft: Path, narration: Path, srt: Path,
-              output: Path) -> dict:
+              output: Path, *, style_overrides: dict | None = None) -> dict:
     output.parent.mkdir(parents=True, exist_ok=True)
-    style = ("FontName=Microsoft YaHei,FontSize=16,PrimaryColour=&H00FFFFFF,"
-             "OutlineColour=&H00101820,Outline=1,Shadow=0,MarginV=28,Alignment=2")
+    style_fields = {
+        "FontName": "Microsoft YaHei", "FontSize": "16",
+        "PrimaryColour": "&H00FFFFFF", "OutlineColour": "&H00101820",
+        "Outline": "1", "Shadow": "0", "MarginV": "28", "Alignment": "2",
+    }
+    for key, value in (style_overrides or {}).items():
+        if key in style_fields and value is not None:
+            style_fields[key] = str(value)
+    style = ",".join(f"{key}={value}" for key, value in style_fields.items())
     relative_srt = os.path.relpath(srt, workdir).replace("\\", "/")
     # Relative filter paths avoid Windows drive-colon escaping in ffmpeg filters.
     command = [str(FFMPEG), "-y", "-i", str(draft), "-i", str(narration),
