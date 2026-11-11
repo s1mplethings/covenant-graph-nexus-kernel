@@ -31,6 +31,9 @@ from cgkn.state import FileRunStore
 from cgkn.state.acceptance import GoalAcceptance, identity
 
 from . import video_qab as q
+from .video_contracts import (PUBLISH_EFFECTS, PUBLISH_EFFECTS_SCHEMA,
+                              ExternalEffectBlocked, PreflightRejected,
+                              PreflightedDAGRunner, validate_publish_effects)
 
 
 SCENE_ORDER = ("intro", "projects", "content", "publish", "recording", "qab", "closing")
@@ -49,7 +52,7 @@ PERCEPTUAL_OBLIGATIONS = (
 PLAN_SCHEMA: dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
-    "required": ["schema_version", "strategy", "review_refs", "scenes", "subtitle"],
+    "required": ["schema_version", "strategy", "review_refs", "scenes", "subtitle", "effects"],
     "properties": {
         "schema_version": {"const": "1.0"},
         "strategy": {"type": "string", "minLength": 20},
@@ -83,16 +86,26 @@ PLAN_SCHEMA: dict[str, Any] = {
                 "font_size": {"type": "integer", "minimum": 12, "maximum": 24},
             },
         },
+        "effects": PUBLISH_EFFECTS_SCHEMA,
     },
 }
 PLAN_INSTRUCTIONS = """You are the delegated video editor for one bounded improvement.
 Read the external review and the frozen spec. Return a worker proposal whose single
 write_file action writes trace/video_plan.json with exactly the plan_schema. The
 plan must keep all seven scene ids in SCENE_ORDER, use only real GUI screenshot
-names supplied in gui_screenshots, narrate in zh-CN, and prefer a result-first opening,
+names supplied in gui_screenshots, narrate in zh-CN, and make the intro scene open with a
+real GUI screenshot that shows a recognizable product result in the first five seconds
+(result-first opening: the intro must set source to a real screenshot, not null),
 readable focus crops, and subtitles that do not cover the focus area. Do not claim
 real social publishing. Do not change the spec, checkers, acceptance, or paths.
 For image scenes use normalized focus/highlight boxes {x,y,w,h} between 0 and 1.
+Every focus and highlight box must cover at least 0.15 on BOTH width and height,
+and must stay inside the source frame (x+w <= 1, y+h <= 1).
+The plan must include the top-level effects object exactly as defined by
+plan_schema.properties.effects. Use target LOCAL_SIMULATED, side_effect_scope
+LOCAL_ONLY, and false for external_network_post, external_account_mutation and
+credential_use. Real social publishing is forbidden. Missing or different effect
+values make the plan invalid; never omit effects and never assume local.
 No HTML, no file paths outside trace/video_plan.json, no shell or network."""
 
 
@@ -142,6 +155,11 @@ class _HostExecutor:
         )
 
     def execute(self, request: BlockExecutionRequest) -> BlockExecutionResult:
+        from dataclasses import replace
+        context = request.task_context
+        short = _short_deps(dict(context.dependency_results))
+        if short != dict(context.dependency_results):
+            request = replace(request, task_context=replace(context, dependency_results=short))
         return self.function(request)
 
 
@@ -189,6 +207,8 @@ def validate_plan(plan: Mapping[str, Any], gui: Mapping[str, Any],
                   spec: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(plan, Mapping) or plan.get("schema_version") != "1.0":
         raise ValueError("video plan has an unsupported schema")
+    if "effects" not in plan:
+        raise ValueError("PUBLISH_EFFECT_MISSING: effects object is required")
     if set(plan) != set(PLAN_SCHEMA["required"]):
         raise ValueError("video plan has missing or unknown top-level fields")
     strategy = plan.get("strategy")
@@ -197,6 +217,7 @@ def validate_plan(plan: Mapping[str, Any], gui: Mapping[str, Any],
     refs = plan.get("review_refs")
     if not isinstance(refs, list) or len(refs) < 2 or not set(refs) <= {f"V0{i}" for i in range(1, 9)}:
         raise ValueError("video plan must cite at least two external review ids")
+    validate_publish_effects(plan)
     scenes = plan.get("scenes")
     if not isinstance(scenes, list) or [item.get("id") for item in scenes] != list(SCENE_ORDER):
         raise ValueError("video plan must contain the seven scenes in fixed order")
@@ -211,15 +232,13 @@ def validate_plan(plan: Mapping[str, Any], gui: Mapping[str, Any],
         if not isinstance(narration, str) or not 8 <= len(narration.strip()) <= 140:
             raise ValueError("scene narration length is invalid: " + str(scene.get("id")))
         source = scene.get("source")
-        if scene["id"] in {"projects", "content", "publish"}:
+        if scene["id"] == "recording":
+            if source is not None and source != "recording" and source not in available:
+                raise ValueError("recording scene source must be null, recording, or a real screenshot")
+        elif source is not None:
             if not isinstance(source, str) or source not in available:
                 raise ValueError("scene must reference a real GUI screenshot: " + scene["id"])
             used_sources.append(source)
-        elif scene["id"] == "recording":
-            if source not in (None, "recording"):
-                raise ValueError("recording scene source must be null or recording")
-        elif source is not None:
-            raise ValueError("text scene must not reference a screenshot: " + scene["id"])
         _validate_box(scene.get("focus"), "focus")
         _validate_box(scene.get("highlight"), "highlight")
         cards = scene.get("cards")
@@ -233,9 +252,6 @@ def validate_plan(plan: Mapping[str, Any], gui: Mapping[str, Any],
     if len(set(used_sources)) < 2:
         raise ValueError("plan must use at least two distinct real GUI screenshots")
     publish = next(item for item in scenes if item["id"] == "publish")
-    text = json.dumps(publish, ensure_ascii=False)
-    if "本地" not in text and "模拟" not in text:
-        raise ValueError("publish scene must preserve the local-simulation boundary")
     subtitle = plan.get("subtitle")
     if not isinstance(subtitle, Mapping) or set(subtitle) != {"position", "margin_v", "font_size"}:
         raise ValueError("subtitle settings are invalid")
@@ -251,6 +267,25 @@ def validate_plan(plan: Mapping[str, Any], gui: Mapping[str, Any],
 
 def _plan(workdir: Path) -> dict[str, Any]:
     return _read_json(workdir / "trace" / "video_plan.json")
+
+
+def _dep(deps: Mapping[str, Any], name: str) -> Any:
+    """Accept both the canonical node id (video.gui) and the legacy short key."""
+    for key in (name, "video." + name):
+        if key in deps:
+            return deps[key]
+    matches = [value for key, value in deps.items() if str(key).split(".")[-1] == name]
+    if len(matches) == 1:
+        return matches[0]
+    raise KeyError(name)
+
+
+def _short_deps(deps: Mapping[str, Any]) -> dict[str, Any]:
+    merged = dict(deps)
+    for key, value in deps.items():
+        merged.setdefault(str(key).split(".")[-1], value)
+    return merged
+
 
 
 def _crop_screenshot(source: Path, box: Mapping[str, float] | None,
@@ -310,7 +345,7 @@ def exec_script_from_plan(request: BlockExecutionRequest) -> BlockExecutionResul
         cfg = dict(request.task_context.node_config)
         workdir = Path(cfg["workdir"])
         spec = q.ensure_spec(workdir)
-        gui = dict(request.task_context.dependency_results["gui"]["gui"])
+        gui = dict(_dep(request.task_context.dependency_results, "gui")["gui"])
         plan = validate_plan(_plan(workdir), gui, spec)
         scenes = [{"scene": item["id"], "text": item["narration"].strip(),
                    "on_screen": item["on_screen"].strip()} for item in plan["scenes"]]
@@ -335,7 +370,7 @@ def exec_design_from_plan(request: BlockExecutionRequest) -> BlockExecutionResul
         cfg = dict(request.task_context.node_config)
         workdir = Path(cfg["workdir"])
         spec = q.ensure_spec(workdir)
-        gui = dict(request.task_context.dependency_results["gui"]["gui"])
+        gui = dict(_dep(request.task_context.dependency_results, "gui")["gui"])
         plan = validate_plan(_plan(workdir), gui, spec)
         screenshots = _screenshot_map(gui)
         design = workdir / "evidence" / "design"
@@ -392,7 +427,7 @@ def exec_mux_from_plan(request: BlockExecutionRequest) -> BlockExecutionResult:
     try:
         cfg = dict(request.task_context.node_config)
         workdir = Path(cfg["workdir"])
-        deps = dict(request.task_context.dependency_results)
+        deps = _short_deps(dict(request.task_context.dependency_results))
         plan = _plan(workdir)
         subtitle = plan.get("subtitle", {})
         overrides = {
@@ -421,7 +456,7 @@ def exec_qab_from_plan(request: BlockExecutionRequest,
         cfg = dict(request.task_context.node_config)
         workdir = Path(cfg["workdir"])
         spec = q.ensure_spec(workdir)
-        deps = dict(request.task_context.dependency_results)
+        deps = _short_deps(dict(request.task_context.dependency_results))
         final = Path(deps["mux"]["final"])
         design_manifest = _read_json(workdir / "evidence" / "design" / "design_manifest.json")
         technical = q.check_technical(workdir, final, spec)
@@ -707,18 +742,25 @@ def run_video_delegation(*, workdir: Path, project_id: str, run_id: str,
     registry = ExecutorRegistry()
     deliverable = register_video_executors(registry, workdir, run_id, client,
                                            routing.worker, acceptance, catalog)
-    runner = DAGRunner(registry, store, max_parallel=1,
-                       deliverable_checkers=deliverable)
+    runner = PreflightedDAGRunner(registry, store, max_parallel=1,
+                                 deliverable_checkers=deliverable,
+                                 catalog=catalog, workdir=workdir)
     composer = CatalogAgentComposer(client, routing.agent,
                                     require_decision_audit=False,
                                     allow_goal_plan=False,
                                     root_config={"acceptance_goal_id":
                                                  "video.technical_delivery"})
     goal = (
-        "Improve the current 55.53-second Promotion Studio local demo for a first-time "
-        "viewer using the supplied external review. Use real GUI captures only; keep "
-        "the provisional 30-60 second, 1920x1080, 30fps, zh-CN specification; do not "
-        "claim real social publishing. First compose and run the real GUI capture. "
+        "Improve only the opening product-demo segment of the current 55.53-second "
+        "Promotion Studio local demo for a first-time viewer, using the supplied external "
+        "review. The opening must show a recognizable product result within the first five "
+        "seconds and then one real operation, state change and result, using real GUI "
+        "captures only; keep the provisional 30-60 second, 1920x1080, 30fps, zh-CN "
+        "specification; do not claim real social publishing. First compose and run the real GUI capture. "
+        "Use the catalog output identity as the node_id (video.spec, video.gui, video.gui_check, "
+        "video.plan, video.script, video.design, video.tts, video.captions, video.render, video.mux, "
+        "video.qab); do not invent n_ prefixes, because dependency identities must match. "
+        "Compose the complete chain needed for technical delivery in the first decision, then request a run. "
         "Then add a delegated video plan worker plus the deterministic consumers and "
         "independent QAB checker from the catalog. The worker must write a plan that "
         "the script, design, captions and mux nodes actually consume. If the plan is "
@@ -732,11 +774,28 @@ def run_video_delegation(*, workdir: Path, project_id: str, run_id: str,
         worker_model=routing.worker.model, capability_catalog=catalog,
         max_decisions=max_decisions, acceptance=acceptance,
     )
-    result = session.run(project_id=project_id, run_id=run_id, goal=goal,
-                         constraints=("Use only real GUI captures", 
-                                      "Do not alter the frozen spec or checkers",
-                                      "Do not claim real social publishing",
-                                      "Perceptual review remains pending"))
+    try:
+        result = session.run(project_id=project_id, run_id=run_id, goal=goal,
+                             constraints=("Use only real GUI captures",
+                                          "Do not alter the frozen spec or checkers",
+                                          "Do not claim real social publishing",
+                                          "Perceptual review remains pending"))
+    except PreflightRejected as exc:
+        payload = {
+            "kind": "DelegatedVideoImprovementResult",
+            "project_id": project_id, "run_id": run_id,
+            "status": "S0_RETRY_PRECHECK_FAIL",
+            "decision_count": 0,
+            "agent_calls": 0, "worker_calls": 0,
+            "escalation_reason": "deterministic preflight rejected the tree before any worker dispatch",
+            "preflight": exc.report,
+            "workspace": str(workdir),
+            "final_mp4": None, "final_sha256": None,
+            "plan_path": str(workdir / "trace" / "video_plan.json"),
+            "plan_sha256": None,
+        }
+        _write_json(workdir / "trace" / "delegation_result.json", payload)
+        return payload
     payload = {
         "kind": "DelegatedVideoImprovementResult",
         "project_id": project_id, "run_id": run_id,

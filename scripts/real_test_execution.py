@@ -153,6 +153,8 @@ def _normalize_command(
         return [
             str(python_executable or sys.executable),
             "-I",
+            "-X",
+            "utf8",
             "-m",
             "pytest",
             *pytest_args,
@@ -202,6 +204,7 @@ def run_tests(
     stderr = ""
     exit_code: int | None = None
     timed_out = False
+    structured_test_observation = None
 
     env_classification = "isolated_minimal_env"
     if not argv:
@@ -263,17 +266,19 @@ def run_tests(
                 env["CGKN_TEST_OUTPUT_DIR"] = test_output_dir
                 env["TEMP"] = test_output_dir
                 env["TMP"] = test_output_dir
-                if len(argv) >= 4 and argv[1:4] == ["-I", "-m", "pytest"]:
+                if commands[0][:3] == ["python", "-m", "pytest"]:
                     # Bind pytest's own temporary tree to the execution-owned
                     # directory as well.  A parent suite (or candidate config)
                     # can otherwise leave a now-deleted basetemp behind, making
                     # an otherwise isolated candidate fail only in some orders.
                     target_count = max(0, len(commands[0]) - 3)
                     insert_at = len(argv) - target_count
+                    report_path=pathlib.Path(test_output_dir)/'current-tests.xml'
                     argv = [
                         *argv[:insert_at],
                         "--basetemp",
                         str(pathlib.Path(test_output_dir) / "pytest"),
+                        '-o','junit_family=xunit1','--junitxml',str(report_path),
                         *argv[insert_at:],
                     ]
                 try:
@@ -286,11 +291,18 @@ def run_tests(
                     stderr = str(exc.stderr or "test command timed out")
                     exit_code = 124
                     timed_out = True
+                if commands[0][:3] == ["python", "-m", "pytest"]:
+                    from cgkn.execution.test_results import read_pytest_report
+                    structured_test_observation=read_pytest_report(report_path,project,exit_code)
         finally:
             if isolated_pytest_config is not None:
                 isolated_pytest_config.unlink(missing_ok=True)
         counts = _pytest_counts(stdout, stderr, int(exit_code))
-        is_pytest = len(argv) >= 4 and argv[1:4] == ["-I", "-m", "pytest"]
+        is_pytest = commands[0][:3] == ["python", "-m", "pytest"]
+        if is_pytest:
+            observed=structured_test_observation or {}
+            counts={k:observed.get(k,0) for k in ('collected','passed','failed','skipped')}
+            counts['failed']+=observed.get('errors',0)
         if not is_pytest and exit_code == 0 and counts["collected"] == 0:
             counts = {**counts, "collected": 1, "passed": 1}
         minimum_collected = max(1, int(minimum_collected or 1))
@@ -299,6 +311,7 @@ def run_tests(
             if exit_code == 0
             and counts["failed"] == 0
             and counts["collected"] >= minimum_collected
+            and (not is_pytest or (structured_test_observation or {}).get('status')=='PASS')
             else "FAIL"
         )
 
@@ -353,6 +366,7 @@ def run_tests(
         "stderr_hash": _sha256_file(stderr_path),
         "result_artifact_hash": "",
         "test_profile": test_profile,
+        "test_observation": structured_test_observation,
         "ok": status == "PASS",
         "commands_run": [" ".join(argv)] if argv else [],
         "verdict": status,

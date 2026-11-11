@@ -309,6 +309,21 @@ TOOLS = [
         open_world=False,
     ),
 ]
+TOOLS.append(tool_definition(
+    "cgkn_streaming_acceptance_status", "Read archived streaming acceptance status",
+    "Read existing acceptance job state only. Retired acceptance cases cannot be started or replayed.",
+    object_schema({"case_id":STRING},("case_id",)),
+    JSON_OBJECT,read_only=True,open_world=False,idempotent=True))
+TOOLS.append(tool_definition(
+    'cgkn_get_progress', 'Read live API progress clocks',
+    'Read existing job Provider attempt clocks without starting workers, sending model requests or retrying unknown outcomes.',
+    object_schema({'project_root': STRING, 'job_id': STRING, 'attempt_id': STRING}, ('project_root','job_id')),
+    JSON_OBJECT, read_only=True, open_world=False, idempotent=True))
+TOOLS.append(tool_definition(
+    'cgkn_verify_api_pair', 'Run authorized ITER-119 API witness',
+    'Start only the frozen, explicitly authorized two-call ITER-119 witness on the original worker and DAG. Shared CNY 0.50 cap; permanent no-replay claim; no project generation.',
+    object_schema({'project_root': STRING, 'confirmation': {'type':'string','enum':['RUN_AUTHORIZED_API_PAIR']}}, ('project_root','confirmation')),
+    JSON_OBJECT, read_only=False, open_world=True, idempotent=False))
 TOOL_BY_NAME = {tool["name"]: tool for tool in TOOLS}
 
 
@@ -336,6 +351,7 @@ class CGKNPluginServer:
         spec.loader.exec_module(self.supervisor)
         self.handlers: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
             "cgkn_doctor": self.doctor,
+            "cgkn_streaming_acceptance_status": self.streaming_acceptance_status,
             "cgkn_init": self.initialize,
             "cgkn_prepare": self.prepare,
             "cgkn_seal_brief": self.seal_brief,
@@ -347,7 +363,21 @@ class CGKNPluginServer:
             "cgkn_diagnose_failure": self.diagnose_failure,
             "cgkn_test_generated": self.test_generated,
             "cgkn_status": self.status,
+            "cgkn_get_progress": self.get_progress,
+            "cgkn_verify_api_pair": self.verify_api_pair,
         }
+
+    def verify_api_pair(self, args):
+        if args.get('confirmation') != 'RUN_AUTHORIZED_API_PAIR':
+            raise ToolError('PAIR_EXPLICIT_CONFIRMATION_REQUIRED')
+        from experiments.api_acceptance.iter119_pair import start
+        return start(self, self._project(args.get('project_root')))
+
+    def get_progress(self, args):
+        project = self._project(args.get('project_root'))
+        _, _, _, artifact_dir = self._loaded(project)
+        from cgkn.providers.progress_clock import read_progress
+        return read_progress(artifact_dir / 'api-progress', args['job_id'], attempt_id=args.get('attempt_id'))
 
     @staticmethod
     def _project(value: Any) -> pathlib.Path:
@@ -1107,6 +1137,13 @@ class CGKNPluginServer:
             return "compatibility_environment"
         return ""
 
+    def streaming_acceptance_status(self, args: dict[str, Any]) -> dict[str, Any]:
+        case_id=args.get("case_id","")
+        if not isinstance(case_id,str) or not re.fullmatch(r"(?:LIVE|ITER118)-[A-Z0-9-]{1,64}",case_id):
+            raise ToolError("Invalid archived acceptance case identity")
+        artifact_dir=self.cgkn_root/".cgkn"/"streaming-acceptance-jobs"/case_id
+        return self.core.generation_job_status(artifact_dir)
+
     def probe_provider(self, args: dict[str, Any]) -> dict[str, Any]:
         if args.get("confirmation") != PROVIDER_PROBE_CONFIRMATION:
             raise ToolError(f"Provider probe requires confirmation={PROVIDER_PROBE_CONFIRMATION}")
@@ -1139,6 +1176,14 @@ class CGKNPluginServer:
             "provider_error_type": self.connectivity._provider_error_type(error) if error else "",
             "detail": error or str(result.get("status", "")),
         }
+        if result.get("endpoint_mode") == "non_generation_models":
+            # CLI's legacy default model is not the target of this inventory GET.
+            probe.update(model=None, provider_name="domestic_providers",
+                source_scope="saved_application_profile", saved_roles=result.get("saved_roles", {}),
+                checked_providers=result.get("checked_providers", []),
+                gateway_state=result.get("gateway_state", {}),
+                provider_checks=result.get("network_route_evidence", []),
+                generation_executed=False, model_calls=0)
         return {
             "ok": bool(result.get("ok")),
             "probe": self._sanitize(probe),
@@ -1302,7 +1347,7 @@ def response(request_id: Any, *, result: Any = None, error: dict[str, Any] | Non
     return message
 
 
-def handle(server: CGKNPluginServer, message: Any) -> dict[str, Any] | None:
+def handle(server: CGKNPluginServer, message: Any, notify=None) -> dict[str, Any] | None:
     if not isinstance(message, dict):
         return response(None, error={"code": -32600, "message": "Invalid Request"})
     request_id = message.get("id")
@@ -1331,6 +1376,13 @@ def handle(server: CGKNPluginServer, message: Any) -> dict[str, Any] | None:
             return response(request_id, error={"code": -32602, "message": "Invalid tool call parameters"})
         try:
             value = server.call_tool(params["name"], params.get("arguments", {}))
+            token = (params.get('_meta') or {}).get('progressToken')
+            if notify and token is not None and params['name']=='cgkn_get_progress':
+                # One observation notification per query; no background subscription
+                # and no invented percentage of model completion.
+                notify({'jsonrpc':'2.0','method':'notifications/progress','params':{
+                    'progressToken':token,'progress':1,
+                    'message':'Progress snapshot read: '+str(value.get('status','NOT_OBSERVED'))}})
             return response(request_id, result=text_result(value))
         except (ToolError, server.core.AgentKitError, ValueError) as exc:
             safe = server.core.redact(str(exc))[:4000]
@@ -1384,7 +1436,10 @@ def main() -> int:
     for line in sys.stdin:
         try:
             message = json.loads(line)
-            outgoing = handle(server, message)
+            def notify(value):
+                sys.stdout.write(json.dumps(value,ensure_ascii=False,separators=(',',':'))+'\n')
+                sys.stdout.flush()
+            outgoing = handle(server, message, notify=notify)
         except ValueError as exc:
             outgoing = response(None, error={"code": -32700, "message": f"Parse error: {exc}"})
         if outgoing is not None:

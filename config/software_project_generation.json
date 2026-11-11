@@ -3,7 +3,7 @@
   "schema_version": "1.0",
   "high_capability_agent": {
     "provider": "openai_compatible",
-    "model": "qwen3.8-max",
+    "model": "qwen3.8-flash",
     "timeout_seconds": 90,
     "max_output_tokens": 7000,
     "reasoning_effort": "none"

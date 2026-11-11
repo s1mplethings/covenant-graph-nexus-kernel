@@ -25,6 +25,8 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 SCRIPTS_DIR = ROOT / "scripts"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 import check_connectivity
 import adaptive_delivery
@@ -48,11 +50,11 @@ import model_policy
 import project_revision_lane
 import real_test_execution
 import run_local_pipeline as provider_project_pipeline
-import provider_causal_trace
+from scripts import provider_causal_trace
 import visual_evidence
 import product_studio_reply
 import project_memory_md
-import production_candidate_provenance
+from scripts import production_candidate_provenance
 import provider_transport
 import public_narration
 import product_design_depth_governance
@@ -2089,6 +2091,18 @@ def delivery_fact_check(
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     manifest = manifest if isinstance(manifest, dict) else {}
+    if isinstance(provider_result,dict) and provider_result.get('kind')=='CGKNProjectSessionCoreResult':
+        # The compatibility fact vocabulary says PASS; the core says
+        # GOALS_VERIFIED. Translate only after rebuilding its real source chain,
+        # never from a caller/model success flag alone.
+        core_status=provider_result.get('status')
+        reference=pathlib.Path(str(provider_result.get('run_dir','')))/production_candidate_provenance.FILE_NAME
+        verified=production_candidate_provenance.inspect(reference,expected_candidate_dir=project,
+            expected_run_id=provider_result.get('run_id'))
+        qualified=(core_status=='GOALS_VERIFIED' and verified['status']=='PASS'
+                   and verified.get('document',{}).get('generation_route')=='project_session')
+        provider_result={**provider_result,'status':'PASS' if qualified else 'BLOCKED',
+                         'core_status':core_status,'core_provenance_inspection':verified}
     return adaptive_delivery.delivery_fact_check(
         project,
         manifest,
@@ -2328,6 +2342,7 @@ def evaluate_public_delivery_gate(
     provider_result: dict[str, Any] | None = None,
     agent: Any = None,
     production_provenance_ref: str | pathlib.Path | None = None,
+    allow_provider_review: bool = True,
 ) -> dict[str, Any]:
     session = session if isinstance(session, dict) else (conversation if isinstance(conversation, dict) else {})
     project = pathlib.Path(project_dir).resolve()
@@ -2337,7 +2352,7 @@ def evaluate_public_delivery_gate(
     manifest = manifest if isinstance(manifest, dict) else {}
     if provider_result is None and isinstance(manifest.get("provider_result"), dict):
         provider_result = manifest.get("provider_result")
-    if agent is None and os.environ.get("CGNK_ADAPTIVE_DELIVERY_AGENT", "local").strip().lower() == "provider":
+    if allow_provider_review and agent is None and os.environ.get("CGNK_ADAPTIVE_DELIVERY_AGENT", "local").strip().lower() == "provider":
         review_model = model_policy.select_model("review")
         agent = lambda messages: provider_text(messages, review_model, 60)
     quality = _quality_evidence_for_gate(project, manifest)
@@ -5098,9 +5113,8 @@ def run_provider_project_tests(
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
     tests_dir = project / "tests"
-    pytest_config = project / "pytest.ini"
-    if not pytest_config.exists():
-        pytest_config.write_text("[pytest]\ntestpaths = tests\npythonpath = .\n", encoding="utf-8")
+    # real_test_execution supplies an isolated config when none was delivered.
+    # Verification must not create a new source file in the Worker candidate.
     if not tests_dir.exists() or not any(path.is_file() for path in tests_dir.rglob("test*.py")):
         evidence = real_test_execution.run_tests(
             project,
@@ -5364,7 +5378,21 @@ def post_build_finalize_provider_project(
     stage_receipts: dict[str, pathlib.Path],
     provider_result_path: pathlib.Path,
     provider_causal_capture: dict[str, Any],
+    core_provenance_ref: pathlib.Path | None = None,
+    cli_probe: dict[str, Any] | None = None,
+    verification_revision: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    # Both generation protocols use this same finalizer and public gate. Core
+    # provenance is independently rebuilt before running any post-build work.
+    if core_provenance_ref is not None:
+        inspected = production_candidate_provenance.inspect(
+            core_provenance_ref, expected_candidate_dir=project_dir,
+            expected_production_run_dir=production_run_dir,
+            expected_run_id=production_identity['run_id'],
+            expected_candidate_id=production_identity['candidate_id'],
+            expected_commit_sha=production_identity['commit_sha'])
+        if inspected['status'] != 'PASS' or inspected['document'].get('generation_route') != 'project_session':
+            raise ValueError('canonical core provenance must qualify before finalization')
     post_build_started_at = now()
     append_agent_session_event(session_dir, conversation_id, {"kind": "post_build_finalize_started", "role": "system", "stage": "post_build_finalize"})
     image_result = collect_provider_image_evidence(project_dir, provider_result, runtime_artifacts)
@@ -5447,7 +5475,16 @@ def post_build_finalize_provider_project(
     repair_result: dict[str, Any] = {}
     dependency_setup: dict[str, Any] = {}
     if not preseal_test_result.get("ok"):
-        dependency_setup = ensure_provider_test_environment(project_dir)
+        if core_provenance_ref is None:
+            dependency_setup = ensure_provider_test_environment(project_dir)
+        else:
+            # ProjectSession owns its declared tools and frozen provenance.
+            # A failing assertion is not authorization to install dependencies
+            # or silently replace the interpreter during delivery.
+            dependency_setup = {
+                "ok": False, "status": "NOT_ATTEMPTED", "python": "",
+                "reason": "Core test failure requires explicit ProjectSession repair; environment preserved",
+            }
         repair_result = {
             "status": "provider_repair_required",
             "changed": False,
@@ -5465,7 +5502,7 @@ def post_build_finalize_provider_project(
     candidate_manifest_hash = canonical_evidence_hash.canonical_json_hash(
         {"candidate_source_manifest": candidate_manifest}, ()
     )
-    validation_receipt = stage_receipts["provider_validation"]
+    validation_receipt = core_provenance_ref or stage_receipts["provider_validation"]
     post_build_receipt = production_candidate_provenance.write_stage_receipt(
         production_run_dir,
         stage="post_build",
@@ -5479,14 +5516,14 @@ def post_build_finalize_provider_project(
         candidate_source_manifest_hash=candidate_manifest_hash,
         artifact_refs=[
             {
-                "role": "provider_validation_receipt",
+                "role": "core_provenance" if core_provenance_ref else "provider_validation_receipt",
                 "ref": str(validation_receipt.resolve()),
                 "hash": canonical_evidence_hash.sha256_file(validation_receipt),
             }
         ],
     )
     stage_receipts["post_build"] = post_build_receipt
-    provenance = production_candidate_provenance.produce(
+    provenance = inspected['document'] if core_provenance_ref else production_candidate_provenance.produce(
         project_dir,
         production_run_dir,
         run_id=production_identity["run_id"],
@@ -5495,9 +5532,16 @@ def post_build_finalize_provider_project(
         stage_receipts=stage_receipts,
         provider_result_ref=provider_result_path,
     )
+    if core_provenance_ref is not None:
+        # Post-build tests/media may not silently change Worker-owned source.
+        inspected = production_candidate_provenance.inspect(core_provenance_ref)
+        if inspected['status'] != 'PASS':
+            raise ValueError('core candidate or evidence changed during post-build')
+        provenance = {**provenance, 'provenance_ref':str(core_provenance_ref),
+                      'provenance_hash':inspected['provenance_hash']}
     provenance_ref = pathlib.Path(str(provenance["provenance_ref"])).resolve()
     provenance_hash = str(provenance["provenance_hash"])
-    causal_trace = provider_causal_trace.finalize(
+    causal_trace = provider_causal_trace.finalize_project_session(provenance_ref) if core_provenance_ref else provider_causal_trace.finalize(
         candidate_dir=project_dir,
         production_run_dir=production_run_dir,
         identity=production_identity,
@@ -5510,6 +5554,7 @@ def post_build_finalize_provider_project(
         identity=production_identity,
         candidate_hash=candidate_hash,
         evidence_refs=[{"role": "production_provenance", "ref": str(provenance_ref), "sha256": provenance_hash}],
+        verification_revision=verification_revision,
     )
     finalization_state = canonical_finalization.transition(
         production_run_dir,
@@ -5566,6 +5611,7 @@ def post_build_finalize_provider_project(
         production_provenance_hash=provenance_hash,
         live_consumer=browser_visual_evidence.capture_live_runtime if browser_visual_required else None,
         browser_capture_required=browser_visual_required,
+        cli_probe=cli_probe,
     )
     append_agent_session_event(session_dir, conversation_id, {"kind": "post_build_customer_runtime", "role": "tool", "result": runtime_result})
     visual_evidence_result = (
@@ -5742,6 +5788,7 @@ def post_build_finalize_provider_project(
         review_request = canonical_user_review.create_review_request_snapshot(
             project_dir,
             conversation_id=conversation_id,
+            expected_reviewer_id=session.get('expected_reviewer_id',''),
             requirement_snapshot=whiteboard.get("delivery_requirements", []),
             visual_required=browser_visual_required,
             required_presentation_roles=["nonvisual_summary"] + (["screenshot"] if browser_visual_required else []),
@@ -5751,8 +5798,9 @@ def post_build_finalize_provider_project(
             "WAITING_USER_REVIEW",
             identity=production_identity,
             candidate_hash=candidate_hash,
-            evidence_refs=[{"role": "user_review_request", "ref": str((project_dir / canonical_user_review.REQUEST_FILE).resolve()), "sha256": str(review_request.get("artifact_hash", ""))}],
-            detail=user_review_policy,
+            evidence_refs=([{"role": "user_review_request", "ref": str((project_dir / canonical_user_review.REQUEST_FILE).resolve()), "sha256": str(review_request.get("artifact_hash", ""))}]
+                           if review_request.get('artifact_hash') else []),
+            detail={**user_review_policy,'request_failures':review_request.get('failures',[])},
         )
         return {
             "test_result": test_result,
@@ -5931,6 +5979,7 @@ def post_build_finalize_provider_project(
         phase="final",
         provider_result=provider_result,
         production_provenance_ref=provenance_ref,
+        allow_provider_review=core_provenance_ref is None,
     )
     gate["missing_config"] = missing_config
     if manifest.get("status") == "PASS":
@@ -6540,6 +6589,10 @@ def finish_supervision_recovery_stop(
     mark_public_delivery_rework(client, conversation_id, session_dir, session, project_dir, gate)
 
 
+from cgkn.telemetry.lean import observed
+
+@observed("provider_project", lambda a: agent_session_path(a["session_dir"], a["conversation_id"]).with_suffix(".reports"),
+          receipt=lambda a: load_session(a["session_dir"], a["conversation_id"]).get("generation", {}))
 def run_provider_generation_job(
     client: CodexConversation,
     conversation_id: int | str,
@@ -6549,576 +6602,40 @@ def run_provider_generation_job(
     timeout: int,
     *,
     announce_start: bool = False,
+    on_started: Callable[[dict[str, Any]], None] | None = None,
 ) -> None:
-    model = model or model_policy.select_model("provider_generation")
-    session = load_session(session_dir, conversation_id)
-    frozen_snapshot = session.get("generation_context_snapshot", {}) if isinstance(session.get("generation_context_snapshot"), dict) else {}
-    requirement = str(frozen_snapshot.get("requirement", "")).strip() or combined_requirement(session)
-    if not requirement:
-        send_customer_reply(client, conversation_id, session_dir, session, event="missing_requirement_before_generation", facts={"message": "当前没有可执行项目目标；后台未启动。"})
-        return
-    prior_generation = (
-        session.get("generation", {})
-        if isinstance(session.get("generation"), dict)
-        else {}
-    )
-    generation_model = str(prior_generation.get("generation_model", model) or model).strip()
-    repair_model = str(prior_generation.get("repair_model", "") or "").strip()
-    provider_mode = str(prior_generation.get("provider_mode", "live") or "live").strip().lower()
-    replay_dir = str(prior_generation.get("replay_dir", "") or "").strip()
-    identity = production_generation_identity(conversation_id, session)
-    entry_ref_value = str(
-        prior_generation.get("production_entry_receipt_ref", "")
-    ).strip()
-    entry_ref = pathlib.Path(entry_ref_value).resolve() if entry_ref_value else pathlib.Path()
-    formal_entry = bool(
-        entry_ref_value
-        and entry_ref.is_file()
-        and not entry_ref.is_symlink()
-    )
-    if formal_entry:
-        project_dir, run_dir = production_paths(conversation_id, log_dir, identity)
-    else:
-        run_slug = safe_id(conversation_id)
-        project_dir = (PROVIDER_PROJECTS_DIR / run_slug).resolve()
-        run_dir = (pathlib.Path(log_dir) / "provider_runs" / run_slug).resolve()
-    session["generation"] = {
-        "status": "running",
-        "driver": "api_provider_project_generation",
-        "started_at": now(),
-        "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
-        **identity,
-        "project_dir": str(project_dir),
-        "provider_run_dir": str(run_dir),
-        "provider_mode": provider_mode,
-        "generation_model": generation_model,
-        "repair_model": repair_model,
-        "replay_dir": replay_dir,
-    }
-    if formal_entry:
-        session["generation"]["production_entry_receipt_ref"] = str(entry_ref)
-        session["generation"]["production_entry_receipt_hash"] = canonical_evidence_hash.sha256_file(entry_ref)
-    update_active_run_status(session, "running", driver="api_provider_project_generation")
-    snapshot = ensure_generation_context_snapshot(session_dir, conversation_id, session, requirement)
-    append_agent_session_event(session_dir, conversation_id, {"kind": "provider_generation_started", "role": "system", "driver": "api_provider_project_generation", "requirement": requirement})
-    append_memory_event(session, "provider_generation_started", data={"requirement": requirement[:6000]})
-    save_session(session_dir, session)
-    if announce_start:
-        send_customer_reply(client, conversation_id, session_dir, session, event="generation_started", direct_text=public_narration.public_event_text("generation_started", {}))
-
-    result_path = run_dir / "provider_generation_result.json"
-    phase_log_path = run_dir / "provider_phase_log.jsonl"
-    provider_staging_dir = (
-        ROOT
-        / "generated"
-        / "provider_response_staging"
-        / identity["run_id"]
-    ).resolve()
-    run_dir.mkdir(parents=True, exist_ok=True)
-    write_generation_context_snapshot(project_dir, snapshot)
-    provider_result: dict[str, Any] = {}
+    """Background API projection; ProjectSession owns the entire lifecycle."""
+    session=load_session(session_dir,conversation_id)
+    profile=session.get('project_session_profile')
+    if not profile:
+        raise ValueError('PROJECT_SESSION_PROFILE_REQUIRED: API jobs require a frozen controller profile')
+    prior=dict(session.get('generation') or {})
+    if prior.get('outcome_unknown') or prior.get('submission_outcome_unknown') or str(prior.get('status','')).lower()=='outcome_unknown':
+        raise ValueError('PRIOR_OUTCOME_UNKNOWN: reconcile original attempt before continuing')
+    from cgkn.application.software_project.service import SoftwareProjectGenerationService
+    profile=pathlib.Path(profile).resolve()
+    service=SoftwareProjectGenerationService(pathlib.Path(__file__).resolve().parents[1],
+        profile.parent/'agent-kit'/'project_sessions')
+    def started(state):
+        session['generation']={**prior,**state,'status':'running','driver':'project_session',
+            'started_at':now(),'delivery_status':'NOT_EVALUATED'}
+        save_session(session_dir,session)
+        if on_started is not None: on_started(dict(state))
     try:
-        entry_receipt = (
-            entry_ref
-            if formal_entry
-            else run_dir / "production_entry_receipt.json"
-        )
-        args = argparse.Namespace(
-            plan="",
-            goal=requirement,
-            out_dir=str(provider_staging_dir),
-            run_dir=str(run_dir),
-            result=str(result_path),
-            model=generation_model,
-            timeout=timeout,
-            allow_network=provider_mode == "live",
-            allow_provider=provider_mode == "live",
-            use_api=True,
-            allow_model_usage_planning=False,
-            phase_log_path=str(phase_log_path),
-            codex_capability_brief=str(
-                session.get("codex_capability_brief", "") or ""
-            ),
-            provider_mode=provider_mode,
-            project_id=identity["candidate_id"],
-            replay_dir=replay_dir,
-            small_model=generation_model,
-            large_model=generation_model,
-            repair_model=repair_model,
-            resume_run_dir=(
-                str(run_dir)
-                if (
-                    (run_dir / "artifacts" / "pending_repair_plan.json").is_file()
-                    or (
-                        provider_mode != "live"
-                        and (
-                            run_dir
-                            / surrogate_provider_adapter.HANDSHAKE_DIR
-                            / "provider_mode_state.json"
-                        ).is_file()
-                    )
-                )
-                else ""
-            ),
-        )
-        round_state = execute_validated_provider_round(
-            args,
-            session_dir=session_dir,
-            conversation_id=conversation_id,
-            phase_log_path=phase_log_path,
-            project_dir=project_dir,
-            provider_staging_dir=provider_staging_dir,
-            run_dir=run_dir,
-            result_path=result_path,
-            identity=identity,
-            model=generation_model,
-            formal_entry=formal_entry,
-        )
-
-        def integration_audit_once() -> dict[str, Any]:
-            audit = run_positive_transition_audit(
-                session_dir,
-                conversation_id,
-                session,
-                "integration_complete",
-                reason="Provider jobs, deterministic merge, and Provider semantic review claim integration is complete.",
-                context_refs=[
-                    {
-                        "role": "provider_generation_result",
-                        "ref": str(result_path.resolve()),
-                        "sha256": str(round_state["provider_result_hash"]),
-                    },
-                    {
-                        "role": "provider_validation_receipt",
-                        "ref": str(pathlib.Path(round_state["validation_receipt"]).resolve()),
-                        "sha256": canonical_evidence_hash.sha256_file(round_state["validation_receipt"]),
-                    },
-                ],
-            )
-            append_agent_session_event(
-                session_dir,
-                conversation_id,
-                {"kind": "false_pass_integration_audit", "role": "system", "result": audit},
-            )
-            return audit
-
-        def repair_provider(audit: dict[str, Any], _route: dict[str, Any]) -> dict[str, Any]:
-            nonlocal round_state
-            preparation = provider_project_pipeline.prepare_supervision_provider_repair(
-                run_dir,
-                audit,
-                user_goal=requirement,
-            )
-            args.resume_run_dir = str(run_dir)
-            round_state = execute_validated_provider_round(
-                args,
-                session_dir=session_dir,
-                conversation_id=conversation_id,
-                phase_log_path=phase_log_path,
-                project_dir=project_dir,
-                provider_staging_dir=provider_staging_dir,
-                run_dir=run_dir,
-                result_path=result_path,
-                identity=identity,
-                model=model,
-                formal_entry=formal_entry,
-            )
-            return {
-                **preparation,
-                "status": "provider_repair_validated",
-                "provider_validation_ref": str(round_state["validation_receipt"]),
-            }
-
-        def recheck_provider_evidence(audit: dict[str, Any], route: dict[str, Any]) -> dict[str, Any]:
-            nonlocal round_state
-            invalidation = invalidate_supervision_evidence(
-                audit,
-                route,
-                project_dir=project_dir,
-                production_run_dir=run_dir,
-            )
-            validation, receipt = write_provider_validation_receipt(
-                project_dir=project_dir,
-                run_dir=run_dir,
-                result_path=result_path,
-                provider_result=round_state["provider_result"],
-                identity=identity,
-                generation_receipt=round_state["generation_receipt"],
-                causal_artifact_refs=round_state["causal_artifact_refs"],
-            )
-            round_state["provider_validation"] = validation
-            round_state["validation_receipt"] = receipt
-            return {
-                **invalidation,
-                "status": "canonical_provider_validation_rerun",
-                "provider_validation_ref": str(receipt.resolve()),
-                "provider_invocation_count": 0,
-            }
-
-        def repair_kernel_and_revalidate(audit: dict[str, Any], route: dict[str, Any]) -> dict[str, Any]:
-            nonlocal round_state
-            repair_receipt = execute_governed_supervision_repair(audit, route)
-            validation, receipt = write_provider_validation_receipt(
-                project_dir=project_dir,
-                run_dir=run_dir,
-                result_path=result_path,
-                provider_result=round_state["provider_result"],
-                identity=identity,
-                generation_receipt=round_state["generation_receipt"],
-                causal_artifact_refs=round_state["causal_artifact_refs"],
-            )
-            round_state["provider_validation"] = validation
-            round_state["validation_receipt"] = receipt
-            return {**repair_receipt, "provider_validation_ref": str(receipt.resolve())}
-
-        integration_recovery = run_supervision_recovery_cycle(
-            integration_audit_once(),
-            reaudit=integration_audit_once,
-            handlers={
-                "rework_project": repair_provider,
-                "recheck_evidence": recheck_provider_evidence,
-                "repair_kernel": repair_kernel_and_revalidate,
-            },
-        )
-        if integration_recovery.get("outcome") != "resumed":
-            finish_supervision_recovery_stop(
-                client,
-                conversation_id,
-                session_dir,
-                identity=identity,
-                project_dir=project_dir,
-                run_dir=run_dir,
-                entry_ref=entry_ref,
-                formal_entry=formal_entry,
-                recovery=integration_recovery,
-            )
-            return
-        provider_result = round_state["provider_result"]
-        append_agent_session_event(session_dir, conversation_id, {"kind": "provider-project-files-written", "role": "tool", "generated_files": provider_result.get("generated_files", [])})
-        append_agent_session_event(session_dir, conversation_id, {"kind": "runtime-artifacts-written", "role": "tool", "artifact_refs": provider_result.get("artifact_refs", {})})
-        write_provider_phase_event(
-            phase_log_path,
-            {"kind": "provider_phase", "stage": "post_build_finalize", "status": "started", "project_dir": str(project_dir)},
-        )
-        finalize: dict[str, Any] = {}
-
-        def finalize_once() -> dict[str, Any]:
-            nonlocal finalize, provider_result, round_state
-            provider_result = round_state["provider_result"]
-            runtime_artifacts = materialize_provider_runtime_artifacts(project_dir, provider_result)
-            finalize = post_build_finalize_provider_project(
-                project_dir,
-                provider_result,
-                runtime_artifacts,
-                session,
-                session_dir=session_dir,
-                conversation_id=conversation_id,
-                production_identity=identity,
-                production_run_dir=run_dir,
-                stage_receipts={
-                    "production_entry": entry_receipt,
-                    "provider_generation": round_state["generation_receipt"],
-                    "provider_validation": round_state["validation_receipt"],
-                },
-                provider_result_path=result_path,
-                provider_causal_capture=round_state["causal_capture"],
-            )
-            return dict(finalize.get("false_pass_audit", {"action": "halt", "scope": "safety"}))
-
-        def repair_provider_before_final(audit: dict[str, Any], route: dict[str, Any]) -> dict[str, Any]:
-            preparation = repair_provider(audit, route)
-            nested = run_supervision_recovery_cycle(
-                integration_audit_once(),
-                reaudit=integration_audit_once,
-                handlers={
-                    "rework_project": repair_provider,
-                    "recheck_evidence": recheck_provider_evidence,
-                    "repair_kernel": repair_kernel_and_revalidate,
-                },
-            )
-            if nested.get("outcome") != "resumed":
-                return {**preparation, "cycle_stop": nested}
-            return {**preparation, "integration_recovery": nested}
-
-        def recheck_final_evidence(audit: dict[str, Any], route: dict[str, Any]) -> dict[str, Any]:
-            return invalidate_supervision_evidence(
-                audit,
-                route,
-                project_dir=project_dir,
-                production_run_dir=run_dir,
-            )
-
-        initial_final_audit = finalize_once()
-        final_recovery = run_supervision_recovery_cycle(
-            initial_final_audit,
-            reaudit=finalize_once,
-            handlers={
-                "rework_project": repair_provider_before_final,
-                "recheck_evidence": recheck_final_evidence,
-                "repair_kernel": execute_governed_supervision_repair,
-            },
-        )
-        if final_recovery.get("outcome") != "resumed":
-            finish_supervision_recovery_stop(
-                client,
-                conversation_id,
-                session_dir,
-                identity=identity,
-                project_dir=project_dir,
-                run_dir=run_dir,
-                entry_ref=entry_ref,
-                formal_entry=formal_entry,
-                recovery=final_recovery,
-            )
-            return
-        write_provider_phase_event(
-            phase_log_path,
-            {
-                "kind": "provider_phase",
-                "stage": "post_build_finalize",
-                "status": "completed" if finalize.get("ok") else "rework_blocked",
-                "project_dir": str(project_dir),
-                "provider_run_dir": str(run_dir),
-            },
-        )
-        manifest = finalize["manifest"]
-        gate = finalize["gate"]
-        artifact_audit = provider_success_artifact_audit(project_dir, session, manifest)
-        append_agent_session_event(
-            session_dir,
-            conversation_id,
-            {"kind": "provider-success-artifact-audit", "role": "tool", "audit": artifact_audit, "post_build_finalize": finalize},
-        )
-        gate = dict(gate)
-        gate["provider_success_artifact_audit"] = artifact_audit
-        if not gate.get("delivery_allowed"):
-            write_provider_phase_event(
-                phase_log_path,
-                {"kind": "provider_phase", "stage": "public_delivery_gate", "status": "rework_blocked", "missing": gate.get("missing", [])},
-            )
-            session = load_session(session_dir, conversation_id)
-            session["generation"] = {
-                "status": "rework_blocked",
-                "driver": "api_provider_project_generation",
-                "finished_at": now(),
-                **identity,
-                "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
-                "project_dir": str(project_dir),
-                "provider_run_dir": str(run_dir),
-                "manifest_path": str(manifest.get("manifest_path", "")),
-                "package_path": "",
-                "build_integrity_audit": artifact_audit,
-                "qa_integrity_audit": finalize.get("test_result", {}),
-                "post_build_finalize": finalize,
-                "production_provenance_ref": str(
-                    finalize.get("production_provenance", {}).get(
-                        "provenance_ref", ""
-                    )
-                ),
-                "delivery_allowed": False,
-                "delivery_gate": gate,
-            }
-            if formal_entry:
-                session["generation"]["production_entry_receipt_ref"] = str(entry_ref)
-                session["generation"]["production_entry_receipt_hash"] = canonical_evidence_hash.sha256_file(entry_ref)
-            update_active_run_status(session, "rework_blocked", driver="api_provider_project_generation", delivery_allowed=False, delivery_gate=gate, project_dir=str(project_dir))
-            append_memory_event(session, "provider_generation_rework_blocked", data={"delivery_gate": gate})
-            save_session(session_dir, session)
-            mark_public_delivery_rework(client, conversation_id, session_dir, session, project_dir, gate)
-            return
-        result = {
-            "status": manifest.get("status", "ready"),
-            "driver": "api_provider_project_generation",
-            "manifest": manifest,
-            "manifest_path": manifest.get("manifest_path", ""),
-            "package_path": manifest.get("package_path", ""),
-            "provider_result_path": str(result_path),
-            "provider_run_dir": str(run_dir),
-            "post_build_finalize": finalize,
-            "production_provenance_ref": str(
-                finalize.get("production_provenance", {}).get(
-                    "provenance_ref", ""
-                )
-            ),
-        }
-        write_provider_phase_event(
-            phase_log_path,
-            {
-                "kind": "provider_phase",
-                "stage": "local_packager_and_public_delivery_gate",
-                "status": "completed",
-                "manifest_path": str(manifest.get("manifest_path", "")),
-                "package_path": str(manifest.get("package_path", "")),
-            },
-        )
-        finish_agent_loop_delivery(client, conversation_id, session_dir, project_dir, result)
-        delivered_session = load_session(session_dir, conversation_id)
-        delivered_generation = (
-            delivered_session.get("generation", {})
-            if isinstance(delivered_session.get("generation"), dict)
-            else {}
-        )
-        public_delivery_succeeded = bool(delivered_generation.get("delivery_allowed")) and str(
-            delivered_generation.get("status", "")
-        ) in {"delivered", "delivered_with_warnings"}
-        delivered_state = canonical_finalization.transition(
-            run_dir,
-            "DELIVERED" if public_delivery_succeeded else "DELIVERY_BLOCKED",
-            identity=identity,
-            candidate_hash=str(finalize.get("canonical_verification", {}).get("candidate_hash", "")),
-            detail={
-                "package_path": str(manifest.get("package_path", "")),
-                "delivery_allowed": public_delivery_succeeded,
-                "public_delivery_status": str(delivered_generation.get("status", "")),
-            },
-        )
-        delivered_generation["canonical_finalization_state"] = delivered_state
-        delivered_generation["workflow_state"] = str(delivered_state.get("state", ""))
-        delivered_session["generation"] = delivered_generation
-        save_session(session_dir, delivered_session)
-    except surrogate_provider_adapter.SurrogateResponseRequired as waiting:
-        session = load_session(session_dir, conversation_id)
-        waiting_result = surrogate_provider_adapter.waiting_result(
-            run_dir=run_dir,
-            result_path=result_path,
-            goal=requirement,
-            project_dir=provider_staging_dir,
-        )
-        replan_path = run_dir / "artifacts" / "requirement_replan_state.json"
-        replan_state = read_json(replan_path, {}) if replan_path.is_file() else {}
-        waiting_for_replan = replan_state.get("workflow_state") == "WAITING_REQUIREMENT_REPLAN"
-        waiting_status = "waiting_requirement_replan" if waiting_for_replan else "waiting_surrogate_response"
-        waiting_workflow = "WAITING_REQUIREMENT_REPLAN" if waiting_for_replan else "WAITING_SURROGATE_RESPONSE"
-        session["generation"] = {
-            "status": waiting_status,
-            "workflow_state": waiting_workflow,
-            "driver": "api_provider_project_generation",
-            "updated_at": now(),
-            **identity,
-            "provider_mode": provider_mode,
-            "replay_dir": replay_dir,
-            "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
-            "project_dir": str(project_dir),
-            "provider_run_dir": str(run_dir),
-            "pending_request_path": str(waiting.request_path.resolve()),
-            "pending_requests": waiting_result.get("pending_requests", []),
-            "real_provider_calls": 0,
-            "network_attempts": 0,
-            "provider_schedulers": 1,
-            "delivery_allowed": False,
-        }
-        if waiting_for_replan:
-            session["generation"]["requirement_replan"] = replan_state
-        if formal_entry:
-            session["generation"]["production_entry_receipt_ref"] = str(entry_ref)
-            session["generation"]["production_entry_receipt_hash"] = canonical_evidence_hash.sha256_file(entry_ref)
-        update_active_run_status(session, waiting_status, driver="api_provider_project_generation", delivery_allowed=False, project_dir=str(project_dir))
-        append_agent_session_event(session_dir, conversation_id, {"kind": waiting_status, "role": "system", "request_path": str(waiting.request_path.resolve()), "provider_mode": provider_mode})
-        save_session(session_dir, session)
+        result=service.run_profile(profile,goal=combined_requirement(session),on_started=started)
     except Exception as exc:
-        session = load_session(session_dir, conversation_id)
-        error_type = provider_error_type(exc)
-        missing_config = provider_missing_config(exc)
-        partial_artifacts = provider_partial_artifacts(project_dir)
-        manifest: dict[str, Any] = {}
-        if partial_artifacts:
-            try:
-                manifest = local_packager.package_project(
-                    project_dir,
-                    startup_command="python main.py" if (project_dir / "main.py").exists() else ("python app.py" if (project_dir / "app.py").exists() else ""),
-                    known_limits=["Provider recovery mode inspected partial artifacts after a transport failure."],
-                )
-                gate = evaluate_public_delivery_gate(
-                    project_dir,
-                    manifest,
-                    session,
-                    phase="final",
-                    provider_result={"status": "failed", "error": str(exc)},
-                )
-            except Exception:
-                manifest = {}
-        gate = evaluate_public_delivery_gate(
-            project_dir,
-            manifest,
-            session,
-            phase="final",
-            provider_result={"status": "failed", "error": str(exc)},
-        )
-        session["generation"] = {
-            "status": "rework_blocked",
-            "driver": "api_provider_project_generation",
-            "finished_at": now(),
-            **identity,
-            "error": str(exc),
-            "provider_error_type": error_type,
-            "missing_config": missing_config,
-            "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
-            "project_dir": str(project_dir),
-            "provider_run_dir": str(run_dir),
-            "partial_artifacts": partial_artifacts,
-            "current_stage": "api_provider_project_generation",
-            "provider_recovery_needed": True,
-            "provider_recovery_mode": "stage_resume" if partial_artifacts else "",
-            "delivery_allowed": False,
-            "delivery_gate": gate,
-        }
-        if formal_entry:
-            session["generation"]["production_entry_receipt_ref"] = str(entry_ref)
-            session["generation"]["production_entry_receipt_hash"] = canonical_evidence_hash.sha256_file(entry_ref)
-        update_active_run_status(
-            session,
-            "rework_blocked",
-            driver="api_provider_project_generation",
-            delivery_allowed=False,
-            delivery_gate=gate,
-            project_dir=str(project_dir),
-            provider_recovery_needed=True,
-            current_stage="api_provider_project_generation",
-            partial_artifacts=partial_artifacts,
-        )
-        append_agent_session_event(
-            session_dir,
-            conversation_id,
-            {
-                "kind": "provider_generation_error",
-                "role": "tool",
-                "error": str(exc),
-                "provider_error_type": error_type,
-                "missing_config": missing_config,
-                "project_dir": str(project_dir),
-                "result_path": str(result_path),
-                "partial_artifacts": partial_artifacts,
-                "current_stage": "api_provider_project_generation",
-                "provider_recovery_needed": True,
-            },
-        )
-        append_memory_event(
-            session,
-            "provider_generation_rework_blocked",
-            data={
-                "error": str(exc),
-                "provider_error_type": error_type,
-                "missing_config": missing_config,
-                "delivery_gate": gate,
-                "partial_artifacts": partial_artifacts,
-                "current_stage": "api_provider_project_generation",
-                "provider_recovery_needed": True,
-            },
-        )
-        save_session(session_dir, session)
-        write_provider_phase_event(
-            phase_log_path,
-            {
-                "kind": "provider_phase",
-                "stage": "api_provider_project_generation",
-                "status": "rework_blocked",
-                "provider_error_type": error_type,
-                "missing_config": missing_config,
-                "error": str(exc),
-            },
-        )
-        log_bridge_error(log_dir, "provider_generation_rework_blocked", conversation_id, exc, {"project_dir": str(project_dir)})
-        mark_public_delivery_rework(client, conversation_id, session_dir, session, project_dir, gate)
+        unknown=bool(getattr(exc,'outcome_unknown',False))
+        session['generation']={**dict(session.get('generation') or prior),'status':'outcome_unknown' if unknown else 'blocked',
+            'driver':'project_session','error_type':type(exc).__name__,'delivery_status':'NOT_EVALUATED'}
+        if unknown: session['generation']['outcome_unknown']=True
+        save_session(session_dir,session)
+        raise
+    session['generation']={**dict(session.get('generation') or prior),
+        'status':str(result['status']).lower(),'driver':'project_session',
+        'run_id':result['run_id'],'provider_run_dir':result['run_dir'],
+        'project_dir':result['project_dir'],'delivery_status':result['delivery_status'],
+        'public_delivery_allowed':result['public_delivery_allowed']}
+    save_session(session_dir,session)
 
 
 def run_agent_generation_job(
@@ -7133,220 +6650,9 @@ def run_agent_generation_job(
     max_turns: int = 12,
 ) -> None:
     # SUPPORT/EXPERIMENTAL ONLY: imports stay out of the production module graph.
-    try:
-        from . import agent_conversation_loop
-        from . import dynamic_pipeline_runner
-        from . import pipeline_manifest as pipeline_manifest_module
-        from . import pipeline_planner_agent
-    except ImportError:  # pragma: no cover - direct script execution
-        import agent_conversation_loop
-        import dynamic_pipeline_runner
-        import pipeline_manifest as pipeline_manifest_module
-        import pipeline_planner_agent
-
-    session = load_session(session_dir, conversation_id)
-    requirement = combined_requirement(session)
-    if not requirement:
-        send_customer_reply(
-            client,
-            conversation_id,
-            session_dir,
-            session,
-            event="missing_requirement_before_generation",
-            facts={"message": "当前没有可执行项目目标；后台未启动。"},
-        )
-        return
-    session["generation"] = {
-        "status": "running",
-        "driver": "agent_generated_pipeline",
-        "started_at": now(),
-        "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
-    }
-    snapshot = ensure_generation_context_snapshot(session_dir, conversation_id, session, requirement)
-    append_memory_event(session, "agent_pipeline_started", data={"requirement": requirement[:6000]})
-    append_truth_ledger(
-        session_dir,
-        session,
-        "agent_pipeline_started",
-        "Agent-generated pipeline generation started from Codex conversation confirmation",
-        evidence_ref=str(agent_session_path(session_dir, conversation_id)),
-        data={"artifact": "agent_session", "backend_controls_required": False, "generation_context_snapshot": True},
-    )
-    save_session(session_dir, session)
-    if announce_start:
-        send_customer_reply(
-            client,
-            conversation_id,
-            session_dir,
-            session,
-            event="generation_started",
-            direct_text=public_narration.public_event_text("generation_started", {}),
-        )
-    project_dir = log_dir / "agent_projects" / safe_id(conversation_id)
-    project_dir.mkdir(parents=True, exist_ok=True)
-    session_file = agent_session_path(session_dir, conversation_id)
-    snapshot_path = write_generation_context_snapshot(project_dir, snapshot)
-    manifest: dict[str, Any] = {}
-    manifest_path: pathlib.Path | str = ""
-    fallback_used = False
-    fallback_reason = ""
-    try:
-        whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
-        manifest = pipeline_planner_agent.plan_pipeline(
-            session_path=session_file,
-            model=model,
-            timeout=timeout,
-            whiteboard=whiteboard,
-            api_budget="low",
-        )
-        manifest = pipeline_manifest_module.normalize_pipeline_manifest(manifest, whiteboard)
-        manifest_path = pipeline_manifest_module.write_pipeline_manifest(project_dir, manifest)
-        append_agent_session_event(
-            session_dir,
-            conversation_id,
-            {"kind": "pipeline_manifest", "role": "system", "manifest": manifest, "agent_generated": True, "manifest_path": str(manifest_path)},
-        )
-        result = dynamic_pipeline_runner.run_dynamic_pipeline(
-            session_path=session_file,
-            project_dir=project_dir,
-            pipeline_manifest=manifest,
-            model=model,
-            timeout=timeout,
-            max_turns=max_turns,
-            whiteboard=whiteboard,
-        )
-    except Exception as exc:
-        fallback_used = True
-        fallback_reason = str(exc)
-        append_agent_session_event(
-            session_dir,
-            conversation_id,
-            {"kind": "pipeline_fallback", "role": "system", "reason": fallback_reason, "stage": "run_agent_generation_job"},
-        )
-        try:
-            result = agent_conversation_loop.run_agent_loop(
-                session_path=session_file,
-                project_dir=project_dir,
-                model=model,
-                timeout=timeout,
-                max_turns=max_turns,
-            )
-            result["driver"] = "agent_conversation_loop_fallback"
-        except Exception as fallback_exc:
-            session = load_session(session_dir, conversation_id)
-            gate = evaluate_public_delivery_gate(project_dir, {}, session, phase="final")
-            session["generation"] = {
-                "status": "rework_blocked",
-                "driver": "agent_generated_pipeline",
-                "finished_at": now(),
-                "error": str(fallback_exc),
-                "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
-                "project_dir": str(project_dir),
-                "pipeline_manifest_path": str(manifest_path or ""),
-                "generation_context_snapshot_path": str(snapshot_path),
-                "delivery_allowed": False,
-                "delivery_gate": gate,
-            }
-            update_active_run_status(
-                session,
-                "rework_blocked",
-                driver="agent_generated_pipeline",
-                delivery_allowed=False,
-                delivery_gate=gate,
-                project_dir=str(project_dir),
-            )
-            append_agent_session_event(session_dir, conversation_id, {"kind": "agent_loop_error", "role": "tool", "error": str(fallback_exc)})
-            append_memory_event(session, "agent_pipeline_failed", data={"error": str(fallback_exc), "pipeline_error": str(exc)})
-            save_session(session_dir, session)
-            log_bridge_error(log_dir, "agent_pipeline_failed", conversation_id, fallback_exc, {"project_dir": str(project_dir)})
-            mark_public_delivery_rework(client, conversation_id, session_dir, session, project_dir, gate)
-            return
-    if isinstance(result, dict) and result.get("pipeline_manifest") and "driver" not in result:
-        result["driver"] = "agent_generated_pipeline"
-    if str(result.get("driver", "")) == "agent_conversation_loop_fallback":
-        fallback_used = True
-        if not fallback_reason:
-            fallback_reason = "dynamic_pipeline_runner_fallback"
-    result["generation_context_snapshot"] = snapshot
-    result["generation_context_snapshot_path"] = str(snapshot_path)
-    if manifest_path:
-        result["pipeline_manifest_path"] = str(manifest_path)
-    if isinstance(result, dict) and str(result.get("status", "")).lower() == "waiting_user_review":
-        evidence = result.get("evidence", {}) if isinstance(result.get("evidence"), dict) else {}
-        checkpoint_project_dir = pathlib.Path(str(result.get("project_dir") or project_dir))
-        session = load_session(session_dir, conversation_id)
-        gate = evaluate_public_delivery_gate(checkpoint_project_dir, {}, session, evidence=evidence, phase="checkpoint")
-        if not gate.get("delivery_allowed"):
-            session["generation"] = {
-                "status": "rework_blocked",
-                "driver": "agent_generated_pipeline",
-                "updated_at": now(),
-                "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
-                "project_dir": str(checkpoint_project_dir),
-                "pipeline_manifest_path": str(result.get("pipeline_manifest_path", manifest_path or "")),
-                "generation_context_snapshot_path": str(result.get("generation_context_snapshot_path", "")),
-                "delivery_allowed": False,
-                "delivery_gate": gate,
-            }
-            update_active_run_status(session, "rework_blocked", driver="agent_generated_pipeline", delivery_allowed=False, delivery_gate=gate, project_dir=str(checkpoint_project_dir))
-            append_memory_event(session, "user_evidence_checkpoint_rework_blocked", data={"evidence": evidence, "delivery_gate": gate})
-            save_session(session_dir, session)
-            mark_public_delivery_rework(client, conversation_id, session_dir, session, checkpoint_project_dir, gate)
-            return
-        session["generation"] = {
-            "status": "waiting_user_review",
-            "driver": "agent_generated_pipeline",
-            "updated_at": now(),
-            "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
-            "project_dir": str(checkpoint_project_dir),
-            "pipeline_manifest_path": str(result.get("pipeline_manifest_path", manifest_path or "")),
-            "generation_context_snapshot_path": str(result.get("generation_context_snapshot_path", "")),
-        }
-        requirements = infer_public_delivery_requirements(session, "")
-        required_roles = ["nonvisual_summary"]
-        required_roles.extend(role for role in ("screenshot", "background", "sprite") if requirements.get(role))
-        if requirements.get("generated_image") and not (requirements.get("background") or requirements.get("sprite")):
-            required_roles.append("generated_image")
-        if requirements.get("video") or requirements.get("demo_video"):
-            required_roles.append("video")
-        owner = session.get("active_request_owner", {}) if isinstance(session.get("active_request_owner"), dict) else {}
-        review_request = canonical_user_review.create_review_request_snapshot(
-            checkpoint_project_dir,
-            conversation_id=conversation_id,
-            expected_reviewer_id=owner.get("reviewer_id", ""),
-            requirement_snapshot=session.get("whiteboard", {}).get("delivery_requirements", []),
-            visual_required=bool(requirements.get("screenshot")),
-            required_presentation_roles=required_roles,
-            replay_ledger_path=session_dir / f"{safe_id(conversation_id)}.review_replay_ledger.json",
-        )
-        if review_request.get("status") == "NEEDS_REWORK":
-            session["generation"]["status"] = "rework_blocked"
-            session["generation"]["review_failures"] = review_request.get("failures", [])
-            save_session(session_dir, session)
-            return
-        session["pending_evidence_checkpoint"] = review_request | {
-            "pipeline_manifest": result.get("pipeline_manifest") if isinstance(result.get("pipeline_manifest"), dict) else manifest,
-            "pipeline_manifest_path": str(result.get("pipeline_manifest_path", manifest_path or "")),
-            "agent_session_path": str(session_file),
-            "evidence": evidence,
-        }
-        update_active_run_status(session, "waiting_user_review", driver="agent_generated_pipeline")
-        append_memory_event(session, "user_evidence_checkpoint_waiting", data={"evidence": evidence})
-        save_session(session_dir, session)
-        send_evidence_checkpoint(client, conversation_id, session_dir, session, checkpoint_project_dir, evidence)
-        return
-    summary_driver = "agent_conversation_loop_fallback" if fallback_used else str(result.get("driver") or "agent_generated_pipeline")
-    summary_path = write_pipeline_run_summary(
-        project_dir,
-        driver=summary_driver,
-        pipeline_manifest_path=manifest_path or project_dir / "pipeline_manifest.json",
-        agent_session_path_value=session_file,
-        manifest=manifest,
-        fallback_used=fallback_used,
-        fallback_reason=fallback_reason,
-    )
-    result["pipeline_run_summary_path"] = str(summary_path)
-    finish_agent_loop_delivery(client, conversation_id, session_dir, project_dir, result)
+    """Legacy API name; no Agent-generated pipeline or repair loop remains."""
+    return run_provider_generation_job(client,conversation_id,session_dir,log_dir,model,timeout,
+        announce_start=announce_start)
 
 
 def finish_agent_loop_delivery(
@@ -7707,59 +7013,19 @@ def start_agent_generation(
     announce_start: bool,
     reason: str = "frontdesk_generation_confirmation",
     background: bool = True,
+    on_started: Callable[[dict[str, Any]], None] | None = None,
 ) -> None:
-    model = model or model_policy.select_model("provider_generation")
-    session = load_session(session_dir, conversation_id)
-    requirement = combined_requirement(session)
-    if not requirement:
-        send_customer_reply(
-            client,
-            conversation_id,
-            session_dir,
-            session,
-            event="missing_requirement_before_generation",
-            facts={"message": "当前没有可执行项目目标；后台未启动。"},
-        )
-        return
-    identity = production_generation_identity(conversation_id, session)
-    project_dir, run_dir = production_paths(conversation_id, log_dir, identity)
-    prior_generation = (
-        session.get("generation", {})
-        if isinstance(session.get("generation"), dict)
-        else {}
-    )
-    update_active_run_status(session, "running", driver="api_provider_project_generation")
-    session["generation"] = {
-        "status": "running",
-        "driver": "api_provider_project_generation",
-        "started_at": str(prior_generation.get("started_at") or now()),
-        "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
-        **identity,
-        "project_dir": str(project_dir),
-        "provider_run_dir": str(run_dir),
-        "provider_mode": str(prior_generation.get("provider_mode", "live") or "live"),
-        "replay_dir": str(prior_generation.get("replay_dir", "") or ""),
-        "production_entry_receipt_ref": str(
-            prior_generation.get("production_entry_receipt_ref", "")
-        ),
-        "production_entry_receipt_hash": str(
-            prior_generation.get("production_entry_receipt_hash", "")
-        ),
-    }
-    save_session(session_dir, session)
-    client.send_chat_action(conversation_id, "typing")
+    """Dispatch one existing ProjectSession job; no new project/run identity."""
+    session=load_session(session_dir,conversation_id)
+    if not session.get('project_session_profile'):
+        raise ValueError('PROJECT_SESSION_PROFILE_REQUIRED: configure the API controller profile')
     if background:
-        threading.Thread(
-            target=run_provider_generation_job,
-            args=(client, conversation_id, session_dir, log_dir, model, timeout),
-            kwargs={"announce_start": announce_start},
-            daemon=True,
-        ).start()
+        threading.Thread(target=run_provider_generation_job,
+            args=(client,conversation_id,session_dir,log_dir,model,timeout),
+            kwargs={'announce_start':announce_start,'on_started':on_started},daemon=True).start()
     else:
-        run_provider_generation_job(
-            client, conversation_id, session_dir, log_dir, model, timeout,
-            announce_start=announce_start,
-        )
+        run_provider_generation_job(client,conversation_id,session_dir,log_dir,model,timeout,
+            announce_start=announce_start,on_started=on_started)
 
 
 ACTIVE_GENERATION_STATUSES = {"queued", "running", "waiting_decision", "waiting_user_review", "waiting_surrogate_response", "waiting_requirement_replan"}
@@ -8033,90 +7299,14 @@ def start_generation_from_income(
     background: bool = True,
     on_started: Callable[[dict[str, Any]], None] | None = None,
 ) -> bool:
-    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
-    status = str(generation.get("status", "idle")).lower()
-    if status in ACTIVE_GENERATION_STATUSES:
-        return False
-    whiteboard = session.get("whiteboard", {}) if isinstance(session.get("whiteboard"), dict) else {}
-    if not combined_requirement(session):
-        return False
-    append_truth_ledger(
-        session_dir,
-        session,
-        "agent_loop_income_start_requested",
-        "项目输入已触发正式 agent 生成启动。",
-        evidence_ref=str(agent_session_path(session_dir, conversation_id)),
-        data={"artifact": "agent_session", "reason": reason, "previous_generation_status": status},
-    )
-    append_memory_event(session, "agent_loop_income_start_requested", data={"reason": reason, "previous_generation_status": status})
-    save_session(session_dir, session)
-    if str(generation_mode or "api").lower() == "simulator":
-        run_simulator_preflight(client, conversation_id, session_dir, log_dir, session, reason=reason)
-        return True
-    entry_started_at = now()
-    identity = {
-        "run_id": f"production-{uuid.uuid4().hex}",
-        "candidate_id": "",
-        "commit_sha": repository_commit_sha(),
-    }
-    identity["candidate_id"] = (
-        f"customer-{safe_id(conversation_id)}-{identity['run_id'].rsplit('-', 1)[-1]}"
-    )
-    project_dir, production_run_dir = production_paths(conversation_id, log_dir, identity)
-    entry_receipt = production_candidate_provenance.write_stage_receipt(
-        production_run_dir,
-        stage="production_entry",
-        run_id=identity["run_id"],
-        candidate_id=identity["candidate_id"],
-        commit_sha=identity["commit_sha"],
-        candidate_root=project_dir,
-        started_at=entry_started_at,
-        finished_at=now(),
-    )
-    session["generation"] = {
-        "status": "queued",
-        "driver": "api_provider_project_generation",
-        "started_at": entry_started_at,
-        "agent_session_path": str(agent_session_path(session_dir, conversation_id)),
-        **identity,
-        "project_dir": str(project_dir),
-        "provider_run_dir": str(production_run_dir),
-        "production_entry_receipt_ref": str(entry_receipt),
-        "production_entry_receipt_hash": canonical_evidence_hash.sha256_file(
-            entry_receipt
-        ),
-        "provider_mode": str(provider_mode or "live").strip().lower(),
-        "generation_model": str(model or "").strip(),
-        "repair_model": str(repair_model or "").strip(),
-        "replay_dir": str(pathlib.Path(replay_dir).resolve()) if replay_dir else "",
-    }
-    append_agent_session_event(
-        session_dir,
-        conversation_id,
-        {
-            "kind": "canonical_production_entry",
-            "role": "system",
-            **identity,
-            "candidate_root": str(project_dir),
-            "production_run_root": str(production_run_dir),
-            "entry_receipt_ref": str(entry_receipt),
-        },
-    )
-    save_session(session_dir, session)
-    if on_started is not None:
-        on_started(dict(session["generation"]))
-    start_kwargs: dict[str, Any] = {"announce_start": False, "reason": reason}
-    if not background:
-        start_kwargs["background"] = False
-    start_agent_generation(
-        client,
-        conversation_id,
-        session_dir,
-        log_dir,
-        model,
-        timeout,
-        **start_kwargs,
-    )
+    """Translate the old submission API into the canonical session dispatcher."""
+    if generation_mode!='api' or provider_mode!='live' or replay_dir is not None:
+        raise ValueError('legacy simulator/replay lifecycle is offline-only')
+    if not session.get('project_session_profile'):
+        raise ValueError('PROJECT_SESSION_PROFILE_REQUIRED: configure the API controller profile')
+    save_session(session_dir,session)
+    start_agent_generation(client,conversation_id,session_dir,log_dir,model,timeout,
+        announce_start=False,reason=reason,background=background,on_started=on_started)
     return True
 
 
@@ -9070,245 +8260,4 @@ def formal_generation_requires_new_run(status: object) -> bool:
     return str(status or "").strip().lower() in FORMAL_RESTARTABLE_FAILURE_STATUSES
 
 
-def run_formal_generation_once(
-    project_root: str | pathlib.Path,
-    *,
-    goal: str,
-    provider_mode: str = "live",
-    model: str = "gpt-4.1",
-    repair_model: str = "",
-    timeout: int = 1800,
-    replay_dir: str | pathlib.Path | None = None,
-    result_path: str | pathlib.Path | None = None,
-    codex_capability_brief: str | pathlib.Path | None = None,
-    observed_failure: str | pathlib.Path | None = None,
-    on_started: Callable[[dict[str, Any]], None] | None = None,
-) -> dict[str, Any]:
-    """Run/resume one production conversation generation turn synchronously.
-
-    This is a local interface adapter to the sole reviewed Codex conversation
-    route.  It does not add a generator, verifier, packager, or delivery exit.
-    """
-    root = pathlib.Path(project_root).resolve()
-    artifact_dir = root / ".cgkn" / "agent-kit"
-    session_dir = artifact_dir / "conversation_sessions"
-    log_dir = artifact_dir / "conversation_logs"
-    output = pathlib.Path(result_path).resolve() if result_path else artifact_dir / "generation_result.json"
-    conversation_id = "agent-kit-" + hashlib.sha256(
-        json.dumps({"project_root": str(root), "goal": goal}, ensure_ascii=False, sort_keys=True).encode("utf-8")
-    ).hexdigest()[:20]
-    path = session_path(session_dir, conversation_id)
-    client = CodexConversation()
-    brief_path = (
-        pathlib.Path(codex_capability_brief).expanduser().resolve()
-        if codex_capability_brief
-        else None
-    )
-    if brief_path is not None and (not brief_path.is_file() or brief_path.is_symlink()):
-        raise ValueError("codex_capability_brief must be an existing regular file")
-    if not path.is_file():
-        session = default_session(conversation_id)
-        if brief_path is not None:
-            session["codex_capability_brief"] = str(brief_path)
-        session["messages"].append({"role": "user", "text": goal, "created_at": now()})
-        session["whiteboard"].update(
-            {
-                "project_summary": goal,
-                "known_facts": [goal],
-                "ready_to_generate": True,
-                "acceptance_criteria": ["project starts", "canonical tests and runtime pass", "local package passes public delivery gate"],
-            }
-        )
-        save_session(session_dir, session)
-        start_generation_from_income(
-            client,
-            conversation_id,
-            session_dir,
-            log_dir,
-            model,
-            timeout,
-            session,
-            reason="agent_kit_formal_generation",
-            provider_mode=provider_mode,
-            repair_model=repair_model,
-            replay_dir=replay_dir,
-            background=False,
-            on_started=on_started,
-        )
-    else:
-        session = load_session(session_dir, conversation_id)
-        stored_brief = str(session.get("codex_capability_brief", "") or "")
-        if brief_path is not None and stored_brief and pathlib.Path(stored_brief).resolve() != brief_path:
-            raise ValueError("codex_capability_brief cannot change while resuming a production run")
-        if brief_path is not None and not stored_brief:
-            session["codex_capability_brief"] = str(brief_path)
-            save_session(session_dir, session)
-        generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
-        stored_mode = str(generation.get("provider_mode", provider_mode) or provider_mode)
-        if stored_mode != provider_mode:
-            raise ValueError("provider_mode cannot change while resuming a production run")
-        stored_generation_model = str(generation.get("generation_model", model) or model)
-        stored_repair_model = str(generation.get("repair_model", "") or "")
-        if stored_generation_model != str(model or ""):
-            raise ValueError("generation model cannot change while resuming a production run")
-        if stored_repair_model != str(repair_model or ""):
-            raise ValueError("repair model cannot change while resuming a production run")
-        observed_repair_handled = False
-        if observed_failure is not None:
-            observed_path = pathlib.Path(observed_failure).expanduser().resolve()
-            if not observed_path.is_file() or observed_path.is_symlink():
-                raise ValueError("observed_failure must be an existing regular file")
-            observed_doc = json.loads(observed_path.read_text(encoding="utf-8"))
-            if not isinstance(observed_doc, dict):
-                raise ValueError("observed_failure must contain a JSON object")
-            provider_run_dir = pathlib.Path(
-                str(generation.get("provider_run_dir", ""))
-            ).resolve()
-            project_dir = pathlib.Path(str(generation.get("project_dir", ""))).resolve()
-            if not provider_run_dir.is_dir() or not project_dir.is_dir():
-                raise RuntimeError("observed_failure_generation_identity_missing")
-            preparation = (
-                provider_project_pipeline.prepare_observed_project_failure_provider_repair(
-                    provider_run_dir,
-                    observed_doc,
-                    user_goal=goal,
-                    candidate_dir=project_dir,
-                )
-            )
-            session["observed_failure_repair"] = preparation
-            append_agent_session_event(
-                session_dir,
-                conversation_id,
-                {
-                    "kind": "observed_project_failure_repair_prepared",
-                    "role": "tool",
-                    "result": preparation,
-                },
-            )
-            save_session(session_dir, session)
-            observed_repair_handled = True
-            if str(preparation.get("status", "")) == "pending_provider_repair":
-                if on_started is not None:
-                    on_started(dict(generation))
-                start_agent_generation(
-                    client,
-                    conversation_id,
-                    session_dir,
-                    log_dir,
-                    model,
-                    timeout,
-                    announce_start=False,
-                    reason="agent_kit_observed_failure_provider_repair",
-                    background=False,
-                )
-        if observed_repair_handled:
-            pass
-        elif str(generation.get("status", "")).lower() in {"waiting_surrogate_response", "waiting_requirement_replan"}:
-            if on_started is not None:
-                on_started(dict(generation))
-            start_agent_generation(
-                client,
-                conversation_id,
-                session_dir,
-                log_dir,
-                model,
-                timeout,
-                announce_start=False,
-                reason="agent_kit_surrogate_resume",
-                background=False,
-            )
-        elif formal_generation_requires_new_run(generation.get("status")):
-            start_generation_from_income(
-                client,
-                conversation_id,
-                session_dir,
-                log_dir,
-                model,
-                timeout,
-                session,
-                reason="agent_kit_terminal_failure_revalidation",
-                provider_mode=provider_mode,
-                repair_model=repair_model,
-                replay_dir=replay_dir,
-                background=False,
-                on_started=on_started,
-            )
-        elif str(generation.get("status", "")).lower() in ACTIVE_GENERATION_STATUSES:
-            if on_started is not None:
-                on_started(dict(generation))
-                start_agent_generation(
-                    client,
-                    conversation_id,
-                    session_dir,
-                    log_dir,
-                    model,
-                    timeout,
-                    announce_start=False,
-                    reason="agent_kit_managed_worker_resume",
-                    background=False,
-                )
-    session = load_session(session_dir, conversation_id)
-    generation = session.get("generation", {}) if isinstance(session.get("generation"), dict) else {}
-    status = str(generation.get("status", "NOT_EVALUATED"))
-    normalized_status = (
-        "WAITING_SURROGATE_RESPONSE" if status.lower() == "waiting_surrogate_response"
-        else "WAITING_REQUIREMENT_REPLAN" if status.lower() == "waiting_requirement_replan"
-        else status.upper()
-    )
-    maturity_container = generation.get("product_maturity", {}) if isinstance(generation.get("product_maturity"), dict) else {}
-    maturity_reports = maturity_container.get("reports", {}) if isinstance(maturity_container.get("reports"), dict) else {}
-    maturity_report = maturity_reports.get("product_maturity_report", {}) if isinstance(maturity_reports.get("product_maturity_report"), dict) else {}
-    finalization_state = generation.get("canonical_finalization_state", {}) if isinstance(generation.get("canonical_finalization_state"), dict) else {}
-    if normalized_status in {"WAITING_SURROGATE_RESPONSE", "WAITING_REQUIREMENT_REPLAN"}:
-        formal_evidence_status = "NOT_EVALUATED"
-    elif normalized_status == "DELIVERED":
-        formal_evidence_status = "PASS"
-    elif normalized_status == "DELIVERED_WITH_WARNINGS":
-        formal_evidence_status = "PASS_WITH_LIMITS"
-    else:
-        formal_evidence_status = "NEEDS_REWORK"
-    result = {
-        "kind": "CGKNFormalConversationGenerationResult",
-        "status": normalized_status,
-        "workflow_state": str(generation.get("workflow_state") or generation.get("canonical_finalization_state", {}).get("state") or normalized_status),
-        "formal_evidence_status": formal_evidence_status,
-        "provider_mode": str(generation.get("provider_mode", provider_mode)),
-        "execution_mode": "external_api" if str(generation.get("provider_mode", provider_mode)) == "live" else str(generation.get("provider_mode", provider_mode)),
-        "generation_model": str(generation.get("generation_model", model)),
-        "repair_model": str(generation.get("repair_model", "") or generation.get("generation_model", model)),
-        "repair_model_escalation_configured": bool(str(generation.get("repair_model", "")).strip()),
-        "real_provider_calls": int(generation.get("real_provider_calls", 0) or 0),
-        "network_attempts": int(generation.get("network_attempts", 0) or 0),
-        "provider_schedulers": int(generation.get("provider_schedulers", 1) or 1),
-        "run_id": str(generation.get("run_id", "")),
-        "candidate_id": str(generation.get("candidate_id", "")),
-        "candidate_hash": str(generation.get("candidate_hash", "")),
-        "commit_sha": str(generation.get("commit_sha", "")),
-        "project_dir": str(generation.get("project_dir", "")),
-        "run_dir": str(generation.get("provider_run_dir", "")),
-        "provider_run_dir": str(generation.get("provider_run_dir", "")),
-        "pending_requests": generation.get("pending_requests", []),
-        "manifest_path": str(generation.get("manifest_path", "")),
-        "package_path": str(generation.get("package_path", "")),
-        "delivery_allowed": bool(generation.get("delivery_allowed")),
-        "pipeline_status": normalized_status,
-        "candidate_status": str(finalization_state.get("state", "NOT_EVALUATED")),
-        "product_maturity_level": str(maturity_report.get("maturity_level", "NOT_EVALUATED")),
-        "target_goal_satisfied": bool(maturity_report.get("target_goal_satisfied")),
-        "user_review_status": "NOT_REQUIRED" if generation.get("user_review_policy", {}).get("required") is False else ("WAITING_USER_REVIEW" if str(finalization_state.get("state")) == "WAITING_USER_REVIEW" else "NOT_EVALUATED"),
-        "delivery_gate": generation.get("delivery_gate", {}),
-        "canonical_finalization_state": finalization_state,
-        "canonical_verification": generation.get("canonical_verification", {}),
-        "canonical_governance": generation.get("canonical_governance", {}),
-        "acceptance_decision": generation.get("acceptance_decision", {}),
-        "promotion_manifest": generation.get("promotion_manifest", {}),
-        "user_review_policy": generation.get("user_review_policy", {}),
-        "product_maturity": generation.get("product_maturity", {}),
-        "observed_failure_repair": session.get("observed_failure_repair", {}),
-        "conversation_session_path": str(path.resolve()),
-        "public_messages": client.messages,
-        "public_artifacts": client.artifacts,
-        "updated_at": now(),
-    }
-    write_json(output, result)
-    return result
+from cgkn.application.software_project.service import run_formal_generation_once

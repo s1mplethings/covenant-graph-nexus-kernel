@@ -1,20 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from types import MappingProxyType
+from cgkn.component.spec import _freeze, _thaw
 from typing import Any, Iterable, Mapping
-
-
-def _freeze(value: Any) -> Any:
-    if isinstance(value, Mapping): return MappingProxyType({str(key): _freeze(item) for key, item in value.items()})
-    if isinstance(value, (list, tuple)): return tuple(_freeze(item) for item in value)
-    return value
-
-
-def _thaw(value: Any) -> Any:
-    if isinstance(value, Mapping): return {key: _thaw(item) for key, item in value.items()}
-    if isinstance(value, tuple): return [_thaw(item) for item in value]
-    return value
 
 
 def _items(values: Iterable[str]) -> tuple[str, ...]:
@@ -45,7 +33,13 @@ class CapabilityNode:
         object.__setattr__(self, "parent_id", self.parent_id.strip())
         object.__setattr__(self, "capability_ref", self.capability_ref.strip())
         object.__setattr__(self, "depends_on", _items(self.depends_on))
-        object.__setattr__(self, "config", _freeze(self.config))
+        config = dict(self.config)
+        contract = config.get('leaf_contract')
+        # The explicit versioned contract can supply the legacy dispatch alias.
+        # Never invent an executor or silently replace a conflicting binding.
+        if isinstance(contract, Mapping) and 'executor_ref' not in config and contract.get('executor_ref'):
+            config['executor_ref'] = contract['executor_ref']
+        object.__setattr__(self, "config", _freeze(config))
 
     @property
     def executable(self) -> bool:
@@ -101,10 +95,16 @@ class CapabilityTree:
         if set(value) != {"kind", "schema_version", "goal", "nodes"} or value.get("kind") != "CGKNCapabilityTree" or value.get("schema_version") != "1.0":
             raise ValueError("malformed capability tree")
         if not isinstance(value.get("nodes"), list): raise ValueError("malformed capability tree nodes")
-        allowed = {"id", "parent_id", "capability_ref", "depends_on", "config"}
+        allowed = {"id", "parent_id", "capability_ref", "depends_on", "config", "status"}
         nodes = []
         for raw in value["nodes"]:
             if not isinstance(raw, Mapping) or set(raw) - allowed: raise ValueError("malformed capability node")
+            if 'status' in raw:
+                if raw['status'] != 'ACCEPTED':
+                    raise ValueError('unknown legacy capability status')
+                from veriarbor.capability import CapabilityGateState
+                raw = dict(raw, config={**raw.get('config', {}),
+                                       'capability_gates': CapabilityGateState.from_dict('ACCEPTED').as_dict()})
             nodes.append(CapabilityNode(str(raw["id"]), str(raw.get("parent_id", "")), str(raw.get("capability_ref", "")), tuple(str(item) for item in raw.get("depends_on", ())), dict(raw.get("config", {}))))
         return cls(str(value["goal"]), tuple(nodes))
 

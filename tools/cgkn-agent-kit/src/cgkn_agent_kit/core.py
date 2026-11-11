@@ -300,7 +300,7 @@ def scan_project(project_root: pathlib.Path, *, max_items: int = 8, max_file_byt
     }
 
 
-def _run(argv: list[str], *, cwd: pathlib.Path, input_text: str | None = None, timeout: int = 600) -> subprocess.CompletedProcess[str]:
+def _run(argv: list[str], *, cwd: pathlib.Path, input_text: str | None = None, timeout: int | None = 600) -> subprocess.CompletedProcess[str]:
     try:
         completed = subprocess.run(
             argv, cwd=cwd, input=input_text, capture_output=True, text=True,
@@ -389,6 +389,7 @@ def doctor(project_root: pathlib.Path, *, codex_command: str = "") -> dict[str, 
         "project_root": str(root),
         "cgkn_root": str(cgkn_root),
         "provider_mainline_available": _valid_cgkn_root(cgkn_root),
+        "application_network": _application_network_status(),
         "secrets_stored": bool(config.get("stores_secrets", True)),
         "codex": {"found": False, "usable": False, "detail": "not found"},
     }
@@ -428,16 +429,34 @@ def generation_command(
     artifact_dir = root / str(config["artifact_dir"])
     out = (out_dir or (artifact_dir / "generated-project")).resolve()
     mode = resolve_provider_mode(provider_mode, usage_beta=usage_beta)
+    from cgkn.providers.application_network import settings
+    application=settings()
+    small_model=large_model=model
+    if application and mode=='live':
+        routing=read_json(pathlib.Path(application['model_routing']))
+        if model not in ('gpt-4.1','qwen'):
+            raise AgentKitError('APPLICATION_MODEL_NOT_ADMITTED: choose saved domestic role configuration')
+        model=large_model=routing['roles']['agent']['provider_id']
+        small_model=routing['roles']['worker']['provider_id']
     if mode != "deterministic_replay" and replay_dir is not None:
         raise AgentKitError("replay_dir is valid only for deterministic_replay")
     result_path = (artifact_dir / "generation_result.json").resolve()
+    core_profile=root/'.cgkn'/'project-session.json'
+    if core_profile.exists():
+        frozen=read_json(core_profile)
+        if frozen.get('intent',{}).get('overall_goal')!=goal:
+            raise AgentKitError('PROJECT_SESSION_GOAL_MISMATCH')
+        if mode!='live' or replay_dir is not None:
+            raise AgentKitError('PROJECT_SESSION_REQUIRES_RECORDED_ROUTE')
     argv = [
         sys.executable, str(cgkn_root / "scripts" / "run_codex_conversation_generation.py"),
         "--project-root", str(root), "--goal", goal, "--out-dir", str(out),
-        "--result", str(result_path), "--codex-capability-brief", str(brief_path.resolve()),
+        "--result", str(result_path),
         "--provider-mode", mode, "--model", model,
-        "--small-model", model, "--large-model", model, "--json",
+        "--small-model", small_model, "--large-model", large_model, "--json",
     ]
+    if not core_profile.exists():
+        argv.extend(['--codex-capability-brief',str(brief_path.resolve())])
     if mode == "live":
         argv.extend(["--use-api", "--allow-provider"])
         if allow_network:
@@ -521,7 +540,10 @@ def submit_surrogate_response(
 
 
 def run_generation(argv: list[str], *, cgkn_root: pathlib.Path, timeout: int) -> subprocess.CompletedProcess[str]:
-    return _run(argv, cwd=cgkn_root, timeout=timeout)
+    from cgkn.providers.application_network import settings
+    # CLI waits for the canonical worker; meaningful-progress and cancellation
+    # are enforced inside that worker, not by an unrelated subprocess clock.
+    return _run(argv, cwd=cgkn_root, timeout=None if settings() is not None else timeout)
 
 
 def generation_job_path(artifact_dir: pathlib.Path) -> pathlib.Path:
@@ -777,6 +799,7 @@ def start_generation_job(
     }
     creationflags = 0
     popen_kwargs: dict[str, Any] = {"cwd": str(cgkn_root), "close_fds": True}
+    popen_kwargs['env'] = {**os.environ, 'CGKN_PROGRESS_ROOT': str(pathlib.Path(artifact_dir) / 'api-progress')}
     if os.name == "nt":
         creationflags = int(getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0))
         popen_kwargs["creationflags"] = creationflags
@@ -895,3 +918,13 @@ def cancel_generation_job(
             except (OSError, ProcessLookupError):
                 pass
     return {**generation_job_status(artifact_dir), "cancelled": True, "deduplicated": False}
+
+
+# The installed MCP bridge imports this repository module on each application start.
+# Workers independently reload the same saved profile in their client/HTTP entrypoints.
+_application_root = pathlib.Path(__file__).resolve().parents[4]
+if str(_application_root) not in sys.path:
+    sys.path.insert(0, str(_application_root))
+from cgkn.providers.application_network import network_status as _application_network_status, normalize_profile_override
+normalize_profile_override()
+APPLICATION_NETWORK_STATUS = None  # Strong validation belongs to live request boundaries.

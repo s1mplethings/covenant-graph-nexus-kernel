@@ -28,12 +28,12 @@ class SourceBoundary:
 KERNEL_PACKAGES = (
     "agent", "artifacts", "capabilities", "compiler", "component", "execution",
     "executors", "governance", "growth", "orchestration", "providers", "runtime",
-    "state", "telemetry",
+    "state", "telemetry", "protocol", "adapters", "project_agent",
 )
 KERNEL_TEST_PREFIXES = tuple(f"tests/{name}/" for name in (
     "agent", "architecture", "artifacts", "capabilities", "compiler", "component",
     "execution", "executors", "growth", "orchestration", "providers", "recovery",
-    "runtime", "state", "telemetry",
+    "runtime", "state", "telemetry", "protocol", "project_agent",
 ))
 
 BOUNDARIES: Mapping[str, SourceBoundary] = {
@@ -54,6 +54,7 @@ BOUNDARIES: Mapping[str, SourceBoundary] = {
             "scripts/kernel_source_identity.py",
             "scripts/run_kernel_profiles.py",
             "scripts/source_boundaries.py",
+            "scripts/receipt_freshness.py",
             "scripts/test_architecture_gate.py",
             "scripts/verify_kernel_test_receipt.py",
             "tests/test_artifact_driven_kernel.py",
@@ -113,6 +114,8 @@ def boundary_identity(boundary_name: str, commit: str = "HEAD") -> dict[str, obj
         boundary = BOUNDARIES[boundary_name]
     except KeyError as exc:
         raise ValueError(f"unknown source boundary: {boundary_name}") from exc
+    if commit == 'WORKTREE':
+        return working_boundary_identity(boundary_name)
     source_commit, source_tree_sha, objects = git_objects(commit)
     paths = tuple(path for path in objects if boundary.contains(path))
     return {
@@ -124,6 +127,30 @@ def boundary_identity(boundary_name: str, commit: str = "HEAD") -> dict[str, obj
         "boundary_hash": hash_objects(objects, paths),
         "path_count": len(paths),
     }
+
+
+def working_boundary_identity(boundary_name: str) -> dict[str, object]:
+    """Identify actual tracked and new source bytes without staging or commits.
+
+    Receipt outputs are not source inputs. Boundary ownership still comes from
+    the same registry used for committed identities.
+    """
+    try:
+        boundary = BOUNDARIES[boundary_name]
+    except KeyError as exc:
+        raise ValueError(f'unknown source boundary: {boundary_name}') from exc
+    paths = set(_git('ls-files', '-z', '--cached', '--others', '--exclude-standard').split('\0'))
+    objects = {}
+    for name in sorted(paths):
+        if not name or not boundary.contains(name):
+            continue
+        path = ROOT / name
+        if path.is_file() and '__pycache__' not in path.parts:
+            objects[name] = hashlib.sha256(path.read_bytes()).hexdigest()
+    return {'kind':'CGKNSourceBoundaryIdentity','schema_version':'2.0',
+        'boundary':boundary_name,'source_commit':_git('rev-parse','HEAD'),
+        'identity_mode':'WORKTREE_SHA256','boundary_hash':hash_objects(objects,objects),
+        'path_count':len(objects),'files':objects}
 
 
 def changed_paths_since(commit: str) -> set[str]:

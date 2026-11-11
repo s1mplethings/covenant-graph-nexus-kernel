@@ -600,7 +600,7 @@ class _InlineThread:
         self.target(*self.args, **self.kwargs)
 
 
-def test_formal_production_entry_generates_provenance_and_bound_evidence(
+def test_legacy_protocol_fixture_preserves_bound_test_runtime_and_visual_evidence(
     tmp_path: pathlib.Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -678,41 +678,34 @@ def test_formal_production_entry_generates_provenance_and_bound_evidence(
         reproducible_provider,
     )
     client = _NoCodexConversationTransport()
-    project_parent = (
-        codex_conversation.ROOT
-        / "generated"
-        / "codex_provider_projects"
-        / codex_conversation.safe_id(conversation_id)
-    )
+    # Compatibility protocol qualification, not the retired default lifecycle
+    # or a real Provider witness. Canonical core entry behavior is exercised by
+    # test_milestone_worker_chain and test_session_conversation_adapter.
+    # The independent subprocess gate uses the frozen v1 production root;
+    # monkeypatching a parent-process path would not qualify that gate.
+    project_parent = production_candidate_provenance.PRODUCTION_CANDIDATE_ROOT / conversation_id
     try:
-        started = codex_conversation.start_generation_from_income(
-            client,
-            conversation_id,
-            session_dir,
-            log_dir,
-            "gpt-test",
-            180,
-            session,
-            reason="formal_production_positive",
-        )
-        assert started is True
-        deadline = time.monotonic() + 180
-        final_session = codex_conversation.load_session(session_dir, conversation_id)
-        while (
-            str(final_session.get("generation", {}).get("status", "")).lower()
-            in {"queued", "running"}
-            and time.monotonic() < deadline
-        ):
-            time.sleep(0.1)
-            final_session = codex_conversation.load_session(
-                session_dir, conversation_id
-            )
-        assert str(
-            final_session.get("generation", {}).get("status", "")
-        ).lower() not in {"queued", "running"}
-        generation = final_session["generation"]
-        candidate = pathlib.Path(generation["project_dir"])
-        run_root = pathlib.Path(generation["provider_run_dir"])
+        from types import SimpleNamespace
+        generation={'run_id':'legacy-fixture-run','candidate_id':'legacy-fixture-candidate',
+                    'commit_sha':codex_conversation.repository_commit_sha()}
+        candidate=project_parent/'candidate';candidate.mkdir(parents=True)
+        run_root=tmp_path/'legacy-run';run_root.mkdir()
+        staging=tmp_path/'provider-staging'
+        entry=production_candidate_provenance.write_stage_receipt(run_root,
+            stage='production_entry',candidate_root=candidate,
+            started_at=provider_causal_trace.now(),finished_at=provider_causal_trace.now(),**generation)
+        result_path=run_root/'provider_generation_result.json'
+        leaf=codex_conversation.execute_validated_provider_round(
+            SimpleNamespace(out_dir=staging,run_dir=run_root,goal=session['whiteboard']['project_summary']),
+            session_dir=session_dir,conversation_id=conversation_id,phase_log_path=run_root/'phase.jsonl',
+            project_dir=candidate,provider_staging_dir=staging,run_dir=run_root,
+            result_path=result_path,identity=generation,model='offline-fixture',formal_entry=True)
+        finalized=codex_conversation.post_build_finalize_provider_project(candidate,
+            leaf['provider_result'],{},session,session_dir=session_dir,conversation_id=conversation_id,
+            production_identity=generation,production_run_dir=run_root,
+            stage_receipts={'production_entry':entry,'provider_generation':leaf['generation_receipt'],
+                            'provider_validation':leaf['validation_receipt']},
+            provider_result_path=result_path,provider_causal_capture=leaf['causal_capture'])
         provenance_ref = run_root / production_candidate_provenance.FILE_NAME
         inspection = production_candidate_provenance.inspect(
             provenance_ref,
@@ -724,14 +717,7 @@ def test_formal_production_entry_generates_provenance_and_bound_evidence(
         )
         assert inspection["status"] == "PASS", inspection
         identity = inspection["identity"]
-        assert provider_out_dirs == [
-            (
-                codex_conversation.ROOT
-                / "generated"
-                / "provider_response_staging"
-                / generation["run_id"]
-            ).resolve()
-        ]
+        assert provider_out_dirs == [staging.resolve()]
         assert provider_out_dirs[0] != candidate.resolve()
         causal_ref = run_root / provider_causal_trace.FILE_NAME
         causal_inspection = provider_causal_trace.inspect(
@@ -811,4 +797,5 @@ def test_formal_production_entry_generates_provenance_and_bound_evidence(
         assert client.photos_sent == 0
         assert client.documents_sent == 0
     finally:
-        shutil.rmtree(project_parent, ignore_errors=True)
+        # Keep diagnostic candidate/runtime evidence in the pytest archive.
+        pass

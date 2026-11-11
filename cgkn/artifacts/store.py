@@ -95,7 +95,24 @@ class ArtifactStore:
             if not self.verify_artifact_hash(resolved.ref):
                 raise ArtifactValidationError(f"input artifact hash is invalid: {input_ref.artifact_instance_id}")
 
-    def write_artifact(self, artifact: ArtifactInstance) -> ArtifactRef:
+    def write_artifact(self, artifact: ArtifactInstance, *, authority=None, permit_id=None, execution_mode='GOVERNED') -> ArtifactRef:
+        lineage={'execution_mode':execution_mode}
+        if execution_mode=='GOVERNED':
+            if authority is None and permit_id is None:
+                from cgkn.execution.node_effects import require_provider_context
+                authority,permit_id=require_provider_context()
+            if authority is None or not permit_id:raise ValueError('PERMIT_REQUIRED')
+            permit=authority.validate_permit(permit_id,run_id=artifact.run_id,node_id=artifact.producer.node_id)
+            path=self._path(artifact.id).resolve()
+            if (not path.is_relative_to(authority.staging_dir(permit_id).resolve())
+                    and str(path) not in permit.input_bindings.get('_output_paths',())):
+                raise ValueError('OUTPUT_BINDING_REJECT: artifact path must be declared before execution')
+            authority.use_effect(permit_id,'PERSISTENT_ARTIFACT_WRITE')
+            lineage.update(permit_id=permit_id,node_id=permit.node_id,execution_epoch=permit.execution_epoch)
+        elif execution_mode=='LEGACY':
+            from veriarbor.governance import require_legacy
+            require_legacy(run_id=artifact.run_id)
+        elif execution_mode!='IMPORTED_UNMANAGED':raise ValueError('PERMIT_REQUIRED')
         self.validate_artifact(artifact)
         path = self._path(artifact.id)
         if path.exists():
@@ -118,6 +135,7 @@ class ArtifactStore:
                 "supersedes": artifact.supersedes,
                 "consumers": [],
                 "path": path.relative_to(self.run_dir).as_posix(),
+                "governance":lineage,
             }
         )
         try:
@@ -126,6 +144,18 @@ class ArtifactStore:
             path.unlink(missing_ok=True)
             raise
         return artifact.ref
+
+    def resolve_governed(self, ref, *, authority, receipt_id):
+        """Official consumers require the Host receipt, never the mutable index status."""
+        artifact=self.resolve_artifact_ref(ref)
+        row=self._row(artifact.id)
+        lineage=row.get('governance',{})
+        if lineage.get('execution_mode')!='GOVERNED':raise ValueError('COMMIT_RECEIPT_REQUIRED')
+        from cgkn.runtime.node_authority import file_hash
+        path=self._path(artifact.id)
+        authority.validate_receipt(receipt_id,output_path=str(path),output_hash=file_hash(path),
+            permit_id=lineage['permit_id'],node_id=lineage['node_id'],execution_epoch=lineage['execution_epoch'])
+        return artifact
 
     def read_artifact(self, artifact_id: str) -> ArtifactInstance:
         path = self._path(artifact_id)

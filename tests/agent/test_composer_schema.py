@@ -82,3 +82,64 @@ def test_composer_decide_serializes_context_without_hidden_reasoning() -> None:
     assert result.finish and "reasoning" not in json.dumps(result.as_dict()).lower()
     with pytest.raises(ValueError, match="agent model"):
         AgentComposer(Client(value), ModelRoleConfig("worker", "worker-model"))
+
+
+def test_advertised_retry_schema_requires_actual_empty_payload():
+    from jsonschema import Draft202012Validator
+    from cgkn.agent.composer import AGENT_SCHEMA
+    validator=Draft202012Validator(AGENT_SCHEMA)
+    good=decision(edits=[edit('retry_node',{})])
+    assert not list(validator.iter_errors(good))
+    for bad in [{',':{}},{'}}],':{}},{'provenance':{'source':'misplaced'}}]:
+        assert list(validator.iter_errors(decision(edits=[edit('retry_node',bad)])))
+    assert not list(validator.iter_errors(decision(edits=[edit('update_config',{'config':{'goal':'bounded'}})])))
+
+
+def test_completed_schema_rejection_reaches_next_project_decision(tmp_path):
+    from cgkn.providers.gateway_client import GatewayCompletionError
+    from cgkn.agent import AgentProjectLoop
+    from cgkn.runtime import DAGRunner
+    from cgkn.state import FileRunStore
+    from cgkn.executors import ExecutorRegistry
+    class RejectThenEscalate:
+        calls=0
+        def complete(self, **kwargs):
+            self.calls+=1
+            if self.calls==1:
+                error=GatewayCompletionError('schema_validation_failed','completed output rejected',outcome_unknown=False)
+                error.completed_response={'output_text':json.dumps({'edits':[{'action':'add_node'}]}),
+                    'model':'actual-version','id':'original-request','usage':{'input_tokens':10,'output_tokens':5},
+                    'cgkn_model_identity':{'actual_model':'actual-version'}}
+                raise error
+            context=json.loads(kwargs['user']);feedback=context['failure_details']['decision_validation']
+            assert feedback['failure_domain']=='MODEL_OUTPUT'
+            assert feedback['model']=='actual-version' and feedback['request_id']=='original-request'
+            assert feedback['usage']['output_tokens']==5 and not feedback['outcome_unknown']
+            assert 'required property' in feedback['error'] and 'action' in feedback['raw_response']
+            return completion(decision(run=False,escalate=True))
+    client=RejectThenEscalate();store=FileRunStore(tmp_path)
+    from cgkn.agent.project_agent import AdmissionPolicy
+    loop=AgentProjectLoop(AgentComposer(client,ModelRoleConfig('agent','fixture')),
+        DAGRunner(ExecutorRegistry(),store),store,known_capabilities=set(),worker_model="fixture",max_decisions=2,
+        admission_policy=AdmissionPolicy(project_id='p',execution_budget={'calls':0}))
+    result=loop.run(project_id='p',run_id='r',goal='bounded')
+    assert result.status=='BLOCKED' and client.calls==2
+    saved=json.loads((store.run_dir('p','r')/'agent/decision-01.json').read_text())
+    assert saved['rejected'] and saved['request_id']=='original-request'
+
+
+@pytest.mark.parametrize('category,unknown,document',[
+    ('transport_error',False,{'output_text':'{}'}),
+    ('schema_validation_failed',True,{'output_text':'{}'}),
+    ('schema_validation_failed',False,None),
+])
+def test_incomplete_or_transport_error_is_not_planner_validation(category,unknown,document):
+    from cgkn.providers.gateway_client import GatewayCompletionError
+    error=GatewayCompletionError(category,'retain external failure',outcome_unknown=unknown)
+    error.completed_response=document
+    class Broken:
+        def complete(self,**kwargs):raise error
+    ctx=AgentDecisionContext('p','r','goal',1,CapabilityTree('goal',()),(),{},{},{})
+    with pytest.raises(GatewayCompletionError) as caught:
+        AgentComposer(Broken(),ModelRoleConfig('agent','fixture')).decide(ctx)
+    assert caught.value is error

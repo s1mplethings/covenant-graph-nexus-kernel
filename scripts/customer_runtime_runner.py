@@ -191,8 +191,72 @@ def _cli_startup_for(project: pathlib.Path) -> list[str]:
     return []
 
 
+def validate_cli_probe(probe: dict[str, Any], project: pathlib.Path) -> dict[str, Any]:
+    """Controller-owned public startup contract; never a shell command."""
+    if not isinstance(probe, dict) or set(probe) != {'entrypoint','args','stdout_contains','source_ref','source_sha256'}:
+        raise ValueError('invalid CLI probe contract')
+    entry = pathlib.PurePosixPath(probe['entrypoint'])
+    if entry.is_absolute() or '..' in entry.parts or ':' in str(entry) or '\\' in str(entry) or entry.suffix != '.py':
+        raise ValueError('unsafe CLI probe entrypoint')
+    target = (project / str(entry)).resolve()
+    if not target.is_relative_to(project.resolve()) or not target.is_file():
+        raise ValueError('CLI probe entrypoint missing')
+    if not isinstance(probe['args'], list) or not all(isinstance(a,str) for a in probe['args']):
+        raise ValueError('invalid CLI probe arguments')
+    if not isinstance(probe['stdout_contains'],str) or not probe['stdout_contains']:
+        raise ValueError('CLI probe requires an observable output predicate')
+    ref = pathlib.Path(probe['source_ref'])
+    if not ref.is_file() or canonical_evidence_hash.sha256_file(ref) != probe['source_sha256']:
+        raise ValueError('CLI probe public contract source changed')
+    return dict(probe)
+
+
 def _start_process(argv: list[str], cwd: pathlib.Path) -> subprocess.Popen[str]:
     return subprocess.Popen(argv, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+
+def _stop_owned_process(proc: subprocess.Popen[str]) -> None:
+    """Stop the live runtime and its descendants, including Windows launchers.
+
+    Capture descendants before stopping the parent. psutil Process handles check
+    creation identity before signalling, avoiding a recycled PID. Never search
+    by executable name or terminate unrelated Python/server processes.
+    """
+    import psutil
+
+    if proc.poll() is not None:
+        return
+    try:
+        parent = psutil.Process(proc.pid)
+        if proc.poll() is not None:
+            return
+        owned = parent.children(recursive=True) + [parent]
+    except psutil.NoSuchProcess:
+        proc.wait(timeout=3)
+        return
+    for process in owned:
+        try:
+            process.terminate()
+        except psutil.NoSuchProcess:
+            pass
+    # Popen must reap its own child so its real returncode is retained on POSIX.
+    _, alive = psutil.wait_procs(owned[:-1], timeout=3)
+    for process in alive:
+        try:
+            process.kill()
+        except psutil.NoSuchProcess:
+            pass
+    _, alive = psutil.wait_procs(alive, timeout=3)
+    try:
+        proc.wait(timeout=3)
+    except subprocess.TimeoutExpired:
+        try:
+            parent.kill()
+        except psutil.NoSuchProcess:
+            pass
+        proc.wait(timeout=3)
+    if alive:
+        raise RuntimeError('owned runtime descendants did not stop')
 
 
 def run(
@@ -207,8 +271,11 @@ def run(
     customer_path: str = "/",
     live_consumer: Callable[[LiveRuntimeHandle], dict[str, Any]] | None = None,
     browser_capture_required: bool = False,
+    cli_probe: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     project = pathlib.Path(project_dir).resolve()
+    if cli_probe is not None:
+        cli_probe = validate_cli_probe(cli_probe, project)
     started = _now()
     run_id = run_id or f"runtime-run-{uuid.uuid4().hex}"
     candidate_id = candidate_id or project.name or "candidate"
@@ -249,7 +316,7 @@ def run(
             execution_root = pathlib.Path(temp_dir).resolve()
             copy_result = _copy_candidate_source(project, execution_root, source_manifest)
             copied_candidate_hash = str(copy_result.get("copied_candidate_hash") or "")
-            argv = _startup_for(execution_root, port)
+            argv = [] if cli_probe is not None else _startup_for(execution_root, port)
             try:
                 if not copy_result.get("ok"):
                     observed = "\n".join(str(item) for item in copy_result.get("failures", [])) or "candidate copy failed"
@@ -258,10 +325,12 @@ def run(
                 elif expected_candidate_hash is not None and current_candidate_hash != expected_candidate_hash:
                     observed = "candidate source hash changed before runtime"
                 elif not argv:
-                    argv = _cli_startup_for(execution_root)
+                    argv = ([sys.executable, cli_probe['entrypoint'], *cli_probe['args']]
+                            if cli_probe is not None else _cli_startup_for(execution_root))
                     runtime_kind = "cli"
                     customer_action = " ".join(argv)
-                    expected_result = "CLI help exits zero and returns non-empty output"
+                    expected_result = ("CLI exits zero; stdout contains " + repr(cli_probe['stdout_contains'])
+                                       if cli_probe is not None else "CLI help exits zero and returns non-empty output")
                     if not argv:
                         observed = "no supported startup command"
                     else:
@@ -271,6 +340,8 @@ def run(
                         health_code = 200 if proc.returncode == 0 else 500
                         health_body = observed
                         status = EvidenceStatus.PASS.value if proc.returncode == 0 and observed else EvidenceStatus.FAIL.value
+                        if cli_probe is not None and cli_probe['stdout_contains'] not in stdout:
+                            status = EvidenceStatus.FAIL.value
                         shutdown_result = {"stopped": True, "returncode": proc.returncode}
                 else:
                     proc = _start_process(argv, execution_root)
@@ -316,12 +387,7 @@ def run(
                         observed = health_body
             finally:
                 if proc is not None:
-                    proc.terminate()
-                    try:
-                        proc.wait(timeout=3)
-                    except subprocess.TimeoutExpired:
-                        proc.kill()
-                        proc.wait(timeout=3)
+                    _stop_owned_process(proc)
                     shutdown_result = {"stopped": proc.poll() is not None, "returncode": proc.returncode}
         cleanup_result = {"removed": bool(str(execution_root) and not execution_root.exists())}
     except Exception as exc:
@@ -329,9 +395,12 @@ def run(
         status = EvidenceStatus.FAIL.value
     finally:
         if proc is not None and proc.poll() is None:
-            proc.kill()
-            proc.wait(timeout=3)
-            shutdown_result = {"stopped": proc.poll() is not None, "returncode": proc.returncode, "forced": True}
+            try:
+                _stop_owned_process(proc)
+                shutdown_result = {"stopped": proc.poll() is not None, "returncode": proc.returncode, "forced": True}
+            except Exception as cleanup_error:
+                status = EvidenceStatus.FAIL.value
+                shutdown_result = {"stopped": False, "error": f"{type(cleanup_error).__name__}: {cleanup_error}"}
     if not cleanup_result.get("removed"):
         status = EvidenceStatus.FAIL.value
     if browser_capture_required and browser_capture_receipt.get("capture_status") != EvidenceStatus.PASS.value:
@@ -368,6 +437,7 @@ def run(
         "status": status,
         "artifact_hash": "",
         "startup_argv": argv,
+        "cli_probe_contract": cli_probe,
         "cwd": str(execution_root),
         "clean_environment_root": str(execution_root),
         "dependency_setup": {"status": "not_required_for_static_http"},
@@ -439,6 +509,13 @@ def inspect(
     if not doc.get("observed_result_hash") or _sha256_text(str(doc.get("observed_result", ""))) != doc.get("observed_result_hash"):
         missing.append("observed_result_hash")
     project = evidence_path.parent.resolve()
+    if doc.get('cli_probe_contract') is not None:
+        try:
+            probe = validate_cli_probe(doc['cli_probe_contract'],project)
+            if doc.get('startup_argv') != [sys.executable,probe['entrypoint'],*probe['args']]:
+                missing.append('cli_probe_argv')
+        except (ValueError,TypeError,KeyError,OSError):
+            missing.append('cli_probe_contract')
     source_root_value = str(doc.get("source_project_root", "") or "")
     execution_root_value = str(doc.get("execution_root", "") or "")
     cwd_value = str(doc.get("cwd", "") or "")

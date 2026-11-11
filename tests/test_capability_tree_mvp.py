@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from cgkn.orchestration import CapabilityNode, CapabilityTree, compile_tree
+from cgkn.orchestration import CapabilityTree, compile_tree
+from tests.qualification_support import probe_node as CapabilityNode
 
 
 def test_tree_structure_is_separate_from_execution_dependencies() -> None:

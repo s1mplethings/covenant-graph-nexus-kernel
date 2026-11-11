@@ -1,0 +1,3 @@
+# Install the local VeriArbor checkout editable in the SAME isolated environment
+# before installing this integration requirement. Never copy package sources.
+veriarbor>=0.1.0.dev0,<0.2

@@ -89,8 +89,9 @@ def main() -> int:
         "outputs": {key: value.as_dict() for key, value in result["outputs"].items()},
         "invalidation": invalidation,
         "feedForwardReport": result["feedForwardReport"],
+        "lean_report": result.get("lean_report"),
     }
-    print(json.dumps(payload, ensure_ascii=False, indent=2) if args.json else f"status=PASS\nrun_dir={run_dir}")
+    print(json.dumps(payload, ensure_ascii=False, indent=2) if args.json else f"status=PASS\nrun_dir={run_dir}\nlean_report={run_dir / 'lean-report.md'}")
     return 0
 
 

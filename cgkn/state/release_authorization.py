@@ -146,6 +146,18 @@ def _verify_signature(document, anchor, key_id):
         raise ReleaseAuthorizationError("authorization signature does not match") from exc
 
 
+def verify_authority_checkpoint_signature(document, anchor):
+    """Reuse the existing verifier with a separate explicit key purpose."""
+    if document.get('kind')!='AuthorityChainCheckpoint' or document.get('scope')!='node_authority_checkpoint':
+        raise ReleaseAuthorizationError('authority checkpoint scope mismatch')
+    key_id=document.get('signature',{}).get('key_id')
+    key=anchor.get('keys',{}).get(key_id,{})
+    if key.get('purpose')!='node_authority_checkpoint':
+        raise ReleaseAuthorizationError('key purpose does not authorize node checkpoints')
+    _verify_signature(document,anchor,key_id)
+    return True
+
+
 def verify_release_authorization(
     document,
     *,

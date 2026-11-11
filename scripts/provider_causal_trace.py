@@ -861,6 +861,11 @@ def inspect(
             "trace_ref": str(path),
         }
     trace = _read(path)
+    if trace.get('schema_version')=='2.0' and trace.get('generation_route')=='project_session':
+        return _inspect_project_session_trace(path,trace,
+            expected_candidate_dir=expected_candidate_dir,expected_production_run_dir=expected_production_run_dir,
+            expected_run_id=expected_run_id,expected_candidate_id=expected_candidate_id,
+            expected_candidate_hash=expected_candidate_hash,expected_commit_sha=expected_commit_sha)
     if (
         trace.get("kind") != KIND
         or trace.get("schema_version") != SCHEMA_VERSION
@@ -1424,3 +1429,64 @@ def inspect(
         "provenance_inspection": provenance,
         "document": trace,
     }
+
+
+def finalize_project_session(provenance_ref):
+    """Project the canonical core receipt chain into the existing trace format.
+
+    Version 1 remains a historical whole-project protocol. This version binds
+    per-node Worker calls and candidate bytes without fabricating v1 stages.
+    """
+    from scripts import production_candidate_provenance as provenance_module
+    from cgkn.state import FileRunStore
+    path=pathlib.Path(provenance_ref).resolve();document=_read(path)
+    if document.get('schema_version')!='2.0' or document.get('generation_route')!='project_session':
+        raise ValueError('project-session causal trace requires core provenance v2')
+    provenance=provenance_module.inspect(path)
+    root=path.parent;target=root/FILE_NAME
+    prior=_read(target) if target.exists() else {}
+    if prior and prior.get('generation_route')!='project_session':
+        raise ValueError('historical causal trace cannot be reinterpreted')
+    provenance_hash=canonical_evidence_hash.sha256_file(path)
+    trace={'kind':KIND,'schema_version':'2.0','generation_route':'project_session',
+        'producer':'scripts.provider_causal_trace.finalize_project_session',
+        'status':provenance['status'],'failures':provenance['failures'],
+        **{k:document.get(k,'') for k in ('run_id','candidate_id','candidate_hash','commit_sha','candidate_root','production_run_root')},
+        'production_provenance_ref':str(path),'production_provenance_hash':provenance_hash,
+        'worker_source_origins':document.get('core_sources',{}).get('source_origins',{}),
+        'provider_call_audit':document.get('provider_call_audit',[]),
+        'created_at':prior.get('created_at') if prior.get('production_provenance_hash')==provenance_hash else now(),
+        'artifact_hash':''}
+    if target.exists():
+        store=FileRunStore(root)
+        store.immutable_blob(root/'causal_trace_history'/(hashlib.sha256(target.read_bytes()).hexdigest()+'.json'),target.read_bytes())
+    _write_hashed(target,trace)
+    return {**trace,'trace_ref':str(target),'trace_hash':canonical_evidence_hash.sha256_file(target)}
+
+
+def _inspect_project_session_trace(path,trace,**expected):
+    from scripts import production_candidate_provenance as provenance_module
+    failures=[];provenance={}
+    try:
+        if (trace.get('kind')!=KIND or trace.get('status')!='PASS'
+                or trace.get('producer')!='scripts.provider_causal_trace.finalize_project_session'
+                or trace.get('artifact_hash')!=canonical_evidence_hash.canonical_json_hash(trace,HASH_FIELDS)):
+            raise ValueError('invalid project-session causal trace contract')
+        reference=pathlib.Path(trace['production_provenance_ref']).resolve()
+        if reference!=path.parent/provenance_module.FILE_NAME or canonical_evidence_hash.sha256_file(reference)!=trace['production_provenance_hash']:
+            raise ValueError('project-session provenance reference changed')
+        provenance=provenance_module.inspect(reference,**expected)
+        if provenance['status']!='PASS': failures.extend(provenance['failures'])
+        document=provenance['document']
+        for key in ('run_id','candidate_id','candidate_hash','commit_sha','candidate_root','production_run_root'):
+            if trace.get(key)!=document.get(key): raise ValueError('causal identity mismatch: '+key)
+        if (trace.get('worker_source_origins')!=document['core_sources']['source_origins']
+                or trace.get('provider_call_audit')!=document['provider_call_audit']):
+            raise ValueError('Worker source/Provider causal projection changed')
+    except (OSError,ValueError,KeyError,TypeError,RuntimeError) as exc:
+        failures.append('project_session_causal_trace:'+str(exc))
+    return {'status':'PASS' if not failures else 'NEEDS_REWORK','failures':sorted(set(failures)),
+        'trace_ref':str(path),'trace_hash':canonical_evidence_hash.sha256_file(path),
+        'identity':{k:trace.get(k,'') for k in ('run_id','candidate_id','candidate_hash','commit_sha')},
+        'candidate_root':trace.get('candidate_root'),'production_run_root':trace.get('production_run_root'),
+        'provenance_inspection':provenance,'document':trace}

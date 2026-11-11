@@ -14,7 +14,7 @@ pytestmark = [pytest.mark.happy_path, pytest.mark.boundary]
 
 
 def req(executor_ref: str, config: dict, *, timeout: float = 5) -> BlockExecutionRequest:
-    return BlockExecutionRequest(project_id="p", run_id="r", attempt_id="a", node_id="n", component_ref="c@1", executor_ref=executor_ref, task_context=TaskContext("goal", config), timeout_seconds=timeout)
+    return BlockExecutionRequest(project_id="p", run_id="r", attempt_id="a", node_id="n", component_ref="c@1", executor_ref=executor_ref, task_context=TaskContext("goal", config), timeout_seconds=timeout, metadata={'execution_mode':'LEGACY'})
 
 
 @pytest.mark.determinism
@@ -75,10 +75,10 @@ def test_command_failure_timeout_contract_and_dependency_check(tmp_path, monkeyp
     invalid = executor.execute(req("local.command@1", {"command": "shell text"}))
     assert invalid.error.code.value == "CONTRACT_ERROR"
     context = TaskContext("goal", {"assert_dependency_stdout_contains": "yes"}, dependency_results={"a": {"stdout": "no"}})
-    dependency_request = BlockExecutionRequest(project_id="p", run_id="r", attempt_id="a", node_id="n", component_ref="c@1", executor_ref="local.command@1", task_context=context)
+    dependency_request = BlockExecutionRequest(project_id="p", run_id="r", attempt_id="a", node_id="n", component_ref="c@1", executor_ref="local.command@1", task_context=context, metadata={'execution_mode':'LEGACY'})
     assert executor.execute(dependency_request).status is BlockStatus.FAILED
     matching_context = TaskContext("goal", {"assert_dependency_stdout_contains": "yes"}, dependency_results={"a": {"stdout": "yes"}})
-    matching_request = BlockExecutionRequest(project_id="p", run_id="r", attempt_id="a2", node_id="n", component_ref="c@1", executor_ref="local.command@1", task_context=matching_context)
+    matching_request = BlockExecutionRequest(project_id="p", run_id="r", attempt_id="a2", node_id="n", component_ref="c@1", executor_ref="local.command@1", task_context=matching_context, metadata={'execution_mode':'LEGACY'})
     assert executor.execute(matching_request).status is BlockStatus.SUCCEEDED
     monkeypatch.setattr("cgkn.executors.local.subprocess.run", lambda *_a, **_k: (_ for _ in ()).throw(__import__("subprocess").TimeoutExpired("x", 1)))
     assert executor.execute(req("local.command@1", {"command": ["x"]})).status is BlockStatus.TIMED_OUT

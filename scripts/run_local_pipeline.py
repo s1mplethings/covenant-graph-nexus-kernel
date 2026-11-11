@@ -125,61 +125,28 @@ def _blocked_without_api(args: argparse.Namespace) -> dict[str, Any]:
     return result
 
 
+from cgkn.telemetry.lean import observed
+
+
+@observed("provider_pipeline", lambda a: pathlib.Path(getattr(a["args"], "resume_run_dir", "") or a["args"].run_dir), expose=True)
 def execute(args: argparse.Namespace) -> dict[str, Any]:
-    provider_mode = str(getattr(args, "provider_mode", "live") or "live").strip().lower()
-    if provider_mode == "live" and not bool(getattr(args, "use_api", False)):
+    provider_mode=str(getattr(args,'provider_mode','live') or 'live')
+    if provider_mode=='live' and not bool(getattr(args,'use_api',False)):
         return _blocked_without_api(args)
-    try:
-        result = _impl.execute(args)
-        result["provider_mode"] = provider_mode
-        source_identity_path = pathlib.Path(args.resume_run_dir or args.run_dir) / "artifacts" / "source_identity_report.json"
-        if source_identity_path.is_file():
-            source_identity_report = load_json(source_identity_path)
-            result["source_identity_ref"] = str(source_identity_path.resolve())
-            result["source_identity_hash"] = source_identity_report.get("source_identity_hash", "")
-        if provider_mode != "live":
-            accounting = surrogate_provider_adapter.status(
-                pathlib.Path(args.resume_run_dir or args.run_dir)
-            )
-            result["provider_schedulers"] = int(accounting.get("provider_schedulers", 1))
-            result["real_provider_calls"] = int(accounting.get("real_provider_calls", 0))
-            result["network_attempts"] = int(accounting.get("network_attempts", 0))
-        result_path = pathlib.Path(args.result).resolve()
-        result_path.parent.mkdir(parents=True, exist_ok=True)
-        result_path.write_text(
-            json.dumps(result, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
-        return result
-    except surrogate_provider_adapter.SurrogateResponseRequired:
-        waiting = surrogate_provider_adapter.waiting_result(
-            run_dir=pathlib.Path(args.resume_run_dir or args.run_dir),
-            result_path=pathlib.Path(args.result),
-            goal=str(args.goal or ""),
-            project_dir=pathlib.Path(args.out_dir),
-        )
-        replan_path = pathlib.Path(args.resume_run_dir or args.run_dir) / "artifacts" / "requirement_replan_state.json"
-        if replan_path.is_file():
-            replan = load_json(replan_path)
-            if replan.get("workflow_state") == "WAITING_REQUIREMENT_REPLAN":
-                waiting["status"] = "WAITING_REQUIREMENT_REPLAN"
-                waiting["workflow_state"] = "WAITING_REQUIREMENT_REPLAN"
-                waiting["formal_evidence_status"] = "NOT_EVALUATED"
-                waiting["requirement_replan"] = replan
-                pathlib.Path(args.result).resolve().write_text(
-                    json.dumps(waiting, ensure_ascii=False, indent=2) + "\n",
-                    encoding="utf-8",
-                )
-        source_identity_path = pathlib.Path(args.resume_run_dir or args.run_dir) / "artifacts" / "source_identity_report.json"
-        if source_identity_path.is_file():
-            source_identity_report = load_json(source_identity_path)
-            waiting["source_identity_ref"] = str(source_identity_path.resolve())
-            waiting["source_identity_hash"] = source_identity_report.get("source_identity_hash", "")
-            pathlib.Path(args.result).resolve().write_text(
-                json.dumps(waiting, ensure_ascii=False, indent=2) + "\n",
-                encoding="utf-8",
-            )
-        return waiting
+    profile=getattr(args,'project_session_profile','')
+    if not profile:
+        raise ValueError('PROJECT_SESSION_PROFILE_REQUIRED: local CLI requires --project-session-profile')
+    if provider_mode!='live' or getattr(args,'replay_dir',''):
+        raise ValueError('legacy replay lifecycle is offline-only')
+    if getattr(args,'codex_capability_brief','') or getattr(args,'plan',''):
+        raise ValueError('legacy planning inputs cannot override frozen ProjectSession contracts')
+    from cgkn.application.software_project.service import SoftwareProjectGenerationService
+    service=SoftwareProjectGenerationService(pathlib.Path(__file__).resolve().parents[1],pathlib.Path(args.run_dir))
+    result=service.run_profile(profile,goal=str(args.goal))
+    result_path=pathlib.Path(args.result).resolve()
+    result_path.parent.mkdir(parents=True,exist_ok=True)
+    result_path.write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+    return result
 
 
 def main() -> int:
@@ -187,6 +154,7 @@ def main() -> int:
     parser.set_defaults(allow_network=False, allow_provider=False, use_api=False)
     parser.add_argument("--plan", default="")
     parser.add_argument("--goal", default="")
+    parser.add_argument("--project-session-profile", default="")
     parser.add_argument("--out-dir", default=str(DEFAULT_GENERATED_DIR))
     parser.add_argument("--run-dir", default=str(DEFAULT_RUN_DIR))
     parser.add_argument("--resume-run-dir", default="")

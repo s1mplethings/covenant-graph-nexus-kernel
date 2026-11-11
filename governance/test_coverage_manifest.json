@@ -1199,15 +1199,23 @@
       "test_cases": [
         {
           "nodeid": "tests/providers/test_gateway_client.py::test_responses_preserve_roles_schema_usage_and_provider_alias",
-          "classes": ["boundary", "happy_path"]
+          "classes": [
+            "boundary",
+            "happy_path"
+          ]
         },
         {
           "nodeid": "tests/providers/test_gateway_client.py::test_invalid_schema_output_auth_error_and_no_secret_leak",
-          "classes": ["negative", "security"]
+          "classes": [
+            "negative",
+            "security"
+          ]
         },
         {
           "nodeid": "tests/providers/test_gateway_client.py::test_timeout_after_send_is_outcome_unknown_and_not_retried",
-          "classes": ["fault_injection"]
+          "classes": [
+            "fault_injection"
+          ]
         }
       ],
       "state": false,
@@ -1227,11 +1235,18 @@
       "test_cases": [
         {
           "nodeid": "tests/providers/test_gateway_client.py::test_routing_switch_grok_and_snapshot_are_immutable",
-          "classes": ["boundary", "happy_path", "roundtrip", "security"]
+          "classes": [
+            "boundary",
+            "happy_path",
+            "roundtrip",
+            "security"
+          ]
         },
         {
           "nodeid": "tests/providers/test_gateway_client.py::test_fallback_configuration_is_rejected",
-          "classes": ["negative"]
+          "classes": [
+            "negative"
+          ]
         }
       ],
       "state": true,
@@ -1726,6 +1741,2050 @@
       "state": true,
       "security": true,
       "provider": true,
+      "network": false
+    },
+    "cgkn/agent/action_composer.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/agent/test_goal_acceptance_integration.py::test_actual_planning_dag_receipt_gap_and_view",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/agent/test_goal_acceptance_integration.py::test_uncovered_must_stale_subject_and_no_requirement_weakening",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/agent/capability_registry.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/project_isolation/test_registry_isolation.py::ProjectIsolationTests::test_shared_capability_bind_execute_local_verify",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/project_isolation/test_registry_isolation.py::ProjectIsolationTests::test_foreign_project_pass_cannot_be_local_pass",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/agent/planning_scope.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/agent/test_execution_authorization_assembly.py::test_json_authorization_roundtrip_and_immutable_resume",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/agent/test_execution_authorization_assembly.py::test_other_project_authorization_is_not_inherited",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/agent/progress.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_real_nonfile_delta_enters_canonical_feedback[False]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_real_nonfile_delta_enters_canonical_feedback[True]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_progress_retains_unknown_and_distinguishes_regression_and_readonly",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/agent/project_agent.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/runtime/test_core_governance_completion.py::test_public_api_three_frontier_project",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/runtime/test_core_governance_completion.py::test_unclosed_resource_and_legacy_no_fallback",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/runtime/governed.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/runtime/test_core_governance_completion.py::test_public_api_three_frontier_project",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/runtime/test_core_governance_completion.py::test_unclosed_resource_and_legacy_no_fallback",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/runtime/node_authority.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/runtime/test_core_governance_completion.py::test_public_api_three_frontier_project",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/runtime/test_core_governance_completion.py::test_unclosed_resource_and_legacy_no_fallback",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/execution/node_effects.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/runtime/test_core_governance_completion.py::test_public_api_three_frontier_project",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/runtime/test_core_governance_completion.py::test_unclosed_resource_and_legacy_no_fallback",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/execution/deliverables.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/execution/test_python_export_deliverables.py::test_declared_python_exports_bind_source_without_executing_it",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_python_export_deliverables.py::test_export_policy_change_cannot_reuse_old_deliverable_proof",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/execution/python_exports.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/execution/test_python_export_deliverables.py::test_declared_python_exports_bind_source_without_executing_it",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_python_export_deliverables.py::test_export_policy_change_cannot_reuse_old_deliverable_proof",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/execution/materialization.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/runtime/test_dependent_repair_inputs.py::test_explicit_root_change_authorizes_only_affected_writers_and_preserves_live_inputs",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/runtime/test_dependent_repair_inputs.py::test_staging_never_replaces_newer_live_input_with_older_partial[new dependency]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/runtime/test_dependent_repair_inputs.py::test_staging_never_replaces_newer_live_input_with_older_partial[validated partial]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/runtime/test_dependent_repair_inputs.py::test_staging_never_replaces_newer_live_input_with_older_partial[None]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/execution/observations.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/execution/test_observation_contract.py::test_real_process_to_typed_feedback_fake_repair_checker_statistics_audit",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_observation_contract.py::test_tampering_never_projects_public_feedback",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/executors/observation.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/execution/test_observation_contract.py::test_real_process_to_typed_feedback_fake_repair_checker_statistics_audit",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_observation_contract.py::test_tampering_never_projects_public_feedback",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/execution/resource_identity.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/protocol/test_claim_resource_guards.py::test_case_alias_on_windows",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/protocol/test_claim_resource_guards.py::test_same_path_and_hardlink_rejected_without_mutation",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/execution/test_results.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/executors/test_public_test_feedback.py::test_actual_product_failure_reaches_repair_contract_without_private_oracle",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/executors/test_public_test_feedback.py::test_invalid_or_unbound_test_observation_never_becomes_public_facts",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/executors/measurement.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I2_real_file_predicate[7-SUCCEEDED-VERIFIED]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I2_real_file_predicate[8-SUCCEEDED-FAILED]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I3_inapplicable_receipt_never_supersedes_failure[observed-value0]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I3_inapplicable_receipt_never_supersedes_failure[execution-NOT_EXECUTED]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I3_inapplicable_receipt_never_supersedes_failure[checker_version-wrong]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I3_inapplicable_receipt_never_supersedes_failure[goal_id-wrong]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I3_inapplicable_receipt_never_supersedes_failure[subjects-value4]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/execution/check_evidence.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I2_real_file_predicate[7-SUCCEEDED-VERIFIED]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I2_real_file_predicate[8-SUCCEEDED-FAILED]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I3_inapplicable_receipt_never_supersedes_failure[observed-value0]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I3_inapplicable_receipt_never_supersedes_failure[execution-NOT_EXECUTED]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I3_inapplicable_receipt_never_supersedes_failure[checker_version-wrong]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I3_inapplicable_receipt_never_supersedes_failure[goal_id-wrong]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I3_inapplicable_receipt_never_supersedes_failure[subjects-value4]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/telemetry/effectiveness.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I2_real_file_predicate[7-SUCCEEDED-VERIFIED]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I2_real_file_predicate[8-SUCCEEDED-FAILED]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I3_inapplicable_receipt_never_supersedes_failure[observed-value0]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I3_inapplicable_receipt_never_supersedes_failure[execution-NOT_EXECUTED]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I3_inapplicable_receipt_never_supersedes_failure[checker_version-wrong]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I3_inapplicable_receipt_never_supersedes_failure[goal_id-wrong]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/telemetry/test_acv4_independent.py::test_I3_inapplicable_receipt_never_supersedes_failure[subjects-value4]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/executors/network_health.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_network_reliability.py::test_concurrent_circuit_provider_isolation_cooldown_and_recovery",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_network_reliability.py::test_real_post_response_loss_is_not_safe_to_retry",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/network_health.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_network_reliability.py::test_concurrent_circuit_provider_isolation_cooldown_and_recovery",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_network_reliability.py::test_real_post_response_loss_is_not_safe_to_retry",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/network_transport.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_network_reliability.py::test_concurrent_circuit_provider_isolation_cooldown_and_recovery",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_network_reliability.py::test_real_post_response_loss_is_not_safe_to_retry",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/executors/task_evaluation.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/agent/test_evaluation_recovery.py::test_evaluation_recovery_never_repeats_generation[commit_failure]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/agent/test_evaluation_recovery.py::test_evaluation_recovery_never_repeats_generation[no_response]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/agent/test_evaluation_recovery.py::test_evaluation_recovery_never_repeats_generation[invalid_response]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/agent/test_evaluation_recovery.py::test_evaluation_rejects_changed_receipt_binding_before_call[reference]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/agent/test_evaluation_recovery.py::test_evaluation_rejects_changed_receipt_binding_before_call[hash]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/agent/test_evaluation_recovery.py::test_evaluation_rejects_changed_receipt_binding_before_call[identity]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/orchestration/leaf_contract.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_new_builder_is_explicit_and_old_deserialization_does_not_upgrade",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_builder_does_not_relax_strict_validation[changes0]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_builder_does_not_relax_strict_validation[changes1]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_builder_does_not_relax_strict_validation[changes2]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_builder_does_not_relax_strict_validation[changes3]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_builder_does_not_relax_strict_validation[changes4]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_builder_does_not_relax_strict_validation[changes5]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_builder_does_not_relax_strict_validation[changes6]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/application_network.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_application_network.py::test_probe_never_calls_generation_endpoint",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_application_network.py::test_old_http_entrypoints_cannot_post_or_dial_old_host",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/canonical_gateway_adapter.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_progress_clock.py::test_canonical_adapter_uses_saved_concrete_role",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_progress_clock.py::test_observation_creation_failure_cannot_leave_reservation_open",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/direct_transport.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_domestic_mode.py::test_outgoing_interface_is_set_before_connect",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_domestic_mode.py::test_dns_rejects_fakeip_and_private_addresses[39.96.213.166-True]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_domestic_mode.py::test_dns_rejects_fakeip_and_private_addresses[198.18.0.181-False]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_domestic_mode.py::test_dns_rejects_fakeip_and_private_addresses[127.0.0.1-False]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/domestic_mode.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_domestic_mode.py::test_capability_admitted_failover_only_before_submission[qwen-deepseek]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_domestic_mode.py::test_capability_admitted_failover_only_before_submission[deepseek-qwen]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_domestic_mode.py::test_both_fail_unknown_submission_and_capability_gate_never_blind_retry",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/domestic_gateway.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_original_agent_dag_worker_and_independent_acceptance_over_tls_sse",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_streaming_migration_cannot_evade_pre_stream_unknown",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/recording.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_original_agent_dag_worker_and_independent_acceptance_over_tls_sse",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_streaming_migration_cannot_evade_pre_stream_unknown",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/evidence_journal.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_evidence_journal.py::test_retains_beyond_old_rotation_limit_and_reopen",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_evidence_journal.py::test_write_failure_is_not_silently_accepted",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/finish_reason.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_finish_reason_preserves_raw_and_does_not_authorize_unknown_retry[length-kw0-split]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_finish_reason_preserves_raw_and_does_not_authorize_unknown_retry[length-kw1-continue]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_finish_reason_preserves_raw_and_does_not_authorize_unknown_retry[stop-kw2-inspect]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_finish_reason_preserves_raw_and_does_not_authorize_unknown_retry[provider_error-kw3-retry]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_finish_reason_preserves_raw_and_does_not_authorize_unknown_retry[timeout-kw4-inspect]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_finish_reason_preserves_raw_and_does_not_authorize_unknown_retry[timeout-kw5-reconcile]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_finish_reason_preserves_raw_and_does_not_authorize_unknown_retry[unrecognized-kw6-escalate]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_finish_reason_preserves_raw_and_does_not_authorize_unknown_retry[length-kw0-split]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_finish_reason_preserves_raw_and_does_not_authorize_unknown_retry[length-kw1-continue]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_finish_reason_preserves_raw_and_does_not_authorize_unknown_retry[stop-kw2-inspect]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_finish_reason_preserves_raw_and_does_not_authorize_unknown_retry[provider_error-kw3-retry]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_finish_reason_preserves_raw_and_does_not_authorize_unknown_retry[timeout-kw4-inspect]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_finish_reason_preserves_raw_and_does_not_authorize_unknown_retry[timeout-kw5-reconcile]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/execution/test_migration_contracts.py::test_finish_reason_preserves_raw_and_does_not_authorize_unknown_retry[unrecognized-kw6-escalate]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/gateway_stream.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_stream_progress_crosses_actual_gateway_before_completion",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[eof]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[length]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[missing_usage]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[wrong_model]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[malformed]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[tool]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[heartbeat]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/streaming_sse.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_stream_progress_crosses_actual_gateway_before_completion",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[eof]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[length]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[missing_usage]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[wrong_model]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[malformed]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[tool]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[heartbeat]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/progress_io.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_stream_progress_crosses_actual_gateway_before_completion",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[eof]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[length]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[missing_usage]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[wrong_model]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[malformed]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[tool]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_streaming_runtime.py::test_invalid_tls_stream_never_persists_or_retries[heartbeat]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/legacy_client.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_client.py::test_success_builds_strict_schema_payload_and_normalizes_usage",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_client.py::test_compatibility_cannot_bypass_host_permit",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/model_binding.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_model_binding_qualification.py::test_default_pinned_and_explicit_alias_policy",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_model_binding_qualification.py::test_gateway_does_not_silently_accept_alias_or_changed_binding",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/progress_clock.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_progress_clock.py::test_long_progress_uses_same_events_without_total_timeout[86]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_progress_clock.py::test_long_progress_uses_same_events_without_total_timeout[301]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_progress_clock.py::test_long_progress_uses_same_events_without_total_timeout[3601]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_progress_clock.py::test_long_progress_uses_same_events_without_total_timeout[36001]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_progress_clock.py::test_heartbeat_and_duplicate_delivery_do_not_refresh",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/route_diagnostics.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_network_reliability.py::test_concurrent_circuit_provider_isolation_cooldown_and_recovery",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_network_reliability.py::test_route_circuit_switch_and_all_open_never_send",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/streaming_bound_adapter.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_text_wire_preflight.py::test_preflight_matches_actual_stream_request_and_rejects_before_open[qwen-qwen3.8-flash]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_text_wire_preflight.py::test_preflight_matches_actual_stream_request_and_rejects_before_open[deepseek-deepseek-flash]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_text_wire_preflight.py::test_invalid_ceiling_and_large_multibyte_content",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/text_wire.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_text_wire_preflight.py::test_preflight_matches_actual_stream_request_and_rejects_before_open[qwen-qwen3.8-flash]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_text_wire_preflight.py::test_preflight_matches_actual_stream_request_and_rejects_before_open[deepseek-deepseek-flash]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_text_wire_preflight.py::test_invalid_ceiling_and_large_multibyte_content",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/providers/windows_interface.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/providers/test_domestic_final.py::test_stable_guid_recognizes_new_index_and_dhcp_address",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/providers/test_domestic_final.py::test_changed_binding_stops_before_dns_or_any_request",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/state/acceptance.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/agent/test_goal_acceptance_integration.py::test_verified_check_and_auto_checkpoint_no_replay",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/agent/test_goal_acceptance_integration.py::test_uncovered_must_stale_subject_and_no_requirement_weakening",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/state/task_feedback.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/agent/test_goal_acceptance_integration.py::test_verified_check_and_auto_checkpoint_no_replay",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/agent/test_goal_acceptance_integration.py::test_uncovered_must_stale_subject_and_no_requirement_weakening",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/state/capability_ledger.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/agent/test_capability_routing_qualification.py::test_concurrent_ledger_publication_and_revision_history",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/agent/test_capability_routing_qualification.py::test_nonbusiness_not_charged_to_model_ability_and_evaluator_cannot_override[UNKNOWN]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/agent/test_capability_routing_qualification.py::test_nonbusiness_not_charged_to_model_ability_and_evaluator_cannot_override[TRANSPORT]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/agent/test_capability_routing_qualification.py::test_nonbusiness_not_charged_to_model_ability_and_evaluator_cannot_override[HARNESS]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/state/checker_revision.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/state/test_checker_revision.py::test_revised_consumer_uses_same_goal_and_preserves_original_receipt[7-VERIFIED]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_checker_revision.py::test_revised_consumer_uses_same_goal_and_preserves_original_receipt[6-FAILED]",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_checker_revision.py::test_unqualified_or_stale_revision_cannot_activate[missing_negative]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_checker_revision.py::test_unqualified_or_stale_revision_cannot_activate[failed_mutation]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_checker_revision.py::test_unqualified_or_stale_revision_cannot_activate[changed_requirements]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_checker_revision.py::test_unqualified_or_stale_revision_cannot_activate[missing_evidence]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_checker_revision.py::test_unqualified_or_stale_revision_cannot_activate[stale_source]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_checker_revision.py::test_unqualified_or_stale_revision_cannot_activate[changed_predicate]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/state/provenance.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I1_real_checker_trusted_chain",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[missing_ref]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[missing_receipt]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[missing_observation]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[pass_string]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[exit_zero]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[agent_completed]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[empty_observation]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[not_executed]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[unbound_candidate]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[unbound_requirement]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/telemetry/trusted_samples.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I1_real_checker_trusted_chain",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[missing_ref]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[missing_receipt]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[missing_observation]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[pass_string]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[exit_zero]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[agent_completed]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[empty_observation]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[not_executed]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[unbound_candidate]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/state/test_provenance_v5.py::test_I3_missing_or_fabricated[unbound_requirement]",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/state/repair.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/runtime/test_execution_continuity.py::test_partial_two_files_retained_and_continued_without_rewrite",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/runtime/test_execution_continuity.py::test_no_delta_is_failed_deliverable_and_next_decision_feedback",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/telemetry/lean.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/test_leanloop.py::test_discovery_ablation_real_runtime_reuse_and_independent_oracle",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/test_leanloop.py::test_old_environment_receipt_cannot_be_promoted_or_rebound",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
+      "network": false
+    },
+    "cgkn/telemetry/lean_policy.py": {
+      "criticality": "P0",
+      "required_classes": [
+        "happy_path",
+        "negative",
+        "boundary"
+      ],
+      "test_cases": [
+        {
+          "nodeid": "tests/test_leanloop.py::test_discovery_ablation_real_runtime_reuse_and_independent_oracle",
+          "classes": [
+            "happy_path",
+            "boundary"
+          ]
+        },
+        {
+          "nodeid": "tests/test_leanloop.py::test_old_environment_receipt_cannot_be_promoted_or_rebound",
+          "classes": [
+            "negative",
+            "boundary"
+          ]
+        }
+      ],
+      "state": false,
+      "security": false,
+      "provider": false,
       "network": false
     }
   }

@@ -80,6 +80,12 @@ class CatalogAgentComposer(AgentComposer):
                 merged["executor_ref"] = entry["executor_ref"]
                 if "leaf_contract" not in merged:
                     raise ValueError("capability catalog entry has no leaf contract")
+                contract = dict(merged["leaf_contract"])
+                # The Planner owns depends_on. Keep the mechanical contract's
+                # dependency identity equal to the node's real dependencies so
+                # the catalog boilerplate cannot silently override planning.
+                contract["dependencies"] = list(payload.get("depends_on") or [])
+                merged["leaf_contract"] = contract
                 payload["config"] = merged
             elif operation == "update_config":
                 node_id = str(payload.get("node_id", ""))

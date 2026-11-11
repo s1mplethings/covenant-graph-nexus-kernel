@@ -13,6 +13,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 import agent_conversation_loop
+from cgkn.telemetry.lean import observed
 import check_connectivity
 import local_agent_actions
 import local_model_router
@@ -839,90 +840,25 @@ def _run_agent_turn(
 ) -> dict[str, Any]:
     role = _role_by_id(manifest, str(step.get("role", "")))
     allowed_actions = {str(item) for item in step.get("allowed_actions", [])}
-    last_error = ""
-    for turn in range(1, max(1, max_turns) + 1):
-        system_prompt = _system_prompt(role, step, manifest)
-        events = _history_for_step(session_file, system_prompt)
-        try:
-            response = agent(events, model, timeout) if agent else _call_step_agent(events, model, timeout, role=role, step=step)
-        except Exception as exc:
-            last_error = str(exc)
-            agent_conversation_loop.append_event(
-                session_file,
-                {"kind": "agent_error", "role": role.get("id"), "step_id": step.get("id"), "turn": turn, "error": last_error},
-            )
-            continue
-        parsed = agent_conversation_loop.parse_agent_response(response)
-        actions = parsed.get("actions", [])
-        parse_error = str(parsed.get("parse_error", "")).strip()
-        agent_conversation_loop.append_event(
-            session_file,
-            {
-                "kind": "assistant",
-                "role": role.get("id"),
-                "step_id": step.get("id"),
-                "turn": turn,
-                "message": parsed.get("message", ""),
-                "actions": actions,
-                "parse_error": parse_error,
-            },
-        )
-        if not actions:
-            last_error = f"agent returned malformed JSON: {parse_error}" if parse_error else "agent returned no actions"
-            agent_conversation_loop.append_event(
-                session_file,
-                {
-                    "kind": "tool_result",
-                    "role": role.get("id"),
-                    "step_id": step.get("id"),
-                    "turn": turn,
-                    "ok": False,
-                    "error": last_error,
-                    "repair_instruction": "Return strict JSON with a non-empty actions array for this same manifest step.",
-                    "raw_preview": str(parsed.get("raw", ""))[:1000],
-                },
-            )
-            continue
-        failed = bool(parse_error)
-        if parse_error:
-            last_error = f"agent response was partially recovered from malformed JSON: {parse_error}"
-            agent_conversation_loop.append_event(
-                session_file,
-                {
-                    "kind": "tool_result",
-                    "role": role.get("id"),
-                    "step_id": step.get("id"),
-                    "turn": turn,
-                    "ok": False,
-                    "error": last_error,
-                    "repair_instruction": "Some complete write_file actions were executed, but the same manifest step must return strict JSON to finish.",
-                    "raw_preview": str(parsed.get("raw", ""))[:1000],
-                },
-            )
-        package_result: dict[str, Any] | None = None
-        for action in actions:
-            if str(action.get("type") or action.get("action") or "") == "package_project":
-                audit = pre_package_audit(session_file, executor.project_dir, manifest)
-                merged_limits = list(action.get("known_limits", []) if isinstance(action.get("known_limits"), list) else [])
-                merged_limits.extend(audit.get("known_limits", []))
-                action = dict(action)
-                action["known_limits"] = merged_limits
-            agent_conversation_loop.append_event(session_file, {"kind": "action", "role": role.get("id"), "step_id": step.get("id"), "turn": turn, "action": action})
-            result = _execute_manifest_action(executor, action, allowed_actions)
-            agent_conversation_loop.append_event(
-                session_file,
-                {"kind": "tool_result", "role": role.get("id"), "step_id": step.get("id"), "turn": turn, "action": action, "result": result},
-            )
-            if not result.get("ok"):
-                failed = True
-                last_error = str(result.get("error") or "action failed")
-            if str(action.get("type") or action.get("action") or "") == "package_project" and result.get("ok"):
-                package_result = result
-        if package_result:
-            return {"status": "ok", "summary": "package_project action completed", "package_result": package_result}
-        if not failed:
-            return {"status": "ok", "summary": str(parsed.get("message") or "step completed")}
-    return {"status": "failed", "summary": last_error or "agent step failed"}
+
+    def prepare_action(action):
+        if str(action.get("type") or action.get("action") or "") != "package_project":
+            return action
+        audit = pre_package_audit(session_file, executor.project_dir, manifest)
+        limits = list(action.get("known_limits", []) if isinstance(action.get("known_limits"), list) else [])
+        limits.extend(audit.get("known_limits", []))
+        return {**action, "known_limits": limits}
+
+    return agent_conversation_loop._run_action_loop(
+        session_file=session_file, project=executor.project_dir, model=model,
+        timeout=timeout, max_turns=max_turns,
+        agent=agent or (lambda events, model, timeout: _call_step_agent(events, model, timeout, role=role, step=step)),
+        execute=lambda action: _execute_manifest_action(executor, action, allowed_actions),
+        event_context={"role": role.get("id"), "step_id": step.get("id")},
+        read_events=lambda: _history_for_step(session_file, _system_prompt(role, step, manifest)),
+        prepare_action=prepare_action,
+    )
+
 
 
 def _fallback_to_agent_loop(
@@ -946,6 +882,7 @@ def _fallback_to_agent_loop(
     return result
 
 
+@observed("dynamic_pipeline", lambda a: pathlib.Path(a["session_path"]).with_suffix(".reports"), session=lambda a:a["session_path"])
 def run_dynamic_pipeline(
     *,
     session_path: str | pathlib.Path,
@@ -962,217 +899,17 @@ def run_dynamic_pipeline(
 ) -> dict[str, Any]:
     session_file = pathlib.Path(session_path).resolve()
     project = pathlib.Path(project_dir).resolve()
-    ok, errors = pipeline_manifest_module.validate_pipeline_manifest(pipeline_manifest)
-    if not ok:
-        reason = "; ".join(errors)
-        if fallback_to_agent_loop:
-            return _fallback_to_agent_loop(session_file=session_file, project=project, model=model, timeout=timeout, max_turns=max_turns, reason=reason)
-        raise RuntimeError(reason)
-
-    executor = local_agent_actions.LocalAgentActionExecutor(project)
-    agent_conversation_loop.append_event(session_file, {"kind": "pipeline_manifest", "role": "system", "manifest": pipeline_manifest})
-    limits = pipeline_manifest.get("limits", {}) if isinstance(pipeline_manifest.get("limits"), dict) else {}
-    per_step_turns = max(1, min(int(limits.get("max_agent_turns_per_step", 3) or 3), max(1, int(max_turns or 1))))
-    max_steps = max(1, min(int(limits.get("max_total_steps", 12) or 12), 12))
-    package_result: dict[str, Any] | None = None
-
-    try:
-        steps = pipeline_manifest.get("steps", [])[:max_steps]
-        for step_index, step in enumerate(steps):
-            if not isinstance(step, dict):
-                continue
-            step_id = str(step.get("id", ""))
-            step_type = str(step.get("type", ""))
-            if _should_skip_for_start_stage(step, start_stage):
-                agent_conversation_loop.append_event(
-                    session_file,
-                    {
-                        "kind": "pipeline_step_skipped",
-                        "step_id": step_id,
-                        "reason": "resume_start_stage",
-                        "start_stage": start_stage,
-                    },
-                )
-                continue
-            if step_type == "agent_turn":
-                result = _run_agent_turn(
-                    session_file=session_file,
-                    executor=executor,
-                    manifest=pipeline_manifest,
-                    step=step,
-                    model=model,
-                    timeout=timeout,
-                    max_turns=per_step_turns,
-                    agent=agent,
-                )
-                if result.get("status") == "ok" and _is_worker_build_step(step) and not _has_later_stage_step(steps, step_index, "build"):
-                    audit = _build_completion_audit(project, pipeline_manifest, whiteboard)
-                    if not audit.get("ok"):
-                        result = {
-                            "status": "rework_blocked",
-                            "summary": "build output is incomplete: " + ", ".join(audit.get("missing", [])),
-                            "quality_audit": audit,
-                        }
-                        agent_conversation_loop.append_event(
-                            session_file,
-                            {"kind": "build_output_audit", "role": "system", "step_id": step_id, "status": "rework_blocked", "audit": audit},
-                        )
-                if result.get("status") == "ok" and _is_qa_completion_step(step) and not _has_later_stage_step(steps, step_index, "test"):
-                    audit = _qa_completion_audit(project)
-                    if not audit.get("ok"):
-                        result = {
-                            "status": "rework_blocked",
-                            "summary": "QA evidence is incomplete: " + ", ".join(audit.get("missing", [])),
-                            "quality_audit": audit,
-                        }
-                        agent_conversation_loop.append_event(
-                            session_file,
-                            {"kind": "qa_output_audit", "role": "system", "step_id": step_id, "status": "rework_blocked", "audit": audit},
-                        )
-                agent_conversation_loop.append_event(
-                    session_file,
-                    {
-                        "kind": "pipeline_step_result",
-                        "step_id": step_id,
-                        "role": step.get("role"),
-                        "status": result.get("status"),
-                        "summary": result.get("summary", ""),
-                    },
-                )
-                if result.get("package_result"):
-                    package_result = result["package_result"]
-                    break
-                if result.get("status") == "rework_blocked":
-                    return _pipeline_rework_blocked(
-                        session_file=session_file,
-                        project=project,
-                        pipeline_manifest=pipeline_manifest,
-                        step_id=step_id,
-                        reason=str(result.get("summary", "")),
-                        audit=result.get("quality_audit", {}) if isinstance(result.get("quality_audit"), dict) else {},
-                    )
-                if result.get("status") != "ok":
-                    raise RuntimeError(f"pipeline step failed: {step_id}: {result.get('summary', '')}")
-                stages = pipeline_manifest_module._stage_values(step.get("stage"))
-                if "evidence_review" in stages:
-                    evidence = collect_user_review_evidence(project)
-                    requires_review = requires_user_evidence_judgement(pipeline_manifest, whiteboard)
-                    missing_evidence = _evidence_blockers(evidence, pipeline_manifest, whiteboard)
-                    if requires_review and missing_evidence:
-                        audit = {"evidence": evidence, "missing": missing_evidence}
-                        agent_conversation_loop.append_event(
-                            session_file,
-                            {
-                                "kind": "user_evidence_checkpoint",
-                                "role": "system",
-                                "step_id": step_id,
-                                "status": "rework_blocked",
-                                "evidence": evidence,
-                                "requires_user_judgement": True,
-                                "message": "中间证据不完整，不能请求用户确认；需要先回到构建/测试补齐。",
-                            },
-                        )
-                        agent_conversation_loop.append_event(
-                            session_file,
-                            {
-                                "kind": "pipeline_step_result",
-                                "step_id": step_id,
-                                "role": step.get("role"),
-                                "status": "rework_blocked",
-                                "summary": "evidence review is incomplete: " + ", ".join(missing_evidence),
-                            },
-                        )
-                        return _pipeline_rework_blocked(
-                            session_file=session_file,
-                            project=project,
-                            pipeline_manifest=pipeline_manifest,
-                            step_id=step_id,
-                            reason="evidence review is incomplete: " + ", ".join(missing_evidence),
-                            audit=audit,
-                        )
-                    agent_conversation_loop.append_event(
-                        session_file,
-                        {
-                            "kind": "user_evidence_checkpoint",
-                            "role": "system",
-                            "step_id": step_id,
-                            "evidence": evidence,
-                            "requires_user_judgement": requires_review,
-                            "message": "中间测试和预览证据已准备好，等待用户判断或继续。",
-                        },
-                    )
-                    if requires_review and not skip_user_evidence_checkpoint:
-                        return {
-                            "status": "waiting_user_review",
-                            "session_path": str(session_file),
-                            "project_dir": str(project),
-                            "pipeline_manifest": pipeline_manifest,
-                            "evidence": evidence,
-                            "requires_user_judgement": True,
-                            "message": "中间测试和预览证据已准备好，等待用户判断或继续。",
-                        }
-            elif step_type in {"use_skill", "run_command", "package_project"}:
-                action = _step_action(step)
-                if step_type == "package_project":
-                    audit = pre_package_audit(session_file, project, pipeline_manifest)
-                    known_limits = list(action.get("known_limits", []) if isinstance(action.get("known_limits"), list) else [])
-                    known_limits.extend(audit.get("known_limits", []))
-                    action["known_limits"] = known_limits
-                    action["user_review_required"] = requires_user_evidence_judgement(pipeline_manifest, whiteboard)
-                    action["user_review_completed"] = bool(skip_user_evidence_checkpoint) or not action["user_review_required"]
-                allowed = {action["type"]} if action.get("type") else set()
-                if action.get("type") == "run_command" and _forbidden_command(str(action.get("command", ""))):
-                    result = {"ok": False, "type": "run_command", "error": "legacy generation command rejected"}
-                else:
-                    result = _execute_manifest_action(executor, action, allowed)
-                agent_conversation_loop.append_event(session_file, {"kind": "action", "role": "system", "step_id": step_id, "action": action})
-                agent_conversation_loop.append_event(session_file, {"kind": "tool_result", "role": "system", "step_id": step_id, "action": action, "result": result})
-                status = "ok" if result.get("ok") else "failed"
-                agent_conversation_loop.append_event(
-                    session_file,
-                    {"kind": "pipeline_step_result", "step_id": step_id, "role": "system", "status": status, "summary": str(result.get("error") or action.get("type", ""))},
-                )
-                if not result.get("ok"):
-                    raise RuntimeError(f"pipeline step failed: {step_id}: {result.get('error', '')}")
-                if step_type == "package_project":
-                    package_result = result
-                    break
-            elif step_type == "update_whiteboard":
-                agent_conversation_loop.append_event(
-                    session_file,
-                    {
-                        "kind": "whiteboard_patch_requested",
-                        "role": "system",
-                        "step_id": step_id,
-                        "patch": step.get("patch", {}),
-                        "goal": step.get("goal", ""),
-                    },
-                )
-                agent_conversation_loop.append_event(
-                    session_file,
-                    {"kind": "pipeline_step_result", "step_id": step_id, "role": "system", "status": "ok", "summary": "whiteboard patch request recorded"},
-                )
-        if package_result:
-            manifest = package_result.get("manifest", {}) if isinstance(package_result.get("manifest"), dict) else {}
-            return {
-                "status": str(manifest.get("status") or "ready"),
-                "session_path": str(session_file),
-                "project_dir": str(project),
-                "manifest": manifest,
-                "package_path": manifest.get("package_path", ""),
-                "manifest_path": manifest.get("manifest_path", ""),
-                "pipeline_manifest": pipeline_manifest,
-            }
-        raise RuntimeError("pipeline completed without package_project result")
-    except Exception as exc:
-        if fallback_to_agent_loop:
-            return _fallback_to_agent_loop(
-                session_file=session_file,
-                project=project,
-                model=model,
-                timeout=timeout,
-                max_turns=max_turns,
-                reason=str(exc),
-            )
-        raise
+    if (project/'.cgkn'/'project-session.json').exists():
+        # Compatibility entry only: a configured core session owns all
+        # planning, retries and scheduling. No dynamic role-stage loop runs.
+        if agent is not None or start_stage or skip_user_evidence_checkpoint:
+            raise ValueError('legacy execution overrides cannot alter a frozen project session')
+        goal=pipeline_manifest.get('project_goal')
+        if not isinstance(goal,str) or not goal.strip():
+            raise ValueError('dynamic adapter requires the explicit current project goal')
+        from cgkn.application.software_project.service import SoftwareProjectGenerationService
+        return SoftwareProjectGenerationService(SCRIPTS_DIR.parent,
+            project/'.cgkn'/'agent-kit'/'project_sessions').run_profile(
+                project/'.cgkn'/'project-session.json',goal=goal)
+    raise ValueError('PROJECT_SESSION_PROFILE_REQUIRED: dynamic entry is a ProjectSession adapter; legacy stage lifecycle is retired')
 pipeline_manifest_module = pipeline_manifest

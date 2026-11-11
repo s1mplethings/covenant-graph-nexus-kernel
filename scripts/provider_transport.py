@@ -97,6 +97,8 @@ def tls_verify_enabled() -> bool:
 
 
 def _urlopen(request: urllib.request.Request, timeout_sec: int):
+    from cgkn.providers.application_network import open_legacy,settings
+    if settings():return open_legacy(request,timeout_sec)
     context = None if tls_verify_enabled() else ssl._create_unverified_context()
     return urllib.request.urlopen(request, timeout=timeout_sec, context=context)
 
@@ -226,48 +228,12 @@ def post_json_once(
     token: str,
     timeout_sec: int,
 ) -> tuple[dict[str, Any] | None, str]:
-    data = json.dumps(payload, ensure_ascii=False).encode("utf-8")
-    request = urllib.request.Request(
-        endpoint,
-        data=data,
-        method="POST",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent": "CGKN-Provider-Transport/1",
-            "Connection": "close",
-        },
-    )
-    try:
-        with _urlopen(request, timeout_sec) as response:
-            body = response.read().decode("utf-8", errors="replace")
-    except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace").strip()
-        host = re.sub(r"^(https?://[^/]+).*", r"\1", endpoint)
-        retryable = exc.code in {408, 409, 425, 429} or 500 <= int(exc.code) <= 599
-        headers = _safe_response_headers(getattr(exc, "headers", {}))
-        header_text = f", provider_headers={json.dumps(headers, ensure_ascii=False, sort_keys=True)}" if headers else ""
-        return None, _redact(
-            f"HTTP {exc.code}: {detail[:400]} [endpoint={host}, retryable={str(retryable).lower()}{header_text}]",
-            token,
-        )
-    except Exception as exc:
-        host = re.sub(r"^(https?://[^/]+).*", r"\1", endpoint)
-        detail = str(getattr(exc, "reason", None) or exc)
-        error_probe = f"{type(exc).__name__}: {detail}"
-        error = (
-            f"request failed: {error_probe} "
-            f"[endpoint={host}, tls_verify={tls_verify_enabled()}, retryable={str(is_retryable_error(error_probe)).lower()}]"
-        )
-        return None, _redact(error, token)
-    try:
-        doc = json.loads(body)
-    except Exception as exc:
-        return None, _redact(f"non-json response: {exc}", token)
-    if not isinstance(doc, dict):
-        return None, "response is not object"
-    return doc, ""
+    from cgkn.providers.application_network import settings as application_network_settings
+    if application_network_settings():
+        from cgkn.providers.canonical_gateway_adapter import post_payload
+        return post_payload(payload,timeout_sec,endpoint=endpoint), ''
+    from cgkn.providers.legacy_transport import post_json_once as legacy_post
+    return legacy_post(endpoint,payload,token,timeout_sec)
 
 
 def post_json_with_retry(
@@ -283,7 +249,9 @@ def post_json_with_retry(
     post_once_fn: Callable[[str, dict[str, Any], str, int], tuple[dict[str, Any] | None, str]] | None = None,
 ) -> ProviderTransportResult:
     attempts: list[ProviderTransportAttempt] = []
-    count = max(1, int(max_attempts))
+    # Real transport never retries a possibly submitted generation.
+    # Injected deterministic transports retain historical retry-policy test support.
+    count = max(1, int(max_attempts)) if post_once_fn is not None else 1
     last_error = ""
     for attempt in range(1, count + 1):
         started = time.monotonic()

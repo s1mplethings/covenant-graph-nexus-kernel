@@ -1,0 +1,2 @@
+# Trusted Windows provider process only; never installed into candidate projects.
+httpx==0.28.1
