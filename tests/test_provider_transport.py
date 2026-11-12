@@ -10,14 +10,18 @@ import pytest
 
 from scripts import provider_transport
 from scripts import run_local_pipeline_impl as pipeline
+from tests.providers.test_domestic_repair import isolated, fake_gateway, admit
+from tests.providers.authority_fixtures import authorized_transport
+from cgkn.providers import application_network as app
+from cgkn.providers.gateway_client import GatewayCompletionError
 
 
 def test_key_usage_limit_is_non_retryable(monkeypatch: pytest.MonkeyPatch) -> None:
     calls = []
 
-    def fail(_request, _timeout):
+    def fail(_endpoint, _payload, _token, _timeout):
         calls.append(1)
-        raise urllib.error.HTTPError(
+        error = urllib.error.HTTPError(
             "https://api.example.test/v1/responses",
             403,
             "forbidden",
@@ -25,12 +29,13 @@ def test_key_usage_limit_is_non_retryable(monkeypatch: pytest.MonkeyPatch) -> No
             io.BytesIO(b'{"error":"Key usage limit exceeded"}'),
         )
 
-    monkeypatch.setattr(provider_transport, "_urlopen", fail)
+        return None, pipeline.check_connectivity._http_error_summary(error, _endpoint, error.read().decode())
     result = provider_transport.post_json_with_retry(
         "https://api.example.test/v1/responses",
         {"model": "test"},
         "secret-token",
         5,
+        post_once_fn=fail,
         sleep_fn=lambda _delay: None,
     )
 
@@ -47,13 +52,13 @@ def test_429_retries(monkeypatch: pytest.MonkeyPatch) -> None:
         calls.append(1)
         return None, "HTTP 429: rate limited [retryable=true]"
 
-    monkeypatch.setattr(provider_transport, "post_json_once", fake_once)
     result = provider_transport.post_json_with_retry(
         "https://api.example.test/v1/responses",
         {},
         "token",
         5,
         max_attempts=3,
+        post_once_fn=fake_once,
         sleep_fn=lambda _delay: None,
         jitter_fn=lambda: 0,
     )
@@ -66,17 +71,18 @@ def test_429_retries(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_remote_disconnected_exception_is_retryable(monkeypatch: pytest.MonkeyPatch) -> None:
     calls = []
 
-    def disconnect(_request, _timeout):
+    def disconnect(_endpoint, _payload, _token, _timeout):
         calls.append(1)
-        raise http.client.RemoteDisconnected("Remote end closed connection without response")
+        return None, pipeline.check_connectivity._request_error_summary(
+            http.client.RemoteDisconnected("Remote end closed connection without response"),_endpoint)
 
-    monkeypatch.setattr(provider_transport, "_urlopen", disconnect)
     result = provider_transport.post_json_with_retry(
         "https://api.example.test/v1/responses",
         {},
         "token",
         5,
         max_attempts=2,
+        post_once_fn=disconnect,
         sleep_fn=lambda _delay: None,
         jitter_fn=lambda: 0,
     )
@@ -108,7 +114,6 @@ def test_third_attempt_success_sets_recovered(monkeypatch: pytest.MonkeyPatch) -
         (None, "HTTP 503: unavailable [retryable=true]"),
         ({"status": "completed"}, ""),
     ]
-    monkeypatch.setattr(provider_transport, "post_json_once", lambda *_args: responses.pop(0))
 
     result = provider_transport.post_json_with_retry(
         "https://api.example.test/v1/responses",
@@ -117,6 +122,7 @@ def test_third_attempt_success_sets_recovered(monkeypatch: pytest.MonkeyPatch) -
         5,
         sleep_fn=lambda _delay: None,
         jitter_fn=lambda: 0,
+        post_once_fn=lambda *_args: responses.pop(0),
     )
 
     assert result.ok is True
@@ -124,22 +130,16 @@ def test_third_attempt_success_sets_recovered(monkeypatch: pytest.MonkeyPatch) -
     assert len(result.attempts) == 3
 
 
-def test_non_json_response_is_not_success(monkeypatch: pytest.MonkeyPatch) -> None:
-    class Response:
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *_args):
-            return False
-
-        def read(self):
-            return b"<html>not json</html>"
-
-    monkeypatch.setattr(provider_transport, "_urlopen", lambda _request, _timeout: Response())
-    doc, error = provider_transport.post_json_once("https://api.example.test", {}, "token", 5)
-
-    assert doc is None
-    assert "non-json response" in error
+def test_non_json_response_is_not_success(fake_gateway, monkeypatch, tmp_path) -> None:
+    admit(monkeypatch,tmp_path)
+    fake_gateway[1]['mode']='nonjson'
+    endpoint=app.session(app.settings())[0]['base_url'].rstrip('/')+'/responses'
+    with authorized_transport(tmp_path/'host',calls=1):
+        with pytest.raises(GatewayCompletionError,match='json|JSON'):
+            provider_transport.post_json_once(endpoint,{'model':'qwen','messages':[{'role':'user','content':'bounded'}],
+                'max_tokens':100},'unused',5)
+    assert len(fake_gateway[0])==1
+    assert len(json.loads((tmp_path/'budget.json').read_text())['calls'])==1
 
 
 def test_api_key_is_redacted_from_result_repr(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -285,33 +285,25 @@ def test_requirements_schema_probe_failure_short_circuits_real_request(tmp_path:
     assert responses == []
 
 
-def test_provider_text_caps_same_request_pre_header_retries(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    payload_hashes: list[str] = []
-    payloads: list[dict] = []
-    monkeypatch.setattr(pipeline, "try_local_provider_text", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(pipeline.check_connectivity, "_resolve_api_credentials", lambda: {"api_key": "secret", "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"})
-    monkeypatch.setattr(pipeline.check_connectivity, "_openai_compatible_endpoint", lambda *_args, **_kwargs: "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions")
-    monkeypatch.setattr(pipeline, "choose_provider_model", lambda *_args, **_kwargs: {"selected_model": "qwen3.8-max", "requested_model": "qwen3.8-max"})
-    monkeypatch.setattr(pipeline, "provider_reasoning_effort", lambda *_args: "none")
-    monkeypatch.setattr(pipeline.time, "sleep", lambda *_args: None)
-
-    def fail(_endpoint, payload, _token, _timeout):
-        payloads.append(payload)
-        payload_hashes.append(pipeline.formal_model_contract.stable_hash(payload))
-        pipeline.check_connectivity._set_last_transport_timing({"response_headers_received": False, "failure_phase": "connect_or_response_headers", "total_elapsed_ms": 1})
-        return None, "TimeoutError: timed out [retryable=true]"
-
-    monkeypatch.setattr(pipeline.check_connectivity, "_post_json", fail)
-    with pytest.raises(RuntimeError, match="response_headers_received=false"):
-        pipeline.provider_text(
-            _planning_messages(), "qwen3.8-max", 60, max_attempts=5,
-            stage="requirements_planning", phase_log_path=tmp_path / "events.jsonl",
-            max_tokens=2048,
-            response_format=pipeline.canonical_goal_spec_compiler.planning_proposal_response_format(),
-        )
-    assert len(payload_hashes) == 2
-    assert len(set(payload_hashes)) == 1
-    assert all(item["max_tokens"] == 2048 and item["response_format"]["type"] == "json_schema" for item in payloads)
+def test_provider_text_caps_same_request_pre_header_retries(tmp_path,monkeypatch,fake_gateway) -> None:
+    # Stricter than the historical two-retry cap: a possibly submitted request
+    # is sent once, even when the old caller asks for five attempts.
+    from scripts.provider_api_budget import ProviderBudgetExhausted
+    admit(monkeypatch,tmp_path)
+    fake_gateway[1]['mode']='unknown'
+    schema=pipeline.canonical_goal_spec_compiler.planning_proposal_response_format()
+    with authorized_transport(tmp_path/'host',calls=5):
+        with pytest.raises(GatewayCompletionError,match='unknown'):
+            pipeline.provider_text(_planning_messages(),'qwen',5,max_attempts=5,stage='requirements_planning',
+                max_tokens=2048,response_format=schema)
+        with pytest.raises(ProviderBudgetExhausted):
+            pipeline.provider_text(_planning_messages(),'qwen',5,max_attempts=5,stage='requirements_planning',
+                max_tokens=2048,response_format=schema)
+    assert len(fake_gateway[0])==1
+    payload=fake_gateway[0][0]
+    assert payload['max_output_tokens']==2048 and payload['text']['format']['type']=='json_schema'
+    ledger=json.loads((tmp_path/'budget.json').read_text())
+    assert len(ledger['calls'])==1 and ledger['calls'][0]['submission_outcome_unknown'] is True
 
 
 def test_requirements_real_512_pre_header_timeout_is_classified(tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch) -> None:

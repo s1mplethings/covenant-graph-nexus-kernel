@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="32" time="9.659" timestamp="2026-11-03T22:36:07.051263+08:00" hostname="test"><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaImport" name="test_import_copies_bytes_into_storage" time="0.031" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaImport" name="test_import_jpeg_image" time="0.032" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaImport" name="test_import_mp4_video" time="0.030" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaImport" name="test_import_png_image" time="0.022" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaImport" name="test_import_rejects_empty_file" time="0.017" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaImport" name="test_import_rejects_empty_project_id" time="0.004" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaImport" name="test_import_rejects_invalid_kind" time="0.015" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaImport" name="test_import_rejects_kind_mismatch" time="0.020" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaImport" name="test_import_rejects_missing_path" time="0.017" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaImport" name="test_import_rejects_signature_mismatch" time="0.031" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaImport" name="test_import_rejects_unknown_project" time="0.012" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaImport" name="test_import_webm_video" time="0.029" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaGetAndList" name="test_get_cross_project_raises" time="0.041" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaGetAndList" name="test_get_returns_valid_record" time="0.034" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaGetAndList" name="test_get_unknown_media_raises" time="0.017" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaGetAndList" name="test_list_is_project_isolated" time="0.052" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaGetAndList" name="test_list_returns_items" time="0.063" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaGetAndList" name="test_list_unknown_project_raises" time="0.019" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaIntegrity" name="test_broken_status_persists_across_calls" time="0.059" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaIntegrity" name="test_get_marks_broken_when_bytes_missing" time="0.040" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaIntegrity" name="test_get_marks_broken_when_bytes_modified" time="0.051" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaIntegrity" name="test_list_reports_broken_status" time="0.050" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaPersistence" name="test_records_survive_reload" time="0.048" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaValidation" name="test_empty_data_dir_raises" time="0.004" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaValidation" name="test_missing_op_raises" time="0.004" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaValidation" name="test_non_dict_request_raises" time="0.004" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaValidation" name="test_unknown_op_raises" time="0.017" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaApprovalIntegration" name="test_approve_blocked_when_media_broken" time="0.065"><failure message="AssertionError: ValueError not raised">self = &lt;test_milestone_dbb8341c8910593063a8.TestMediaApprovalIntegration testMethod=test_approve_blocked_when_media_broken&gt;
+
+    def test_approve_blocked_when_media_broken(self):
+        rec = self._import("a.png", PNG_BYTES, "image")
+        content = self._setup_content([rec["id"]])
+        stored = os.path.join(self.data_dir, rec["path"])
+        with open(stored, "wb") as f:
+            f.write(b"corrupted")
+&gt;       with self.assertRaises(ValueError):
+E       AssertionError: ValueError not raised
+
+tests\test_milestone_dbb8341c8910593063a8.py:351: AssertionError</failure></testcase><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaApprovalIntegration" name="test_approve_blocked_when_media_missing" time="0.074"><failure message="AssertionError: ValueError not raised">self = &lt;test_milestone_dbb8341c8910593063a8.TestMediaApprovalIntegration testMethod=test_approve_blocked_when_media_missing&gt;
+
+    def test_approve_blocked_when_media_missing(self):
+        rec = self._import("a.png", PNG_BYTES, "image")
+        content = self._setup_content([rec["id"]])
+        os.remove(os.path.join(self.data_dir, rec["path"]))
+&gt;       with self.assertRaises(ValueError):
+E       AssertionError: ValueError not raised
+
+tests\test_milestone_dbb8341c8910593063a8.py:362: AssertionError</failure></testcase><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaApprovalIntegration" name="test_approve_succeeds_with_valid_media" time="0.069" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaPublishIntegration" name="test_publish_blocked_when_media_broken_after_approval" time="4.264"><failure message="AssertionError: ValueError not raised">self = &lt;test_milestone_dbb8341c8910593063a8.TestMediaPublishIntegration testMethod=test_publish_blocked_when_media_broken_after_approval&gt;
+
+    def test_publish_blocked_when_media_broken_after_approval(self):
+        rec = self._import("a.png", PNG_BYTES, "image")
+        content = self._approved_content([rec["id"]])
+        stored = os.path.join(self.data_dir, rec["path"])
+        with open(stored, "wb") as f:
+            f.write(b"corrupted")
+&gt;       with self.assertRaises(ValueError):
+E       AssertionError: ValueError not raised
+
+tests\test_milestone_dbb8341c8910593063a8.py:406: AssertionError</failure></testcase><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestMediaPublishIntegration" name="test_publish_blocked_when_media_missing_after_approval" time="4.156"><failure message="AssertionError: ValueError not raised">self = &lt;test_milestone_dbb8341c8910593063a8.TestMediaPublishIntegration testMethod=test_publish_blocked_when_media_missing_after_approval&gt;
+
+    def test_publish_blocked_when_media_missing_after_approval(self):
+        rec = self._import("a.png", PNG_BYTES, "image")
+        content = self._approved_content([rec["id"]])
+        os.remove(os.path.join(self.data_dir, rec["path"]))
+&gt;       with self.assertRaises(ValueError):
+E       AssertionError: ValueError not raised
+
+tests\test_milestone_dbb8341c8910593063a8.py:419: AssertionError</failure></testcase></testsuite></testsuites>

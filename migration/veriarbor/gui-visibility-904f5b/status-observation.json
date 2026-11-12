@@ -1,0 +1,16 @@
+{
+  "artifact_sha256": "904f5b7229cc02ee0c35b2b10a11768efbd1848f798f6f5247dee6555d1d07f9",
+  "actual_api_values": {
+    "M6": {
+      "op": "approval.status",
+      "status": "DRAFT",
+      "revision": 1
+    },
+    "M5": {
+      "op": "content.get",
+      "status": "DRAFT",
+      "revision": 1
+    }
+  },
+  "acceptance_authority": false
+}

@@ -23,6 +23,25 @@ def _rewrite_runtime_doc(project: pathlib.Path, updates: dict) -> dict:
     return doc
 
 
+def test_explicit_no_argument_public_probe_is_bound_and_not_help_fallback(tmp_path):
+    project=tmp_path/'candidate';project.mkdir()
+    (project/'main.py').write_text("import sys\nprint('usage: tool')\nraise SystemExit(0 if len(sys.argv)==1 else 2)\n")
+    source=tmp_path/'public-contract.txt';source.write_text('No arguments displays usage and exits zero.')
+    probe={'entrypoint':'main.py','args':[],'stdout_contains':'usage:',
+        'source_ref':str(source),'source_sha256':canonical_evidence_hash.sha256_file(source)}
+    old=customer_runtime_runner.run(project)
+    assert old['status']=='FAIL' and old['startup_argv'][-1]=='--help'
+    actual=customer_runtime_runner.run(project,cli_probe=probe)
+    assert actual['status']=='PASS' and actual['startup_argv']==[sys.executable,'main.py']
+    assert customer_runtime_runner.inspect(project)['status']=='PASS'
+    failed=customer_runtime_runner.run(project,cli_probe={**probe,'stdout_contains':'unobserved marker'})
+    assert failed['status']=='FAIL'
+    source.write_text('changed contract')
+    assert customer_runtime_runner.inspect(project)['status']=='FAIL'
+    with pytest.raises(ValueError,match='source changed'):
+        customer_runtime_runner.run(project,cli_probe=probe)
+
+
 def test_static_project_runtime_passes_from_isolated_copy_and_shuts_down(
     tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

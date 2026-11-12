@@ -1,0 +1,172 @@
+{
+  "certificates": [
+    {
+      "capability_id": "M7:Backend Publish",
+      "semantic_name": "Backend Publish",
+      "input_contract": {
+        "historical_probe": "systemic-m7-idempotency488"
+      },
+      "output_contract": {
+        "historical_probe_status": "PASS"
+      },
+      "preconditions": [],
+      "effects": [],
+      "acceptance_ids": [
+        "systemic-m7-idempotency488"
+      ],
+      "artifact_versions": {
+        "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+        "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": "78dd17fe6722f4fa573580b6a59d33374e925ccf309641d9241081a53e755cbc",
+        "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+        "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+        "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+        "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+      },
+      "checker_versions": {
+        "witness-binding-checker": "7f28f1c0db65f00fbb72559cb704d05a5a906dd93362479268f10bddcacb996d"
+      },
+      "known_limits": [
+        "Reuses existing probe evidence without rerun; not full M7 GUI acceptance.",
+        "Checker version identifies this current binding verification, not an invented historical checker hash."
+      ],
+      "evidence_refs": [
+        "sha256:a61a151ff4e4dc0322a3a9944e3e96e6b0e1b037dc87f75f88f3586ee729ffdc"
+      ],
+      "provenance_refs": [
+        "sha256:f7bbbe0c4b7d3446bb7b169e7efd2b95a8a1025eeaaae2dafaf0aef1cfe24345"
+      ],
+      "issued_at": 0,
+      "expires_at": null,
+      "invalidation_triggers": [
+        "artifact_changed",
+        "witness_revoked"
+      ]
+    },
+    {
+      "capability_id": "M7:Receipt Persistence",
+      "semantic_name": "Receipt Persistence",
+      "input_contract": {
+        "historical_probe": "systemic-m7-idempotency488"
+      },
+      "output_contract": {
+        "historical_probe_status": "PASS"
+      },
+      "preconditions": [],
+      "effects": [],
+      "acceptance_ids": [
+        "systemic-m7-idempotency488"
+      ],
+      "artifact_versions": {
+        "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+        "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": "78dd17fe6722f4fa573580b6a59d33374e925ccf309641d9241081a53e755cbc",
+        "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+        "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+        "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+        "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+      },
+      "checker_versions": {
+        "witness-binding-checker": "7f28f1c0db65f00fbb72559cb704d05a5a906dd93362479268f10bddcacb996d"
+      },
+      "known_limits": [
+        "Reuses existing probe evidence without rerun; not full M7 GUI acceptance.",
+        "Checker version identifies this current binding verification, not an invented historical checker hash."
+      ],
+      "evidence_refs": [
+        "sha256:a61a151ff4e4dc0322a3a9944e3e96e6b0e1b037dc87f75f88f3586ee729ffdc"
+      ],
+      "provenance_refs": [
+        "sha256:f7bbbe0c4b7d3446bb7b169e7efd2b95a8a1025eeaaae2dafaf0aef1cfe24345"
+      ],
+      "issued_at": 0,
+      "expires_at": null,
+      "invalidation_triggers": [
+        "artifact_changed",
+        "witness_revoked"
+      ]
+    },
+    {
+      "capability_id": "M7:Idempotency",
+      "semantic_name": "Idempotency",
+      "input_contract": {
+        "historical_probe": "systemic-m7-idempotency488"
+      },
+      "output_contract": {
+        "historical_probe_status": "PASS"
+      },
+      "preconditions": [],
+      "effects": [],
+      "acceptance_ids": [
+        "systemic-m7-idempotency488"
+      ],
+      "artifact_versions": {
+        "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+        "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": "78dd17fe6722f4fa573580b6a59d33374e925ccf309641d9241081a53e755cbc",
+        "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+        "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+        "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+        "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+      },
+      "checker_versions": {
+        "witness-binding-checker": "7f28f1c0db65f00fbb72559cb704d05a5a906dd93362479268f10bddcacb996d"
+      },
+      "known_limits": [
+        "Reuses existing probe evidence without rerun; not full M7 GUI acceptance.",
+        "Checker version identifies this current binding verification, not an invented historical checker hash."
+      ],
+      "evidence_refs": [
+        "sha256:a61a151ff4e4dc0322a3a9944e3e96e6b0e1b037dc87f75f88f3586ee729ffdc"
+      ],
+      "provenance_refs": [
+        "sha256:f7bbbe0c4b7d3446bb7b169e7efd2b95a8a1025eeaaae2dafaf0aef1cfe24345"
+      ],
+      "issued_at": 0,
+      "expires_at": null,
+      "invalidation_triggers": [
+        "artifact_changed",
+        "witness_revoked"
+      ]
+    },
+    {
+      "capability_id": "M7:Local Platform",
+      "semantic_name": "Local Platform",
+      "input_contract": {
+        "historical_probe": "systemic-m7-platform487"
+      },
+      "output_contract": {
+        "historical_probe_status": "PASS"
+      },
+      "preconditions": [],
+      "effects": [],
+      "acceptance_ids": [
+        "systemic-m7-platform487"
+      ],
+      "artifact_versions": {
+        "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+      },
+      "checker_versions": {
+        "witness-binding-checker": "7f28f1c0db65f00fbb72559cb704d05a5a906dd93362479268f10bddcacb996d"
+      },
+      "known_limits": [
+        "Reuses existing probe evidence without rerun; not full M7 GUI acceptance.",
+        "Checker version identifies this current binding verification, not an invented historical checker hash."
+      ],
+      "evidence_refs": [
+        "sha256:7480c9752e476185d274a163af0fc7e83506e051da6f7f19ba00997e9e7f3579"
+      ],
+      "provenance_refs": [
+        "sha256:f52017a72dd63bf1000447fb5785acfe2db16190296efb44a3e448edb0fdb528"
+      ],
+      "issued_at": 0,
+      "expires_at": null,
+      "invalidation_triggers": [
+        "artifact_changed",
+        "witness_revoked"
+      ]
+    }
+  ],
+  "backend_reexecuted": false,
+  "M7_verified": false
+}

@@ -19,6 +19,56 @@ def test_state_round_trip_atomic_and_resume_success(tmp_path) -> None:
     assert not list(path.parent.glob(".run_state.json.*"))
 
 
+@pytest.mark.parametrize('kind',['run','result'])
+@pytest.mark.parametrize('winerror',[None,32])
+def test_windows_transient_snapshot_read_retries_without_writing(tmp_path,monkeypatch,kind,winerror):
+    import pathlib
+    import os
+    store=FileRunStore(tmp_path)
+    if kind=='run':
+        path=store.save_run(RunState('p','r',status='PENDING'))
+        read=lambda:store.load_run('p','r').status
+        expected='PENDING'
+    else:
+        store.save_result(BlockExecutionResult(project_id='p',run_id='r',node_id='n',attempt_id='a',executor_ref='e',status=BlockStatus.SUCCEEDED))
+        path=store.run_dir('p','r')/'node_results/n.json'
+        read=lambda:store.load_result('p','r','n').status.value
+        expected='SUCCEEDED'
+    original=path.read_bytes();real=pathlib.Path.read_text;calls=[]
+    def racing(p,*args,**kwargs):
+        if p==path:
+            calls.append(1)
+            if len(calls)<=2:
+                error=PermissionError(13,'controlled Windows share race')
+                if winerror is not None:error.winerror=winerror
+                raise error
+        return real(p,*args,**kwargs)
+    monkeypatch.setattr(pathlib.Path,'read_text',racing)
+    if winerror is None and os.name!='nt':
+        with pytest.raises(StateStoreError):read()
+        assert len(calls)==1
+    else:
+        assert read()==expected and len(calls)==3
+    assert path.read_bytes()==original
+
+
+@pytest.mark.parametrize('winerror',[None,32])
+def test_snapshot_denial_is_bounded_and_never_invents_state(tmp_path,monkeypatch,winerror):
+    import pathlib
+    import cgkn.state.store as module
+    store=FileRunStore(tmp_path);path=store.save_run(RunState('p','r'))
+    original=path.read_bytes();calls=[]
+    def denied(*args,**kwargs):
+        calls.append(1);error=PermissionError(13,'persistent denial')
+        if winerror is not None:error.winerror=winerror
+        raise error
+    ticks=iter([0,3])
+    monkeypatch.setattr(module.time,'monotonic',lambda:next(ticks))
+    monkeypatch.setattr(pathlib.Path,'read_text',denied)
+    with pytest.raises(StateStoreError,match='persistent denial'):store.load_run('p','r')
+    assert len(calls)==1 and path.read_bytes()==original
+
+
 def test_attempt_history_never_overwrites(tmp_path) -> None:
     store = FileRunStore(tmp_path)
     for attempt in ("a1", "a2"):

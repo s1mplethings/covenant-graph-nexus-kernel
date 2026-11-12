@@ -1,0 +1,27 @@
+{
+  "kind": "CGKNModelRouting",
+  "schema_version": "1.0",
+  "roles": {
+    "agent": {
+      "provider_id": "deepseek",
+      "timeout_seconds": 180,
+      "max_output_tokens": 7000,
+      "temperature": 0.0,
+      "reasoning_effort": "none",
+      "model_id": "deepseek-flash"
+    },
+    "worker": {
+      "provider_id": "deepseek",
+      "model_id": "deepseek-flash",
+      "timeout_seconds": 180,
+      "max_output_tokens": 12000,
+      "temperature": 0.0,
+      "reasoning_effort": "none"
+    }
+  },
+  "allowed_providers": [
+    "qwen",
+    "deepseek"
+  ],
+  "fallback": "deny"
+}

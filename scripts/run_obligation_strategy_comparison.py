@@ -10,7 +10,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from cgkn.application.requirements import compare_csv_strategies, write_strategy_comparison
-from cgkn.providers import ModelRoleConfig, OpenAICompatibleClient
+from cgkn.providers import ModelRoleConfig, completion_client_from_environment
 
 
 def main() -> int:
@@ -21,7 +21,7 @@ def main() -> int:
     repeats = 1 if args.profile == "live-single" else 3
     target = (ROOT / args.output).resolve()
     comparison = compare_csv_strategies(
-        ROOT, target, OpenAICompatibleClient(),
+        ROOT, target, completion_client_from_environment(),
         ModelRoleConfig("agent", "qwen3.8-max", timeout_seconds=90, max_output_tokens=7000),
         ModelRoleConfig("worker", "qwen3.7-flash", timeout_seconds=90, max_output_tokens=6000),
         repeats,

@@ -1,0 +1,17 @@
+{
+  "kind": "RealGuiUploadRouteDiagnostic",
+  "source_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "media_navigation_count": 0,
+  "visible_import_controls": 0,
+  "upload_probe_method": "HTTP request with exact payload shape of existing file-input handler; actual GUI controls are unreachable, not claimed clicked",
+  "http_status": 400,
+  "response": {
+    "error": "path must be a non-empty string"
+  },
+  "visible_alert": [
+    ""
+  ],
+  "required_behavior": "Chosen real PNG must import via existing path-based M11 API after GUI server bridges uploaded bytes; do not change M11 public contract. Existing Save also uses content.create unconditionally; edit existing identity through content.edit.",
+  "acceptance_authority": false,
+  "host_business_patches": 0
+}

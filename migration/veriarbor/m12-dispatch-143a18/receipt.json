@@ -1,0 +1,71 @@
+{
+  "kind": "ActualGuiDispatchDiagnostic",
+  "source_sha256": "041a367eaaaf2b318ecd380f26a5227019733457bce918de5d224286dd35e8cb",
+  "routes": [
+    {
+      "declared_route": "M1",
+      "actual_module_identity": "M1",
+      "matches": true
+    },
+    {
+      "declared_route": "M2",
+      "actual_module_identity": "M2",
+      "matches": true
+    },
+    {
+      "declared_route": "M3",
+      "actual_module_identity": "M3",
+      "matches": true
+    },
+    {
+      "declared_route": "M4",
+      "actual_module_identity": "M4",
+      "matches": true
+    },
+    {
+      "declared_route": "M5",
+      "actual_module_identity": "M5",
+      "matches": true
+    },
+    {
+      "declared_route": "M6",
+      "actual_module_identity": "M6",
+      "matches": true
+    },
+    {
+      "declared_route": "M7",
+      "actual_module_identity": "M7",
+      "matches": true
+    },
+    {
+      "declared_route": "M8",
+      "actual_module_identity": "M8",
+      "matches": true
+    },
+    {
+      "declared_route": "M9",
+      "actual_module_identity": "M9",
+      "matches": true
+    },
+    {
+      "declared_route": "M10",
+      "actual_module_identity": "M10",
+      "matches": true
+    },
+    {
+      "declared_route": "M11",
+      "actual_module_identity": "M11",
+      "matches": true
+    }
+  ],
+  "actual_project_create": {
+    "ok": true,
+    "result": {
+      "id": "a0e160aae3ed4897890fedb8e0d4ba04",
+      "name": "Dispatch diagnostic"
+    }
+  },
+  "acceptance_authority": false,
+  "host_business_patches": 0,
+  "diagnostic_sha256": "ff6d456a20bddb043ad1063d49380f6695aacfcf6af5abcbd4e94fddab1c8a5d"
+}

@@ -1,0 +1,33 @@
+{
+  "expected_gui_sha256": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+  "feedback": {
+    "cost_policy": "Qwen Flash Agent and DeepSeek Flash Worker only. No Pro/Max. Current failure already measured; another measurement of unchanged failure is not progress.",
+    "milestone_completion_request": "CURRENT ACTION IS IMPLEMENTATION REPAIR, NOT MEASUREMENT: existing native122 currentA0 publication failure says NameError hashlib undefined. Repair existing writer89 promotion_publish.py by providing the missing hashlib import, retaining the real current-byte hash guard just implemented in89a39. Do not retry122, add observer, or repair117 before this source delta. New qualified GUI observer does not erase the already authentic current source NameError evidence. This import repair clause is finished as soon as source hash changes and hashlib is imported. After source delta verify changed owner with existing100; M1-M10 unrelated checks stay reusable. Then existing122 on changed variant uses qualified-revision-3, which preserves integrity tests and also runs actual M11 media browser preview. Address its actual next failure at correct owner. early_main.py currently has only M1-M7 HANDLERS and no img/video preview;91 is sole GUI writer and must implement M11 dispatch, safe actual media serving, attachment/save/load preview with real image/video controls, visible errors, preserving current review/approve/publish/receipt. Backend M11e4737 and M6fa are solved. Do not follow old module-path diagnoses. Finish M11/M12, generated-test fixture debts, canonical finalization and delivery.",
+    "fresh_runtime_diagnosis": {
+      "current_source_sha256": "a0f2f3d46e9a4988fd00dcbb505bfaaaaabb60c3007fa02a86158ff49c275028",
+      "canonical_current_failure": {
+        "passed_count": 1,
+        "reason": "M11_independent_business_suite: NameError: name 'hashlib' is not defined",
+        "total_count": 2,
+        "value": false
+      },
+      "canonical_attempt_ref": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0122\\attempt-0009.json",
+      "local_diagnostic_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-publish-edges-attempt39\\receipt.json",
+      "already_completed": "Source89a39 now performs actual byte hashing; missing hashlib import is the immediate defect. Deleted-file local case now passes; changed-file case fails NameError.",
+      "observer_scope": "qualified-revision-3 onlyM11 adds real GUI preview; M1-M10 fallback identity remains qualified-revision-1. Real constructor fallback chain verified.",
+      "test87_fixture_debt": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m6-fixture-qualification-7885a399\\receipt.json",
+      "prior_test_debts": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\continuation-feedback\\veriarbor-33.json"
+    },
+    "admission_correction": "Use current authentic FAILED M11 counterexample from122 to repair89; preserve existing_dependency_targets and choose89-owned scope from writer_target_ids. No unchanged122 retry: it was already measured on A0 and failed NameError. strategy.problem plus>=2 actual mechanism fields; hypothesis.falsifying_evidence must contain current bound references. When89 source changes, the old import-repair instruction is consumed; proceed with evidence for new artifact. Do not endlessly follow FIRST/refresh wording from prior continuations.",
+    "gui_writer_policy": "91 soleGUIwriter.89 owns publicationguard/import.86fa,117e4737 unchanged.87 fixture-only debt later, no business-validator changes to satisfy invalid fixtures.",
+    "redecision": {
+      "strategy_revision": "5db94b7eb43abf328535ca37116b1c228995ee56bf452342ae253344c33ef8ed",
+      "reason": "Prior continuation instruction to first measure was repeated after failure; dedup prevented actual duplicate checks and controllerstopped. Remove that instruction entirely. Current native failure is already sufficient to repair missingimport. Add independentlyqualified actualGUIpreview to M11 scope, preserving other checkeridentities.",
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0122\\attempt-0009.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-publish-edges-attempt39\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\MEDIA_GUI_V5_ACTIVATION.json"
+      ]
+    }
+  }
+}

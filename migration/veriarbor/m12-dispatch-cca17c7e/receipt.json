@@ -1,0 +1,68 @@
+{
+  "kind": "ActualGuiDispatchDiagnostic",
+  "source_sha256": "cca17c7e0e76210ac183a59965e2a064b5bd6f28d9e395615b24a3d924261584",
+  "routes": [
+    {
+      "declared_route": "M1",
+      "actual_module_identity": "M3",
+      "matches": false
+    },
+    {
+      "declared_route": "M2",
+      "actual_module_identity": "M1",
+      "matches": false
+    },
+    {
+      "declared_route": "M3",
+      "actual_module_identity": "M6",
+      "matches": false
+    },
+    {
+      "declared_route": "M4",
+      "actual_module_identity": "M2",
+      "matches": false
+    },
+    {
+      "declared_route": "M5",
+      "actual_module_identity": "M4",
+      "matches": false
+    },
+    {
+      "declared_route": "M6",
+      "actual_module_identity": "M5",
+      "matches": false
+    },
+    {
+      "declared_route": "M7",
+      "actual_module_identity": "M8",
+      "matches": false
+    },
+    {
+      "declared_route": "M8",
+      "actual_module_identity": "M10",
+      "matches": false
+    },
+    {
+      "declared_route": "M9",
+      "actual_module_identity": "M9",
+      "matches": true
+    },
+    {
+      "declared_route": "M10",
+      "actual_module_identity": "M11",
+      "matches": false
+    },
+    {
+      "declared_route": "M11",
+      "actual_module_identity": "M7",
+      "matches": false
+    }
+  ],
+  "actual_project_create": {
+    "ok": false,
+    "error": "ValueError: unknown operation: project.create"
+  },
+  "acceptance_authority": false,
+  "host_business_patches": 0,
+  "previous_working_source": "5f4678644367eb19460fdc6ddcca68bba2a43f347dee19be141547d312181ed1"
+}

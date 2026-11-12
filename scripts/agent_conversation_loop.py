@@ -14,6 +14,11 @@ SCRIPTS_DIR = pathlib.Path(__file__).resolve().parent
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
+if str(SCRIPTS_DIR.parent) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR.parent))
+
+from cgkn.telemetry.lean import observed
+
 import check_connectivity
 import local_agent_actions
 
@@ -191,6 +196,98 @@ def call_default_agent(events: list[dict[str, Any]], model: str, timeout: int) -
     )
 
 
+def _run_action_loop(
+    *, session_file, project, model, timeout, max_turns, agent, execute,
+    event_context=None, read_events=None, prepare_action=None,
+):
+    """One owner of model turns, action dispatch, feedback and turn exhaustion.
+
+    Manifest steps and standalone conversations retain different completion and
+    repair policies. Callbacks supply context/effects, never schedule turns.
+    """
+    step_mode = event_context is not None
+    context = event_context or {}
+    turns = 0
+    repair_turn_used = False
+    allowed_turns = range(1, max(1, max_turns) + 1).stop - 1 if step_mode else max(1, int(max_turns))
+    last_error = ""
+    while turns < allowed_turns:
+        turns += 1
+        events = read_events() if read_events else read_session(session_file)
+        try:
+            response = agent(events, model, timeout)
+        except Exception as exc:
+            last_error = str(exc)
+            append_event(session_file, {"kind": "agent_error", "role": "assistant", **context, "error": last_error, "turn": turns})
+            if step_mode and getattr(exc, "outcome_unknown", False):
+                return {"status": "rework_blocked", "summary": last_error,
+                        "quality_audit": {"outcome_unknown": True, "requires_reconciliation": True}}
+            if step_mode:
+                continue
+            return {"status": "failed", "error": last_error, "turns": turns, "session_path": str(session_file), "project_dir": str(project)}
+        parsed = parse_agent_response(response)
+        actions = parsed.get("actions", [])
+        parse_error = str(parsed.get("parse_error", "")).strip() if step_mode else ""
+        append_event(session_file, {
+            "kind": "assistant", "role": "assistant", **context, "turn": turns,
+            "message": parsed.get("message", ""), "actions": actions,
+            **({"parse_error": parse_error} if step_mode else {}),
+        })
+        if not actions:
+            last_error = f"agent returned malformed JSON: {parse_error}" if parse_error else "agent returned no actions"
+            append_event(session_file, {
+                "kind": "tool_result", **context, "turn": turns, "ok": False, "error": last_error,
+                **({"repair_instruction": "Return strict JSON with a non-empty actions array for this same manifest step.",
+                    "raw_preview": str(parsed.get("raw", ""))[:1000]} if step_mode else {}),
+            })
+            if step_mode:
+                continue
+        failed = bool(parse_error)
+        if parse_error:
+            last_error = f"agent response was partially recovered from malformed JSON: {parse_error}"
+            append_event(session_file, {
+                "kind": "tool_result", **context, "turn": turns, "ok": False, "error": last_error,
+                "repair_instruction": "Some complete write_file actions were executed, but the same manifest step must return strict JSON to finish.",
+                "raw_preview": str(parsed.get("raw", ""))[:1000],
+            })
+        package_result = None
+        for action in actions:
+            if prepare_action:
+                action = prepare_action(action)
+            action_type = str(action.get("type") or action.get("action") or "")
+            append_event(session_file, {"kind": "action", **context, "turn": turns, "action": action})
+            result = ({"ok": True, "type": "final_message", "text": str(action.get("text", ""))}
+                      if not step_mode and action_type == "final_message" else execute(action))
+            append_event(session_file, {"kind": "tool_result", **context, "turn": turns, "action": action, "result": result})
+            if not result.get("ok"):
+                failed = True
+                if step_mode:
+                    last_error = str(result.get("error") or "action failed")
+            if action_type == "package_project" and result.get("ok"):
+                package_result = result
+                if not step_mode:
+                    break
+        if package_result:
+            if step_mode:
+                return {"status": "ok", "summary": "package_project action completed", "package_result": package_result}
+            manifest = package_result.get("manifest", {}) if isinstance(package_result.get("manifest"), dict) else {}
+            return {"status": str(manifest.get("status") or "ready"), "turns": turns,
+                    "session_path": str(session_file), "project_dir": str(project), "manifest": manifest,
+                    "package_path": manifest.get("package_path", ""), "manifest_path": manifest.get("manifest_path", "")}
+        if step_mode:
+            if not failed:
+                return {"status": "ok", "summary": str(parsed.get("message") or "step completed")}
+        elif failed and turns >= allowed_turns and not repair_turn_used:
+            repair_turn_used = True
+            allowed_turns += 1
+            append_event(session_file, {"kind": "repair_prompt", "turn": turns,
+                                       "message": "A failed action was returned to the agent for one repair attempt."})
+    if step_mode:
+        return {"status": "failed", "summary": last_error or "agent step failed"}
+    return {"status": "max_turns_reached", "turns": turns, "session_path": str(session_file), "project_dir": str(project)}
+
+
+@observed("conversation", lambda a: pathlib.Path(a["session_path"]).with_suffix(".reports"), session=lambda a:a["session_path"])
 def run_agent_loop(
     *,
     session_path: str | pathlib.Path,
@@ -203,70 +300,11 @@ def run_agent_loop(
     session_file = pathlib.Path(session_path).resolve()
     project = pathlib.Path(project_dir).resolve()
     executor = local_agent_actions.LocalAgentActionExecutor(project)
-    agent_fn = agent or call_default_agent
-    package_result: dict[str, Any] | None = None
-    turns = 0
-    repair_turn_used = False
-    allowed_turns = max(1, int(max_turns))
+    return _run_action_loop(
+        session_file=session_file, project=project, model=model, timeout=timeout,
+        max_turns=max_turns, agent=agent or call_default_agent, execute=executor.execute,
+    )
 
-    while turns < allowed_turns:
-        turns += 1
-        events = read_session(session_file)
-        try:
-            response = agent_fn(events, model, timeout)
-        except Exception as exc:
-            append_event(session_file, {"kind": "agent_error", "role": "assistant", "error": str(exc), "turn": turns})
-            return {"status": "failed", "error": str(exc), "turns": turns, "session_path": str(session_file), "project_dir": str(project)}
-
-        parsed = parse_agent_response(response)
-        append_event(
-            session_file,
-            {
-                "kind": "assistant",
-                "role": "assistant",
-                "turn": turns,
-                "message": parsed.get("message", ""),
-                "actions": parsed.get("actions", []),
-            },
-        )
-
-        actions = parsed.get("actions", [])
-        if not actions:
-            append_event(session_file, {"kind": "tool_result", "turn": turns, "ok": False, "error": "agent returned no actions"})
-        failed_this_turn = False
-        for action in actions:
-            action_type = str(action.get("type") or action.get("action") or "")
-            append_event(session_file, {"kind": "action", "turn": turns, "action": action})
-            if action_type == "final_message":
-                result = {"ok": True, "type": "final_message", "text": str(action.get("text", ""))}
-            else:
-                result = executor.execute(action)
-            append_event(session_file, {"kind": "tool_result", "turn": turns, "action": action, "result": result})
-            if not result.get("ok"):
-                failed_this_turn = True
-            if action_type == "package_project" and result.get("ok"):
-                package_result = result
-                break
-        if package_result:
-            manifest = package_result.get("manifest", {}) if isinstance(package_result.get("manifest"), dict) else {}
-            return {
-                "status": str(manifest.get("status") or "ready"),
-                "turns": turns,
-                "session_path": str(session_file),
-                "project_dir": str(project),
-                "manifest": manifest,
-                "package_path": manifest.get("package_path", ""),
-                "manifest_path": manifest.get("manifest_path", ""),
-            }
-        if failed_this_turn and turns >= allowed_turns and not repair_turn_used:
-            repair_turn_used = True
-            allowed_turns += 1
-            append_event(session_file, {"kind": "repair_prompt", "turn": turns, "message": "A failed action was returned to the agent for one repair attempt."})
-            continue
-        if turns >= allowed_turns:
-            break
-
-    return {"status": "max_turns_reached", "turns": turns, "session_path": str(session_file), "project_dir": str(project)}
 
 
 if __name__ == "__main__":

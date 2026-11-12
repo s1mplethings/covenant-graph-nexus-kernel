@@ -1,0 +1,22 @@
+{
+  "status": "PASS_FOR_FINITE_TESTED_SCOPE",
+  "violations": {
+    "obligation_false_prune": 0,
+    "false_verified": 0,
+    "stale_evidence_accepted": 0,
+    "conflicting_parallel_batch": 0,
+    "unrelated_verified_sibling_invalidated": 0
+  },
+  "evidence": {
+    "compatibility_shadow": "SHADOW_RESULTS.json",
+    "current_goal_count": 84,
+    "synthetic_old_new_comparisons": 323,
+    "semantic_graph_status_combinations": 54,
+    "conflict_batch_subsets": 126,
+    "library_check": "D:/VeriArbor/governance/checks/library-graph-properties/receipt.json",
+    "runtime_check": "D:/VeriArbor/governance/checks/policies-integrated/receipt.json"
+  },
+  "deterministic_replay": "PASS",
+  "current_frontier": "M7 FAILED; M1-M6 VERIFIED; M8-M12 insufficient evidence",
+  "limits": "Finite tests and current snapshot, not universal proof or product completion"
+}

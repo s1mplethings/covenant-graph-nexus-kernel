@@ -1,0 +1,98 @@
+{
+  "kind": "ProvenanceNegativeTests",
+  "created_at": "2026-11-06T04:06:17.419194+00:00",
+  "execution_command": "python provenance_reverse_tests.py",
+  "exit_code": 0,
+  "results": [
+    {
+      "test_id": "P01",
+      "description": "Agent source missing valid authorization",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INSUFFICIENT_EVIDENCE: referenced object missing: iter132-promotion-studio/final-validation-01/agent_authorizations/e1727072d379945283dbe2821a75c820ed5a97ffb6396fc7065b9a9cc2ed3410.json",
+      "verdict": "PASS",
+      "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P01-002ew234"
+    },
+    {
+      "test_id": "P02",
+      "description": "modify authorized agent source",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INVALID_PROVENANCE: authorized agent artifact mismatch",
+      "verdict": "PASS",
+      "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P02-cq1bjw4s"
+    },
+    {
+      "test_id": "P03",
+      "description": "agent source claims Worker type",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INVALID_PROVENANCE: authorized agent source binding mismatch",
+      "verdict": "PASS",
+      "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P03-ky0nqoqv"
+    },
+    {
+      "test_id": "P04",
+      "description": "B11 review observed false",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INVALID_PROVENANCE: object hash mismatch: iter132-promotion-studio/final-validation-01/agent_reviews/B11_ACCEPTANCE.json",
+      "verdict": "PASS",
+      "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P04-izwirwdg"
+    },
+    {
+      "test_id": "P05",
+      "description": "invalid Worker receipt hash",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INVALID_PROVENANCE: object hash mismatch: iter132-promotion-studio/final-validation-01/import_objects/19b815dbc247abac4f894ba135cb067c23b5a068b40fe03bc75ec2259bc82172",
+      "verdict": "PASS",
+      "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P05-taziixs2"
+    },
+    {
+      "test_id": "P06",
+      "description": "delivered file hash mismatch",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INVALID_PROVENANCE: imported current artifact mismatch",
+      "verdict": "PASS",
+      "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P06-_odatoa0"
+    },
+    {
+      "test_id": "P07",
+      "description": "replay old candidate hash",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INSUFFICIENT_EVIDENCE: delivered source lacks bounded Worker or authorized Agent origin: README.md",
+      "verdict": "PASS",
+      "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P07-3qyg9ozb"
+    },
+    {
+      "test_id": "P08",
+      "description": "missing B10 review evidence",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INSUFFICIENT_EVIDENCE: referenced object missing: iter132-promotion-studio/final-validation-01/agent_reviews/B10_CERTIFICATE.json",
+      "verdict": "PASS",
+      "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P08-x1pte7py"
+    },
+    {
+      "test_id": "P09",
+      "description": "unrelated production_provenance_ref",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "AssertionError: unrelated provenance reference rejected: {\"status\": \"NEEDS_REWORK\", \"failures\": [\"production_provenance_path_invalid\"], \"provenance_ref\": \"F:\\\\CGKN-LeanLoop-V1-20261101\\\\migration\\\\veriarbor\\\\M12_ACCEPTANCE.json\"}",
+      "verdict": "PASS",
+      "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P09-i_n17luq"
+    },
+    {
+      "test_id": "P10",
+      "description": "valid Agent source and all evidence",
+      "expected_result": "ACCEPT",
+      "actual_result": "ACCEPT",
+      "error": null,
+      "verdict": "PASS",
+      "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P10-w_q3o564"
+    }
+  ]
+}

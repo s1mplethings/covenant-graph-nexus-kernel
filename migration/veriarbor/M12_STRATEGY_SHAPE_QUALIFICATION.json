@@ -1,0 +1,36 @@
+{
+  "kind": "ExistingStrategyConstraintShapeQualification",
+  "controls": [
+    {
+      "name": "actual_correct_nested_map",
+      "expected": true,
+      "actual": true,
+      "passed": true
+    },
+    {
+      "name": "missing_map",
+      "expected": false,
+      "actual": false,
+      "passed": true
+    },
+    {
+      "name": "feature_deletion",
+      "expected": false,
+      "actual": false,
+      "passed": true
+    },
+    {
+      "name": "empty_map",
+      "expected": false,
+      "actual": false,
+      "passed": true
+    }
+  ],
+  "source_ref": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\provider_calls\\f410393316a64efaaf4eb33f38215e86\\response.json",
+  "source_sha256": "7b6e223d4eed5f057fa739f1a2e78c4214356ecc716eba6fadf742cdaeb3e430",
+  "exact_map_verified": true,
+  "business_semantics_changed": false,
+  "host_business_patches": 0,
+  "host_source_changes": 0,
+  "product_acceptance_granted": false
+}

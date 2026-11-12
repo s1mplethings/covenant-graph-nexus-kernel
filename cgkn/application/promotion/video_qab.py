@@ -2147,7 +2147,7 @@ def run_host_acceptance(workdir: Path, spec: dict, run_id: str) -> dict:
     from cgkn.state import FileRunStore
     from cgkn.executors import ExecutorRegistry
     from cgkn.execution.deliverables import FileDeliverableChecker
-    from cgkn.state.acceptance import GoalAcceptance
+    from cgkn.runtime.acceptance import open_goal_acceptance as GoalAcceptance
 
     tree = build_acceptance_tree(workdir, spec, run_id)
     dag = compile_tree(tree)
@@ -2417,7 +2417,7 @@ def run_production_test(workdir: Path, spec: dict, run_id: str) -> dict:
 
 
 def _record_goal_acceptance(store, project_id, run_id, tree, qab_result, final):
-    from cgkn.state.acceptance import GoalAcceptance
+    from cgkn.runtime.acceptance import open_goal_acceptance as GoalAcceptance
     condition = {"obligation": "QAB_VIDEO", "technical_required": True,
                  "perceptual_pending_allowed": True}
     requirements = {"qab": {"must": True, "weight": 1, "operator": "AND"}}

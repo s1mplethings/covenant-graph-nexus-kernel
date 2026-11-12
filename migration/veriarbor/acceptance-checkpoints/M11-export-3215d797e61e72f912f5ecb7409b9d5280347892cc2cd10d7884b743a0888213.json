@@ -1,0 +1,719 @@
+{
+  "kind": "AuthenticatedAcceptanceCheckpoint",
+  "milestone": "M11",
+  "verdict": "INSUFFICIENT_EVIDENCE",
+  "timestamp": "2026-11-03T16:13:34.804125+00:00",
+  "authority": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\goal_acceptance.json",
+  "authority_sha256": "3c5aa987941bdab02f8b60831c168252efaf0d1d3475597afa70886e76f555a3",
+  "obligation": {
+    "verdict": "INSUFFICIENT_EVIDENCE",
+    "weight": 1,
+    "must": true
+  },
+  "authenticated_goals": [
+    {
+      "acceptance": "The independent suite covers every public behavior below, so no requirement is dropped: media.import successfully copies valid PNG/JPEG/MP4/WebM bytes into project storage, returns correct structure with VALID status and SHA-256; media.import rejects empty files, mismatched signatures, and invalid kinds with ValueError; media.get returns current validity and detects modified/missing bytes as BROKEN; media.list returns all items with correct statuses; M6 approval.approve raises ValueError if referenced media is missing or BROKEN; M7 publish.send raises ValueError if referenced media is missing or BROKEN; GUI displays actual media previews and visible failures; invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError; persistence survives another Python process.",
+      "checker": "independent",
+      "id": "accept-e1b521a1e0a607c6f7f6",
+      "milestone_contract": {
+        "compilation": {
+          "artifact_layout": {
+            "source": "milestones/milestone_dbb8341c8910593063a8/api.py",
+            "support": [],
+            "test": "tests/test_milestone_dbb8341c8910593063a8.py"
+          },
+          "business_implementation_generated": false,
+          "business_semantics_inferred": false,
+          "checker_ref": "project.acceptance@1",
+          "export_ids": [
+            "bfb0d16f8c30afa09d81eee110fcac311beed4739758eb9a4e5d0fbf2449ee61",
+            "9441dcc2406554833f7883a1fd36812433b3130ea7a1fefb540ebe21ed258832"
+          ],
+          "kind": "DeclarationCompilationReceipt",
+          "milestone_id": "milestone-dbb8341c8910593063a8",
+          "mode": "MILESTONE_MODE",
+          "operation_exception_mapping": {
+            "handle": [
+              "ValueError"
+            ]
+          },
+          "projections": [
+            {
+              "after": {
+                "kind": "function",
+                "name": "handle",
+                "owner": "milestones/milestone_dbb8341c8910593063a8/api.py",
+                "source_declaration_hash": "7a566e308e690db438a1b572c3f41da820a28166ba751ea6979ebfa5160ed9bf",
+                "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:332"
+              },
+              "before": null,
+              "rule": "copy explicit public export name/kind/owner; infer no signature, inheritance or exception policy",
+              "semantics_changed": false,
+              "source_declaration": {
+                "kind": "function",
+                "name": "handle",
+                "owner": "milestones/milestone_dbb8341c8910593063a8/api.py",
+                "source_declaration_hash": "7a566e308e690db438a1b572c3f41da820a28166ba751ea6979ebfa5160ed9bf",
+                "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:332"
+              }
+            },
+            {
+              "after": {
+                "kind": "exception",
+                "name": "ValueError",
+                "owner": "milestones/milestone_dbb8341c8910593063a8/api.py",
+                "source_declaration_hash": "7a566e308e690db438a1b572c3f41da820a28166ba751ea6979ebfa5160ed9bf",
+                "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:332"
+              },
+              "before": null,
+              "rule": "copy explicit public export name/kind/owner; infer no signature, inheritance or exception policy",
+              "semantics_changed": false,
+              "source_declaration": {
+                "kind": "exception",
+                "name": "ValueError",
+                "owner": "milestones/milestone_dbb8341c8910593063a8/api.py",
+                "source_declaration_hash": "7a566e308e690db438a1b572c3f41da820a28166ba751ea6979ebfa5160ed9bf",
+                "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:332"
+              }
+            }
+          ],
+          "registry_hash": "dfa7e762d68df1301a7e7b18dba452f4ebe291cd24837d60228886faa6ab3ff3",
+          "requirement_refs": [
+            "M11"
+          ],
+          "schema_version": "1.0",
+          "semantic_hash": "66f80c6f9b975db2dcbcf3c8c34446f7bc40fe81dcd4a54a6435ef26b1b7f3ff",
+          "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:332",
+          "test_binding_skeleton": [
+            {
+              "acceptance_id": "accept-e1b521a1e0a607c6f7f6",
+              "checker_ref": "project.acceptance@1",
+              "contract_id": "milestone-dbb8341c8910593063a8",
+              "intent": "The independent suite covers every public behavior below, so no requirement is dropped: media.import successfully copies valid PNG/JPEG/MP4/WebM bytes into project storage, returns correct structure with VALID status and SHA-256; media.import rejects empty files, mismatched signatures, and invalid kinds with ValueError; media.get returns current validity and detects modified/missing bytes as BROKEN; media.list returns all items with correct statuses; M6 approval.approve raises ValueError if referenced media is missing or BROKEN; M7 publish.send raises ValueError if referenced media is missing or BROKEN; GUI displays actual media previews and visible failures; invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError; persistence survives another Python process.",
+              "object_ref": "milestones/milestone_dbb8341c8910593063a8/api.py",
+              "requirement_refs": [
+                "M11"
+              ],
+              "status": "UNIMPLEMENTED_NOT_VERIFIED",
+              "subject_refs": [
+                "milestones/milestone_dbb8341c8910593063a8/api.py"
+              ],
+              "test_artifact": "tests/test_milestone_dbb8341c8910593063a8.py",
+              "version": 1
+            }
+          ]
+        },
+        "dependency_artifacts": [
+          "early_main.py",
+          "milestones/milestone_1369a82cde04a7e5887d/api.py",
+          "milestones/milestone_20f2614f6ae8403d4a4e/api.py",
+          "milestones/milestone_33270fed0c9054f5ae04/api.py",
+          "milestones/milestone_4e7c26281cf61a85851e/api.py",
+          "milestones/milestone_90b8868c7203e2958397/api.py",
+          "milestones/milestone_9165a990eed5b9c8801e/api.py",
+          "milestones/milestone_989800776c3d6229e431/api.py",
+          "milestones/milestone_af427946c6dea418047a/api.py",
+          "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+          "promotion_publish.py"
+        ],
+        "dependency_goal_ids": [
+          "accept-c695c9993e0f11e44719",
+          "accept-a3f8bcc50143d8ae49b4",
+          "accept-ca86f3507652c4d39816",
+          "accept-9edb004aa0b6dd044101",
+          "accept-ca684d20740eafff7980",
+          "accept-fce1e8f657d881f7b835",
+          "accept-120d5fa5ea077b934689",
+          "accept-0a6060c95aa9bf1301da",
+          "accept-cb6cd62e5771d9c4533e",
+          "accept-2778e4e368049199cb74",
+          "accept-170da45696d31583f0f6",
+          "accept-e19cd5af7799a12e3604",
+          "accept-5469714437e1ef021107",
+          "accept-104c2f37f5954170f35a",
+          "accept-408a5fd627d63955231f",
+          "accept-5230e7202f8168f61e96",
+          "accept-18a2bc51a08e02a71d4e",
+          "accept-9d36c174f46b6d0a6526",
+          "accept-d40aa5fd80c994f85da7",
+          "accept-b46a41ffebba28173b95",
+          "accept-65fc2c2ef4105cd20569",
+          "accept-0e4e7ba1429d433f45a0",
+          "accept-c2ea56c15b5b1c0c5e1f",
+          "accept-55aaeab9c74620177908",
+          "accept-de9906155792c95c4163",
+          "accept-0796b15e54ad2b41cb1c",
+          "accept-4c1880b1b0efd135df7f",
+          "accept-5a87a8e5488d7e8ed31d",
+          "accept-3ac4d2fefcd0c4160365",
+          "accept-47f772c69b3a3f503239",
+          "accept-2e887a8c9d5e05ad790b",
+          "accept-8ce6a113720b09577d87",
+          "accept-2dba8ab3d742fb4c1749",
+          "accept-147c9bf02318f9dd984e",
+          "accept-57da32a0b7872bd3da56",
+          "accept-fa6045ca0129f27db118",
+          "accept-9bd0b9fcda705c2002f5",
+          "accept-edf8a971245f59c43703",
+          "accept-4df00a3b77461abde1be",
+          "accept-dc09e6d613e45c9da154",
+          "accept-2006d6ded74e3b4b0311",
+          "accept-1aec03eafd385693a8fc",
+          "accept-ee268f2ab80e04860b92",
+          "accept-a494cd221179472f7cae",
+          "accept-3a7336ad48983463b3a0",
+          "accept-a0b026ae0ade9fa71b98",
+          "accept-984d636e7f8185d72e5e",
+          "accept-b0d9fac18ea14a0e31c9",
+          "accept-143a6ad276a11d030a52",
+          "accept-cb8ad901b523b86e8df8",
+          "accept-b6e722913c56819a8909",
+          "accept-3016c1f48f2f2dabfbf2",
+          "accept-023b3f5f8992ede481bd",
+          "accept-d97fb859427c52aa3f0a",
+          "accept-8f91d7596f5c7cb0a2e4",
+          "accept-7c9da7c4efc892ced88b",
+          "accept-2c84e05b2d0bc7a45db9",
+          "accept-3f7c305af9e7ef8ab19a",
+          "accept-daee0bed9444c75e32c6",
+          "accept-050fc3eb06a25846c30f",
+          "accept-4281e42e579ad968cc2c",
+          "accept-164aefcfdb3f6ed17fb0",
+          "accept-4a3058cf70be8dfe5943",
+          "accept-794a4046c0eeb1f7a3b8",
+          "accept-f7a4d6e5012373797f38",
+          "accept-aebc6609f719c89a50b3",
+          "accept-ab010e0f893a522c3358",
+          "accept-58ec1e0cc9f9276116ec",
+          "accept-aecc303080c119f79d84",
+          "accept-6f006ed3f7b5060fe045",
+          "accept-1e67e6ada2945e0d89fb",
+          "accept-83814ff69bb325f2ee7a",
+          "accept-2891de53e7edd523b2db",
+          "accept-1ce26407c5e24134b880",
+          "accept-282a49e828cea36b6258",
+          "accept-ab650d2301f516496029",
+          "accept-8019168a277a2c078b03",
+          "accept-d0e7be9f47a5a22706af",
+          "accept-92b3edb6bc8fa619b773",
+          "accept-8c08aea6077e2396caef",
+          "accept-0dd9541b90ba29019877",
+          "accept-c02587bd57774ea11a0a",
+          "accept-ba9e0a7f3891ce033865",
+          "accept-d6e339ee9f02be6ab5e1",
+          "accept-e812ecc43e67c1b1f70a",
+          "accept-f5c7d005f6ae37dd5411",
+          "accept-50facb9f04482acba162"
+        ],
+        "design": {
+          "artifacts": [
+            {
+              "interfaces": {
+                "public_exports": [
+                  {
+                    "kind": "function",
+                    "name": "handle"
+                  },
+                  {
+                    "kind": "exception",
+                    "name": "ValueError"
+                  }
+                ]
+              },
+              "path": "milestones/milestone_dbb8341c8910593063a8/api.py",
+              "purpose": "Implement M11 Media: provide persistent, project-isolated media import, retrieval and listing with signature validation, integrity checking, and integration into approval/publication workflows to block broken media."
+            },
+            {
+              "interfaces": {
+                "public_exports": [],
+                "test_for": [
+                  "ValueError"
+                ]
+              },
+              "path": "tests/test_milestone_dbb8341c8910593063a8.py",
+              "purpose": "Exercise the declared current milestone contract"
+            }
+          ],
+          "public_interface": {
+            "acceptance_bindings": [
+              {
+                "acceptance_id": "accept-e1b521a1e0a607c6f7f6",
+                "checker_ref": "project.acceptance@1",
+                "contract_id": "milestone-dbb8341c8910593063a8",
+                "object_ref": "milestones/milestone_dbb8341c8910593063a8/api.py",
+                "requirement_refs": [
+                  "M11"
+                ],
+                "version": 1
+              }
+            ],
+            "concurrency": "Single-threaded assumption per data_dir for this milestone. File system operations should use atomic writes where possible to prevent corruption during simple sequential usage.",
+            "edge_behavior": "The source module exposes MILESTONE_ID as the literal 'M11' and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string. Return a JSON-compatible dict. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError. Do not return success-shaped error objects. Persistence must survive another Python process; storage format and internal design are Agent-owned.\n\nSupported operations:\n1. media.import(project_id, path, kind): Copies actual nonempty image/video bytes from the provided local path into project-owned storage within data_dir. Validates that the file content matches the declared kind (image or video) by recognizing at least PNG/JPEG signatures for images and MP4/WebM signatures for videos. Rejects empty files, mismatched signatures, or invalid kinds. Computes SHA-256 of the stored bytes. Returns {id, project_id, kind, sha256, path, status: 'VALID'} where id is a stable opaque string, path is the relative storage location, and status indicates current validity.\n2. media.get(project_id, media_id): Retrieves the current record for the specified media ID within the given project. Verifies that the stored bytes still exist and match the recorded SHA-256. If bytes are missing or modified, updates the record's status to 'BROKEN'. Returns {id, project_id, kind, sha256, path, status}.\n3. media.list(project_id): Returns {items: [...]} containing all media records for the given project. Each item includes its current validity status (VALID or BROKEN) based on integrity checks against stored bytes.\n\nIntegration Requirements:\n- M6 Approval: The approval.approve operation must consult M11 media validity. If any referenced media_ids in the content are missing or have status 'BROKEN', approval.approve raises ValueError, blocking approval even if claims are supported.\n- M7 Publication: The publish.send operation must consult M11 media validity. If any referenced media_ids in the content are missing or have status 'BROKEN', publish.send raises ValueError, blocking publication even if content was previously approved.\n- GUI: The early_main.py GUI must display actual images and video controls/preview for valid media. Failures (broken/missing media) must be visible to the user, not silent placeholders.\n\nInvalid input, unknown IDs, cross-project access and unsupported operations raise ValueError. No success-shaped error objects. Persistence survives process restarts.",
+            "exceptions": {
+              "ValueError": {
+                "base": "",
+                "behavior": "Raised when input validation fails (e.g., missing/invalid project/media IDs, foreign reference, empty/mismatched/unsupported media bytes, invalid kind, unsupported op)."
+              }
+            },
+            "field_contracts": [
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "op",
+                "owner": "$contract",
+                "required": true,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "project_id",
+                "owner": "$contract",
+                "required": true,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "path",
+                "owner": "$contract",
+                "required": false,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "kind",
+                "owner": "$contract",
+                "required": false,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "media_id",
+                "owner": "$contract",
+                "required": false,
+                "type": "str"
+              }
+            ],
+            "fields": {
+              "kind": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": false,
+                "type": "str"
+              },
+              "media_id": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": false,
+                "type": "str"
+              },
+              "op": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": true,
+                "type": "str"
+              },
+              "path": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": false,
+                "type": "str"
+              },
+              "project_id": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": true,
+                "type": "str"
+              }
+            },
+            "idempotency": {
+              "handle": "Non-idempotent for import; idempotent for get and list."
+            },
+            "interface": {
+              "handle": {
+                "behavior": "Dispatches based on request['op']. Validates inputs against M1 project existence. For media.import, reads bytes from the provided path, validates signature against kind, copies to project storage, hashes, and persists metadata. For media.get/list, retrieves metadata and verifies byte integrity against stored SHA-256, updating status to BROKEN if mismatched. Ensures persistence across calls.",
+                "failures": [
+                  "ValueError"
+                ],
+                "idempotency": "Non-idempotent for import; idempotent for get and list.",
+                "kind": "function",
+                "name": "handle",
+                "ordering": "Sequential execution within a single call; file-level atomicity preferred.",
+                "parameters": "data_dir: str (filesystem path), request: dict (JSON-compatible with 'op' key)",
+                "returns": "dict (JSON-compatible result specific to the operation)"
+              }
+            },
+            "ordering": {
+              "handle": "Sequential execution within a single call; file-level atomicity preferred."
+            },
+            "persistence": "Filesystem-based storage within the provided data_dir. Format is agent-owned but must ensure durability across separate Python processes. Isolation between different data_dir paths is strict. Media bytes are copied into project-owned subdirectories; metadata including SHA-256 and status is retained.",
+            "return_shapes": {
+              "$contract": [
+                "kind",
+                "media_id",
+                "op",
+                "path",
+                "project_id"
+              ]
+            },
+            "types": {
+              "declared_fields": {
+                "kind": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": false,
+                  "type": "str"
+                },
+                "media_id": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": false,
+                  "type": "str"
+                },
+                "op": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": true,
+                  "type": "str"
+                },
+                "path": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": false,
+                  "type": "str"
+                },
+                "project_id": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": true,
+                  "type": "str"
+                }
+              }
+            }
+          },
+          "reason_summary": "Implement M11 Media: provide persistent, project-isolated media import, retrieval and listing with signature validation, integrity checking, and integration into approval/publication workflows to block broken media.",
+          "test_command": [
+            "python",
+            "-m",
+            "pytest",
+            "-q",
+            "tests/test_milestone_dbb8341c8910593063a8.py"
+          ]
+        },
+        "registry": {
+          "entries": [
+            {
+              "artifact_declarations": [
+                {
+                  "interfaces": {
+                    "public_exports": [
+                      {
+                        "kind": "function",
+                        "name": "handle"
+                      },
+                      {
+                        "kind": "exception",
+                        "name": "ValueError"
+                      }
+                    ]
+                  },
+                  "path": "milestones/milestone_dbb8341c8910593063a8/api.py",
+                  "purpose": "Implement M11 Media: provide persistent, project-isolated media import, retrieval and listing with signature validation, integrity checking, and integration into approval/publication workflows to block broken media."
+                },
+                {
+                  "interfaces": {
+                    "public_exports": [],
+                    "test_for": [
+                      "ValueError"
+                    ]
+                  },
+                  "path": "tests/test_milestone_dbb8341c8910593063a8.py",
+                  "purpose": "Exercise the declared current milestone contract"
+                }
+              ],
+              "artifact_paths": [
+                "milestones/milestone_dbb8341c8910593063a8/api.py",
+                "tests/test_milestone_dbb8341c8910593063a8.py",
+                "milestones/milestone_dbb8341c8910593063a8/api.py"
+              ],
+              "change_policy": "immutable during witness; implementation must conform",
+              "contract_id": "milestone-dbb8341c8910593063a8",
+              "definition": {
+                "acceptance_bindings": [
+                  {
+                    "acceptance_id": "accept-e1b521a1e0a607c6f7f6",
+                    "checker_ref": "project.acceptance@1",
+                    "contract_id": "milestone-dbb8341c8910593063a8",
+                    "object_ref": "milestones/milestone_dbb8341c8910593063a8/api.py",
+                    "requirement_refs": [
+                      "M11"
+                    ],
+                    "version": 1
+                  }
+                ],
+                "concurrency": "Single-threaded assumption per data_dir for this milestone. File system operations should use atomic writes where possible to prevent corruption during simple sequential usage.",
+                "edge_behavior": "The source module exposes MILESTONE_ID as the literal 'M11' and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string. Return a JSON-compatible dict. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError. Do not return success-shaped error objects. Persistence must survive another Python process; storage format and internal design are Agent-owned.\n\nSupported operations:\n1. media.import(project_id, path, kind): Copies actual nonempty image/video bytes from the provided local path into project-owned storage within data_dir. Validates that the file content matches the declared kind (image or video) by recognizing at least PNG/JPEG signatures for images and MP4/WebM signatures for videos. Rejects empty files, mismatched signatures, or invalid kinds. Computes SHA-256 of the stored bytes. Returns {id, project_id, kind, sha256, path, status: 'VALID'} where id is a stable opaque string, path is the relative storage location, and status indicates current validity.\n2. media.get(project_id, media_id): Retrieves the current record for the specified media ID within the given project. Verifies that the stored bytes still exist and match the recorded SHA-256. If bytes are missing or modified, updates the record's status to 'BROKEN'. Returns {id, project_id, kind, sha256, path, status}.\n3. media.list(project_id): Returns {items: [...]} containing all media records for the given project. Each item includes its current validity status (VALID or BROKEN) based on integrity checks against stored bytes.\n\nIntegration Requirements:\n- M6 Approval: The approval.approve operation must consult M11 media validity. If any referenced media_ids in the content are missing or have status 'BROKEN', approval.approve raises ValueError, blocking approval even if claims are supported.\n- M7 Publication: The publish.send operation must consult M11 media validity. If any referenced media_ids in the content are missing or have status 'BROKEN', publish.send raises ValueError, blocking publication even if content was previously approved.\n- GUI: The early_main.py GUI must display actual images and video controls/preview for valid media. Failures (broken/missing media) must be visible to the user, not silent placeholders.\n\nInvalid input, unknown IDs, cross-project access and unsupported operations raise ValueError. No success-shaped error objects. Persistence survives process restarts.",
+                "exception_bindings": [
+                  {
+                    "acceptance_refs": [
+                      "accept-e1b521a1e0a607c6f7f6"
+                    ],
+                    "implementation_ref": "milestones/milestone_dbb8341c8910593063a8/api.py",
+                    "name": "ValueError",
+                    "policy": {
+                      "base": "",
+                      "behavior": "Raised when input validation fails (e.g., missing/invalid project/media IDs, foreign reference, empty/mismatched/unsupported media bytes, invalid kind, unsupported op)."
+                    },
+                    "test_refs": [
+                      "tests/test_milestone_dbb8341c8910593063a8.py"
+                    ]
+                  }
+                ],
+                "exceptions": {
+                  "ValueError": {
+                    "base": "",
+                    "behavior": "Raised when input validation fails (e.g., missing/invalid project/media IDs, foreign reference, empty/mismatched/unsupported media bytes, invalid kind, unsupported op)."
+                  }
+                },
+                "exports": [
+                  {
+                    "kind": "function",
+                    "name": "handle",
+                    "owner": "milestones/milestone_dbb8341c8910593063a8/api.py",
+                    "source_declaration_hash": "7a566e308e690db438a1b572c3f41da820a28166ba751ea6979ebfa5160ed9bf",
+                    "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:332"
+                  },
+                  {
+                    "kind": "exception",
+                    "name": "ValueError",
+                    "owner": "milestones/milestone_dbb8341c8910593063a8/api.py",
+                    "source_declaration_hash": "7a566e308e690db438a1b572c3f41da820a28166ba751ea6979ebfa5160ed9bf",
+                    "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:332"
+                  }
+                ],
+                "field_contracts": [
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "op",
+                    "owner": "$contract",
+                    "required": true,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "project_id",
+                    "owner": "$contract",
+                    "required": true,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "path",
+                    "owner": "$contract",
+                    "required": false,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "kind",
+                    "owner": "$contract",
+                    "required": false,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "media_id",
+                    "owner": "$contract",
+                    "required": false,
+                    "type": "str"
+                  }
+                ],
+                "fields": {
+                  "kind": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": false,
+                    "type": "str"
+                  },
+                  "media_id": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": false,
+                    "type": "str"
+                  },
+                  "op": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": true,
+                    "type": "str"
+                  },
+                  "path": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": false,
+                    "type": "str"
+                  },
+                  "project_id": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": true,
+                    "type": "str"
+                  }
+                },
+                "idempotency": {
+                  "handle": "Non-idempotent for import; idempotent for get and list."
+                },
+                "interface": {
+                  "handle": {
+                    "behavior": "Dispatches based on request['op']. Validates inputs against M1 project existence. For media.import, reads bytes from the provided path, validates signature against kind, copies to project storage, hashes, and persists metadata. For media.get/list, retrieves metadata and verifies byte integrity against stored SHA-256, updating status to BROKEN if mismatched. Ensures persistence across calls.",
+                    "failures": [
+                      "ValueError"
+                    ],
+                    "idempotency": "Non-idempotent for import; idempotent for get and list.",
+                    "kind": "function",
+                    "name": "handle",
+                    "ordering": "Sequential execution within a single call; file-level atomicity preferred.",
+                    "parameters": "data_dir: str (filesystem path), request: dict (JSON-compatible with 'op' key)",
+                    "returns": "dict (JSON-compatible result specific to the operation)"
+                  }
+                },
+                "ordering": {
+                  "handle": "Sequential execution within a single call; file-level atomicity preferred."
+                },
+                "persistence": "Filesystem-based storage within the provided data_dir. Format is agent-owned but must ensure durability across separate Python processes. Isolation between different data_dir paths is strict. Media bytes are copied into project-owned subdirectories; metadata including SHA-256 and status is retained.",
+                "return_shapes": {
+                  "$contract": [
+                    "kind",
+                    "media_id",
+                    "op",
+                    "path",
+                    "project_id"
+                  ]
+                },
+                "types": {
+                  "declared_fields": {
+                    "kind": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": false,
+                      "type": "str"
+                    },
+                    "media_id": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": false,
+                      "type": "str"
+                    },
+                    "op": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": true,
+                      "type": "str"
+                    },
+                    "path": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": false,
+                      "type": "str"
+                    },
+                    "project_id": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": true,
+                      "type": "str"
+                    }
+                  }
+                }
+              },
+              "evidence_refs": [
+                "iter132-promotion-studio:promotion-05:milestone-decision:332"
+              ],
+              "feature": "Implement M11 Media: provide persistent, project-isolated media import, retrieval and listing with signature validation, integrity checking, and integration into approval/publication workflows to block broken media.",
+              "integrity_version": 2,
+              "must_acceptance_ids": [
+                "accept-e1b521a1e0a607c6f7f6"
+              ],
+              "required_sections": [
+                "interface",
+                "fields",
+                "types",
+                "exceptions",
+                "idempotency",
+                "persistence",
+                "ordering",
+                "concurrency",
+                "edge_behavior"
+              ],
+              "source_decision": "iter132-promotion-studio:promotion-05:milestone-decision:332",
+              "status": "DECLARED",
+              "version": 1
+            }
+          ],
+          "kind": "PublicContractRegistry"
+        }
+      },
+      "phase_id": "milestone-dbb8341c8910593063a8",
+      "requirement_refs": [
+        "M11"
+      ],
+      "subject_refs": [
+        "milestones/milestone_dbb8341c8910593063a8/api.py",
+        "early_main.py",
+        "milestones/milestone_1369a82cde04a7e5887d/api.py",
+        "milestones/milestone_20f2614f6ae8403d4a4e/api.py",
+        "milestones/milestone_33270fed0c9054f5ae04/api.py",
+        "milestones/milestone_4e7c26281cf61a85851e/api.py",
+        "milestones/milestone_90b8868c7203e2958397/api.py",
+        "milestones/milestone_9165a990eed5b9c8801e/api.py",
+        "milestones/milestone_989800776c3d6229e431/api.py",
+        "milestones/milestone_af427946c6dea418047a/api.py",
+        "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+        "promotion_publish.py"
+      ],
+      "task_refs": [],
+      "verdict": "INSUFFICIENT_EVIDENCE",
+      "evidence": null,
+      "must": true
+    }
+  ],
+  "is_new_acceptance_authority": false,
+  "final_product_complete": false
+}

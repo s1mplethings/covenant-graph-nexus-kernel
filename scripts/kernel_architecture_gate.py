@@ -11,6 +11,11 @@ def _package(relative: str) -> str:
     return ".".join(relative[:-3].split("/")[:2])
 
 
+def _owner(module: str, package_levels: dict[str, int]) -> str | None:
+    matches = [p for p in package_levels if module == p or module.startswith(p + ".")]
+    return max(matches, key=len) if matches else None
+
+
 def _cycles(graph: dict[str, set[str]]) -> list[str]:
     found: set[str] = set(); active: list[str] = []; visited: set[str] = set()
     def visit(node: str) -> None:
@@ -64,13 +69,14 @@ def check() -> dict:
         errors.append("duplicate_canonical_authority")
     same_layer_graph: dict[str, set[str]] = {package: set() for package in package_levels}
     for relative in source_files():
-        source_package = _package(relative)
+        source_module = relative[:-3].replace("/", ".")
+        source_package = _owner(source_module, package_levels)
         source_level = package_levels.get(source_package)
         if source_level is None:
             errors.append(f"unlayered_source:{relative}")
             continue
         for imported in imported_modules(ROOT / relative):
-            target = next((package for package in package_levels if imported == package or imported.startswith(package + ".")), None)
+            target = _owner(imported, package_levels)
             if target and package_levels[target] > source_level:
                 errors.append(f"forbidden_reverse_import:{relative}:{target}")
             if target and target != source_package and package_levels[target] == source_level:

@@ -1,0 +1,14 @@
+{
+  "kind": "ReadOnlyFixturePathDiagnostic",
+  "test": "test_gui_workflow_creates_and_publishes",
+  "status": "PASS",
+  "error": null,
+  "original_platform_path": [
+    "http:\\platform_data"
+  ],
+  "changed_variable": "Replace URL-derived filesystem path with isolated temporary directory",
+  "test_sha256": "a8ef44b1bee2d089cb76dadb16da1088686855cedda967830915c478fcec4816",
+  "source": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_MVP\\application\\tests\\test_publish.py",
+  "authority": "Diagnostic only; unmodified test assertions; no candidate or GoalAcceptance edit",
+  "host_business_patches": 0
+}

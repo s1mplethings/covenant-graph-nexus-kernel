@@ -1,0 +1,70 @@
+{
+  "proof": {
+    "kind": "LocalBoundedFileEffectInspection",
+    "disposition": "NOT_APPLIED",
+    "source_receipt_sha256": "3bf4dc443ec844d1122ab1e42d9f82d0420c417d987b551f8ad9fffb762b8d28",
+    "target_scope": [
+      "tests/test_milestone_c511a8ebd29978f5ba97.py"
+    ],
+    "targets_absent_in_stage_and_workspace": true,
+    "read_dependencies_match_stage": {
+      "early_main.py": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+      "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+      "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+      "milestones/milestone_33270fed0c9054f5ae04/api.py": "78dd17fe6722f4fa573580b6a59d33374e925ccf309641d9241081a53e755cbc",
+      "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+      "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+      "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+      "milestones/milestone_989800776c3d6229e431/api.py": "a613d313a070daefc416eb56ab9f7f0ea4b9ab6c11d6ad745a0d029f67e71b38",
+      "milestones/milestone_c511a8ebd29978f5ba97/api.py": "544d890040f5e119f9bb26d797d2a3d2f8669fac93f581bc98811431db651558",
+      "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+    },
+    "publication_intent_absent": true,
+    "complete_recorded_response_absent": true,
+    "raw_error_ref": {
+      "path": "iter132-promotion-studio/promotion-05/provider_calls/82d2fdd58a01481ca634c21a9a38098e/error.json",
+      "sha256": "4622430ae8f29907840769f36a48aa5bb36cbe79ea014d6a3317180c1c2ae3be"
+    },
+    "scope": "Local bounded file effects only. Upstream streaming outcome, tokens and cost remain UNKNOWN. Original request must not be replayed."
+  },
+  "result": {
+    "schema_version": "1.0",
+    "project_id": "iter132-promotion-studio",
+    "run_id": "promotion-05",
+    "attempt_id": "attempt-0002",
+    "node_id": "sem-node-0109",
+    "executor_ref": "verify.local-file-effects@1",
+    "status": "BLOCKED",
+    "outputs": {},
+    "artifact_refs": [],
+    "test_observations": [],
+    "error": {
+      "code": "POLICY_BLOCKED",
+      "message": "VERIFIED_NOT_APPLIED: explicit retry permitted",
+      "details": {}
+    },
+    "started_at": "2026-11-03T12:46:12.512429+00:00",
+    "ended_at": "2026-11-03T12:46:12.512429+00:00",
+    "duration_ms": 0,
+    "usage": {},
+    "retryable": false,
+    "metadata": {
+      "reconciliation": {
+        "source_receipt_hash": "3bf4dc443ec844d1122ab1e42d9f82d0420c417d987b551f8ad9fffb762b8d28",
+        "disposition": "NOT_APPLIED",
+        "evidence_refs": [
+          {
+            "path": "iter132-promotion-studio/promotion-05/evidence/4e0cf5267c9588a6842db6257f0153c16c1e4fc7c8f68a740740144a6063b891.json",
+            "sha256": "d31f3cacdf7f724a04895ca4ac2528f6c855073dfdfecf642276ed19fc55d252"
+          }
+        ]
+      },
+      "original_attempt_id": "attempt-0001",
+      "checker_receipt_hash": "c1d865f586fe088b20684369fe3b4d92f7b17a3dbe06c59502f494a14ede0eaa"
+    }
+  },
+  "ledger_unchanged": true,
+  "old_attempts_unchanged": true,
+  "candidate_unchanged": true,
+  "host_business_patches": 0
+}

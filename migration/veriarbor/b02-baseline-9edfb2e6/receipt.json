@@ -1,0 +1,80 @@
+{
+  "kind": "B02BrowserUploadAcceptance",
+  "block_id": "B02",
+  "source_sha256": "9edfb2e6f74a325c9c6375bff9dcb91c52026d087e5fa4146dd886ee1e23c1a6",
+  "checker_sha256": "f4e79088d8b5c402fdb1ddef3ecb162222969ef35f342ce9101fc3be09a2b052",
+  "checks": [
+    "missing browser file visibly rejected"
+  ],
+  "network": [
+    {
+      "url": "http://127.0.0.1:39945/",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:39945/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:39945/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:39945/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:39945/api/state?project_id=2a93b74958bb45ab8e2edc80f3dca1d4",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:39945/api/action",
+      "status": 400,
+      "method": "POST"
+    }
+  ],
+  "javascript_errors": [],
+  "host_business_patches": 0,
+  "browser": "134.0.3124.51",
+  "preflight": {
+    "html_parsed": true,
+    "js_parse": true,
+    "duplicate_ids": [],
+    "literal_dom_references_resolved": true
+  },
+  "image_response": {
+    "status": 400,
+    "body": {
+      "error": "path must be a non-empty string"
+    }
+  },
+  "status": "FAIL",
+  "error": "AssertionError: image browser import HTTP200",
+  "startup": {
+    "command": [
+      "D:\\anaconda\\python.exe",
+      "-X",
+      "utf8",
+      "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b02-baseline-9edfb2e6\\snapshot\\main.py",
+      "--serve",
+      "--port",
+      "39945",
+      "--data",
+      "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b02-baseline-9edfb2e6\\data"
+    ],
+    "url": "http://127.0.0.1:39945",
+    "data_dir": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b02-baseline-9edfb2e6\\data"
+  },
+  "cleanup": {
+    "server_stopped": true
+  },
+  "fixture_hashes": {
+    "png": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e",
+    "video": "378731f8c5fd006ebf842d00c05038d5a6cfb93a16361d979ca45dd156919a47"
+  }
+}

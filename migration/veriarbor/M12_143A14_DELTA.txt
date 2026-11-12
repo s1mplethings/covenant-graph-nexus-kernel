@@ -1,0 +1,191 @@
+--- 143a13
++++ 143a14
+@@ -1,7 +1,10 @@
+ import argparse
++import base64
++import binascii
+ import json
+ import os
+ import sys
++import tempfile
+ import threading
+ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+ from urllib.parse import urlparse, parse_qs
+@@ -105,6 +108,75 @@
+     return None
+ 
+ 
++def _decode_media_payload(request):
++    """Decode base64 media bytes from a media.import request.
++
++    Returns (file_bytes, filename, kind). Raises ValueError on invalid input.
++    """
++    data = request.get('data')
++    if not isinstance(data, str) or not data:
++        raise ValueError('data must be a non-empty base64 string')
++
++    # Tolerate data URLs (data:<mime>;base64,<payload>)
++    if data.startswith('data:') and ',' in data:
++        data = data.split(',', 1)[1]
++
++    try:
++        file_bytes = base64.b64decode(data, validate=True)
++    except (binascii.Error, ValueError):
++        raise ValueError('data is not valid base64')
++
++    if not file_bytes:
++        raise ValueError('decoded media is empty')
++
++    filename = request.get('filename')
++    if not isinstance(filename, str) or not filename:
++        filename = 'upload.bin'
++    # Strip any path components to keep the temp file name safe.
++    filename = os.path.basename(filename) or 'upload.bin'
++
++    kind = request.get('kind')
++    if not isinstance(kind, str) or not kind:
++        raise ValueError('kind must be a non-empty string')
++
++    return file_bytes, filename, kind
++
++
++def _import_media_from_base64(data_dir, request):
++    """Adapter: decode base64 payload, stage to a bounded temp file, call M11."""
++    if m11_handle is None:
++        raise ValueError('M11 module unavailable')
++
++    file_bytes, filename, kind = _decode_media_payload(request)
++
++    _, ext = os.path.splitext(filename)
++    if not ext:
++        ext = '.bin'
++
++    tmp_dir = os.path.join(data_dir, 'tmp')
++    os.makedirs(tmp_dir, exist_ok=True)
++
++    fd, tmp_path = tempfile.mkstemp(prefix='media_import_', suffix=ext, dir=tmp_dir)
++    try:
++        with os.fdopen(fd, 'wb') as fh:
++            fh.write(file_bytes)
++
++        m11_request = {
++            'milestone': 'M11',
++            'op': 'media.import',
++            'project_id': request.get('project_id'),
++            'path': tmp_path,
++            'kind': kind,
++        }
++        return m11_handle(data_dir, m11_request)
++    finally:
++        try:
++            if os.path.exists(tmp_path):
++                os.remove(tmp_path)
++        except OSError:
++            pass
++
++
+ def handle(data_dir, request):
+     if not isinstance(data_dir, str) or not data_dir:
+         raise ValueError('data_dir must be a non-empty string')
+@@ -131,6 +203,11 @@
+     handler = HANDLERS.get(milestone)
+     if handler is None:
+         raise ValueError('Unknown milestone: %s' % milestone)
++
++    # Server-side adapter for base64 media uploads. The M11 handler expects a
++    # filesystem path, so decode the payload and stage it to a bounded temp file.
++    if op == 'media.import' and isinstance(request.get('data'), str):
++        return _import_media_from_base64(data_dir, request)
+ 
+     return handler(data_dir, request)
+ 
+@@ -225,15 +302,22 @@
+   <label for="media-upload">Upload media</label>
+   <input id="media-upload" type="file">
+   <button id="upload-media-btn" type="button">Import Media</button>
++
++  <div id="publish-controls">
++    <h3>Publish</h3>
++    <label for="platform-url">Platform URL</label>
++    <input id="platform-url" type="text">
++    <button id="publish-action" type="button">Publish</button>
++  </div>
+ </section>
+ 
+ <section id="schedule-view" class="view">
+   <h2>Schedule / Publish</h2>
+-  <label for="platform-url">Platform URL</label>
+-  <input id="platform-url" type="text">
++  <label for="platform-url-schedule">Platform URL</label>
++  <input id="platform-url-schedule" type="text">
+   <label for="when-input">When</label>
+   <input id="when-input" type="text" placeholder="2023-10-27T10:00:00Z">
+-  <button id="publish-action" type="button">Publish</button>
++  <button id="publish-action-schedule" type="button">Publish</button>
+   <button id="schedule-action" type="button">Schedule</button>
+   <button id="cancel-action" type="button">Cancel</button>
+   <button id="reschedule-action" type="button">Reschedule</button>
+@@ -349,6 +433,7 @@
+     if (el('review-action')) el('review-action').disabled = !hasContent || !isDraft;
+     if (el('approve-action')) el('approve-action').disabled = !hasContent || !isReviewed;
+     if (el('publish-action')) el('publish-action').disabled = !hasContent || !isApproved;
++    if (el('publish-action-schedule')) el('publish-action-schedule').disabled = !hasContent || !isApproved;
+     if (el('schedule-action')) el('schedule-action').disabled = !hasContent || !isApproved;
+   }
+ 
+@@ -652,6 +737,23 @@
+     if (node) node.addEventListener('click', handler);
+   }
+ 
++  function doPublish(urlInputId) {
++    setAlert(''); setStatus('');
++    if (!state.contentId) { setAlert('No content selected'); return; }
++    var urlNode = el(urlInputId);
++    var platformUrl = urlNode ? urlNode.value : '';
++    enqueue(function () {
++      return action({
++        milestone: 'M7', op: 'publish.send', project_id: state.projectId,
++        content_id: state.contentId, platform_url: platformUrl,
++        idempotency_key: 'gui-' + Date.now()
++      }).then(function (res) {
++        setStatus('Published: ' + (res.status || '') + ' remote_id: ' + (res.remote_id || 'pending'));
++        return loadReceipts();
++      });
++    }).catch(function (e) { setAlert(e.message); });
++  }
++
+   function init() {
+     bind('create-project', function () {
+       setAlert(''); setStatus('');
+@@ -757,20 +859,8 @@
+       }).catch(function (e) { setAlert(e.message); });
+     });
+ 
+-    bind('publish-action', function () {
+-      setAlert(''); setStatus('');
+-      if (!state.contentId) { setAlert('No content selected'); return; }
+-      enqueue(function () {
+-        return action({
+-          milestone: 'M7', op: 'publish.send', project_id: state.projectId,
+-          content_id: state.contentId, platform_url: el('platform-url').value,
+-          idempotency_key: 'gui-' + Date.now()
+-        }).then(function (res) {
+-          setStatus('Published: ' + (res.status || '') + ' remote_id: ' + (res.remote_id || 'pending'));
+-          return loadReceipts();
+-        });
+-      }).catch(function (e) { setAlert(e.message); });
+-    });
++    bind('publish-action', function () { doPublish('platform-url'); });
++    bind('publish-action-schedule', function () { doPublish('platform-url-schedule'); });
+ 
+     bind('schedule-action', function () {
+       setAlert(''); setStatus('');
+@@ -834,7 +924,7 @@
+         enqueue(function () {
+           return action({
+             milestone: 'M11', op: 'media.import', project_id: state.projectId,
+-            filename: file.name, kind: file.type.startsWith('image/') ? 'image' : 'video',
++            filename: file.name, kind: file.type.indexOf('image/') === 0 ? 'image' : 'video',
+             data: base64
+           }).then(function () {
+             setStatus('Media uploaded: ' + file.name);

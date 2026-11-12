@@ -1,0 +1,128 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "Qwen Flash Agent and DeepSeek Flash Worker only, noPro/Max, noUNKNOWN replay. One boundedadapter repair then controllerhold.",
+    "milestone_completion_request": "Repair existing143 B02 remaining adapter dispatch ONLY. Actual36 changedsource but explicit M1+media.import is still incorrectly rerouted toM11. Additionally every milestone now runs under one media lock, regressing original unrelated-operation concurrency. Original server-path import now works and must stay supported. Independent qualified checker11 confirms both defects on current source. Preserve working image/video frontend, media-serving, original ThreadingHTTPServer and M1-M11 modules. One bounded attempt then hold; no fullM12/noFINISH. Attempt37 produced NO source delta: its exact find anchor had zero matches because it invented a blank line between adjacent comment lines. Fresh source excerpt is provided read-only in new evidence. Author new exact anchors from the current source, preferably small unique anchors without copying long unchanged comments. Do not normalize or assume blank-line spacing. No rejected replacement is supplied or manually applied.",
+    "fresh_runtime_diagnosis": {
+      "current_block": "B02",
+      "source_sha256": "f269c86e84826bcdb09e4422cb480e3cffe9fded7c2788ee2334aabdb9537ea1",
+      "native_failure": {
+        "path": "attempts/sem-node-0159/attempt-0001.json",
+        "receipt_hash": "d44cbc7f1a942a909b49d24c6968f346dd7b00db5a1f3885e2a3a7f14f62c80d"
+      },
+      "checker": "qualified-revision-11",
+      "observed": {
+        "reason": "Adapter boundary: {\"status\": \"FAIL\", \"explicit_milestone_preserved\": false, \"nonmedia_concurrency_preserved\": false, \"dispatch_calls\": [\"M11\"], \"dispatch_error\": null, \"concurrency\": [{\"milestone\": \"M1\", \"error\": \"ValueError: \"}, {\"milestone\": \"M4\", \"error\": \"ValueError: \"}], \"probe_scope\": \"Current adapter boundary with injected handlers; original backend source unchanged\"}",
+        "value": false
+      },
+      "qualification": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_DISPATCH_CHECKER_QUALIFICATION\\receipt.json",
+      "working": "Original ServerPathPort and browser image/video now work; keep all GUI and media serving byte-identical.",
+      "failure": "handle chooses handler using explicit milestone, but its browser-data media.import branch ignores that milestone and _media_import_adapter hard-codes M11. _media_store_call currently always acquires one media lock even when passed M1/M4/etc. Restrict adapter behavior and shared-store coordination to the actual M11 boundary; unrelated handlers must remain independently runnable.",
+      "anchor_rejection": {
+        "attempt": "attempt-0037",
+        "verdict": "PATCH_SCOPE_EXCEEDED",
+        "anchor_matches": 0,
+        "ambiguous_message_means": "zero exact matches in this case, not duplicate matches",
+        "source_sha256": "f269c86e84826bcdb09e4422cb480e3cffe9fded7c2788ee2334aabdb9537ea1",
+        "source_unchanged": true,
+        "applied": false,
+        "browser_executed": false,
+        "exact_read_only_source_fragment": "    if op == 'media.import':\n\n        # Browser payloads (base64 'data') go through the temp-file adapter;\n        # explicit server-path imports (no browser data) reach original M11 directly.\n\n        if isinstance(request.get('data'), str) and request.get('data'):\n\n            return _media_import_adapter(data_dir, request)\n\n        return _media_store_call(data_dir, handler, request)\n\n\n\n    try:\n\n        return _media_store_call(data_dir, handler, request)\n\n    except Exception as e:\n\n        # Wrap errors to ensure consistent JSON error response format if needed by caller\n\n        # But the contract says invalid requests return HTTP400 with {error:string}\n\n        # This function raises ValueError which RequestHandler catches.\n\n        if isinstance(e, ValueError):\n\n            raise\n\n        else:\n\n            raise ValueError(str(e))\n\n\n\n\n\n_MEDIA_STORE_LOCK = threading.RLock()\n\n\n\ndef _media_store_call(data_dir, handler, request):\n\n    \"\"\"Serialize GUI-adapter access to the shared M11 media store so concurrent\n\n    media.import/get/list calls do not collide on media.json.tmp.\"\"\"\n\n    with _MEDIA_STORE_LOCK:\n\n        return handler(data_dir, request)\n\n\n\ndef _media_import_adapter(data_dir, request):",
+        "anchor_only_diff": [
+          "--- rejected-find-anchor\n",
+          "+++ actual-read-only-source\n",
+          "@@ -1,7 +1,6 @@\n",
+          "     if op == 'media.import':\n",
+          " \n",
+          "         # Browser payloads (base64 'data') go through the temp-file adapter;\n",
+          "-\n",
+          "         # explicit server-path imports (no browser data) reach original M11 directly.\n",
+          " \n",
+          "         if isinstance(request.get('data'), str) and request.get('data'):\n"
+        ],
+        "reason": "Worker find anchor inserted an extra blank line between two adjacent browser-payload comment lines. Existing mixed line spacing is valid and must be matched exactly; no replacement business code supplied."
+      }
+    },
+    "gui_writer_policy": "Only143 writes one bounded main.py adapterregion. All frontend/B01/_serve_media andbackendmodules read-only. No wholefilewrite.",
+    "admission_correction": "Repair143 falsifying_evidence must be JSON array containing exactly current native failure {\"path\": \"attempts/sem-node-0159/attempt-0001.json\", \"receipt_hash\": \"d44cbc7f1a942a909b49d24c6968f346dd7b00db5a1f3885e2a3a7f14f62c80d\"}. No stale158/157. Strategy must explicitly preserve original dispatch and limit media-store coordination to actual M11 boundary. No business patch is supplied; independently author exact scoped edits.",
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "main.py"
+        ],
+        "required_dimensions": [
+          "problem",
+          "full_file_write",
+          "shared_store_coordination",
+          "preserve_server_path_port",
+          "honor_explicit_milestone",
+          "preserve_nonmedia_concurrency"
+        ],
+        "dimension_types": {
+          "problem": "string",
+          "full_file_write": "boolean",
+          "shared_store_coordination": "string",
+          "preserve_server_path_port": "boolean",
+          "honor_explicit_milestone": "boolean",
+          "preserve_nonmedia_concurrency": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": true
+          },
+          {
+            "preserve_server_path_port": false
+          },
+          {
+            "honor_explicit_milestone": false
+          },
+          {
+            "preserve_nonmedia_concurrency": false
+          }
+        ],
+        "evidence_refs": [
+          {
+            "path": "attempts/sem-node-0159/attempt-0001.json",
+            "receipt_hash": "d44cbc7f1a942a909b49d24c6968f346dd7b00db5a1f3885e2a3a7f14f62c80d"
+          }
+        ]
+      }
+    ],
+    "bounded_patch_policy": {
+      "mode": "patch_only",
+      "block_id": "B02",
+      "writer_node_id": "sem-node-0143",
+      "hold_after_worker_attempt": true,
+      "files": {
+        "main.py": {
+          "source_sha256": "f269c86e84826bcdb09e4422cb480e3cffe9fded7c2788ee2334aabdb9537ea1",
+          "ranges": [
+            [
+              2212,
+              7011
+            ]
+          ],
+          "max_changed_chars": 18000,
+          "allowed_sections": [
+            "handle dispatch and media adapter helpers; preceding blank lines for local coordination declaration"
+          ]
+        }
+      },
+      "acceptance_requirements": [
+        "Current actual failure: explicit M1 request carrying valid browser media data must reach original M1 and be rejected, never call M11 or import any media. Only actual M11 browser import may enter the temporary-file adapter. Existing M11 server-path import remains supported.",
+        "Preserve existing media-store coordination for real M11 media operations. Unrelated M1/M4 handler calls must overlap when they wait on each other; one global serialization lock across all handlers is a regression. Maintain ThreadingHTTPServer and original backend semantics; no retry masking or second store.",
+        "Only handle and adjacent media adapter helper region may change. _serve_media already delegates through handle; do not edit it. All frontend and M1-M11 code read-only. Current scoped patch gate is unchanged, do not bridge forbidden sections.",
+        "Full B02 certification requires39checks including PNG/MP4 upload+decodedpreview+exactbytes, negative inputs, cleanup, existingpath, explicitmilestone,12concurrentreads, unrelatedmilestoneconcurrency, processrestart andprojectisolation. OneWorkerattempt; source delta beforebrowser.",
+        "All find strings must have exactly one match after universal-newline normalization; indentation and number of blank lines remain significant. Attempt37 source-only anchor diff proves mismatch. Preserve exact source spacing outside chosen changed ranges. No full-file rewrite; scope unchanged."
+      ]
+    },
+    "redecision": {
+      "strategy_revision": "cafae5745c0273fe09c023c80eafbfcaf5e9a4ca452c4bae6f6f4c219aee6a0a",
+      "reason": "New concrete anchor mismatch evidence; use current exact source anchors, not reconstructed whitespace. Current159 native business failure remains valid because source unchanged.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_ANCHOR_REJECTION_37.json",
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0159\\attempt-0001.json"
+      ]
+    }
+  }
+}

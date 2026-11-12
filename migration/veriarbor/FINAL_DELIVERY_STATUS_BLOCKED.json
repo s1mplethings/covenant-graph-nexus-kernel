@@ -1,0 +1,199 @@
+{
+  "kind": "FinalDeliveryStatus",
+  "created_at": "2026-11-06T00:33:15.371609+00:00",
+  "m12": "VERIFIED",
+  "dogfood": "PASS",
+  "provisional_package": "PASS",
+  "corpus": "PASS",
+  "accounting": "PASS",
+  "goal_acceptance_write": "NOT_PERFORMED",
+  "final_delivery": "BLOCKED",
+  "blockers": [
+    "FORMAL_MODEL_EVIDENCE_MISSING",
+    "production_candidate_provenance_missing",
+    "provider_causal_trace_not_available",
+    "canonical_goal_acceptance_still_has_historical_M12_FAILED_checks"
+  ],
+  "canonical_evidence_gate": {
+    "status": "NEEDS_REWORK",
+    "production_provenance": {
+      "status": "NEEDS_REWORK",
+      "failures": [
+        "production_provenance_missing"
+      ]
+    },
+    "test_execution": {
+      "status": "NOT_EVALUATED"
+    },
+    "customer_runtime": {
+      "status": "NOT_EVALUATED"
+    },
+    "visual_evidence": {
+      "status": "NOT_EVALUATED"
+    },
+    "browser_visual_required": true,
+    "identity_consistent": false,
+    "missing": [],
+    "failures": [
+      "production_candidate_provenance",
+      "production_provenance_missing"
+    ]
+  },
+  "final_delivery_truth": {
+    "status": "fail",
+    "verdict": "final_delivery_rejected",
+    "artifacts": [],
+    "warnings": [],
+    "blockers": [
+      "FORMAL_MODEL_EVIDENCE_MISSING"
+    ],
+    "next_actions": [],
+    "metadata": {
+      "delivery_allowed": false,
+      "public_final_gate": {
+        "verdict": "NEEDS_REWORK",
+        "status": "NEEDS_REWORK",
+        "phase": "final",
+        "delivery_allowed": false,
+        "is_final": false,
+        "confidence": 1.0,
+        "reasons": [
+          "canonical required evidence failed"
+        ],
+        "user_visible_warnings": [
+          "这是可运行原型；核心管线可用，但代理方案或证据范围不足，不能宣称原始目标已现实验证。"
+        ],
+        "required_repairs": [
+          "production_candidate_provenance",
+          "production_provenance_missing"
+        ],
+        "can_send_artifacts": [],
+        "must_not_claim": [
+          "canonical evidence passed",
+          "final delivery ready",
+          "original user goal is fully validated",
+          "production-ready",
+          "real-world validated"
+        ],
+        "judgment_source": "canonical_evidence_gate",
+        "canonical_evidence_gate": {
+          "status": "NEEDS_REWORK",
+          "production_provenance": {
+            "status": "NEEDS_REWORK",
+            "failures": [
+              "production_provenance_missing"
+            ]
+          },
+          "test_execution": {
+            "status": "NOT_EVALUATED"
+          },
+          "customer_runtime": {
+            "status": "NOT_EVALUATED"
+          },
+          "visual_evidence": {
+            "status": "NOT_EVALUATED"
+          },
+          "browser_visual_required": false,
+          "identity_consistent": false,
+          "missing": [],
+          "failures": [
+            "production_candidate_provenance",
+            "production_provenance_missing"
+          ]
+        },
+        "missing": [],
+        "warnings": [],
+        "requirements": {
+          "screenshot": false,
+          "video": false,
+          "generated_image": false,
+          "background": false,
+          "sprite": false,
+          "demo_video": false
+        },
+        "browser_visual_required": false,
+        "media_evidence_required": false,
+        "asset_counts": {},
+        "quality_evidence": {
+          "readme_found": true,
+          "test_report_found": true,
+          "test_report_has_commands": true,
+          "test_report_has_no_test_executed": false,
+          "test_report_mentions_sample_input": false,
+          "delivery_notes_found": true,
+          "product_plan_found": false,
+          "output_contract_found": false,
+          "technical_plan_found": false,
+          "build_plan_found": false,
+          "preview_evidence_found": true,
+          "preview_placeholder_found": false,
+          "sample_input_found": false,
+          "test_report_path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_M12_20261106\\application\\TEST_REPORT.md",
+          "delivery_notes_path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_M12_20261106\\application\\DELIVERY_NOTES.md"
+        },
+        "public_suffixes": [
+          ".gif",
+          ".jpeg",
+          ".jpg",
+          ".mp4",
+          ".png",
+          ".webm",
+          ".webp",
+          ".zip"
+        ],
+        "delivery_gate": "NEEDS_REWORK",
+        "product_maturity": "PROTOTYPE",
+        "maturity_verdict": "PROTOTYPE_PASS",
+        "target_goal_satisfied": false,
+        "real_world_validated": false,
+        "proxy_detected": true,
+        "public_claim_policy": {
+          "kind": "CGKNPublicClaimPolicyReport",
+          "schema_version": "1.0",
+          "delivery_allowed_is_not_target_success": true,
+          "delivery_allowed": false,
+          "claim_consistency_errors": [],
+          "pipeline_verdict": "PIPELINE_PASS",
+          "artifact_verdict": "ARTIFACT_PASS",
+          "maturity_verdict": "PROTOTYPE_PASS",
+          "target_goal_satisfied": false,
+          "real_world_validated": false,
+          "proxy_detected": true,
+          "public_claims_allowed": [
+            "artifact may be delivered if delivery evidence passes",
+            "maturity is unassessed beyond prototype"
+          ],
+          "public_claims_forbidden": [
+            "original user goal is fully validated",
+            "production-ready",
+            "real-world validated"
+          ],
+          "public_disclosure": "这是可运行原型；核心管线可用，但代理方案或证据范围不足，不能宣称原始目标已现实验证。",
+          "artifact_hash": "sha256:583e034ea33b02e22350bbfb618cb3b6ba8f3bcddc4c0b0c85afb455020939d7"
+        }
+      },
+      "integrity": {
+        "status": "pass",
+        "verdict": "final_package_integrity",
+        "artifacts": [
+          "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\PROMOTION_DELIVERY_M12_20261106\\final_project_bundle.zip",
+          "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\PROMOTION_DELIVERY_M12_20261106\\delivery_manifest.json"
+        ],
+        "warnings": [],
+        "blockers": [],
+        "next_actions": [],
+        "metadata": {
+          "bundle_entry_count": 38
+        }
+      },
+      "formal_model_gate": {
+        "status": "fail",
+        "reason": "FORMAL_MODEL_EVIDENCE_MISSING",
+        "requires_model": true,
+        "uses_model": false,
+        "formal_model_evidence": false
+      }
+    }
+  },
+  "reason": "The final package is built and M12 is verified, but the canonical delivery gate requires production provenance and formal model participation evidence. This delivery phase made no paid Provider calls and will not fabricate provenance."
+}

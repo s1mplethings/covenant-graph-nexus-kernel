@@ -1,0 +1,105 @@
+{
+  "expected_gui_sha256": "8fa127c1739c3f052374d88082cfd32002e7246f6621eb055ba669a6e9c4261d",
+  "feedback": {
+    "cost_policy": "DeepSeek Flash Agent and Worker only; no Pro/Max. New observed handoff defect, cheap bounded repair.",
+    "milestone_completion_request": "The Review visibility leaf now has an observed real delta: the unchanged browser workflow successfully clicks Review and backend reaches REVIEW. The next unresolved leaf is authoritative approval-state projection after Review and Approve. First fix the existing measurement graph: use normal ADD_DEPENDENCY action7 so measurement101 depends on actual GUI writer91, preserving89/92 and all checker semantics. This is required before another source repair to avoid repeated stale measurement binding. If admission requires current explicit RETRY_EXECUTION101 first, do that, THEN add the dependency, THEN repair91. Do not add a new checker. Repair only91 to project actual backend approval status into readiness after asynchronous loadContents; no further showView/visibility rewrite needed. The same projection must recognize subsequent APPROVED, making Platform URL/Publish reachable. Preserve version-bound backend invalidation and never infer approval merely from clicking. Run complete original M7, immediately DOGFOOD when VERIFIED, then M8-M12.",
+    "fresh_runtime_diagnosis": {
+      "evidence_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\gui-approve-8fa127\\observation.json",
+      "observed": {
+        "kind": "ReadOnlyGUIBoundaryObservation",
+        "artifact_sha256": "8fa127c1739c3f052374d88082cfd32002e7246f6621eb055ba669a6e9c4261d",
+        "checker_sha256": "5201a3c5aa6c9e829890787e3a5d6b8f60d3de104b301fb9df5eeb28faeb1007",
+        "buttons": [
+          {
+            "id": "nav-review",
+            "text": "Review",
+            "visible": true,
+            "disabled": false,
+            "section": null,
+            "inNav": true
+          },
+          {
+            "id": "nav-publish",
+            "text": "Publish",
+            "visible": true,
+            "disabled": false,
+            "section": null,
+            "inNav": true
+          },
+          {
+            "id": "review-action",
+            "text": "Review",
+            "visible": true,
+            "disabled": true,
+            "section": "review-view",
+            "inNav": false
+          },
+          {
+            "id": "approve-action",
+            "text": "Approve",
+            "visible": true,
+            "disabled": true,
+            "section": "review-view",
+            "inNav": false
+          },
+          {
+            "id": "publish-action",
+            "text": "Publish",
+            "visible": false,
+            "disabled": true,
+            "section": "publish-view",
+            "inNav": false
+          }
+        ],
+        "page_state": {
+          "storage": {
+            "campaignId": "52ca98ed589248948d8635c8e1e12f6d",
+            "contentId": "4bc308d4f4d943329c8746114948120d",
+            "projectId": "073ae73abbf648fdbd4bda819d77c025"
+          },
+          "visibleSections": [
+            "content-view",
+            "review-view"
+          ],
+          "alerts": [
+            ""
+          ]
+        },
+        "api_observations": {
+          "content.get": {
+            "id": "4bc308d4f4d943329c8746114948120d",
+            "project_id": "073ae73abbf648fdbd4bda819d77c025",
+            "campaign_id": "52ca98ed589248948d8635c8e1e12f6d",
+            "channel": "alpha",
+            "text": "Offline workflows are supported.",
+            "claim_ids": [
+              "399d1dc113104cfb93534cbcfc22caab"
+            ],
+            "media_ids": [],
+            "revision": 1,
+            "status": "REVIEW"
+          },
+          "approval.status": {
+            "content_id": "4bc308d4f4d943329c8746114948120d",
+            "revision": 1,
+            "status": "REVIEW"
+          }
+        },
+        "action_bar_element_count": 0,
+        "test_boundary": "Immediately before qualified Approve click, after preceding original workflow steps",
+        "acceptance_authority": false,
+        "host_business_patches": 0
+      },
+      "source_facts": "After actual Review click, both M5 content.get and M6 approval.status return status REVIEW, and there is no approval_status property in returned content. GUI loadContents sets contentStatus from current.status but approvalStatus from current.approval_status, which is absent and becomes null. updateReadiness enables Approve only for approvalStatus REVIEW, so Approve remains disabled despite a successful backend Review. The content-select change handler has the same nonexistent-property assumption. Approval handlers already wait for their request then loadContents; preserve this async ordering. The current visibility helper works and must be retained.",
+      "falsified_strategy": "Reading nonexistent approval_status from M5 content does not project the actual M6 approval state. A button-click-local optimistic flag is not authoritative and would risk invalidation correctness."
+    },
+    "gui_writer_policy": "Only91 writes; preserve89/92 and existing correct visibility helper invocation. Measurement101 must follow writer91 through original graph action. No host business patches or originalUNKNOWN replay. Use exact current formal failure refs.",
+    "redecision": {
+      "strategy_revision": "169908edd3adde9fc8b8ff5e2e0ce8a99d6467c4ccb7247e535787a42ef69a72",
+      "reason": "Qualified workflow reaches Review and backend returns REVIEW; Approve visible but disabled. Fresh DOM+API evidence isolates absent approval_status projection. Preserve real visibility progress and repair the next state handoff, while binding existing observer101 to writer91.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\gui-approve-8fa127\\observation.json"
+      ]
+    }
+  }
+}

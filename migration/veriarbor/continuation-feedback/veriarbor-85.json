@@ -1,0 +1,74 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "QwenFlash Agent / DeepSeekFlash Worker, bounded SMALL PATCH not full-file regeneration. NoPro/Max. Switching cheap executor follows repeated exact unchanged outputs, not permission to replay UNKNOWN.",
+    "milestone_completion_request": "One bounded original143 repair: PROJECT BOOTSTRAP ONLY. Current project.create succeeds but loadProjects awaits /api/state with no project_id, receives400 and aborts before project.list/render. Change actual executed flow so real projects render aftercreate and reload, persist/revalidate selection. Preserve11correctbindings, ThreadingHTTPServer, allotherfeatures. Upload and remainingGUI continue in subsequent leaves. Do NOT rewrite the whole48000byte file or copy it unchanged. Worker may use one or a few exact patch_file operations on provided current source. full_file_write:true retains complete source context; it does NOT require write_file. Current155FAIL is sufficient evidence; no more measurement until sourcechanges.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "main.py": "97fac580ddd0b04a91c35f26a91e3554abb82ad86e8e6159864d4e49f4dce478"
+        }
+      },
+      "native_failure": {
+        "path": "attempts/sem-node-0155/attempt-0001.json",
+        "receipt_hash": "2bacd6f95001d31493aeffc1813e8de2bb54f94fb4b3c5e5b51832954d74dc1f"
+      },
+      "observed": "143a29 Worker write_file payload exactly reproduced current source after Windows newline encoding. Stagedfile==livefile byteforbyte. No materialization bug. Existingbootstrap400 unchanged. Agent strategy still repeated obsolete10wrongbindings/M7.publish.send advice, despite currentdiagnosis. Replace strategy entirely with actualbootstrap-only cause and mechanism.",
+      "required_delta": [
+        "Change loadProjects actualexecuted path to call real M1 project.list regardless of absentselectedproject. Render returneditems names inprojects-list. Make createProject await successful refresh; creation result must showactualname. Onreload query persistedrealprojects andrestoreonlyvalid selectedproject/soleproject. Populate project selectors with human names andactualIDs; do not leaveempty helper. No fake names/hardcodedIDs.",
+        "GET/api/state with no project_id should return realprojects plus explicit empty scopedcollections; withproject_id validate realproject.get and preserve legitimateerrorhandling. No backendwrites. Literal op project.list separate milestone:M1. Do not add M1. prefix toop.",
+        "Use current source exactobservations to produce a bounded patch rather than duplicating fullfile. All13 inputs remainavailable. Expected measured delta: actualbrowser create200 AND visibleprojectname ANDreloadvisible; no bootstrap400. Full publicM12acceptance remainsunchanged."
+      ],
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-bootstrap-143a28-v3\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-product-143a28\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-143a28\\receipt.json",
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0155\\attempt-0001.json",
+        "F:/CGKN-ITER-132/production-core-convergence-v1/promotion/run-05/state/iter132-promotion-studio/promotion-05/attempts/sem-node-0143/attempt-0029.json"
+      ],
+      "admission_failure": "84 invalidreference rawfile SHA used instead canonical receipt_hash, noWorker ran. Actualcurrent155boundref receipt_hash2bacd6f95001d31493aeffc1813e8de2bb54f94fb4b3c5e5b51832954d74dc1f."
+    },
+    "gui_writer_policy": "Only original143 writes main.py; verifiedM1-M11 andearly_main read-only. Hostbusinesspatches0.",
+    "admission_correction": "Last84 Agent proposal was NOT admitted: HYPOTHESIS_EVIDENCE_UNBOUND. It used sha256:bbfe8e... for attempts/sem-node-0155/attempt-0001.json. That rawfilehash is NOT current bound reference. Use EXACT ARRAY [{\"path\":\"attempts/sem-node-0155/attempt-0001.json\",\"receipt_hash\":\"2bacd6f95001d31493aeffc1813e8de2bb54f94fb4b3c5e5b51832954d74dc1f\"}]. Use key receipt_hash, NOT sha256. Read allowed_evidence_refs. Keep correct84 bootstrap-only strategy full_file_write:true, problem, bootstrap_mechanism. Hypothesis new/expected mustdescribe bootstrap-only exactpatch, not fullfile/modulebinding/media rewrite. Target143 deps[]. No replayUNKNOWN; no businesswriteoccurredin84.",
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "main.py"
+        ],
+        "required_dimensions": [
+          "full_file_write",
+          "problem",
+          "bootstrap_mechanism"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean",
+          "problem": "string",
+          "bootstrap_mechanism": "string"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-bootstrap-143a28-v3\\receipt.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-product-143a28\\receipt.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-143a28\\receipt.json",
+          "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0155\\attempt-0001.json",
+          "F:/CGKN-ITER-132/production-core-convergence-v1/promotion/run-05/state/iter132-promotion-studio/promotion-05/attempts/sem-node-0143/attempt-0029.json"
+        ]
+      }
+    ],
+    "redecision": {
+      "strategy_revision": "647ed7899795679988b51273ed31df32a61ff2118f36f62db5a567ce1024ab8d",
+      "reason": "Correct evidence field for admitted bootstrap-only strategy;84 noWorkerexecution dueinvalidrawfilehashref. Same original authority andcurrentfailure.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-bootstrap-143a28-v3\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-product-143a28\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-143a28\\receipt.json",
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0155\\attempt-0001.json",
+        "F:/CGKN-ITER-132/production-core-convergence-v1/promotion/run-05/state/iter132-promotion-studio/promotion-05/attempts/sem-node-0143/attempt-0029.json"
+      ]
+    }
+  }
+}

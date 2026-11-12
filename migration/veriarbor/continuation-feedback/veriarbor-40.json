@@ -1,0 +1,61 @@
+{
+  "expected_gui_sha256": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+  "feedback": {
+    "cost_policy": "QwenFlash Agent and DeepSeekFlash Worker. Qwen test87 emitted prose/tool_call text instead ofJSON; choose alternatecheapWorkerfamily for new work, not replay. NoPro/Max andall6upstreamUNKNOWNspreserved.",
+    "milestone_completion_request": "Finish M11 media publication/GUI then M12/final delivery using conditional source-bound repair, not repeated static instructions. CONDITIONAL86: ONLY while active M6 is59cc8a5f with textual source scanning, restore the exact earlier Provider-owned resolver behavior from successful86a5 variantfa6720fa. The scan is a newly-proven regression: it sees its own search literal in M6 and loads M6 asM11. Remove only the scan added in86a6, retain the alreadycorrect canonical M11 path assignment and all other bytes. Prefer exact earlierfa6720fa implementation identity so its original129M6PASS and130M11publicationcounterexample become reusable again. DO NOT invent another scanner/fallback or rewrite validators/tests. If source is restoredfa6720fa or valid-media positive check passes and scanisabsent, this repair clause is finished; neverapplyitagain. Separate remaining89 publicationguard and91 GUIpreview work persists: beforepublishrejectmissing/broken/stale/changedmedia, bindreceipt, actualimg/video preview throughsafeendpoint, preserve sequentialworkflow. Keep117mediaAPI unchanged. If originalscope/evidencecurrent, implement89withouta newwholeM11measure;130alreadyprovedpublishinginvalidmediaonfa. Verifyonlychangedblock/directedge/localcombination, thenfinalM11slice. M7-M10 evidence reuses certificates; no wholechainrefresh. FinalM12/packager/tests/accounting/provenance/Corpus stillrequired; originaltestowner87mustrestoreSTALEcoveragelater withoutwholesaleregeneration.",
+    "admission_correction": "Current131 is a genuineNEW M6-specificcounterexample from59scanner;86repair onlyremovesregression. Onexactfa restore reuseoriginal currentevidence, no duplicate measurement.89 cannotdependon117 because117isdownstreamof89: preserve89originaldependencies fromexisting_dependency_targets, use scoped declared read inputs, neverintroduceacycle. For source repair provide strategy problem+2mechanisms, hypothesis currentexactfalsifyingevidence; sourcehashconditions determine applicability. NoPro/Max.",
+    "fresh_runtime_diagnosis": {
+      "applies_only_to_M6_source_sha256": "59cc8a5f99790064b8b6c70a84c1851cad44bdfe1ea203cb4de38423d80f4b5b",
+      "resolved_variant": "fa6720fa72e5e955987349f999c1314360f448310c1fa52d2e63179df741f950",
+      "failure": "131 validmedia approval raisesmedia missing because firsttextmatchdeclaresM6. Originalfa variant validapproval prerequisite passed; its two publishnegative cases reachedpublish andFAILED DIDNOTRAISE.",
+      "new_evidence": {
+        "kind": "TextualModuleScanSelfMatchCounterexample",
+        "matches_in_actual_directory_order": [
+          {
+            "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\milestones\\milestone_33270fed0c9054f5ae04\\api.py",
+            "declared_milestone": [
+              "M6"
+            ],
+            "sha256": "59cc8a5f99790064b8b6c70a84c1851cad44bdfe1ea203cb4de38423d80f4b5b"
+          },
+          {
+            "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\milestones\\milestone_dbb8341c8910593063a8\\api.py",
+            "declared_milestone": [
+              "M11"
+            ],
+            "sha256": "e4737c448e03a9fd794b9cc86a34a0ab14a04add0ac24b6cbbe42bb7e85336af"
+          }
+        ],
+        "selected": {
+          "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\milestones\\milestone_33270fed0c9054f5ae04\\api.py",
+          "declared_milestone": [
+            "M6"
+          ],
+          "sha256": "59cc8a5f99790064b8b6c70a84c1851cad44bdfe1ea203cb4de38423d80f4b5b"
+        },
+        "canonical_media": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\milestones\\milestone_dbb8341c8910593063a8\\api.py",
+        "reason": "Text occurrence in loader code is not a module MILESTONE_ID declaration. Current loop chooses first textual match, including its own source. Exact priorfa6720fa canonical path had passed valid-media prerequisite;59scan introduces ambiguity.",
+        "negative_test_limitation": "Two approval-negative tests pass even when every media reference is rejected. They cannot establish valid-media acceptance. Canonical131 has real valid-media counterexample.",
+        "host_business_patches": 0
+      },
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\MEDIA_SCAN_SELF_MATCH_DIAGNOSIS.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-local-edges-fa6720fa\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\BLOCK_V1_REAL_SUBSTITUTION_FA6720FA.json"
+      ],
+      "scope": "Do not mistake negative-only approval tests for positivecoverage; no broadresolverredesign.",
+      "prior_test_debts": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\continuation-feedback\\veriarbor-33.json"
+    },
+    "redecision": {
+      "strategy_revision": "dac752e09f8b594f8a8e1ec1b3436c7657fa06954a8d9ecfd6ac79aa17fa60d9",
+      "reason": "Read-only actualdirectoryorder+ASTdeclaredMILESTONE_ID proves59textscanselectsM6itself. Canonical131confirmsvalidmediarejected. Restore previouslyqualifiedProvider-ownedfa variant ratherthananotherdesign, thenactual89/91repairs. Earliernegative-onlydiagnosticlimitationexplicitlyretained.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\MEDIA_SCAN_SELF_MATCH_DIAGNOSIS.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-local-edges-fa6720fa\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\BLOCK_V1_REAL_SUBSTITUTION_FA6720FA.json"
+      ]
+    },
+    "strategy_constraints": [],
+    "gui_writer_policy": "86 may ONLY restore earlierknowncanonicalresolver when59scannerpresent.89 ownsactualpublicationguard.91 soleGUIwriter.117unchanged. No newalgorithm for solvedpathproblem; preserveallotherbytes."
+  }
+}

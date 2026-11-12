@@ -1,0 +1,59 @@
+{
+  "kind": "ExistingAuthorityHistoricalWorkerOriginRecovery",
+  "origins": [
+    {
+      "artifact": "milestones/milestone_33270fed0c9054f5ae04/api.py",
+      "sha256": "fa6720fa72e5e955987349f999c1314360f448310c1fa52d2e63179df741f950",
+      "original_attempt": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0086\\attempt-0007.json",
+      "registered_ref": {
+        "path": "iter132-promotion-studio/promotion-05/source_imports/aafaa3b7b3d048a12c5dfa861770f7514d72996fcab559f0ed5194513d3eca22.json",
+        "sha256": "8d0dfed03f16ac383faef1e428abb3bda3b9aad99da814dfff9494df713ed017"
+      }
+    },
+    {
+      "artifact": "tests/test_milestone_33270fed0c9054f5ae04.py",
+      "sha256": "7885a399ad8eccd6dd1882c0ba4887019de44c928bcd2c14edd010091216030d",
+      "original_attempt": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0087\\attempt-0011.json",
+      "registered_ref": {
+        "path": "iter132-promotion-studio/promotion-05/source_imports/e0d644c5b139252a5ede581a0a5d8d5dbae7caf66efee4beca8d7bd737a01534.json",
+        "sha256": "151701ab319b161af42beb0f683d12eb19e5f59aa369de2f87548d8d6f1426d1"
+      }
+    },
+    {
+      "artifact": "tests/test_milestone_dbb8341c8910593063a8.py",
+      "sha256": "c80d88c163def69aa6efaba69218454a673b985d82feeb74794221c0c1716981",
+      "original_attempt": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0118\\attempt-0005.json",
+      "registered_ref": {
+        "path": "iter132-promotion-studio/promotion-05/source_imports/0b7b066b17e468dda585e1d72e897e56fa0abf343c2323997c467144209a3174.json",
+        "sha256": "78e2319257eabb7394d694e988151bd2fd19909808aa36958ee58d36f6fffc87"
+      }
+    },
+    {
+      "artifact": "tests/test_publish.py",
+      "sha256": "a8ef44b1bee2d089cb76dadb16da1088686855cedda967830915c478fcec4816",
+      "original_attempt": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0090\\attempt-0039.json",
+      "registered_ref": {
+        "path": "iter132-promotion-studio/promotion-05/source_imports/aca1aee7802e93ae27eb031ce28995ef90b30bf0c16e725afb4a9cfc191e1377.json",
+        "sha256": "efa78cf73527a313aa9758f5ba133fc7723f12ba3630d71f5cd9d568e973fd3a"
+      }
+    }
+  ],
+  "provider_calls": 0,
+  "candidate_writes": 0,
+  "ledger_unchanged": true,
+  "current_verdicts": {
+    "M1": "VERIFIED",
+    "M10": "VERIFIED",
+    "M11": "VERIFIED",
+    "M12": "INSUFFICIENT_EVIDENCE",
+    "M2": "VERIFIED",
+    "M3": "VERIFIED",
+    "M4": "VERIFIED",
+    "M5": "VERIFIED",
+    "M6": "VERIFIED",
+    "M7": "VERIFIED",
+    "M8": "VERIFIED",
+    "M9": "VERIFIED"
+  },
+  "acceptance_granted": false
+}

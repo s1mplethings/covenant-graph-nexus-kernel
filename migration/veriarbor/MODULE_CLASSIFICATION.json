@@ -1,0 +1,5619 @@
+{
+  "scope": [
+    "cgkn",
+    "scripts",
+    "contracts"
+  ],
+  "modules": [
+    {
+      "file": "cgkn/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/agent/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/agent/action_composer.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ActionComposer"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/agent/composer.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "AgentDecisionContext",
+        "AgentDecision",
+        "parse_agent_decision",
+        "AgentDecisionValidationError",
+        "AgentComposer"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/agent/composer_contract.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "parse_tree_edit"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/agent/project_loop.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ProjectLoopResult",
+        "ProjectSession"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/interfaces/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/interfaces/compiler.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "InterfaceContractCompiler"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/interfaces/contracts.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "InterfaceKind",
+        "_mapping",
+        "ExecutableInterfaceContract",
+        "ExecutableInterfaceContractSet"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/interfaces/evidence.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "InterfaceContractStatus",
+        "InterfaceContractEvidence"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/interfaces/extractor.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ObservedInterfaceManifest",
+        "_literal_string",
+        "_module_name",
+        "_call_assignment",
+        "_argument",
+        "extract_interfaces"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/interfaces/guard.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_evidence",
+        "_guard_module",
+        "_guard_function",
+        "_guard_cli",
+        "guard_interface",
+        "guard_interfaces"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/interfaces/registry.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "InterfaceContractRegistry"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/materialization.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "materialize_json"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/mvp_qualification.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "leaf_contract",
+        "arithmetic",
+        "install"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/requirements/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/requirements/comparison.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "RecordingClient",
+        "StrategyComparison",
+        "compare_csv_strategies",
+        "write_strategy_comparison"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/requirements/compiler.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "NormalizedRequirements",
+        "normalize_text",
+        "RequirementCompiler"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/requirements/csv.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "CSVRequirementCompilation",
+        "_sources",
+        "_spec",
+        "_specs",
+        "_load_hidden_bindings",
+        "compile_csv_cleaner"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/requirements/dag.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ObligationDAGResult",
+        "ObligationDAGService"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/requirements/direct.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "DirectAgentResult",
+        "DirectAgentService"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/requirements/execution.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_ScopeAdapter",
+        "validate_dependency_actions",
+        "ObligationWorkUnitExecutor"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/requirements/notes.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "NotesRequirementCompilation",
+        "_sources",
+        "_spec",
+        "_specs",
+        "compile_local_json_notes"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/requirements/obligation.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_freeze",
+        "thaw",
+        "FrozenMapping",
+        "canonical_hash",
+        "ObligationKind",
+        "RequirementSourceType",
+        "RequirementExplicitness",
+        "RequirementSource",
+        "Obligation",
+        "ObligationSet"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/requirements/policy.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "DependencyDomainPolicy",
+        "NetworkPolicy",
+        "DependencyPolicy"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/requirements/receipt.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ObligationPreflightReceipt",
+        "write_obligation_preflight"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/requirements/strategy.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ExecutionStrategy",
+        "ExecutionStrategyDecision",
+        "decide_execution_strategy"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/requirements/test_plan.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "TestCasePlan",
+        "TestPlan",
+        "TestPlanCompiler"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/requirements/traceability.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "TestBinding",
+        "TraceabilityGraph",
+        "TraceabilityResult",
+        "build_traceability",
+        "validate_traceability"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/requirements/validator.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ObligationValidation",
+        "ObligationCompletenessValidator"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/requirements/work_unit.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "WorkUnitContract",
+        "compile_csv_work_units",
+        "compile_notes_work_units"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/software_project/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/software_project/acceptance.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ExternalAcceptanceExecutor",
+        "write_acceptance_receipt"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/software_project/bundle.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "SoftwareProjectBundle"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/software_project/catalog.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ProjectCase",
+        "get_case",
+        "list_cases"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/software_project/contracts.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ProjectResultStatus",
+        "FailureClass",
+        "canonical_hash",
+        "WorkerScope",
+        "AcceptanceResult"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/software_project/qualification.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "new_contract",
+        "canonical_tests",
+        "canonical_test_delivery",
+        "source_delivery",
+        "MeasuredExecutor",
+        "install"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/software_project/receipt.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ProjectGenerationReceipt"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/software_project/scope.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ScopeViolation",
+        "PlannedWrite",
+        "ScopedFileTransaction",
+        "ScopedProjectLLMExecutor"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/software_project/service.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "SoftwareProjectAgentComposer",
+        "GenerationRunResult",
+        "SoftwareProjectGenerationService",
+        "run_formal_generation_once"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/software_project/snapshot.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ProjectSnapshot",
+        "snapshot_project",
+        "ProjectSnapshotExecutor"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/verification/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/verification/adapter.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ContractTestCompilerExecutor",
+        "ObligationOracleExecutorAdapter"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/verification/compiler.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_spec",
+        "OraclePlanCompiler"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/verification/contract_test.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ContractTestSpec",
+        "ContractTestPlan"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/verification/contract_test_compiler.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ContractTestCompiler"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/verification/contract_test_manifest.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ContractTestManifest"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/verification/contract_test_renderer.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ContractTestArtifact",
+        "ContractTestRenderer"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/verification/contract_test_validator.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ContractTestValidation",
+        "ContractTestValidator"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/verification/contracts.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "OracleKind",
+        "OracleStatus",
+        "_mapping",
+        "_ids",
+        "OracleSpec",
+        "OraclePlan",
+        "OracleEvidence"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/verification/evaluator.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "PublicTestStatus",
+        "FailureClass",
+        "PublicTestEvidence",
+        "FailureEvidence",
+        "EvidenceComparator"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/verification/executor.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "HarnessError",
+        "_inside",
+        "_summary",
+        "_sha",
+        "OracleExecutor"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/application/verification/registry.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "OracleRegistry"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/artifacts/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/artifacts/diff.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "artifact_diff"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/artifacts/hash.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "canonical_json",
+        "content_hash",
+        "source_identity"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/artifacts/lineage.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "build_lineage",
+        "render_lineage"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/artifacts/models.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "validate_artifact_id",
+        "validate_artifact_type",
+        "utc_now",
+        "ArtifactRef",
+        "Producer",
+        "Provenance",
+        "ArtifactInstance"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/artifacts/store.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ArtifactStore"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/artifacts/types.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ArtifactValidationError",
+        "_json_pointer",
+        "ArtifactTypeRegistry"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/capabilities/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/capabilities/registry.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "CapabilityLifecycle",
+        "CapabilityDescriptor",
+        "CapabilityRegistry"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/capabilities/versioning.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "semantic_version_key"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/compiler/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/compiler/artifact_graph.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ArtifactGraph",
+        "ArtifactFlowCompiler"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/component/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/component/adapter.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ModuleComponentAdapter"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/component/execution.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_now",
+        "ComponentExecutionStatus",
+        "ComponentExecution"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/component/ports.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "PortSpec"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/component/protocol.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ExecutionContext",
+        "Component"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/component/result.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ComponentResult"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/component/spec.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_freeze",
+        "ComponentSpec",
+        "_thaw"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/execution/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/execution/check_evidence.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "predicate",
+        "digest",
+        "evaluate",
+        "StagnationGuard"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/execution/checker_bindings.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "install_file_checks"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/execution/contracts.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "utc_now",
+        "BlockStatus",
+        "ExecutionErrorCode",
+        "ExecutionError",
+        "TaskContext",
+        "BlockExecutionRequest",
+        "BlockExecutionResult"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/execution/deliverables.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_progress_measurements",
+        "verified_proof",
+        "SubjectDeliverableChecker",
+        "FileDeliverableChecker",
+        "progress_record",
+        "parent_projection"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/execution/materialization.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "file_hash",
+        "stage_file_worker",
+        "publish_candidate",
+        "inspect_publication"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/execution/observations.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ObservationError",
+        "Observations",
+        "repair_request",
+        "failure_domain"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/execution/python_exports.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "python_export_declarations"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/execution/resource_identity.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "same_resource",
+        "guard_output"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/execution/test_results.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "read_pytest_report",
+        "public_test_feedback"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/executors/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/executors/factory.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ExecutorFactoryRegistry"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/executors/llm.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ProposalError",
+        "BoundedFileActions",
+        "validate_worker_proposal",
+        "LLMExecutor"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/executors/local.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_within",
+        "_result",
+        "FileExecutor",
+        "CommandExecutor",
+        "PythonTestExecutor",
+        "LocalActionExecutorAdapter"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/executors/measurement.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "EvidenceBoundExecutor",
+        "FileMeasurementExecutor"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/executors/network_health.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "NetworkHealthExecutor"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/executors/observation.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ObservationExecutor"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/executors/protocol.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ExecutorDescriptor",
+        "Executor"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/executors/registry.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ExecutorResolutionError",
+        "ExecutorRegistry"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/executors/task_evaluation.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "TaskEvaluationExecutor"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/governance/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/governance/consumer.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "GovernanceError",
+        "canonical_hash",
+        "read_json",
+        "git",
+        "matches",
+        "unique",
+        "attach_dependencies",
+        "Check",
+        "GovernanceEngine",
+        "find_tool_root",
+        "render_human",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/growth/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/growth/admission.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "CapabilityAdmissionReceipt",
+        "evaluate_admission"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/growth/candidate.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "CapabilityCandidate"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/growth/discovery.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "DiscoverySource",
+        "LocalDiscoverySource"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/growth/gap.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "CapabilityGap"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/growth/loop.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "StdlibJsonExecutor",
+        "GrowthOutcome",
+        "GrowthLoop",
+        "default_growth_executor_factories"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/growth/sandbox.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "SandboxTrialResult",
+        "LocalSandbox"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/orchestration/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/orchestration/capability_tree.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_items",
+        "CapabilityNode",
+        "CapabilityTree",
+        "validate_tree"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/orchestration/execution_dag.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ExecutionNode",
+        "ExecutionDAG",
+        "compile_tree"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/orchestration/invalidation.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "downstream_closure",
+        "invalidate_affected_subgraph"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/orchestration/leaf_contract.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "build_leaf_contract",
+        "LeafContractError",
+        "validate_leaf",
+        "validate_tree_leaves"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/orchestration/tree_edits.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "TreeEdit",
+        "apply_tree_edits",
+        "apply_tree_edit"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/protocol/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/protocol/adapters.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "public_value",
+        "usage_summary",
+        "SemanticWorkerClient",
+        "semantic_decide"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/protocol/adaptive_context.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "encoded",
+        "byte_size",
+        "resolve_response_refs",
+        "load_policy",
+        "estimate_tokens",
+        "AdaptiveContextEnvelope",
+        "ContextPacker",
+        "ContextReferenceResolver"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/protocol/admission.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "CapabilityScopeCompatibility",
+        "rejection",
+        "planner_fields",
+        "strip_proven_mechanical",
+        "SemanticAdmissionPreflight",
+        "WorkerAdmissionPreflight",
+        "invalid_decision_fingerprint",
+        "InvalidDecisionTracker"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/protocol/claim_consistency.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "claim_errors"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/protocol/compiler.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "TableSnapshot",
+        "_compile_worker",
+        "_compile_planner",
+        "_feedback",
+        "compile_worker",
+        "compile_planner"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/protocol/context_pack.py",
+      "classification": "MIGRATE_TO_ADAPTER",
+      "symbols": [
+        "share_failures",
+        "expand_failures",
+        "token_bound",
+        "compact",
+        "public_requirements",
+        "dependency_ready_goals",
+        "unresolved_effect_paths",
+        "task_readiness_projection",
+        "failure_context",
+        "project_worker_observations",
+        "worker_contract_pack"
+      ],
+      "reason": "Mixed host boundary and extractable policies"
+    },
+    {
+      "file": "cgkn/protocol/contract_integrity.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_strings",
+        "_field_structure",
+        "field_rows",
+        "ContractIntegrityChecker"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/protocol/declaration.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "extract_declaration",
+        "compile_declaration",
+        "MilestoneContractCompiler",
+        "apply_semantic_patch"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/protocol/exchange.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "SchemaRepairFailed",
+        "exchange"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/protocol/normalization.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "digest",
+        "ContractError",
+        "_object",
+        "_finite_float",
+        "_trailing_commas",
+        "normalize",
+        "preserve_valid_fields"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/protocol/progress.py",
+      "classification": "MIGRATE_TO_ADAPTER",
+      "symbols": [
+        "ProgressGuidedBacktracking",
+        "strategy_fingerprint",
+        "admit_progress",
+        "check_strategy_constraints"
+      ],
+      "reason": "Mixed host boundary and extractable policies"
+    },
+    {
+      "file": "cgkn/protocol/repair.py",
+      "classification": "MIGRATE_TO_ADAPTER",
+      "symbols": [
+        "planner_schema_v2",
+        "plain",
+        "PublicContractRegistry",
+        "contract_diff",
+        "RepairIntentClassifier",
+        "failure_for_target",
+        "existing_measurements",
+        "execution_repair_history",
+        "repair_contract",
+        "_unique_evidence_refs",
+        "repair_progress"
+      ],
+      "reason": "Mixed host boundary and extractable policies"
+    },
+    {
+      "file": "cgkn/protocol/repair_compiler.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "compile_v2"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/protocol/review_policy.py",
+      "classification": "MIGRATE_TO_ADAPTER",
+      "symbols": [
+        "review_kind",
+        "evaluator_disposition",
+        "qualify_evaluator",
+        "review_needed"
+      ],
+      "reason": "Mixed host boundary and extractable policies"
+    },
+    {
+      "file": "cgkn/protocol/tables.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "planner_snapshot"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "__getattr__"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/application_network.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "normalize_profile_override",
+        "bootstrap_lock",
+        "settings",
+        "routing_path",
+        "process_identity",
+        "_read_pair",
+        "_instance_state",
+        "_validate",
+        "_start",
+        "session",
+        "network_status",
+        "bootstrap",
+        "record_selection",
+        "credentials",
+        "open_legacy",
+        "probe_models"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/canonical_gateway_adapter.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "provider_text",
+        "post_payload"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/client.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ModelRoleConfig",
+        "ProviderCompletion",
+        "CompletionClient",
+        "parse_json_object",
+        "__getattr__"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/direct_transport.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "PreconnectInterfaceBackend",
+        "interface_options",
+        "parse_dns",
+        "PhysicalResolver",
+        "PhysicalDirectTransport"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/domestic_gateway.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_qwen_unsupported_schema_keywords",
+        "DomesticGateway"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/domestic_mode.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "domestic_state",
+        "SubstitutionAdmission",
+        "DomesticFailoverClient"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/evidence_journal.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "EvidenceJournal"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/finish_reason.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "classify_finish",
+        "finish_disposition"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/gateway_client.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_raw_finish_reason",
+        "_open_loopback",
+        "GatewayCompletionError",
+        "_enabled",
+        "_loopback_base_url",
+        "_safe_gateway_error",
+        "_schema_validator",
+        "_validate_terminal",
+        "GatewayCompletionClient",
+        "completion_client_from_environment"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/gateway_stream.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "serve",
+        "receive",
+        "_InterruptibleGatewayLines",
+        "_receive"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/legacy_client.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "OpenAICompatibleClient"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/legacy_transport.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "post_json_once"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/model_binding.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "bind_model",
+        "confirm_model"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/network_health.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "Health",
+        "Circuits",
+        "probe",
+        "matrix",
+        "write_json"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/network_transport.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "Route",
+        "Response",
+        "StreamingResponse",
+        "RouteFailure",
+        "classify_failure",
+        "NetworkClients"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/progress_clock.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "key",
+        "timestamp",
+        "process_identity",
+        "ProgressClock",
+        "read_progress"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/progress_io.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ProgressStream",
+        "ProgressBackend",
+        "install"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/recording.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "recorded_execution",
+        "RecordedCompletionClient"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/route_diagnostics.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "tcp_connections",
+        "install"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/routing.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ModelEscalationDenied",
+        "admit_recorded_model",
+        "_canonical",
+        "CGKNModelRouting",
+        "ModelRoutingSnapshot"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/streaming_bound_adapter.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "BoundProviderRoute",
+        "invoke_stream_via_bound_opener"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/streaming_sse.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "StreamError",
+        "MeaningfulProgressWatchdog",
+        "StreamLimits",
+        "SSEEvent",
+        "sse_events",
+        "iter_response_lines",
+        "_object",
+        "_usage",
+        "StreamedCompletion",
+        "collect_chat_completions",
+        "collect_responses",
+        "read_sse_response",
+        "configure_streamed_chat_request",
+        "save_completed_response",
+        "save_immutable_json"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/providers/windows_interface.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "validate_snapshot",
+        "resolve_interface"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/runtime/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/runtime/cache.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ArtifactCache"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/runtime/checkpoint.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "write_checkpoint"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/runtime/context.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_project",
+        "_shrink",
+        "build_context_pack"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/runtime/dag_runner.py",
+      "classification": "MIGRATE_TO_ADAPTER",
+      "symbols": [
+        "GraphEditRejected",
+        "RunSummary",
+        "DAGRunner"
+      ],
+      "reason": "Mixed host boundary and extractable policies"
+    },
+    {
+      "file": "cgkn/runtime/delivery.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "evaluate_delivery_readiness"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/runtime/effects.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "EffectConstraintViolation",
+        "EffectCounter"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/runtime/fingerprint.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "execution_fingerprint"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/runtime/invalidation.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ArtifactInvalidator"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/runtime/reference_modules.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "interpret_requirement",
+        "snapshot_project",
+        "analyze_problem",
+        "decide_architecture",
+        "plan_refactor",
+        "apply_code",
+        "run_tests",
+        "validate_boundaries",
+        "judge_delivery"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/runtime/runner.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ModuleExecutionError",
+        "_now",
+        "ArtifactModuleRunner"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/specs.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "spec_directory"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/state/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/state/acceptance.py",
+      "classification": "MIGRATE_TO_ADAPTER",
+      "symbols": [
+        "identity",
+        "serialized_update",
+        "GoalAcceptance"
+      ],
+      "reason": "Mixed host boundary and extractable policies"
+    },
+    {
+      "file": "cgkn/state/capability_ledger.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "deterministic_facts",
+        "CapabilityLedger"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/state/checker_revision.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_qualification",
+        "load_checker_revisions",
+        "bind_checker_revision"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/state/models.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "NodeExecutionRecord",
+        "RunState",
+        "ProjectState",
+        "EventRecord"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/state/provenance.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "file_hash",
+        "reference",
+        "put_evidence",
+        "freeze_goal_bindings",
+        "ProvenanceError",
+        "ProvenanceGate"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/state/repair.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "record_repair_phase",
+        "TargetedRepairVerification"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/state/store.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "StateStoreError",
+        "_read_snapshot",
+        "FileRunStore"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/state/task_feedback.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "digest",
+        "TaskFeedback",
+        "FrozenKnowledge"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/telemetry/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/telemetry/effectiveness.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "number",
+        "request_counts",
+        "utility",
+        "beta_lower",
+        "task_cost",
+        "task_time",
+        "effectiveness",
+        "rank_reports"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/telemetry/lean.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "read",
+        "write",
+        "_package_identity",
+        "environment_identity",
+        "discover",
+        "step",
+        "project_steps",
+        "checkpoint_steps",
+        "phase_steps",
+        "agent_steps",
+        "session_steps",
+        "LeanRun",
+        "analysis_cost",
+        "observed",
+        "artifact_identity",
+        "observe_artifact"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/telemetry/lean_policy.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "transition",
+        "aggregate",
+        "evaluate",
+        "approve",
+        "_revoke",
+        "rollback",
+        "eligible",
+        "artifact_reuse",
+        "review_oracle",
+        "structural_candidates"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/telemetry/summary.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "RunTelemetry"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "cgkn/telemetry/trusted_samples.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "trusted_effectiveness"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "contracts/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "contracts/customer_runtime.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "contracts/delivery_manifest.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "contracts/delivery_receipt.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "contracts/envelope.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ArtifactEnvelope"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "contracts/final_verdict.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "contracts/formal_gate_status.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "contracts/product_design_depth_governance.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "contracts/production_candidate_provenance.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "contracts/provider_causal_trace.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "contracts/status.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "EvidenceStatus",
+        "WorkflowState",
+        "is_evidence_status",
+        "is_workflow_state"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "contracts/test_execution.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "contracts/user_review.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "contracts/visual_evidence.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/acceptance_verifier.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_now",
+        "_read",
+        "_write",
+        "_evidence_status",
+        "_aggregate_status",
+        "_inspect_goal_support",
+        "produce_canonical_final_verdict",
+        "inspect_canonical_final_verdict"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/adaptive_delivery.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_text",
+        "_is_within",
+        "_is_within_any",
+        "_iter_path_values",
+        "allowed_delivery_roots",
+        "_resolve_claim",
+        "_placeholder",
+        "_placeholder_entrypoint",
+        "_artifact_kind",
+        "_manifest_package_claims",
+        "is_final_delivery_package",
+        "allowed_delivery_roots_for",
+        "classify_delivery_artifact",
+        "collect_safe_delivery_artifacts",
+        "_list_values",
+        "_provider_status",
+        "delivery_fact_check",
+        "_review_failed",
+        "_test_warnings",
+        "_fallback_judgment",
+        "_normalize_judgment",
+        "agent_delivery_judgment"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/adaptive_project_management_context.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_strings",
+        "_read_json",
+        "_quality_metric",
+        "_project_levels",
+        "_experience_tags",
+        "_compact_experience",
+        "build_management_context",
+        "enrich_component_pipeline",
+        "component_management_projection"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/agent_conversation_loop.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "append_event",
+        "read_session",
+        "_extract_json_object",
+        "_decode_json_string_fragment",
+        "_salvage_complete_write_file_actions",
+        "parse_agent_response",
+        "_history_for_agent",
+        "call_default_agent",
+        "_run_action_loop",
+        "run_agent_loop"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/artifact_integrity.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_zip_names",
+        "_real_image_file",
+        "_image_entries",
+        "_invalid_zip_images",
+        "validate_candidate_bundle",
+        "validate_final_package",
+        "validate_visual_evidence",
+        "scan_no_fake_pass",
+        "contract"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/artifact_lineage.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/backend_dialogue_loop.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "unique_strings",
+        "latest_user_text",
+        "text_fingerprint",
+        "contains_any",
+        "first_sentence",
+        "question_answered_by_text",
+        "resolve_answered_questions",
+        "downgrade_unresolved_config_questions_to_assumptions",
+        "decision_question_cards_from_strategy",
+        "decision_question_text",
+        "summarize_locally",
+        "should_call_provider",
+        "extract_json_object",
+        "backend_dialogue_prompt",
+        "call_provider",
+        "merge_analysis",
+        "update_session_from_analysis",
+        "run_backend_dialogue_tick"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/baseline_ledger.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "canonical_hash",
+        "validate_baseline",
+        "validate_ledger",
+        "load_and_validate"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/browser_visual_evidence.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_now",
+        "_sha256_bytes",
+        "_sha256_file",
+        "_sha256_text",
+        "_origin",
+        "_wait",
+        "capture_receipt_hash",
+        "capture_live_runtime",
+        "run",
+        "finalize_evidence",
+        "inspect"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/candidate_materializer.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_ignored_candidate_relative",
+        "_now",
+        "_safe_relative",
+        "_normalized_path",
+        "_file_map",
+        "_files_from_tree",
+        "_resolve_local_reference",
+        "_reference_candidates",
+        "_python_local_references",
+        "_test_entry_references",
+        "_html_local_references",
+        "_javascript_local_references",
+        "assess_candidate_closure",
+        "build_authorized_candidate_file_set",
+        "candidate_source_manifest",
+        "candidate_source_hash",
+        "assess_build_complete",
+        "_copy_candidate_source",
+        "snapshot_version",
+        "run",
+        "contract"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/candidate_review_delivery.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "evaluate",
+        "emit",
+        "contract"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/candidate_sanitizer.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_legacy",
+        "run",
+        "contract"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/canonical_delivery_manifest.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_now",
+        "_read_json",
+        "_write_json",
+        "_safe_relative",
+        "_is_excluded",
+        "_is_old_delivery_bundle",
+        "build_inclusion_manifest",
+        "package_entries_hash",
+        "inspect_zip_entries",
+        "_evidence_record",
+        "_identity_failures",
+        "build_canonical_package",
+        "inspect_canonical_delivery_manifest"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/canonical_delivery_receipt.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_now",
+        "_write_json",
+        "required_attachment_kinds",
+        "produce_canonical_delivery_receipt",
+        "inspect_canonical_delivery_receipt"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/canonical_evidence_hash.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "sha256_bytes",
+        "sha256_file",
+        "canonical_json_payload",
+        "canonical_json_hash",
+        "is_candidate_source_relative_path",
+        "is_candidate_source_path",
+        "iter_candidate_source_files",
+        "candidate_source_manifest",
+        "candidate_source_manifest_diff",
+        "candidate_source_hash"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/canonical_finalization.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_now",
+        "_read",
+        "_write_hashed",
+        "_identity",
+        "transition",
+        "_ref",
+        "canonical_verify",
+        "canonical_governance_evaluate",
+        "decide_acceptance",
+        "promote",
+        "inspect_promotion",
+        "packaging_blockers"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/canonical_goal_spec_compiler.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "canonical_json",
+        "stable_hash",
+        "raw_goal_hash",
+        "_text",
+        "_norm",
+        "_slug",
+        "_string_list",
+        "canonicalize_assumptions",
+        "accepted_system_constraints",
+        "_contains_any",
+        "validate_planning_proposal",
+        "planning_proposal_prompt_contract",
+        "planning_proposal_json_schema",
+        "planning_proposal_response_format",
+        "planning_proposal_repair_contract",
+        "validate_planning_preservation",
+        "build_planning_artifact",
+        "validate_planning_artifact",
+        "_goal_segments",
+        "extract_explicit_constraints",
+        "_constraint_classes",
+        "_grounding_index",
+        "_workstreams",
+        "_covered_segments",
+        "_anchor_covers_outcome",
+        "_semantic_failures",
+        "compile_goal_spec",
+        "requirement_replan_feedback"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/canonical_media_validation.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_now",
+        "_base_result",
+        "_fail",
+        "_within_project",
+        "_image_codec_to_format",
+        "_blank_or_solid_rgb",
+        "_validate_image_with_ffmpeg",
+        "validate_image",
+        "_tool_version",
+        "validate_video",
+        "validate_media"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/canonical_repo_publish.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "PublishBlocked",
+        "now",
+        "sha256_bytes",
+        "canonical_hash",
+        "run_git",
+        "require_git",
+        "_lines",
+        "parse_status",
+        "_read_source_identity",
+        "repository_state",
+        "_secret_content",
+        "classify_path",
+        "build_change_manifest",
+        "run_tests_and_write_receipt",
+        "load_json",
+        "verify_test_binding",
+        "validate_staged_set",
+        "reject_force_options",
+        "non_excluded_status",
+        "run_version_gate",
+        "verify_remote_sha",
+        "verify_remote_baseline",
+        "remote_branch_baseline",
+        "normal_push_with_retry",
+        "publish",
+        "resume_publish",
+        "_write_runtime",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/canonical_user_review.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "_write_json_atomic",
+        "_read_object",
+        "_parse_time",
+        "classify_review_text",
+        "_evidence",
+        "create_review_request_snapshot",
+        "mark_review_request_presented",
+        "invalidate_review_request",
+        "inspect_user_review_request",
+        "_ledger",
+        "_is_replayed",
+        "record_user_review_approval",
+        "inspect_user_review_evidence"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/canonical_version_gate.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_read_json",
+        "_version_key",
+        "_authority_values",
+        "_module_name",
+        "_imports",
+        "_production_python",
+        "validate_repository",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/capability_execution.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_tuple",
+        "Capability",
+        "compile_capability_plan",
+        "discover_capability_executors",
+        "discover_goal_spec_executors",
+        "validate_interface_graph",
+        "_compatible",
+        "select_reuse",
+        "build_skill_registry",
+        "match_skills",
+        "create_skill_candidate",
+        "apply_iteration_review"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/capability_strategy.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_contains_any",
+        "_unique",
+        "_priority",
+        "infer_capabilities",
+        "advanced_methods_for",
+        "content_generation_route_question",
+        "decision_question_cards_for",
+        "decision_points_for",
+        "build_capability_strategy"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/cgkn_runtime_supervisor.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_bounded",
+        "_json_thread_id",
+        "_thread_id_from_jsonl",
+        "resolve_codex_command",
+        "_checkpoint_prompt",
+        "_record_invocation_metric",
+        "CodexCliThreadAdapter",
+        "_service_command_hash",
+        "_validate_service_argv",
+        "SupervisorHost",
+        "run_host",
+        "build_parser",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/cgkn_supervision_protocol.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "canonical_json",
+        "canonical_hash",
+        "_without_hash",
+        "_bounded_text",
+        "_contains_secret",
+        "_atomic_write_json",
+        "_state_lock",
+        "repository_identity",
+        "_journal_path",
+        "_results_path",
+        "_state_path",
+        "_heartbeat_path",
+        "_read_jsonl",
+        "validate_checkpoint",
+        "load_checkpoints",
+        "emit_checkpoint",
+        "_safe_repair_target",
+        "_safe_project_target",
+        "canonical_action",
+        "_evidence_refs",
+        "_string_list",
+        "build_result",
+        "validate_result",
+        "append_result",
+        "result_for_checkpoint",
+        "await_checkpoint_release",
+        "default_supervisor_state",
+        "load_supervisor_state",
+        "save_supervisor_state",
+        "write_service_heartbeat",
+        "read_service_health"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/cgkn_supervision_router.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_now",
+        "_hash",
+        "_atomic_write",
+        "validate_route_input",
+        "dispatch"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/cgnk_boundary_guard.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "load_policy_pack",
+        "normalize_artifact_ref",
+        "normalize_path",
+        "normalize_intent",
+        "_new_check_result",
+        "_fail",
+        "_warning",
+        "_not_applicable",
+        "_role_policy",
+        "check_role_contract",
+        "check_stage_lane",
+        "_matches_any",
+        "check_artifact_boundary",
+        "check_tool_permission",
+        "check_provider_permission",
+        "_artifact_key",
+        "_collect_run_state_artifacts",
+        "check_gate_dependency",
+        "_needs_rewrite",
+        "_decision_checks",
+        "_decision_messages",
+        "_build_decision",
+        "decide",
+        "append_ledger",
+        "BoundaryGuard",
+        "_load_json",
+        "_load_intent_case",
+        "print_human_decision",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/cgnk_slim_rule_guard.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "read_text",
+        "between",
+        "function_body",
+        "add",
+        "run_checks",
+        "print_human",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/check_cgkn_naming_consistency.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "NamingFinding",
+        "rel",
+        "is_text_file",
+        "strict_files",
+        "line_is_legacy_context",
+        "scan_file",
+        "scan",
+        "write_report",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/check_connectivity.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_set_last_transport_timing",
+        "last_transport_timing",
+        "_write_json",
+        "_mask_secret",
+        "_normalize_base_url",
+        "_supports_alibaba_qwen_reasoning_none",
+        "_join_endpoint",
+        "_chat_completions_endpoint",
+        "_responses_endpoint",
+        "_selected_provider_api_method",
+        "_endpoint_mode_from_method",
+        "_base_url_domain",
+        "_openai_compatible_endpoint",
+        "_messages_to_input",
+        "_build_openai_compatible_payload",
+        "_build_provider_probe_payload",
+        "_urlopen",
+        "_request_error_summary",
+        "_http_error_summary",
+        "_error_is_retryable",
+        "_provider_error_type",
+        "_load_local_notes_defaults",
+        "_windows_env_value",
+        "_first_credential",
+        "_credential_conflict_sources",
+        "_resolve_api_credentials",
+        "ProviderTransportAttempt",
+        "ProviderTransportResult",
+        "_post_json_with_retry",
+        "_extract_text",
+        "_structured_probe_document",
+        "_structured_probe_valid",
+        "check_api",
+        "run",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/check_test_environment.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "command_version",
+        "executable_report",
+        "free_port",
+        "localhost_http_server_ok",
+        "writable",
+        "browser_report",
+        "check_environment",
+        "write_json",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/codex_capability_supervisor.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "_canonical_hash",
+        "_without_hash",
+        "_redact_text",
+        "_redact_value",
+        "_string_list",
+        "_bounded_budget",
+        "_context_items",
+        "_evidence_items",
+        "build_escalation_request",
+        "validate_escalation_request",
+        "build_supervisor_response",
+        "_walk_keys",
+        "_safe_relative_target",
+        "validate_supervisor_response",
+        "build_capability_brief",
+        "validate_capability_brief",
+        "whiteboard_patch_from_brief",
+        "append_handoff_event",
+        "_read_json",
+        "_write_json",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/codex_conversation.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "repository_commit_sha",
+        "production_generation_identity",
+        "production_paths",
+        "read_customer_agent_policy",
+        "write_json",
+        "write_timeout_failure_result",
+        "append_jsonl",
+        "read_json",
+        "safe_id",
+        "safe_file_name",
+        "unique_path",
+        "extension_for_mime",
+        "CodexConversation",
+        "default_session",
+        "session_path",
+        "agent_session_path",
+        "append_agent_session_event",
+        "runtime_supervision_enabled",
+        "emit_runtime_supervision_checkpoint",
+        "run_positive_transition_audit",
+        "_canonical_doc_hash",
+        "load_supervision_route_receipt",
+        "complete_supervision_route",
+        "run_supervision_recovery_cycle",
+        "invalidate_supervision_evidence",
+        "execute_governed_supervision_repair",
+        "load_session",
+        "save_session",
+        "attachment_kind_label",
+        "summarize_message_attachments",
+        "download_message_attachments",
+        "recent_attachments",
+        "attachment_requirement_lines",
+        "record_attachments_as_project_input",
+        "attachment_user_text",
+        "inside_workspace",
+        "chat_history_targets",
+        "clear_chat_history",
+        "reset_summary_text",
+        "append_memory_event",
+        "truth_ledger_path",
+        "append_truth_ledger",
+        "read_truth_ledger",
+        "delivery_evidence_state",
+        "looks_like_status_question",
+        "looks_like_escalation_request",
+        "looks_like_substantive_project_request",
+        "model_classify_customer_message",
+        "classify_customer_message",
+        "active_run",
+        "create_active_run",
+        "update_active_run_status",
+        "mark_generation_retry",
+        "assert_api_generation_ready",
+        "current_pending_decision",
+        "create_intake_ticket",
+        "append_backend_memo",
+        "latest_backend_memo",
+        "append_backend_control",
+        "update_backend_control_status",
+        "latest_backend_control",
+        "has_open_backend_control",
+        "generation_control_payload",
+        "project_analysis_reply",
+        "backend_dialogue_status_text",
+        "frontdesk_compose",
+        "pre_send_guard",
+        "send_customer_reply",
+        "provider_escalation_allowed",
+        "maybe_auto_deliver_if_ready",
+        "_evidence_path",
+        "_project_evidence_path",
+        "_evidence_paths",
+        "_path_list",
+        "_asset_label_text",
+        "_looks_like_screenshot_asset",
+        "_looks_like_generated_image_asset",
+        "_looks_like_background_asset",
+        "_looks_like_sprite_asset",
+        "_add_asset",
+        "_assets_from_safe_artifacts",
+        "_validated_assets_from_safe_artifacts",
+        "collect_public_delivery_assets",
+        "_requirement_text",
+        "infer_public_delivery_requirements",
+        "project_has_runnable_surface",
+        "project_is_docs_only",
+        "_quality_evidence_for_gate",
+        "delivery_fact_check",
+        "agent_delivery_judgment",
+        "_evidence_identity",
+        "_valid_identity_value",
+        "_identity_consistent",
+        "_required_identity_failures",
+        "evaluate_canonical_delivery_evidence",
+        "evaluate_public_delivery_gate",
+        "record_public_delivery_gate",
+        "public_delivery_gate_failed_reply",
+        "mark_public_delivery_rework",
+        "_public_caption_for",
+        "emit_public_delivery",
+        "filter_delivery_items_by_judgment",
+        "is_user_review_continue",
+        "evidence_checkpoint_summary",
+        "send_evidence_checkpoint",
+        "make_project_package",
+        "ensure_verify_report",
+        "emit_delivery_evidence",
+        "send_delivery_artifacts",
+        "read_delivery_manifest",
+        "user_visible_known_limit",
+        "build_delivery_summary_text",
+        "build_intake_waiting_text",
+        "delivery_send_diagnostic",
+        "send_delivery_from_manifest",
+        "append_whiteboard_version",
+        "unique_strings",
+        "_project_signal_terms",
+        "reply_matches_current_goal",
+        "current_goal_text",
+        "grounded_current_goal_reply",
+        "reject_off_topic_public_reply",
+        "reset_project_scoped_context_for_new_run",
+        "merge_whiteboard",
+        "read_project_memory_excerpt",
+        "combined_requirement",
+        "build_generation_context_snapshot",
+        "ensure_generation_context_snapshot",
+        "write_generation_context_snapshot",
+        "pipeline_steps_from_session",
+        "write_pipeline_run_summary",
+        "is_smalltalk",
+        "is_generate_command",
+        "assistant_invited_start",
+        "is_human_start_confirmation",
+        "explicit_start_requested",
+        "_analysis_list",
+        "extract_project_intent_signals",
+        "should_auto_start_generation",
+        "parse_json_object",
+        "extract_json_string_field",
+        "fallback_whiteboard_for_unparsed_frontdesk",
+        "customer_reply_temperature",
+        "reply_variation_seed",
+        "provider_text",
+        "recent_dialogue",
+        "latest_user_text",
+        "meaningful_terms",
+        "reply_looks_off_topic",
+        "grounded_customer_fallback",
+        "visual_delivery_requirements_from_text",
+        "local_image_model_updates_from_text",
+        "capability_strategy_updates_from_text",
+        "normalize_question_fields",
+        "enforce_backend_updates_from_user_text",
+        "substantive_user_turn_count",
+        "customer_service_reply",
+        "normalize_reply_for_similarity",
+        "reply_too_similar_to_recent_assistant",
+        "local_public_reply_message",
+        "provider_user_message",
+        "send_provider_message",
+        "send_provider_or_technical_error",
+        "log_bridge_error",
+        "is_valid_image_file",
+        "delivery_image_candidates",
+        "find_delivery_image",
+        "find_delivery_video",
+        "render_project_preview_image",
+        "wrap_text",
+        "make_delivery_summary_image",
+        "unique_media_paths",
+        "read_short_file",
+        "project_delivery_facts",
+        "_provider_runtime_path",
+        "_copy_provider_runtime_asset",
+        "materialize_provider_runtime_artifacts",
+        "_short_output",
+        "classify_provider_pytest_failure",
+        "run_subprocess_text",
+        "ensure_provider_test_environment",
+        "infer_explicit_minimum_test_count",
+        "run_provider_project_tests",
+        "image_quality_audit",
+        "_png_chunk",
+        "write_rgb_png",
+        "png_quality_audit",
+        "_copy_if_quality_ok",
+        "run_project_image_generator",
+        "collect_provider_image_evidence",
+        "required_image_backend_missing_config",
+        "post_build_finalize_provider_project",
+        "write_provider_test_report",
+        "write_provider_delivery_notes",
+        "provider_success_artifact_audit",
+        "provider_error_is_retryable",
+        "provider_error_type",
+        "provider_missing_config",
+        "provider_partial_artifacts",
+        "write_provider_phase_event",
+        "validate_provider_generation_output",
+        "run_provider_execute_with_retries",
+        "write_provider_validation_receipt",
+        "execute_validated_provider_round",
+        "finish_supervision_recovery_stop",
+        "run_provider_generation_job",
+        "run_agent_generation_job",
+        "finish_agent_loop_delivery",
+        "resume_after_evidence_review_job",
+        "resume_after_evidence_review",
+        "record_evidence_review_feedback",
+        "start_agent_generation",
+        "apply_backend_dialogue_tick",
+        "provider_design_scope_public_text",
+        "record_provider_design_scope",
+        "run_model_frontdesk_turn",
+        "record_generation_start_waiting",
+        "record_forced_start_context",
+        "start_generation_from_income",
+        "run_simulator_preflight",
+        "queue_generation_job_legacy_disabled",
+        "auto_start_pending_intakes",
+        "continue_customer_turn",
+        "handle_text",
+        "handle_attachment_message",
+        "formal_generation_requires_new_run"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/codex_design_supervision.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_unique",
+        "_compact",
+        "_contains_term",
+        "_sha256",
+        "_write_json",
+        "_read_json",
+        "_safe_conversation_id",
+        "design_intent_from_text",
+        "apply_design_intent",
+        "design_supervision_pending",
+        "apply_api_only_design_baseline",
+        "design_support_dir",
+        "_selected_context",
+        "prepare_design_escalation",
+        "run_codex_design_supervision",
+        "apply_design_brief",
+        "mark_codex_unavailable"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/collect_kernel_test_metadata.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "Collector",
+        "collect",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/complexity_project_contract_check.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "read_json",
+        "iter_files",
+        "find_by_name",
+        "read_text",
+        "has_terms",
+        "locate_discovery_dir",
+        "validate_discovery",
+        "detect_cli_gui_shared",
+        "validate_project",
+        "validate",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/compose_local_pipeline.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "load_json",
+        "ref_of",
+        "write_json",
+        "tokenize",
+        "doc_text",
+        "load_contracts",
+        "score_modules",
+        "build_component_pipeline",
+        "string_items",
+        "safe_phase_id",
+        "clamp_prompt_chars",
+        "clamp_count",
+        "local_model_result",
+        "normalize_phase_routing",
+        "normalize_local_agent_management",
+        "component_pipeline_from_management",
+        "env_truthy",
+        "optional_local_model_hint",
+        "post_json",
+        "get_json",
+        "extract_json",
+        "choose_ollama_model",
+        "ollama_model_hint",
+        "base_edges_for_selected",
+        "module_block_reason",
+        "route_quality_report",
+        "compose",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/compose_test_pipeline.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "write_json",
+        "slug",
+        "rel",
+        "has_any",
+        "detect_project_dir",
+        "environment_catalog",
+        "method_catalog",
+        "build_steps",
+        "compose",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/consumer_governance.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/context_prompt.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "clean_text",
+        "clip_text",
+        "rough_token_count",
+        "assess_prompt_quality",
+        "source_value",
+        "source_meta",
+        "compact_source",
+        "priority_rank",
+        "compact_feature",
+        "compact_gap",
+        "compact_tech_decision",
+        "summarize_blueprint",
+        "extract_key_points",
+        "prompt_instructions",
+        "serialize_context",
+        "compact_prompt_context",
+        "render_prompt",
+        "compact_turn",
+        "state_key_points",
+        "compact_state_context",
+        "shrink_state_context",
+        "build_state_prompt_pack",
+        "shrink_prompt_context",
+        "build_prompt_pack",
+        "write_json",
+        "load_blueprint",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/conversation_delivery/__init__.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/conversation_delivery/candidate_review_sender.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "send_candidate_review",
+        "assert_candidate_sender_scope"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/conversation_delivery/final_delivery_sender.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "send_final_delivery"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/conversation_delivery/retry_recovery.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "recovery_options"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/conversation_delivery/status_renderer.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "render"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/cross_validation_feedforward.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_canonical_hash",
+        "_normalized_paths",
+        "_receipt_hash_valid",
+        "build_component_receipt",
+        "component_feedforward_projection",
+        "build_project_receipt",
+        "receipt_hash_valid"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/customer_runtime_runner.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "LiveRuntimeHandle",
+        "_now",
+        "_sha256_text",
+        "_free_port",
+        "_tree_hash",
+        "_manifest_hash",
+        "_is_relative_to",
+        "_external_symlink_failures",
+        "_copy_candidate_source",
+        "_commit_sha",
+        "_get",
+        "_wait_for_health",
+        "_startup_for",
+        "_cli_startup_for",
+        "validate_cli_probe",
+        "_start_process",
+        "_stop_owned_process",
+        "run",
+        "inspect"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/customer_status.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_clean_message",
+        "render_status",
+        "render_from_internal",
+        "write_sample"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/decomposition_tree.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_slug",
+        "_normalize_path",
+        "file_node_id",
+        "_node",
+        "_plan_paths",
+        "_component_rows",
+        "_component_paths",
+        "_capability_templates",
+        "build_project_decomposition_tree",
+        "build_case01_tree",
+        "build_case03_tree",
+        "with_tree_hash",
+        "validate_tree",
+        "_failure_text",
+        "infer_tree_node_id",
+        "bind_issues_to_tree",
+        "update_evidence",
+        "apply_evidence_updates",
+        "write_tree",
+        "semantic_failure_is_repairable",
+        "semantic_failure_evidence",
+        "attach_semantic_issue_evidence"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/demo_artifact_recompute.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "write_seed",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/design_research_agent.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "_declared_interaction_modes",
+        "visual_surface_required",
+        "infer_design_archetype",
+        "_keywords",
+        "design_search_queries",
+        "search_openverse",
+        "search_github_design",
+        "search_npm_design",
+        "curated_design_sources",
+        "_dedupe_references",
+        "_palette",
+        "design_directions",
+        "build_design_contract",
+        "design_research_semantic_sha256",
+        "bounded_design_context",
+        "design_research_markdown",
+        "run_design_research",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/discovery_selection_lane.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "write_text",
+        "write_json",
+        "read_json",
+        "slug",
+        "product_domain_goal",
+        "goal_has_positive_term",
+        "goal_has_media_product",
+        "goal_has_visual_novel_product",
+        "goal_has_task_board_product",
+        "goal_has_specialized_analysis_product",
+        "risk_penalty",
+        "weighted_total",
+        "_cloud_ai_candidate",
+        "_small_demo_candidate",
+        "_goal_candidate_id",
+        "_goal_plan_candidate",
+        "generate_candidates",
+        "rejection_reasons",
+        "selection_eligible",
+        "build_scorecard",
+        "select_candidate",
+        "build_selected_direction",
+        "build_contract",
+        "rejected_options_markdown",
+        "discovery_brief_markdown",
+        "run_discovery_selection",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/domestic_gateway.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "check",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/domestic_network.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "rollback",
+        "process_isolation",
+        "sample",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/domestic_task_acceptance.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "AcceptancePause",
+        "digest",
+        "append",
+        "source_fingerprints",
+        "provider_identities",
+        "verify_fixture",
+        "prepare",
+        "validate_authorization",
+        "configure_budget",
+        "bounded_request",
+        "AuditedClient",
+        "GuardedComposer",
+        "RestrictedActions",
+        "validate_pure_candidate",
+        "registry",
+        "execute",
+        "verify",
+        "reopen",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/dynamic_pipeline_runner.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_looks_like_generated_image",
+        "_asset_label",
+        "_looks_like_screenshot",
+        "_looks_like_background",
+        "_looks_like_sprite",
+        "_project_text_for_requirements",
+        "_visual_requirements",
+        "_role_by_id",
+        "_role_operating_rules",
+        "_system_prompt",
+        "collect_generation_context",
+        "_history_for_step",
+        "_call_step_provider",
+        "_local_task_for_step",
+        "_call_step_agent",
+        "_forbidden_command",
+        "_execute_manifest_action",
+        "collect_quality_evidence",
+        "_rel",
+        "_find_files",
+        "_project_files",
+        "_has_python_entrypoint",
+        "_has_dependency_file",
+        "_has_source_file",
+        "_has_test_file",
+        "_media_files",
+        "_build_completion_audit",
+        "_extract_test_commands",
+        "_test_report_has_no_test_executed",
+        "_qa_completion_audit",
+        "collect_user_review_evidence",
+        "_evidence_blockers",
+        "requires_user_evidence_judgement",
+        "_stage_order_index",
+        "_step_earliest_stage_index",
+        "_should_skip_for_start_stage",
+        "_step_has_stage",
+        "_has_later_stage_step",
+        "_is_worker_build_step",
+        "_is_qa_completion_step",
+        "_pipeline_rework_blocked",
+        "_write_repair_test_report",
+        "_write_repair_delivery_notes",
+        "pre_package_audit",
+        "_nested_action",
+        "_step_action",
+        "_run_agent_turn",
+        "_fallback_to_agent_loop",
+        "run_dynamic_pipeline"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/explain_flow.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "explain",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/external_executor_discovery.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "SourceError",
+        "_now",
+        "_bounded_text",
+        "_slug",
+        "_unique",
+        "should_discover_external_executor",
+        "build_search_intent",
+        "_blank_candidate",
+        "_safe_json_request",
+        "_safe_json_get",
+        "_parse_timestamp",
+        "_age_days",
+        "parse_github_repository",
+        "_license_policy",
+        "discover_from_github",
+        "_hinted_packages",
+        "enrich_from_pypi",
+        "enrich_from_deps_dev",
+        "evaluate_maintenance",
+        "enrich_github_maintenance",
+        "normalize_osv_severity",
+        "_fixed_versions",
+        "query_osv_exact_version",
+        "enrich_security_from_osv",
+        "discover_from_registry",
+        "merge_candidates",
+        "candidate_rejection_reasons",
+        "order_candidates",
+        "_minimal_trial_env",
+        "run_bounded_python_trial",
+        "_selected_executor",
+        "_timestamp_fresh",
+        "discovery_result_trust_is_fresh",
+        "discover_external_executor"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/external_executor_integration.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_canonical",
+        "_digest",
+        "build_integration_contracts",
+        "provider_projection",
+        "attach_contracts_to_components",
+        "_dependency_versions",
+        "_source_files",
+        "_calls",
+        "_source_identity",
+        "validate_project_integration",
+        "receipt_is_current",
+        "select_next_candidate"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/final_contract_unification_acceptance.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "build_acceptance",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/final_delivery_truth.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "evaluate",
+        "run_if_applicable",
+        "contract"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/final_internal_acceptance.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "sha",
+        "git_sha",
+        "write_json",
+        "envelope",
+        "run_command",
+        "worker",
+        "make_workspace",
+        "execute_leaf",
+        "merge_leaf",
+        "build_internal_acceptance",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/formal_delivery_evidence.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "read_json",
+        "_path",
+        "_existing_file",
+        "_usage_plan",
+        "_audit_fallback",
+        "audit_formal_delivery_evidence"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/formal_gate_registry.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_read",
+        "_producer_forbidden",
+        "inspect_full_all",
+        "_identity_failures",
+        "inspect_source",
+        "inspect_gate_status"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/formal_mainline_acceptance.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "git_sha",
+        "read_json",
+        "write_json",
+        "envelope",
+        "_candidate_identity",
+        "_source_for_gate",
+        "_production_provenance",
+        "_gate_status",
+        "build_acceptance",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/formal_model_contract.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "stable_hash",
+        "ledger_path",
+        "normalize_stage",
+        "requires_model",
+        "formal_record",
+        "append_model_call",
+        "read_ledger",
+        "evaluate_model_participation"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/frontdesk_team_lead_agent.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "TeamLeadReply",
+        "conversation_history_summary",
+        "known_limits_from_context",
+        "build_context",
+        "compose_reply",
+        "sanitize_public_text",
+        "is_correction",
+        "sanitize_user_visible_error",
+        "_missing_context_fields",
+        "_reply_intent",
+        "_visible_status",
+        "_next_options",
+        "_status_reply",
+        "_public_change_request_summary",
+        "_naturalize_change_request",
+        "_greeting_reply",
+        "_correction_reply",
+        "_start_reply",
+        "_delivery_reply",
+        "_evidence_missing_reply",
+        "_change_request_reply",
+        "_project_reply",
+        "_sanitize_public_text",
+        "_looks_like_internal_error",
+        "_strip_internal_error_terms",
+        "_draft_is_usable",
+        "_avoid_repeated_template",
+        "_head_signature",
+        "_evidence_label",
+        "_is_greeting",
+        "_is_status_question",
+        "_is_model_backend_semantics_question",
+        "_is_start_message",
+        "_is_correction",
+        "_is_change_request",
+        "_variant_index",
+        "_unique",
+        "_remove_public_structure_labels",
+        "_main_public_limits",
+        "_looks_like_pre_generation_config_gap"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/generate_kernel_coverage_report.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_percent",
+        "generate",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/generate_kernel_test_receipt.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_hash_file",
+        "_canonical_hash",
+        "generate",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/generate_test_coverage_manifest.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "metadata",
+        "generate",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/generated_project_architecture_contract.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_files",
+        "_contains_any",
+        "evaluate_project"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/goal_acceptance.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_read_json",
+        "_canonical_hash",
+        "_has_runtime_value",
+        "_substantive_test",
+        "_python_test_catalog",
+        "evaluate_goal_acceptance",
+        "inspect_goal_acceptance",
+        "produce_from_canonical_test_evidence"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/governed_kernel_repair.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_now",
+        "_sha",
+        "build_repair_request",
+        "_copy_allowed_repository",
+        "execute_repair"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/invalidate_artifact.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/issue_ledger.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_normalized_path",
+        "_record_text",
+        "_owned_existing",
+        "infer_failure_target_files",
+        "evaluator_failure_identity",
+        "failure_record_is_actionable",
+        "bind_issue_to_tree_ownership",
+        "issues_from_evaluator_failure"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/kernel_architecture_gate.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_package",
+        "_cycles",
+        "check"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/kernel_completeness_gate.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "check"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/kernel_contract_check.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "CheckResult",
+        "read_rel",
+        "section_between",
+        "function_body",
+        "contains_all",
+        "add",
+        "check_codex",
+        "check_planner",
+        "check_manifest",
+        "check_runner",
+        "check_local_actions",
+        "check_packager",
+        "check_legacy_isolation",
+        "check_runtime_profiles",
+        "run_checks",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/kernel_gate_common.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "load_json",
+        "source_files",
+        "module_file",
+        "imported_modules",
+        "result"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/kernel_source_identity.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_git",
+        "_hash_rows",
+        "identity",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/local_agent_actions.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "_inside",
+        "_project_path",
+        "_command_is_dangerous",
+        "LocalAgentActionExecutor",
+        "execute_action",
+        "result_to_json"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/local_agent_skills.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "SkillSpec",
+        "inside",
+        "project_path",
+        "_error",
+        "_safe_name",
+        "_tail",
+        "_patch_file",
+        "_delete_file",
+        "_copy_file",
+        "_write_json",
+        "_command_allowed",
+        "_run_tests",
+        "_localhost_url",
+        "_http_request",
+        "_browser_screenshot",
+        "_register",
+        "search_skills",
+        "use_skill",
+        "propose_skill",
+        "approved_skill_names"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/local_conversation_manager.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "safe_id",
+        "conversation_root",
+        "conversation_dir",
+        "conversation_path",
+        "write_json",
+        "append_jsonl",
+        "empty_active_project",
+        "default_whiteboard",
+        "default_conversation",
+        "normalize_conversation",
+        "load_conversation",
+        "save_conversation",
+        "append_user_message",
+        "append_assistant_message",
+        "update_whiteboard",
+        "get_active_project",
+        "bind_active_project",
+        "append_revision_history",
+        "conversation_summary"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/local_image_model_discovery.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_contains_any",
+        "requests_local_image_model",
+        "_get_json",
+        "_looks_like_image_model_path",
+        "_is_huggingface_hub",
+        "_has_model_file",
+        "_common_model_dirs",
+        "discover_local_image_backends",
+        "critical_questions_for_text"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/local_intent_router.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_clean_text",
+        "_contains_any",
+        "_has_blueprint_title",
+        "_explicitly_requests_blueprint_generator",
+        "_extract_visible_user_messages",
+        "_extract_current_project_summary",
+        "_is_memory_title_only_candidate",
+        "extract_explicit_user_goal",
+        "should_ignore_memory_title",
+        "_extract_required_features",
+        "_classify_non_blueprint",
+        "classify_project_type",
+        "_read_text",
+        "_read_json",
+        "_readme_title",
+        "detect_project_type_conflict"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/local_model_router.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "env_truthy",
+        "model_routing_profile",
+        "local_model_requested",
+        "enabled_tasks",
+        "task_enabled",
+        "task_model_owner",
+        "routing_contract",
+        "task_affects_generation",
+        "task_is_public_reply_only",
+        "local_model_request_timeout",
+        "extract_json",
+        "post_json",
+        "get_json",
+        "ollama_auto_start_enabled",
+        "find_ollama_executable",
+        "ollama_available",
+        "ensure_ollama_running",
+        "choose_ollama_model",
+        "_call_command",
+        "_call_ollama",
+        "local_model_temperature",
+        "local_model_num_predict",
+        "local_model_context_window",
+        "call_text_task",
+        "call_text_task_fallback",
+        "call_json_task"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/local_packager.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "_write_json",
+        "_infer_startup_command",
+        "_ensure_readme",
+        "_read_text",
+        "_has_nonempty_commands_run",
+        "_is_placeholder_preview",
+        "_preview_candidates",
+        "_sample_input_found",
+        "_looks_like_generated_image",
+        "_looks_like_demo_data_project",
+        "_relative_file",
+        "_startup_entrypoint",
+        "collect_quality_evidence",
+        "collect_user_review_evidence",
+        "package_project"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/local_repo_manager.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "safe_id",
+        "managed_projects_root",
+        "project_id_for_conversation",
+        "project_root",
+        "metadata_path",
+        "current_worktree",
+        "revision_dir",
+        "_write_json",
+        "_copy_tree",
+        "_default_metadata",
+        "ensure_project",
+        "load_project_metadata",
+        "write_project_metadata",
+        "create_revision_workspace",
+        "copy_current_to_revision_workspace",
+        "promote_revision_to_current",
+        "_files_under",
+        "compute_changed_files",
+        "create_snapshot",
+        "rollback_to_revision"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/local_studio_cli.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "print_json",
+        "list_conversations",
+        "list_projects",
+        "rollback_project_payload",
+        "execute_revision_payload",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/local_usage_planner.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "_exists",
+        "_required_file_status",
+        "_declared_html_assets",
+        "create_usage_plan",
+        "create_runtime_check",
+        "create_visual_evidence_plan",
+        "write_usage_plan"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/long_context_state.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "compact_text",
+        "content_hash",
+        "load_json",
+        "write_json",
+        "parse_key_values",
+        "parse_metadata",
+        "artifact_dir",
+        "turns_dir",
+        "turn_index_path",
+        "state_path",
+        "ledger_path",
+        "checkpoint_path",
+        "context_pack_path",
+        "load_turns",
+        "append_turn",
+        "unique_append",
+        "sentence_candidates",
+        "reduce_state",
+        "update_decision_ledger",
+        "file_manifest",
+        "commit_checkpoint",
+        "build_context_pack",
+        "add_common_args",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/main_agent_manager.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "looks_like_status_query",
+        "MainAgentManager",
+        "bind_initial_project_delivery"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/market_research_agent.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "request_json",
+        "contains_any",
+        "compact_tokens",
+        "infer_domain_features",
+        "github_repositories",
+        "npm_packages",
+        "huggingface_models",
+        "static_provider_candidates",
+        "text_relevance",
+        "candidate_score",
+        "research_feature",
+        "run_market_research",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/model_mode_semantics.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_compact",
+        "_target_project_local_requested",
+        "_target_project_api_requested",
+        "_platform_no_api_requested",
+        "_platform_api_allowed",
+        "parse_model_mode_semantics",
+        "apply_model_mode_semantics",
+        "_unique_strings"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/model_policy.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_clean",
+        "current_profile",
+        "select_model",
+        "explain_model_choice",
+        "model_policy_snapshot"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/network_proxy_config.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "digest",
+        "patch",
+        "rollback"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/network_watchdog.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "InstanceLock",
+        "process",
+        "listeners",
+        "controller",
+        "node_status",
+        "observe_node",
+        "l1",
+        "start_proxy",
+        "event_logger",
+        "run",
+        "soak",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/obligation_traceability_gate.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "validate_oracle_traceability",
+        "check",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/online_input_agent.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "safe_name",
+        "request",
+        "get_json",
+        "get_json_value",
+        "download",
+        "keyword_tokens",
+        "contains_any",
+        "media_query_for",
+        "classify_project_type",
+        "input_spec_for",
+        "commons_candidates",
+        "commons_gameplay_candidates",
+        "commons_file_candidate",
+        "choose_downloadable",
+        "add_downloaded_file",
+        "collect_media",
+        "image_generation_requested",
+        "collect_huggingface_text_to_image_models",
+        "static_image_generation_providers",
+        "collect_image_generation_model_candidates",
+        "collect_csv_example",
+        "collect_public_api_example",
+        "collect_github_example",
+        "collect_document_example",
+        "collect_web_page_example",
+        "route_collectors",
+        "collect_online_inputs",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/pipeline_contracts.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "PipelineResultDict",
+        "ContractResult",
+        "GenerationResult",
+        "CandidateMaterializationResult",
+        "SanitizeResult",
+        "RepairPlan",
+        "RepairResult",
+        "PostBuildResult",
+        "VisualEvidenceResult",
+        "CandidateReviewDeliveryResult",
+        "FinalDeliveryResult",
+        "PipelineRunResult",
+        "base_result"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/pipeline_manifest.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_slug",
+        "_strings",
+        "_stage_values",
+        "_project_goal",
+        "_normalized_cfo_contract",
+        "default_minimal_pipeline_manifest",
+        "_contains_forbidden_legacy",
+        "_step_calls_forbidden_legacy",
+        "validate_required_stages",
+        "validate_pipeline_manifest",
+        "normalize_pipeline_manifest",
+        "write_pipeline_manifest"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/pipeline_planner_agent.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "read_agent_session",
+        "_compact_events",
+        "collect_generation_context",
+        "_extract_json_object",
+        "_call_provider",
+        "plan_pipeline"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/planning_docs_materializer.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "read_json",
+        "read_text",
+        "as_lines",
+        "bullets",
+        "first_text",
+        "load_inputs",
+        "selected_requirement_id",
+        "selected_requirement_name",
+        "product_brief",
+        "technical_plan",
+        "interaction_design",
+        "acceptance_matrix",
+        "materialize",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/pmp_agile_quality_manager.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "read_json",
+        "write_json",
+        "command_init",
+        "command_validate",
+        "command_retrieve",
+        "command_start_iteration",
+        "command_close_iteration",
+        "command_record_usage",
+        "command_render",
+        "build_parser",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/post_build_finalize.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_legacy",
+        "run",
+        "apply_goal_acceptance_gate",
+        "apply_complexity_contract_gate",
+        "ensure_candidate_review_artifacts",
+        "_read_json",
+        "_write_json",
+        "_video_failure_reason",
+        "ensure_video_evidence",
+        "update_candidate_review_video_status",
+        "recreate_candidate_diagnostic_package",
+        "write_post_build_result",
+        "ensure_startup_diagnostics",
+        "contract"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/post_build_repair.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "windows_esm_path_import_error",
+        "missing_vitest_error",
+        "no_tests_ran_error",
+        "missing_package_json_error",
+        "has_runnable_candidate_source",
+        "_legacy",
+        "_legacy_call",
+        "post_build_repair_attempts",
+        "post_build_failure_log",
+        "classify_post_build_failures",
+        "existing_candidate_files",
+        "extract_post_build_target_files",
+        "python_test_implementation_owners",
+        "focused_failure_excerpt",
+        "default_post_build_targets",
+        "provider_job_ownership_map",
+        "owner_for_issue_path",
+        "_evaluation_issue_evidence",
+        "enrich_issue_ledger_with_evaluator_evidence",
+        "cluster_issue_root_causes",
+        "repair_rejection_category",
+        "write_repair_call_accounting",
+        "compile_issue_ledger",
+        "provider_job_repair_batches",
+        "bind_repair_plan_to_issue_ledger",
+        "compile_post_build_repair_plan",
+        "generated_frontend_workspace_source_violations",
+        "normalize_ui_repair_html_ownership",
+        "normalize_frontend_repair_against_accepted_html",
+        "latest_rejected_repair_feedback",
+        "_ui_capability_stages",
+        "frontend_repair_validation_distance",
+        "post_build_leaf_repair_base_selection",
+        "frontend_dom_action_contract",
+        "frontend_css_selector_contract",
+        "frontend_stagnation_escape_contract",
+        "apply_frontend_repair_librarian_slice",
+        "frontend_repair_set_violations",
+        "validate_post_build_repair_files",
+        "post_build_direct_cli_leaf_contract",
+        "direct_cli_runtime_coherence_repair_rules",
+        "ensure_path_to_file_url_import",
+        "_extract_import_argument",
+        "_looks_like_filesystem_import_arg",
+        "rewrite_windows_esm_dynamic_imports",
+        "repair_windows_esm_path_import_file",
+        "_node_builtin_test_runner_content",
+        "repair_missing_vitest_with_node_runner",
+        "repair_missing_start_script",
+        "create_minimal_package_json",
+        "apply_deterministic_post_build_repair",
+        "python_test_dependency_context",
+        "provider_post_build_file_repair",
+        "post_build_candidate_review_ready",
+        "run_candidate_post_build_repair_loop",
+        "run_if_needed",
+        "contract"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/process_identity.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "process_is_alive"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/product_acceptance.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_read_text",
+        "_read_json",
+        "_manifest_files",
+        "_clean_feature_term",
+        "_feature_key",
+        "_is_internal_feature_term",
+        "_goal_terms",
+        "_existing_screenshots",
+        "_read_allowed_json",
+        "_collect_strings",
+        "_allowed_expected_features",
+        "_project_text_bundle",
+        "_feature_present",
+        "_ux_score_inputs",
+        "_as_bool",
+        "_pipeline_stages",
+        "_int_from_doc",
+        "_test_counts",
+        "_pipeline_bool",
+        "_evaluate_pipeline_acceptance",
+        "evaluate_product_acceptance",
+        "write_report",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/product_design_depth_governance.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "_json_hash",
+        "_seal",
+        "write_json",
+        "read_json",
+        "validate_artifact",
+        "_combined_text",
+        "_contains",
+        "_signals",
+        "_dimension",
+        "build_complexity_profile",
+        "_core_capabilities",
+        "build_goal_fidelity_contract",
+        "build_core_difficulty_lock",
+        "_challenge_rows",
+        "build_test_realism_and_challenges",
+        "build_design_adequacy",
+        "build_overengineering_check",
+        "build_product_challenge_review",
+        "freeze_preimplementation_governance",
+        "_source_text",
+        "_resource_evidence",
+        "evaluate_proxy_solution",
+        "_independent_evidence_valid",
+        "produce_independent_product_evidence",
+        "build_public_claim_policy",
+        "evaluate_product_maturity",
+        "evaluate_and_write_project_reports",
+        "load_product_maturity",
+        "attach_maturity_to_delivery_gate"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/product_design_depth_rule_guard.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_text",
+        "_tracked_changes",
+        "inspect",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/product_direction_gate.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_read",
+        "_read_json",
+        "_imports",
+        "_active_python_files",
+        "_forbidden_import",
+        "check",
+        "has_active_content",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/product_studio_reply.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ProductStudioReplyComposer",
+        "compose_timeout_or_blocked_reply"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/production_candidate_provenance.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_now",
+        "_read",
+        "_write_hashed",
+        "_manifest_hash",
+        "_parse_time",
+        "_is_relative_to",
+        "_path_has_symlink",
+        "_candidate_symlinks",
+        "write_stage_receipt",
+        "_inspect_stage_receipt",
+        "produce",
+        "inspect",
+        "_project_session_projection",
+        "produce_project_session",
+        "_inspect_project_session"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/project_memory_md.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "utc_now",
+        "safe_id",
+        "string_list",
+        "user_messages",
+        "uploaded_inputs",
+        "uploaded_input_lines",
+        "section_list",
+        "table",
+        "artifact_table",
+        "build_project_memory_artifact",
+        "build_project_memory_md",
+        "write_project_memory"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/project_revision_lane.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "_compact",
+        "_write_json",
+        "has_active_project",
+        "is_revision_request",
+        "create_revision_request",
+        "create_revision_plan",
+        "prepare_revision_workspace",
+        "build_revision_goal",
+        "revision_manifest_path",
+        "write_revision_manifest",
+        "_load_json_object",
+        "_call_adapter",
+        "_result_path",
+        "_artifact_missing",
+        "_revision_result",
+        "_changed_files_for_revision",
+        "_changed_file_path",
+        "_is_revision_changed_file_noise",
+        "_filter_revision_changed_files",
+        "_merge_changed_files_warning",
+        "run_provider_revision_job",
+        "create_revision_manifest",
+        "mark_revision_success",
+        "mark_revision_failed",
+        "bind_initial_project_delivery",
+        "public_delivery_is_safe"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/project_version_policy.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "apply_minimum_version_governance",
+        "version_governance_prompt",
+        "validate_upgrade",
+        "render_current_architecture"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/promote_evidence.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "sha256",
+        "compact",
+        "promote",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/provider_api_budget.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ProviderBudgetExhausted",
+        "_now",
+        "_int_env",
+        "_float_env",
+        "configured_ledger_path",
+        "configured_limits",
+        "budget_configured",
+        "_empty_ledger",
+        "_locked",
+        "_read",
+        "_write",
+        "_estimated_cost",
+        "_actual_token",
+        "_recompute_totals",
+        "_purpose_family",
+        "call_purpose",
+        "reconcile_incomplete_calls",
+        "reserve_call",
+        "mark_request_started",
+        "mark_response_received",
+        "_usage_tokens",
+        "finalize_call",
+        "http_status_from_error",
+        "configured_cache_mode",
+        "_cache_path",
+        "load_cached_response",
+        "store_cached_response",
+        "load_authoritative_response"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/provider_api_smoke.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_proxy_summary",
+        "_extract_json",
+        "run_smoke",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/provider_causal_trace.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "_read",
+        "_write_hashed",
+        "_parse_time",
+        "_is_relative_to",
+        "_has_reparse_point",
+        "_safe_relative_path",
+        "_manifest_hash",
+        "_content_map_hash",
+        "_snapshot",
+        "_snapshot_map",
+        "_reconstruct_candidate_contents",
+        "_manifest_from_contents",
+        "_source_delta",
+        "response_content_hash",
+        "extract_decisions",
+        "build_patch_hunks",
+        "_identity_fields",
+        "begin_provider_request",
+        "consume_provider_response",
+        "finalize",
+        "_inspect_artifact",
+        "_contains_forbidden_request_key",
+        "inspect",
+        "finalize_project_session",
+        "_inspect_project_session_trace"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/provider_credentials.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_validate_api_key",
+        "_validate_base_url",
+        "_open_user_environment",
+        "_read_user_values",
+        "_apply_user_values",
+        "_broadcast_environment_change",
+        "_notes_path",
+        "scrub_legacy_note_keys",
+        "replace_user_credentials",
+        "credential_status",
+        "_read_replacement_key",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/provider_execution_metrics.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_key",
+        "_receipt_path",
+        "_default",
+        "_state",
+        "_persist",
+        "_reconcile_phase_log",
+        "declare_jobs",
+        "declare_job_graph",
+        "record_job",
+        "mark_call_origin",
+        "last_call_origin",
+        "record_fallback_event",
+        "record_authored_files",
+        "provider_api_call",
+        "fallback_provider_call",
+        "snapshot"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/provider_free_partial_acceptance_replay.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_sha256_text",
+        "_sha256_file",
+        "_write_json",
+        "_provider_json",
+        "replay_payloads",
+        "DeterministicReplayTransport",
+        "provider_free_network_guard",
+        "_request_files",
+        "_read_candidate_files",
+        "_load_module",
+        "_check",
+        "verify_case01",
+        "verify_case03",
+        "_failure_rows",
+        "_materialize_initial",
+        "_apply_replay_repair",
+        "_score_case_verifier",
+        "run",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/provider_generation.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_legacy",
+        "run",
+        "choose_model",
+        "provider_quota_blocked",
+        "should_skip_repeated_live_generation",
+        "contract"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/provider_jobs.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_hash",
+        "configured_parallelism",
+        "ProviderJob",
+        "PatchSet",
+        "_normalize_path",
+        "_owns",
+        "validate_jobs",
+        "provider_job_from_work_node",
+        "work_node_from_provider_job",
+        "validate_repair_job_contract",
+        "_coerce_patch",
+        "validate_patch_set",
+        "provider_jobs_from_leaf_graph"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/provider_resilience.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ProviderProbe",
+        "read_json",
+        "write_json",
+        "load_config",
+        "_model_capability_defaults",
+        "_score",
+        "_capability_probe_scores",
+        "candidate_capability_score",
+        "select_capable_candidate",
+        "_provider_model_candidates",
+        "_candidate_satisfies_contract",
+        "_env_status",
+        "_fresh_connectivity_doc",
+        "_status_from_connectivity_report",
+        "_provider_enabled",
+        "estimate_cost_tokens",
+        "default_probe",
+        "_status_from_api_result",
+        "default_model_probe",
+        "provider_preflight",
+        "retryable_provider_call",
+        "write_health_report",
+        "load_fresh_health_report",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/provider_transport.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ProviderTransportAttempt",
+        "ProviderTransportResult",
+        "_redact",
+        "_is_gptsapi_base_url",
+        "_is_alibaba_model_studio_base_url",
+        "normalize_provider_api_method",
+        "select_provider_api_method",
+        "tls_verify_enabled",
+        "_urlopen",
+        "_safe_response_headers",
+        "is_retryable_error",
+        "classify_provider_error",
+        "should_retry_provider_attempt",
+        "post_json_once",
+        "post_json_with_retry"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/public_narration.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "redact_internal_terms",
+        "_question_lines",
+        "public_event_text"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/real_test_execution.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_now",
+        "_sha256_text",
+        "_sha256_file",
+        "project_tree_hash",
+        "current_commit_sha",
+        "_declared_pytest_paths",
+        "detect_commands",
+        "_pytest_counts",
+        "_skip_reasons",
+        "_pytest_config",
+        "_normalize_command",
+        "run_tests",
+        "write_test_report",
+        "inspect_test_report"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/receipt_freshness.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "check_receipt",
+        "check_all"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/refresh_local_codex_plugin.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "package_digest",
+        "plugin_version",
+        "default_runner",
+        "refresh",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/render_goal_progress.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/repair_acceptance.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "normalize_path",
+        "path_is_safe_owned_target",
+        "forbidden_generated_output",
+        "mock_only_or_deleted_source",
+        "_issue_path",
+        "_issue_identity",
+        "_severity",
+        "_failure_magnitude",
+        "_coherence_evidence",
+        "_matching_issues",
+        "assess_provider_job_partial_acceptance"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/repair_evidence_contract.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_contains_forbidden_key",
+        "validate",
+        "load",
+        "build"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/repository_cleanup.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "run_git",
+        "head_entries",
+        "index_entries",
+        "metrics",
+        "inventory",
+        "reference_graph",
+        "cleanup_plan",
+        "branch_report",
+        "write_json",
+        "audit",
+        "dry_run",
+        "apply",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/repository_hygiene.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "issue",
+        "tracked_files",
+        "inspect_tracked_paths",
+        "inspect_repository",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/requirement_acceptance_check.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "read_json",
+        "read_text",
+        "iter_files",
+        "find_by_name",
+        "rel_path",
+        "has_terms",
+        "valid_delivery_screenshot",
+        "valid_final_zip",
+        "delivery_smoke_passed",
+        "planning_doc_quality",
+        "requirement_dir_from",
+        "validate_requirement_decision",
+        "evaluate_planning_contract_gate",
+        "evaluate_layers",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/requirement_blueprint.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "write_text",
+        "write_json",
+        "clean_text",
+        "contains_any",
+        "source_value",
+        "answer_map",
+        "infer_project_type",
+        "infer_target_users",
+        "build_requirement_spec",
+        "build_io_contract",
+        "build_gap_analysis",
+        "build_feature_spec",
+        "build_capability_map",
+        "build_tech_candidates",
+        "score_candidate",
+        "build_tech_decisions",
+        "build_architecture_mmd",
+        "build_api_yaml",
+        "build_db_schema_sql",
+        "build_frontend_pages",
+        "build_task_backlog",
+        "task_backlog_csv",
+        "build_prd",
+        "build_review_report",
+        "build_requirement_blueprint",
+        "export_requirement_blueprint_files",
+        "write_requirement_blueprint_outputs",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/requirement_decision_lane.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "write_text",
+        "write_json",
+        "read_json",
+        "slug",
+        "product_domain_goal",
+        "goal_has_positive_term",
+        "goal_has_media_product",
+        "goal_has_visual_novel_product",
+        "goal_has_task_board_product",
+        "goal_has_specialized_analysis_product",
+        "goal_interaction_modes",
+        "_cs2_demo_analysis_profile",
+        "_contains_goal_term",
+        "_explicit_workflow_clauses",
+        "_fixed_profile_dominates_workflows",
+        "_workflow_entity_symbols",
+        "detect_understanding_signals",
+        "goal_decision_blockers",
+        "_ambiguous_record_application_profile",
+        "_mixed_workflow_goal_profile",
+        "_explicit_local_cli_profile",
+        "_feature_unit_negative_scope",
+        "_feature_signature_inputs",
+        "_explicit_feature_unit_profile",
+        "_goal_profile",
+        "build_goal_spec",
+        "_workstream_output",
+        "goal_acceptance_test_contract",
+        "feature_contract_ready_batches",
+        "build_feature_unit_project_plan",
+        "understanding_readiness",
+        "build_goal_project_plan",
+        "_goal_candidate_id",
+        "candidate_from_goal_spec",
+        "goal_is_complex",
+        "risk_penalty",
+        "generate_need_interpretations",
+        "_candidate",
+        "_small_demo_requirement",
+        "_cloud_requirement",
+        "generate_candidate_requirements",
+        "rejection_reasons",
+        "score_total",
+        "score_candidate_requirements",
+        "select_requirement",
+        "build_acceptance_contract",
+        "customer_goal_brief",
+        "rejected_markdown",
+        "mvp_scope_markdown",
+        "non_goals_markdown",
+        "customer_summary_markdown",
+        "write_requirement_decision_artifacts",
+        "load_requirement_acceptance_contract",
+        "run_requirement_decision",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/run_agent_mvp.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "load_config",
+        "role_config",
+        "run_initial_test",
+        "run_direct_baseline",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/run_artifact_flow.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_seed",
+        "_manifest_inputs",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/run_baseline_regression.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "profile_commands",
+        "run",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/run_codex_conversation_generation.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "materialize_generated_project",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/run_kernel_profiles.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_is_pytest",
+        "_junit_results",
+        "_totals",
+        "_profile_status",
+        "run_profile",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/run_local_pipeline.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "load_json",
+        "load_recoverable_repair_errors",
+        "validate_provider_project_contract",
+        "_blocked_without_api",
+        "execute",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/run_local_pipeline_impl.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "generated_root",
+        "now",
+        "write_text",
+        "write_json",
+        "codex_capability_brief_provider_projection",
+        "load_codex_capability_brief",
+        "apply_codex_capability_supervision",
+        "codex_capability_plan_contract",
+        "bind_codex_capability_plan_contract",
+        "missing_canonical_project_plan_paths",
+        "append_phase_log",
+        "append_provider_event_log",
+        "last_provider_request_event",
+        "run_dir_from_phase_log",
+        "record_model_call_from_phase_log",
+        "load_json",
+        "safe_read_text",
+        "slug",
+        "plan_goal",
+        "frozen_user_intent",
+        "internal_context_from_plan",
+        "generation_deadline",
+        "ProgressDeadline",
+        "deadline_timestamp",
+        "hard_deadline_timestamp",
+        "timeout_before_absolute_deadline",
+        "provider_emission_budget_deadline",
+        "mark_generation_progress",
+        "remaining_timeout",
+        "require_api_generation",
+        "env_bool",
+        "env_int",
+        "provider_task_timeout_cap",
+        "provider_component_manifest_timeout_cap",
+        "provider_component_file_timeout_cap",
+        "provider_semantic_review_timeout_cap",
+        "provider_local_fallback_timeout",
+        "ProviderModelRoutingPolicy",
+        "ProviderModelRoute",
+        "is_internal_provider_model_alias",
+        "assert_concrete_provider_model",
+        "provider_model_routing_policy_from_args",
+        "provider_transport_model_route_reason",
+        "choose_provider_model",
+        "apply_pending_retry_model_floor",
+        "parse_json_object",
+        "ProviderOutputContractError",
+        "ProviderInputContextBudgetError",
+        "provider_request_context_budget",
+        "enforce_provider_request_context_budget",
+        "prepare_provider_request_within_context_budget",
+        "ProviderLeafRepairExhaustedError",
+        "ProviderContractRepairExhaustedError",
+        "bounded_provider_diagnostic_output",
+        "provider_exception_error_type",
+        "parse_provider_manifest_doc",
+        "provider_plan_doc",
+        "provider_internal_context",
+        "provider_blueprint_context",
+        "local_model_task_for_provider_stage",
+        "provider_code_fallback_reason",
+        "local_model_task_for_provider_request",
+        "component_required_manifest_paths",
+        "build_first_manifest_projection",
+        "manifest_missing_structural_children",
+        "build_first_component_contract",
+        "normalize_goal_plan_manifest_dependency_contract",
+        "normalize_test_manifest_dependency_contract",
+        "normalize_executable_media_manifest_contract",
+        "normalize_backend_stage_dependency_contract",
+        "_uses_legacy_note_cli_contract",
+        "normalize_direct_cli_manifest_contract",
+        "direct_cli_leaf_contract",
+        "local_provider_contract_prompt",
+        "fallback_python_undefined_names",
+        "python_undefined_names",
+        "pytest_fixture_argvalue_references",
+        "generated_fixture_source_violations",
+        "named_direct_cli_leaf_contract_error",
+        "named_direct_cli_pyproject_contract_error",
+        "named_direct_cli_readme_contract_error",
+        "candidate_direct_cli_leaf_contract_issues",
+        "candidate_visual_surface_required",
+        "feature_unit_leaf_contract_error",
+        "local_provider_contract_error",
+        "normalize_provider_doc",
+        "normalize_local_provider_doc",
+        "project_local_named_package_manifest_aliases",
+        "provider_manifest_component_id",
+        "local_provider_attempt_limit",
+        "composed_direct_cli_test_attempt_limit",
+        "local_source_validation_regeneration_instruction",
+        "compact_local_direct_cli_leaf_prompt",
+        "compact_local_post_build_direct_cli_repair_prompt",
+        "bind_latest_syntax_valid_rejected_target_source",
+        "bind_duplicate_import_seed_into_repair_prompt",
+        "bind_exact_goal_14_cli_exit_repair",
+        "compose_exact_goal_12_merge_repair",
+        "compose_exact_service_value_error_repairs",
+        "compose_exact_goal_15_entrypoint_repair",
+        "compact_local_post_build_test_repair_prompt",
+        "exact_expected_file_repair_envelope",
+        "deterministic_component_test_stdlib_import_repair",
+        "try_local_provider_text",
+        "provider_qwen_compact_leaf_enabled",
+        "provider_qwen_feature_unit_review_enabled",
+        "provider_qwen_bounded_generation_reasoning_none_enabled",
+        "provider_reasoning_effort",
+        "_compact_leaf_contract_value",
+        "latest_provider_leaf_repair_error",
+        "compact_provider_leaf_payload",
+        "_tight_compact_leaf_value",
+        "fit_compact_provider_leaf_payload",
+        "compact_provider_leaf_messages",
+        "provider_compact_leaf_output_tokens",
+        "provider_response_finish_reason",
+        "provider_response_output_tokens",
+        "provider_text",
+        "parse_provider_json_object_with_one_repair",
+        "provider_generate_project",
+        "infer_project_goal_constraints",
+        "semantic_review_system_prompt",
+        "semantic_review_full_payload",
+        "semantic_review_messages",
+        "semantic_review_prompt_chars",
+        "text_summary",
+        "component_for_file",
+        "files_by_component",
+        "high_risk_component_files",
+        "semantic_component_review_payload",
+        "normalize_review_blockers",
+        "normalize_semantic_blocker_evidence",
+        "component_review_blocker_in_scope",
+        "provider_semantic_component_review",
+        "extract_named_file",
+        "semantic_pipeline_projection",
+        "semantic_cross_review_payload",
+        "bounded_semantic_cross_review_payload",
+        "provider_semantic_cross_component_review",
+        "provider_semantic_final_reducer",
+        "split_semantic_review_pipeline",
+        "provider_review_project",
+        "validate_provider_files",
+        "provider_component_checkpoint_id",
+        "compact_for_repair_budget",
+        "compact_integration_feedforward",
+        "apply_repair_prompt_budget",
+        "provider_component_spec_hash",
+        "provider_component_semantic_review",
+        "provider_leaf_repair_exhausted",
+        "provider_component_error_is_retryable",
+        "provider_component_checkpoint_paths",
+        "component_checkpoint_contract_hash",
+        "remove_provider_component_checkpoints",
+        "write_provider_component_checkpoint",
+        "write_provider_component_failure_attempt",
+        "write_provider_component_checkpoint_summary",
+        "update_provider_component_checkpoint_summary",
+        "load_provider_component_checkpoint",
+        "pending_split_checkpoint_spec_hash",
+        "selected_requirement_domain",
+        "selected_direction_domain",
+        "requirement_discovery_alignment",
+        "explicit_pipeline_stages_from_goal",
+        "acceptance_metrics_from_goal",
+        "enrich_component_pipeline_with_complexity_contract",
+        "enrich_component_pipeline_with_goal_plan",
+        "component_pipeline_from_plan",
+        "apply_design_context_to_component_pipeline",
+        "_python_callable_contract",
+        "_python_decorator_names",
+        "_python_method_callable_contract",
+        "_python_class_constructor_contract",
+        "_python_interface_summary",
+        "_javascript_without_comments",
+        "_javascript_binding_parts",
+        "javascript_module_contract",
+        "generated_file_interface_summary",
+        "_declared_dependency_paths",
+        "provider_leaf_owned_paths",
+        "provider_manifest_entries_from_graph",
+        "provider_manifest_entry_expected_chars",
+        "provider_job_output_token_budget",
+        "provider_contract_repair_output_token_budget",
+        "provider_emission_output_token_cap",
+        "provider_model_reliable_output_cap",
+        "provider_observed_output_limit",
+        "_bounded_javascript_symbols",
+        "component_javascript_interface_authority",
+        "javascript_hard_export_contract",
+        "javascript_runtime_coherence_violations",
+        "project_build_coherence_issues",
+        "python_import_distribution_map",
+        "python_dependency_contract_issues",
+        "documented_entrypoint_contract_issues",
+        "candidate_build_coherence_issues",
+        "provider_repair_source_syntax_safe",
+        "provider_emission_estimated_tokens",
+        "provider_retry_output_token_cap",
+        "plan_provider_job_emissions",
+        "_provider_entry_boundary",
+        "_provider_entry_can_share_job",
+        "plan_provider_ownership_units",
+        "build_component_leaf_work_graph",
+        "component_leaf_ready_batches",
+        "component_leaf_downstream_closure",
+        "component_manifest_missing_path_dependents",
+        "provider_auto_submodule_policy",
+        "automatic_submodule_path_is_safe",
+        "automatic_test_manifest_submodules",
+        "automatic_manifest_submodules",
+        "expand_component_manifest_submodules",
+        "generation_context_librarian_limits",
+        "build_generation_context_librarian_index",
+        "query_generation_context_librarian",
+        "build_leaf_interface_contract",
+        "_python_module_name",
+        "python_leaf_interface_violations",
+        "uniform_stage_callable_violations",
+        "generated_python_safety_violations",
+        "application_entry_stage_violations",
+        "orchestrator_execution_violations",
+        "_resolve_relative_project_path",
+        "build_project_interface_registry",
+        "build_integration_feedforward_snapshot",
+        "integration_feedforward_checkpoint_hash",
+        "provider_component_payload",
+        "provider_component_messages",
+        "provider_component_prompt_chars",
+        "should_split_component_generation",
+        "provider_generate_project_component",
+        "split_file_checkpoint_path",
+        "split_file_manifest_entry_hash",
+        "component_file_manifest_hash",
+        "component_leaf_resume_identity",
+        "write_split_file_checkpoint",
+        "remove_split_file_checkpoints",
+        "load_split_file_checkpoint",
+        "summarize_component_context_for_split",
+        "compiled_feature_unit_component_manifest",
+        "provider_component_file_manifest",
+        "validate_split_file_for_component",
+        "leaf_implementation_depth_contract",
+        "normalized_publication_anchor",
+        "analyze_leaf_implementation_depth",
+        "javascript_import_specifiers",
+        "_resolve_javascript_dependency",
+        "javascript_module_interface_violations",
+        "validate_generated_design_quality",
+        "python_test_stage_result_contract_violations",
+        "normalize_python_distribution_name",
+        "declared_python_distributions",
+        "required_python_distributions_for_component",
+        "python_test_fixture_contract_violations",
+        "_python_runtime_annotation_kind",
+        "python_test_type_contract_violations",
+        "python_test_suite_anchor_violations",
+        "generated_test_symbol_authority",
+        "_asserted_source_symbol_identities",
+        "assess_generated_test_symbol_contract",
+        "validate_generated_component_quality",
+        "validate_assembled_project_quality",
+        "validate_frontend_dom_contract",
+        "validate_task_board_interaction_contract",
+        "javascript_const_reassignment_violations",
+        "validate_javascript_const_reassignment",
+        "validate_frontend_asset_contract",
+        "validate_frontend_module_self_import",
+        "frontend_symbol_publication_violations",
+        "generic_frontend_contract_violation",
+        "build_leaf_boundary_check_receipt",
+        "provider_generate_component_file",
+        "provider_generate_component_job",
+        "write_pending_component_file_generation",
+        "archive_completed_pending_component_leaf",
+        "promote_component_file_retry_plan",
+        "pending_file_manifest_for_component",
+        "component_manifest_missing_required_paths",
+        "recover_component_manifest_from_split_checkpoints",
+        "provider_local_fallback_observed",
+        "provider_leaf_max_workers",
+        "write_leaf_orchestration_artifacts",
+        "write_generation_librarian_artifacts",
+        "_provider_generate_leaf_with_retry",
+        "provider_job_boundary_receipts",
+        "structured_provider_job_violations",
+        "repairable_failed_provider_job_path",
+        "clear_repairable_failed_provider_job",
+        "write_repairable_failed_provider_job",
+        "load_repairable_failed_provider_job",
+        "repair_provider_job_contract",
+        "_provider_generate_job_with_retry",
+        "provider_generate_project_component_split",
+        "merge_component_files",
+        "provider_generate_project_by_components",
+        "write_provider_files",
+        "candidate_project_dir_for",
+        "issue_text",
+        "classify_semantic_blockers",
+        "detect_provider_hard_fact_blockers",
+        "detect_provider_repairable_fact_blockers",
+        "fake_delivery_claim_present",
+        "sanitize_candidate_files_before_materialization",
+        "recover_candidate_files_from_checkpoints",
+        "write_candidate_marker",
+        "create_candidate_diagnostic_package",
+        "candidate_startup_candidates",
+        "screenshot_environment_diagnostics",
+        "real_image_file",
+        "real_fixture_png_file",
+        "png_image_metrics",
+        "image_file_diagnostics",
+        "candidate_ui_domain_keywords",
+        "candidate_ui_capability_groups",
+        "candidate_ui_smoke",
+        "write_screenshot_metadata",
+        "write_video_blocked",
+        "validate_candidate_review_artifacts",
+        "png_has_visual_content",
+        "find_free_local_port",
+        "screenshot_failure_reason",
+        "write_screenshot_blocked",
+        "screenshot_attempt_base_details",
+        "capture_candidate_screenshot",
+        "write_candidate_review_summary",
+        "run_generated_project_fixture",
+        "validated_existing_candidate_video",
+        "run_candidate_post_build_finalize",
+        "decide_adaptive_final_verdict",
+        "generation_only_success_boundary",
+        "provider_semantic_repair_attempts",
+        "provider_transport_repair_attempts",
+        "provider_component_prompt_policy",
+        "semantic_review_budget_config",
+        "provider_base_url_for_diagnostics",
+        "write_run_context",
+        "load_run_context",
+        "repair_prompt_budget_config",
+        "provider_review_issues",
+        "deterministic_complexity_blockers",
+        "component_ownership_table",
+        "path_matches_pattern",
+        "legal_owner_for_path",
+        "component_path_allowed",
+        "component_declared_package_for_path_validation",
+        "normalize_review_components",
+        "review_blocker_requires_browser_local_persistence",
+        "parse_review_blocker",
+        "component_files_from_checkpoints",
+        "concrete_repair_target_files",
+        "repair_actions_for_component",
+        "repair_target_files_for_component",
+        "repair_plan_file_level_components",
+        "build_component_repair_prompt",
+        "compile_repair_plan",
+        "rewrite_component_checkpoint_files",
+        "apply_deterministic_repair_actions",
+        "repeated_repair_blocker",
+        "write_repair_invariant_failure",
+        "provider_transport_error_info",
+        "extract_provider_error_headers",
+        "write_repair_prompt_file",
+        "build_pending_repair_context",
+        "write_pending_repair_context",
+        "archive_completed_pending_repair",
+        "write_provider_transport_blocked_failure",
+        "attempt_formal_local_model_fallback",
+        "load_pending_repair_plan",
+        "repair_plan_component_instructions",
+        "repair_plan_provider_components",
+        "completed_semantic_repair_components",
+        "completed_semantic_repair_files",
+        "persist_completed_semantic_repair_files",
+        "persist_completed_semantic_repair_component",
+        "refresh_pending_semantic_repair_plan",
+        "pending_component_leaf_matches_pipeline",
+        "recover_pending_leaf_target_from_phase_log",
+        "prepare_semantic_repair_retry_plan",
+        "prepare_supervision_provider_repair",
+        "_plain_tree_sha256",
+        "_contains_forbidden_repair_evidence_key",
+        "prepare_observed_project_failure_provider_repair",
+        "route_semantic_review_blockers",
+        "repair_instructions_for_components",
+        "write_rejected_project_preview",
+        "list_checkpoint_files",
+        "write_provider_semantic_review_failure",
+        "provider_non_json_payload_diagnostics",
+        "write_provider_non_json_payload_failure",
+        "execute_provider_job_patch_generation",
+        "run_provider_semantic_review_with_repair",
+        "make_generated_image_preview",
+        "make_workflow_demo_video",
+        "provider_project_usage_plan",
+        "argv_is_allowed",
+        "normalize_allowed_argv",
+        "run_allowed_command",
+        "normalize_usage_plan_placeholders",
+        "wait_for_url",
+        "kill_windows_process_tree",
+        "detect_browser_error_text",
+        "run_project_usage_agent",
+        "make_example_outputs",
+        "compile_feature_unit_research_contexts",
+        "make_mermaid",
+        "write_runtime_artifacts",
+        "write_provider_long_context_artifacts",
+        "_requirements_probe_metrics",
+        "requirements_planning_output_token_budget",
+        "_minimal_requirements_probe_response_format",
+        "_provider_json_schema_unavailable",
+        "requirements_planning_provider_preflight",
+        "canonicalize_requirements_planning_response",
+        "provider_stage_checkpoint",
+        "requirement_replan_state_path",
+        "run_canonical_requirement_planning",
+        "source_identity_environment_blocker",
+        "execute",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/run_mvp_runtime.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "load_tree",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/run_obligation_strategy_comparison.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/run_project_generation_tests.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "run_command",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/run_self_growth_v0.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "qualified_runner",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/run_semantic_artifact_experiment.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_write",
+        "_pytest",
+        "_run",
+        "_latest",
+        "_compare",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/run_test_pipeline.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "now",
+        "write_json",
+        "read_json",
+        "run_command",
+        "project_path",
+        "check_static_project_contract",
+        "check_browser_smoke_declared",
+        "check_runtime_artifacts",
+        "run_internal",
+        "QuietHandler",
+        "static_server",
+        "run_browser_step",
+        "execute",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/runnable_project_contract.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_copy_zip_to_temp",
+        "_root",
+        "_rel",
+        "_readme_startup_commands",
+        "evaluate_project"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/runtime_visual_evidence.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_now",
+        "_png_size",
+        "_real_png",
+        "write_runtime_preview_png",
+        "collect_visual_evidence",
+        "create_static_html_preview_evidence"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/sandbox_security.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "read_json",
+        "write_json",
+        "safe_runtime_env",
+        "_is_relative_to",
+        "validate_execution_path",
+        "_scan_command",
+        "_scan_package_json",
+        "_scan_script_text",
+        "scan_project",
+        "assert_final_promotion_allowed",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/shared_gui_cli_core_checker.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "read_text",
+        "python_files",
+        "has_terms",
+        "find_named",
+        "check",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/source_boundaries.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "SourceBoundary",
+        "_git",
+        "git_objects",
+        "hash_objects",
+        "boundary_identity",
+        "changed_paths_since",
+        "changed_boundary_paths",
+        "render_all"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/source_identity.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_now",
+        "_sha_bytes",
+        "_sha_file",
+        "_bounded_output",
+        "_git_failure_payload",
+        "_git_executable",
+        "_git_environment",
+        "_git",
+        "_require_git",
+        "_excluded_path",
+        "_identity_status",
+        "_tree_hash",
+        "capture",
+        "capture_once"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/stage_artifact_schema_checker.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "read_json",
+        "validate_artifact",
+        "candidate_files",
+        "check",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/surrogate_provider_adapter.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "SurrogateResponseRequired",
+        "SurrogateSubmissionError",
+        "AdapterContext",
+        "_now",
+        "_canonical",
+        "stable_hash",
+        "_write_json",
+        "_read_json",
+        "_safe_id",
+        "_safe_relative_path",
+        "_payload_security_error",
+        "configure",
+        "current",
+        "_logical_job_id",
+        "_request_paths",
+        "_response_path",
+        "_consumption_path",
+        "_receipt_path",
+        "_validate_expected_payload",
+        "_find_or_create_request",
+        "_load_response_for_request",
+        "provider_text",
+        "_locate_request",
+        "submit_response",
+        "build_response",
+        "status",
+        "waiting_result"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/task_metrics.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/test_architecture_gate.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "collect_test_metadata",
+        "check"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/test_component_pipeline.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "assert_true",
+        "test_component_plan",
+        "test_merge_success",
+        "test_merge_conflict",
+        "test_component_provider_orchestration",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/test_modular_modules.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_load_json",
+        "_ref",
+        "_write_json",
+        "_write_text",
+        "_artifact",
+        "_simulate",
+        "_mermaid",
+        "run",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/ui_semantic_adapter.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_capability_stages",
+        "_convert_button_inline_action",
+        "adapt_complex_workspace_html",
+        "adapt_complex_workspace_javascript",
+        "adapt_complex_workspace_css"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/usage_beta.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_status",
+        "resolve_usage_beta_mode",
+        "evaluate_usage_beta",
+        "write_usage_beta_verdict",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/validate_bundle.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "load_json",
+        "ref_of",
+        "Diagnostic",
+        "ContractIndex",
+        "Compiler",
+        "validate_cross_refs",
+        "validate_schemas",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/verify_kernel_test_receipt.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_canonical_hash",
+        "verify",
+        "main"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/visual_evidence.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "_legacy",
+        "_legacy_call",
+        "real_image_file",
+        "video_requested",
+        "video_file_diagnostics",
+        "write_video_blocked",
+        "startup_entry_candidates",
+        "startup_base_details",
+        "_tail",
+        "_record_process_tail",
+        "_open_and_capture",
+        "capture_candidate_screenshot",
+        "capture_candidate_video",
+        "run",
+        "contract"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    },
+    {
+      "file": "scripts/work_nodes.py",
+      "classification": "KEEP_IN_CGNK_CORE",
+      "symbols": [
+        "ownership_conflicts",
+        "dependency_cycle_nodes",
+        "_items",
+        "_path",
+        "WorkNode",
+        "validate_work_nodes",
+        "bounded_work_node_context"
+      ],
+      "reason": "Retain existing behavior; not authorized for speculative deletion"
+    }
+  ],
+  "outside_scope": "Legacy/experimental/generated artifacts retained; no deletion approved by this inventory"
+}

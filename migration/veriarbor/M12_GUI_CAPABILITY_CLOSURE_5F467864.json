@@ -1,0 +1,37 @@
+{
+  "kind": "GuiFrozenContractClosureDiagnostic",
+  "acceptance_authority": false,
+  "source_sha256": "5f4678644367eb19460fdc6ddcca68bba2a43f347dee19be141547d312181ed1",
+  "actual_literal_gui_operations": [
+    "analytics.fetch",
+    "analytics.history",
+    "approval.approve",
+    "approval.review",
+    "approval.status",
+    "campaign.create",
+    "campaign.list",
+    "claim.list",
+    "content.list",
+    "evidence.import",
+    "evidence.list",
+    "media.import",
+    "media.list",
+    "project.create",
+    "project.list",
+    "publish.send",
+    "receipt.list",
+    "schedule.cancel",
+    "schedule.create",
+    "schedule.list",
+    "schedule.reschedule",
+    "signal.create",
+    "signal.list"
+  ],
+  "missing_required_operation_paths": [
+    "publish.reconcile",
+    "content.compare",
+    "content.variant"
+  ],
+  "finding": "Frozen M12 explicitly asks visible UNKNOWN states with real reconcile action, channel variants and revision comparison. Current source has no reconcile/compare/variant occurrences; backend dispatch alone is not an accessible GUI action. Static evidence, to be confirmed by actual UI observer; not a native acceptance grant.",
+  "host_business_patches": 0
+}

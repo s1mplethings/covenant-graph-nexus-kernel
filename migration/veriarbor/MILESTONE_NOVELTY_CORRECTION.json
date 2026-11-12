@@ -1,0 +1,14 @@
+{
+  "kind": "MilestoneContractNoveltyProjectionCorrection",
+  "previous_failure": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\continuations\\veriarbor-47\\execution-error.json",
+  "root_cause": "Declaration current_requirements/dependency_contracts omitted from semantic context projection, colliding distinct milestones under same global project goal",
+  "changed_host_source": "cgkn/adapters/veriarbor/provider_novelty_adapter.py",
+  "source_sha256": "cd60721938fc3f24b5f69c92a08529b56c0fb026cc59cd352655fe6d576c3d7e",
+  "tests": "D:\\VeriArbor\\governance\\checks\\milestone-contract-novelty\\receipt.json",
+  "test_receipt_sha256": "e7ad87b3ab4e19e1191b03b6820f19f42819bbb771373f1e9acf75925dabe4c6",
+  "tests_passed": 8,
+  "same_contract_different_attempt_still_denied": true,
+  "provider_calls_during_validation": 0,
+  "ledger_unchanged": true,
+  "candidate_unchanged": true
+}

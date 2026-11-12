@@ -4,6 +4,7 @@ from __future__ import annotations
 import ast
 import json
 import pathlib
+import os
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -298,12 +299,15 @@ def _imports(path: pathlib.Path) -> set[str]:
 
 
 def _active_python_files() -> list[pathlib.Path]:
-    ignored = {".git", ".venv", "venv", "__pycache__", "legacy", "generated", "artifacts", "runs"}
-    return [
-        path
-        for path in ROOT.rglob("*.py")
-        if not any(part in ignored for part in path.relative_to(ROOT).parts)
-    ]
+    ignored = {".git", ".venv", "venv", "__pycache__", "legacy", "generated", "artifacts", "runs",
+               "node_modules", ".api_lab_worktree", ".service_scratch", ".service_worktree"}
+    paths = []
+    # Prune before descent: dependency caches and separate service checkouts
+    # are not active kernel source, and can contain millions of files.
+    for folder, dirs, files in os.walk(ROOT, followlinks=False):
+        dirs[:] = [d for d in dirs if d not in ignored and not (pathlib.Path(folder)/d).is_symlink()]
+        paths.extend(pathlib.Path(folder)/name for name in files if name.endswith('.py'))
+    return paths
 
 
 def _forbidden_import(imported: str) -> bool:
@@ -374,7 +378,7 @@ def check() -> list[str]:
                 errors.append(f"missing_compatibility_entrypoint:{path}")
 
     for path in sorted(FORBIDDEN_ACTIVE_PATHS):
-        if (ROOT / path).exists():
+        if has_active_content(ROOT / path):
             errors.append(f"obsolete_active_path:{path}")
 
     for path in _active_python_files():
@@ -410,6 +414,20 @@ def check() -> list[str]:
         if not (ROOT / path).is_file():
             errors.append(f"missing_mvp_core:{path}")
     return sorted(set(errors))
+
+
+def has_active_content(path: pathlib.Path) -> bool:
+    """Ignore only derived PEP 3147 bytecode caches, never source or symlinks."""
+    if path.is_symlink() or path.is_file():
+        return True
+    if not path.exists():
+        return False
+    for item in path.rglob('*'):
+        if item.is_symlink():
+            return True
+        if item.is_file() and not (item.parent.name == '__pycache__' and item.suffix == '.pyc'):
+            return True
+    return False
 
 
 def main() -> int:

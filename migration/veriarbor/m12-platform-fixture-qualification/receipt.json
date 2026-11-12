@@ -1,0 +1,19 @@
+{
+  "kind": "M12TestPlatformFixtureQualification",
+  "source_sha256": "0955f65a7f4fc7bb255a4018e6539a74120e9b809a76c964323cfde204961435",
+  "controls": [
+    {
+      "variant": "original",
+      "status": 500,
+      "body": "'ThreadingHTTPServer' object has no attribute 'port'"
+    },
+    {
+      "variant": "fixture_attribute_corrected",
+      "status": 200,
+      "body": "{\"id\": \"remote-fixture-\", \"remote_id\": \"remote-fixture-\", \"url\": \"http://localhost:38121/publications/remote-fixture-\"}"
+    }
+  ],
+  "finding": "Generated test MockPlatformHandler reads nonexistent ThreadingHTTPServer.port; correct documented server_port in original testowner144 fixture. This is not verified M7 publisher failure. Existing PUBLISHED assertion must remain. Full test may then expose real main.py state endpoint failure.",
+  "product_and_test_sources_changed": false,
+  "acceptance_authority": false
+}

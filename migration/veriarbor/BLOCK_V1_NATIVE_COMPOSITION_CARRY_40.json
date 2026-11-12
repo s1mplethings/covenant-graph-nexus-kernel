@@ -1,0 +1,60 @@
+{
+  "kind": "DerivedNativeCompositionCarry",
+  "regression_ref": "D:\\VeriArbor\\REGRESSION.json",
+  "regression_sha256": "202b074417bcc65b3599d6f69199f95fe4da07a05798e4138a967ca208108931",
+  "legacy_shadow_identical": false,
+  "current_replay_identical": true,
+  "qualified_differences": [
+    {
+      "goal_id": "accept-f5c7d005f6ae37dd5411",
+      "old": "INSUFFICIENT_EVIDENCE",
+      "new": "VERIFIED",
+      "substitutions": {
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": {
+          "old_certificate": "0ec308f10c2f7d926323cb846bf14ac7ab4cd628c2d5d6e7eb65759c78ac98b5",
+          "new_certificate": "2673bc1ba9be0fdf21fe3d0a182857a1a9822a328005bea2edbf558de803bdc7",
+          "old_hash": "db223502ff57164389978d41cde5d9f850c756a714f9c8b5fd9085ffea27d511",
+          "new_hash": "fa6720fa72e5e955987349f999c1314360f448310c1fa52d2e63179df741f950",
+          "evidence_refs": [
+            "sha256:56accd41eb3846b972e0b63aa576d653bffc56e5e7548420a44b8793bc36051d"
+          ]
+        },
+        "promotion_publish.py": {
+          "old_certificate": "b484e22e8ba9ad811ce7aa2c288f3bd0187b993222d2e2698ee5519736347d4d",
+          "new_certificate": "d0821ad6ca6afcf7a651e051d1d3abe0812439ae0caf624accb1cd7c6c952352",
+          "old_hash": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024",
+          "new_hash": "bef8809a307cf88ec69c378eaaea5e36821bdd6d95e28d4699b1aafd4037467e",
+          "evidence_refs": [
+            "sha256:14379158a503e1809a90e378c97fc789162e33ba2ee58760d84d0e635d66c018"
+          ]
+        }
+      }
+    },
+    {
+      "goal_id": "accept-50facb9f04482acba162",
+      "old": "INSUFFICIENT_EVIDENCE",
+      "new": "VERIFIED",
+      "substitutions": {
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": {
+          "old_certificate": "0ec308f10c2f7d926323cb846bf14ac7ab4cd628c2d5d6e7eb65759c78ac98b5",
+          "new_certificate": "2673bc1ba9be0fdf21fe3d0a182857a1a9822a328005bea2edbf558de803bdc7",
+          "old_hash": "db223502ff57164389978d41cde5d9f850c756a714f9c8b5fd9085ffea27d511",
+          "new_hash": "fa6720fa72e5e955987349f999c1314360f448310c1fa52d2e63179df741f950",
+          "evidence_refs": [
+            "sha256:56accd41eb3846b972e0b63aa576d653bffc56e5e7548420a44b8793bc36051d"
+          ]
+        },
+        "promotion_publish.py": {
+          "old_certificate": "b484e22e8ba9ad811ce7aa2c288f3bd0187b993222d2e2698ee5519736347d4d",
+          "new_certificate": "d0821ad6ca6afcf7a651e051d1d3abe0812439ae0caf624accb1cd7c6c952352",
+          "old_hash": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024",
+          "new_hash": "bef8809a307cf88ec69c378eaaea5e36821bdd6d95e28d4699b1aafd4037467e",
+          "evidence_refs": [
+            "sha256:14379158a503e1809a90e378c97fc789162e33ba2ee58760d84d0e635d66c018"
+          ]
+        }
+      }
+    }
+  ],
+  "scope": "Read-only original receipt authentication plus certified dependency replacement; no product PASS granted. Audit confirmed M9/M10 VERIFIED after fa M6 and bef M7, without their re-execution in continuation40."
+}

@@ -1,0 +1,112 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "QwenFlash Agent7000/Worker24000 only, noPro/Max. Preserve11newUNKNOWN. Hostgenerictransportnow requests supported minimalobjectJSONschema envelope for cgkn_semantic_v1;110testsPASS in both frozen andisolatedinterpreters, directiongatePASS. No candidatepatches or extra paidprotocolprobes.",
+    "milestone_completion_request": "Continue original M12 owner143 four-mechanism repair, then current153 independentcheck. Preserve verifiedM1-M11 and all existing workingGUIflows. Follow fullfrozencontract andremainingtest/docs/Signals/compare/reconcile obligations afterthisslice. Do not restart completedmilestones.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "main.py": "041a367eaaaf2b318ecd380f26a5227019733457bce918de5d224286dd35e8cb"
+        }
+      },
+      "current_owner": 143,
+      "attempt": 18,
+      "native_current_failure": {
+        "bound_reference": {
+          "path": "attempts/sem-node-0153/attempt-0001.json",
+          "receipt_hash": "93fb9dcbf07d2a8eee11a27a96e064396b0eeb45c1bf80185a28b76dd06da462"
+        },
+        "reason": "M12_independent_business_suite: TimeoutError: Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for get_by_role(\"button\", name=\"Media\", exact=True)\n"
+      },
+      "preserve_proven_behaviors": "Actual browser uploadedPNG/video, decodedattachedvideo, publishedoverrealHTTP, verifiedreceipt/mediarevisionbinding andidempotency, restartedprocessandreadreceipt/media, editedSAMEcontentID rev1->2 withapprovalDRAFT, blockedunapprovededit andchanged/missingmedia beforePOST. NoJSerrors. All11serverroutes/staticDOMPASS. Do notrewritebackend, removeedit/Newcontent, breakuploadbridge/publishcontrols/Claimsrefresh/threading.",
+      "remaining_actual_mechanisms": [
+        "Analytics button is now reachable and calls M10, but it reads receipt.platform_url. ACTUAL receipt has NO platform_url: browser request sends emptystring andreturns400. Preserve configured Platform URL from actualinput in state/localStorage, synchronize Content andSchedule inputs onchange, reuse it for analytics. Alternatively parse actual receipt.request_ref which is the original platform /publish URL, not receipt.url (remote item URL). Analytics fetch requires project_id,receipt_id,platform_url; history requires project_id AND receipt_id (currently missing). Use same actual selected/current PUBLISHED receipt for both and render returned metrics. Preserve receipts remoteIDs.",
+        "Schedule usesM8 now, but createpayload contains onlyproject_id/content_id/when. Actualclick400 platform_url required. Add shared configured platform_url AND idempotency_key, then select returned schedule.id soCancel/Reschedule are usable; currentstate.scheduleId neverassigned. loadSchedules must restore/display actualselection. No APIbackendchange.",
+        "_serve_state still ignoresproject_idquery; eachproject-boundlist calledwithoutID anderrorsswallowed. ActualGETwithproject_id returns emptycontents/receipts despitepublishedcontent. Passparsedquery tostatehandler; validate requestedproject viaM1project.get then call M4campaign.list,M5content.list,M9receipt.list,M8schedule.list with project_id. Unknownproject400, foreignprojectonlyownrows. No blank200 maskingerrors. Startupprojectlistwithoutselectedproject mayreturnprojects+emptyprojectboundarrays explicitly.",
+        "Mediauploadworks but remainsonlyContent Uploadmedia/ImportMedia with noMedia nav. Provide reachableMedia nav/section with labelMedia file, labelMedia kind and buttonImport media, connectedtoexistingbase64serverbridge. PreserveContentmedia selectandactuallinkedpreview. UseuniqueDOMIDs and navshowView includesnewsection; no unusedhelper."
+      ],
+      "atomic_protocol": "Return ONLY one rawJSONobject, notarray/prose/Markdown/XML. The existingtransportnow requestsobjectoutput; keep allsemanticvalidation. strategy.full_file_write MUST be boolean true. Readactualmain/neededverifiedAPI contracts thenonecompletefullfilewrite. Do notreimplementbackends.",
+      "next": "Repair original143deps[] withallfourconcreteGUImechanisms on unchanged041a18. Thenmeasureexisting153deps[] withactivequalifiedrevision8. NoM1-M11checks. No secondGUIwriter. Inspectactualbackends andreceipt fields; alreadycorrectmodulebindingsneedpreservation. RemainingSignals/evidenceclaims,compare/reconcile,test/docs obligations remain afterthisslice.",
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0153\\attempt-0001.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-gui-contracts-041a367e\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A18_DELTA.txt",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-143a18\\receipt.json"
+      ],
+      "worker_protocol_diagnosis": {
+        "kind": "RepeatedWorkerProtocolFailure",
+        "attempts": [
+          19,
+          20
+        ],
+        "errors": [
+          "INVALID_OR_INCOMPLETE_JSON",
+          "INVALID_OR_INCOMPLETE_JSON"
+        ],
+        "response_forms": [
+          "prose plus XML tool_call",
+          "prose plus JSON read"
+        ],
+        "source_unchanged": true,
+        "source_sha256": "041a367eaaaf2b318ecd380f26a5227019733457bce918de5d224286dd35e8cb",
+        "outcome_unknown": false,
+        "next_executor_route": "qwen-agent-deepseek-worker-gui-route.json",
+        "requirement": "Original bounded repair only. Parse strict JSON normally; do not extract/replay rejected text. First read may be op0/path1 rawJSON only; when currentsourceobserved, one complete op2 fullfile addressingallfourmechanisms. Preservebackend/core, failedhistory, ledger.",
+        "evidence_refs": [
+          "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0143\\attempt-0019.json",
+          "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0143\\attempt-0020.json"
+        ],
+        "additional": "77a23 first rawJSONlistaccepted, next response singletonarray rejectedOBJECT_REQUIRED, sourceunchanged. Hostgateway previously removed structuredformat forschemaNone; nowknownsemanticprotocol gets minimalrootobjectJSONschema envelope(strictfalse,fieldscopeopen), actualinstalledgatewayparseadmitted. Originalsemanticvalidation unchanged. No cached/rejectedtext replay."
+      },
+      "qualified_checker": {
+        "version": "qualified-revision-8",
+        "source": "final-gui-complete-v10.py",
+        "qualification_controls": 32,
+        "scope": [
+          "M12"
+        ],
+        "new_requirement": false,
+        "reason": "Oldunscoped11 text matchedwithoutsuccessfulanalytics; nowactualHTTP200/exactmetrics/receipt/remote/revision/channel/timestamp checks supplement allv9assertions."
+      }
+    },
+    "gui_writer_policy": "Only original node 143 writes main.py. Backend files and early_main.py remain unchanged. No parallel GUI writers. Host business patches remain zero.",
+    "admission_correction": "Generic transportformat correctedandqualified; preserve currentbusinessfailure153reference. Repair143deps[] strategy.full_file_write:true boolean (MUSTincludeit), top-levelhypothesis.falsifying_evidence asarray ofexactboundrefs. Put allfouractualmechanisms intoWorkerleafgoal/expected: analytics configuredplatformURL+selectedreceiptID andhistoryreceiptID; scheduleURL+idempotencykey+actualscheduleIDselection; projectscopedstatevalidatedM1project.get; Media nav/file/kind/importwiredexistinguploadbridge. TheseAPIargument/statebugsareproven byactualbrowserrequests, notmissingbackendfunctions. Thenexisting153 currentqualifiedrevision8key only.",
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "main.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0150\\attempt-0002.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A13_DELTA.txt",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-full-write-policy-qualification\\pytest.log",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-upload-8da2b883\\receipt.json"
+        ]
+      }
+    ],
+    "redecision": {
+      "strategy_revision": "1f75c5b18978689062a3bf8349238256facf2deb6764ee5bf45085ef92583c87",
+      "reason": "New generic transport implementation addresses repeatedprose/arrayoutputs atwireboundary. Open semanticfields unchanged;110localtests pass twice,installedgatewayparserverified,no productioncallsduringqualification. Current143a23sourceunchanged; resumeoriginalboundedrepair thenindependentM12qualified8measurement.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\SEMANTIC_JSON_ENVELOPE_QUALIFICATION43.json",
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0143\\attempt-0023.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_V10_ACTIVATION.json",
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0153\\attempt-0001.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-gui-contracts-041a367e\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A18_DELTA.txt",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-143a18\\receipt.json"
+      ]
+    }
+  }
+}

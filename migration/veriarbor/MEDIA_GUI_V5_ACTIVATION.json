@@ -1,0 +1,60 @@
+{
+  "revision": {
+    "checker_hash": "b43bb596503990c24e4fc9b5eb8df2dc7b784eb101514351d6e9617cfaccfaea",
+    "checker_key": "independent",
+    "checker_version": "qualified-revision-3",
+    "kind": "QualifiedCheckerRevision",
+    "previous_checker_hash": "283bf80a6cd4fe3866f2c00a032d38bb4e3c7a6d58e07bcdc06e26978ccf3c11",
+    "qualification_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/d28a15d5a5ad1da103178157f3a33d83bff2a09551ce17c0e9468850d7340a64.json",
+      "sha256": "82973ea78b88a84ed472e832dc691cb9f978241d9eeeb5a82039051d30effdfa"
+    },
+    "reason": "Frozen M11 explicitly requires actual image/video GUI preview. Extend original real browser workflow with actual M11 HTTP dispatch, attached-content readback and visible preview bytes/controls. Preserve all prior API and browser assertions. Only M11 observer scope changes; final M12 attachment-control validation still required.",
+    "sequence": 3,
+    "source_ref": {
+      "path": "iter132-promotion-studio/promotion-05/private_checker/b43bb596503990c24e4fc9b5eb8df2dc7b784eb101514351d6e9617cfaccfaea.py",
+      "sha256": "b43bb596503990c24e4fc9b5eb8df2dc7b784eb101514351d6e9617cfaccfaea"
+    },
+    "revision_ref": {
+      "path": "iter132-promotion-studio/promotion-05/checker_revisions/000003.json",
+      "sha256": "9e841f4735b68cdb801ff4933e6ff7e911732828bbe8b67912a6cc1edcbf53c2"
+    }
+  },
+  "decision": {
+    "checker_key": "independent",
+    "previous_checker_hash": "283bf80a6cd4fe3866f2c00a032d38bb4e3c7a6d58e07bcdc06e26978ccf3c11",
+    "source_path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\consumer-revisions\\media-gui-v5.py",
+    "source_sha256": "b43bb596503990c24e4fc9b5eb8df2dc7b784eb101514351d6e9617cfaccfaea",
+    "qualification_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/d28a15d5a5ad1da103178157f3a33d83bff2a09551ce17c0e9468850d7340a64.json",
+      "sha256": "82973ea78b88a84ed472e832dc691cb9f978241d9eeeb5a82039051d30effdfa"
+    },
+    "reason": "Frozen M11 explicitly requires actual image/video GUI preview. Extend original real browser workflow with actual M11 HTTP dispatch, attached-content readback and visible preview bytes/controls. Preserve all prior API and browser assertions. Only M11 observer scope changes; final M12 attachment-control validation still required."
+  },
+  "scope": [
+    "M11"
+  ],
+  "actual_executor_fallback_chain": [
+    {
+      "version": "qualified-revision-3",
+      "scope": [
+        "M11"
+      ],
+      "hash": "b43bb596503990c24e4fc9b5eb8df2dc7b784eb101514351d6e9617cfaccfaea"
+    },
+    {
+      "version": "qualified-revision-2",
+      "scope": [
+        "M11"
+      ],
+      "hash": "283bf80a6cd4fe3866f2c00a032d38bb4e3c7a6d58e07bcdc06e26978ccf3c11"
+    },
+    {
+      "version": "qualified-revision-1",
+      "scope": null,
+      "hash": "5201a3c5aa6c9e829890787e3a5d6b8f60d3de104b301fb9df5eeb28faeb1007"
+    }
+  ],
+  "acceptance_granted": false,
+  "provider_calls": 0
+}

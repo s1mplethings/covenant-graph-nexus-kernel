@@ -1,0 +1,326 @@
+{
+  "kind": "P11FormalIntegrationResult",
+  "created_at": "2026-11-06T05:33:45.284958+00:00",
+  "repo": "F:\\CGKN-LeanLoop-V1-20261101",
+  "git_head": "0bd7134ade87cb6ece13f8f7868860cd2c3ba67c",
+  "git_branch": "codex/leanloop-v1-20261101",
+  "patch_applied": true,
+  "patch_sha256": "3f7caed58227d25685ccd0f1792955f2420260e28020e55f10559b41696f237c",
+  "apply_mode": "git -c core.autocrlf=false apply -p1",
+  "file_hashes": {
+    "cgkn/state/provenance.py": "55f5ee9c917d451663021d3c9ef5ad18142e9ca91c4b307272b2e459767ba837",
+    "scripts/final_delivery_truth.py": "02e1cfd39ec262d806669ba7519f047bd84c35c0262924bcb535024d5a1fafd7",
+    "scripts/production_candidate_provenance.py": "ac31aad7430f28a5dbcede167f952100f41a21048f04b8b79115b0bec385d5aa",
+    "cgkn/state/release_authorization.py": "d839298f8c0cab161327377cb757e10b9bffec7af3332ffe11dde80847e6bc44",
+    "tools/sign_release_authorization.py": "3f8ff161cc9fa7282d3134c40bc9a93879f4522ffa1fc005632f76eb4c67979c"
+  },
+  "file_hashes_match_tested": true,
+  "status_diff_after_apply": {
+    "added": [
+      "?? cgkn/state/release_authorization.py",
+      "?? migration/veriarbor/P11_FIX_20261106/STATUS_BEFORE_APPLY.txt",
+      "?? migration/veriarbor/P11_FIX_20261106/pre_apply_backup/PRE_APPLY_MANIFEST.json",
+      "?? tools/sign_release_authorization.py"
+    ],
+    "removed": []
+  },
+  "status_added_by_tests": [
+    "?? migration/veriarbor/P11_FIX_20261106/FORMAL_INTEGRATION_RESULT.json",
+    "?? migration/veriarbor/P11_FIX_20261106/P11_P19_RESULTS_FORMAL.json",
+    "?? migration/veriarbor/P11_FIX_20261106/REGRESSION_FORMAL.txt",
+    "?? migration/veriarbor/P11_FIX_20261106/STATUS_AFTER_APPLY.txt",
+    "?? migration/veriarbor/P11_FIX_20261106/STATUS_AFTER_TESTS.txt"
+  ],
+  "m12": {
+    "candidate_main": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+    "bundle": "f6eb10fb8283b250c28796e0ac95308bb6135e8434f6eef742acc58fbb469f8f",
+    "goal_acceptance": "c3d55cfd3cb335948728f1153c7dbb675204760574e46c3ad3fdaf83dbd635aa",
+    "security_hold": {
+      "kind": "FinalDeliverySecurityHold",
+      "created_at": "2026-11-06T04:09:10.740157+00:00",
+      "status": "PAUSED",
+      "reason": "P11: AuthorizedAgentSource self-authorization accepted by delivery_sources.",
+      "existing_delivery_status_preserved": "DELIVER_WITH_WARNINGS",
+      "delivery_recognition": "PAUSED_PENDING_SECURITY_FIX",
+      "source_hash": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+      "p11_evidence": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\P11_SELF_AUTHORIZATION_RESULT.json",
+      "new_paid_provider_calls": 0,
+      "new_provider_cost": 0
+    }
+  },
+  "security_tests": {
+    "kind": "P11FormalPostIntegrationSecurityTests",
+    "created_at": "2026-11-06T05:31:32.050702+00:00",
+    "scope": "formal integrated code under F:\\CGKN-LeanLoop-V1-20261101; isolated run-store/workspace copies; no frozen candidate or ZIP modified",
+    "fixture_private_key": "C:\\Users\\sunom\\AppData\\Local\\Temp\\opencode\\p11fix_protected\\release-private.pem",
+    "trust_anchor": "C:\\Users\\sunom\\AppData\\Local\\Temp\\opencode\\p11fix_protected\\release-trust-anchor.json",
+    "results": [
+      {
+        "test_id": "P01",
+        "description": "agent source without authorization",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INSUFFICIENT_EVIDENCE: referenced object missing: iter132-promotion-studio/final-validation-01/agent_authorizations/e1727072d379945283dbe2821a75c820ed5a97ffb6396fc7065b9a9cc2ed3410.json",
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p01-v0ie088r"
+      },
+      {
+        "test_id": "P02",
+        "description": "modify authorized agent source",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INVALID_PROVENANCE: authorized agent artifact mismatch",
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p02-hkgd6wab"
+      },
+      {
+        "test_id": "P03",
+        "description": "agent source impersonates Worker",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INVALID_PROVENANCE: authorized agent source binding mismatch",
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p03-y2vgnmh1"
+      },
+      {
+        "test_id": "P04",
+        "description": "B11 independent observation false",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INVALID_PROVENANCE: object hash mismatch: iter132-promotion-studio/final-validation-01/agent_reviews/B11_ACCEPTANCE.json",
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p04-ucgiqmy9"
+      },
+      {
+        "test_id": "P05",
+        "description": "invalid Worker receipt hash",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INVALID_PROVENANCE: object hash mismatch: iter132-promotion-studio/final-validation-01/import_objects/19b815dbc247abac4f894ba135cb067c23b5a068b40fe03bc75ec2259bc82172",
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p05-q0s1gx5i"
+      },
+      {
+        "test_id": "P06",
+        "description": "delivered file hash mismatch",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INVALID_PROVENANCE: imported current artifact mismatch",
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p06-9761ergp"
+      },
+      {
+        "test_id": "P07",
+        "description": "replay old candidate hash",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INSUFFICIENT_EVIDENCE: delivered source lacks bounded Worker or authorized Agent origin: README.md",
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p07-te6j60t0"
+      },
+      {
+        "test_id": "P08",
+        "description": "missing B10 evidence",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INSUFFICIENT_EVIDENCE: referenced object missing: iter132-promotion-studio/final-validation-01/agent_reviews/B10_CERTIFICATE.json",
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p08-4soq4w4p"
+      },
+      {
+        "test_id": "P09",
+        "description": "unrelated production_provenance_ref",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": null,
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p09-w7r9tosk"
+      },
+      {
+        "test_id": "P10",
+        "description": "valid Agent source, authorization, reviews",
+        "expected_result": "ACCEPT",
+        "actual_result": "ACCEPT",
+        "error": null,
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p10-lgnom5nh"
+      },
+      {
+        "test_id": "P11",
+        "description": "self-registration after changing README",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INVALID_PROVENANCE: release authorization: authorization does not bind the delivered manifest",
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p11-5xh4weoj"
+      },
+      {
+        "test_id": "P12",
+        "description": "rewrite signed authorization bytes",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INVALID_PROVENANCE: release authorization: authorization signature does not match",
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p12-l87u6v0k"
+      },
+      {
+        "test_id": "P13",
+        "description": "replace public key / policy",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": null,
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p13-i1m2grjg"
+      },
+      {
+        "test_id": "P14",
+        "description": "change reviewed content with main.py unchanged",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": null,
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p14-jwqojz40"
+      },
+      {
+        "test_id": "P15",
+        "description": "rewrite B11 and recompute ordinary hashes",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INVALID_PROVENANCE: authorized agent record is not signed",
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p15-g6gtsgzl"
+      },
+      {
+        "test_id": "P16",
+        "description": "replay another candidate's authorization",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": null,
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p16-m068c65t"
+      },
+      {
+        "test_id": "P17",
+        "description": "change ZIP bytes with old manifest",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": null,
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p17-995iaqsz"
+      },
+      {
+        "test_id": "P18",
+        "description": "private key outside agent-writable roots",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": null,
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p18-g9earu77"
+      },
+      {
+        "test_id": "P19",
+        "description": "agent changes policy/anchor/verifier",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": null,
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p19-b9uzo433"
+      },
+      {
+        "test_id": "N01",
+        "description": "valid signed batch still accepted",
+        "expected_result": "ACCEPT",
+        "actual_result": "ACCEPT",
+        "error": null,
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-n01-s10a5uxc"
+      },
+      {
+        "test_id": "N02",
+        "description": "no trust anchor fails closed",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": null,
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-n02-6y_le3oh"
+      },
+      {
+        "test_id": "N03",
+        "description": "missing signed authorization fails closed",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": null,
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-n03-wikr8dy_"
+      },
+      {
+        "test_id": "N04",
+        "description": "worker-only delivery compatibility",
+        "expected_result": "ACCEPT",
+        "actual_result": "ACCEPT",
+        "error": null,
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-n04-pf49rw44"
+      },
+      {
+        "test_id": "N05",
+        "description": "formal production provenance path",
+        "expected_result": "ACCEPT",
+        "actual_result": "ACCEPT",
+        "error": null,
+        "verdict": "PASS",
+        "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-n05-1tbzp834"
+      }
+    ],
+    "passed": 24,
+    "total": 24,
+    "exit_code": 0,
+    "security_status": "IMPLEMENTED_NOT_TRUSTED",
+    "reason": "Fixture key/anchor; no OS-isolated external signer is deployed.",
+    "run_mode": "FORMAL_POST_INTEGRATION",
+    "code_under_test": {
+      "repo": "F:\\CGKN-LeanLoop-V1-20261101",
+      "cgkn/state/provenance.py": "55f5ee9c917d451663021d3c9ef5ad18142e9ca91c4b307272b2e459767ba837",
+      "cgkn/state/release_authorization.py": "d839298f8c0cab161327377cb757e10b9bffec7af3332ffe11dde80847e6bc44",
+      "scripts/final_delivery_truth.py": "02e1cfd39ec262d806669ba7519f047bd84c35c0262924bcb535024d5a1fafd7",
+      "scripts/production_candidate_provenance.py": "ac31aad7430f28a5dbcede167f952100f41a21048f04b8b79115b0bec385d5aa",
+      "tools/sign_release_authorization.py": "3f8ff161cc9fa7282d3134c40bc9a93879f4522ffa1fc005632f76eb4c67979c"
+    },
+    "fixture_note": "Ed25519 fixture key only; not a formal user authorization"
+  },
+  "regression": {
+    "command": "python -m pytest -q -p no:pytest-qt tests/state/test_worker_source_import.py tests/state/test_provenance_v5.py tests/state/test_provenance_read_snapshot.py tests/state/test_negative_business_provenance.py tests/state/test_current_scoped_coverage.py tests/state/test_checker_revision.py tests/test_veriarbor_substitution_provenance.py",
+    "result_file": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\P11_FIX_20261106\\REGRESSION_FORMAL.txt",
+    "exit_code": 0,
+    "summary": "112 passed"
+  },
+  "formal_delivery_recognition": "PAUSED_PENDING_TRUST_ANCHOR",
+  "trust_anchor": "PENDING_TRUST_ANCHOR",
+  "authorization": "NOT_SIGNED",
+  "commit_created": false,
+  "push_executed": false,
+  "reset_clean_executed": false,
+  "frozen_candidate_modified": false,
+  "frozen_bundle_modified": false,
+  "historical_evidence_overwritten": false,
+  "evidence_hashes": {
+    "P11_FIX_MINIMAL.patch": "3f7caed58227d25685ccd0f1792955f2420260e28020e55f10559b41696f237c",
+    "P11_P19_RESULTS_FORMAL.json": "686ea6b1b3fde513f23099572245ddb1b319bbea6dc2dc19b37dddc46bf21883",
+    "REGRESSION_FORMAL.txt": "8e79508c2c62fe15986be9149566c03078be4a0470101b3c26e84620f356a3d0",
+    "pre_apply_backup/PRE_APPLY_MANIFEST.json": "fa82d89a78d7b413f906f3148fc8993298070f53e6ba265fc083f2787554a3ce",
+    "STATUS_BEFORE_APPLY.txt": "208c922bbe51338c852078cd9b736ca81f3d7909fe871d91aa0d9ee17777acb2",
+    "STATUS_AFTER_APPLY.txt": "bae883bcf8ecb6110f2f31e301242d37e335278c3bf3e96e4f274709e6bf6cec",
+    "STATUS_AFTER_TESTS.txt": "4f1f699e2ec1ac51e9513502db0818641fb1c39795b3dcb96f99533496571f4c"
+  },
+  "module_paths": {
+    "cgkn.state.provenance": "F:\\CGKN-LeanLoop-V1-20261101\\cgkn\\state\\provenance.py",
+    "cgkn.state.release_authorization": "F:\\CGKN-LeanLoop-V1-20261101\\cgkn\\state\\release_authorization.py"
+  },
+  "fail_closed_without_anchor": {
+    "command": "production_candidate_provenance.inspect(formal provenance, expected_candidate_dir=APP) without trust context",
+    "status": "NEEDS_REWORK",
+    "failures": [
+      "project_session_provenance:INSUFFICIENT_EVIDENCE: PENDING_TRUST_ANCHOR: no protected release trust anchor is configured"
+    ]
+  }
+}

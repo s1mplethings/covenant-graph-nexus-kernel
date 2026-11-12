@@ -1,0 +1,156 @@
+{
+  "kind": "AuthenticatedLocalBlockCertificate",
+  "block_id": "B09",
+  "status": "VERIFIED",
+  "reuse_status": "FROZEN_REUSABLE",
+  "certificate": {
+    "block_id": "B09",
+    "variant_id": "B09-711c0519",
+    "input_contract_hash": "05f7184f18797e8deed2bceec9917ddbb1e7f11ac7f98204f49437c252f8fff9",
+    "output_contract_hash": "998aaa4986f41c400f9263b0401cba88cfc27fefd54b3ff76c31691a4ef02e89",
+    "effect_contract_hash": "726512e078c13b8e5fa7b5790c25f6f83c1bdb1c5f014867b4efd8d4dbd24793",
+    "acceptance_ids": [
+      "B09:published receipt exists",
+      "B09:empty analytics history state",
+      "B09:metrics fetched from local platform",
+      "B09:local/synthetic label",
+      "B09:receipt identity binding",
+      "B09:history metrics visible",
+      "B09:fetched_at visible",
+      "B09:history persists after restart",
+      "B09:no JavaScript errors"
+    ],
+    "artifact_hashes": [
+      [
+        "main.py#analytics-dom",
+        "df10e557dde97ac401725686c3244ea0134a5756adab2532b31fde735bd01c79"
+      ],
+      [
+        "main.py#analytics-js",
+        "569d9ced2a003dbf942d92ac271aff511d32a192acb7b6a0d38e083b2773726d"
+      ]
+    ],
+    "checker_hashes": [
+      [
+        "B09.browser",
+        "ea61cb776551c7f8605a352b8efb1eb35c225129ab5617d433d88e8062ffa417"
+      ]
+    ],
+    "known_limits": [
+      "Block scope only; full M12 rollup requires B01-B11."
+    ],
+    "evidence_refs": [
+      "iter132-promotion-studio/promotion-05/evidence/7b8bf1a0c0f54b979e206d5a83b2b8aa8556032206f157c210ffe6ab5b5f8638.json"
+    ],
+    "created_at": "2026-11-05T18:01:29.079003+00:00",
+    "invalidated": false
+  },
+  "certificate_fingerprint": "f2e1fe8a680ac6c769cc64a2739e472c86e5903cdcf154e56c6af5bbc83dbe58",
+  "block": {
+    "block_id": "B09",
+    "capability": "AnalyticsHistoryBlock",
+    "input_ports": [
+      {
+        "port_id": "AnalyticsHistoryBlockInput",
+        "version": "1",
+        "direction": "input",
+        "contract": {
+          "schema_json": "{\"additionalProperties\":false,\"properties\":{\"platform_url\":{\"type\":\"string\"},\"project_id\":{\"type\":\"string\"},\"receipt_id\":{\"type\":\"string\"}},\"required\":[\"project_id\",\"receipt_id\",\"platform_url\"],\"type\":\"object\"}",
+          "semantic": "Independent browser acceptance for AnalyticsHistoryBlock."
+        },
+        "required": true,
+        "default_json": "null",
+        "compatibility_policy": "structural-v1"
+      }
+    ],
+    "output_ports": [
+      {
+        "port_id": "AnalyticsHistoryBlockOutput",
+        "version": "1",
+        "direction": "output",
+        "contract": {
+          "schema_json": "{\"additionalProperties\":false,\"properties\":{\"fetched_at\":{\"type\":\"string\"},\"metrics\":{\"type\":\"string\"}},\"required\":[\"metrics\",\"fetched_at\"],\"type\":\"object\"}",
+          "semantic": "Independent browser acceptance for AnalyticsHistoryBlock."
+        },
+        "required": true,
+        "default_json": "null",
+        "compatibility_policy": "structural-v1"
+      }
+    ],
+    "effect_contract": {
+      "reads": [
+        "persisted milestone state",
+        "selected project identity"
+      ],
+      "writes": [
+        "browser UI state",
+        "project-scoped persistence"
+      ],
+      "external_effects": [
+        "loopback HTTP only"
+      ],
+      "persistence": "restart persistence verified",
+      "idempotency": "duplicate idempotency keys preserve one receipt and one platform post",
+      "concurrency": "threaded server; M11 store lock only at media boundary",
+      "ordering": "UI action -> milestone handler -> persistence -> browser refresh",
+      "rollback": "bounded source patches; isolated acceptance data"
+    },
+    "variants": [
+      {
+        "variant_id": "B09-711c0519",
+        "artifacts": [
+          [
+            "main.py#analytics-dom",
+            "df10e557dde97ac401725686c3244ea0134a5756adab2532b31fde735bd01c79"
+          ],
+          [
+            "main.py#analytics-js",
+            "569d9ced2a003dbf942d92ac271aff511d32a192acb7b6a0d38e083b2773726d"
+          ]
+        ],
+        "status": "VERIFIED"
+      }
+    ],
+    "active_variant": "B09-711c0519",
+    "certificate_ref": null
+  },
+  "source_sha256_at_verification": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+  "relevant_section_hashes": {
+    "main.py#analytics-dom": "df10e557dde97ac401725686c3244ea0134a5756adab2532b31fde735bd01c79",
+    "main.py#analytics-js": "569d9ced2a003dbf942d92ac271aff511d32a192acb7b6a0d38e083b2773726d"
+  },
+  "neighbor_contract_hashes": {
+    "M1_project_api_source": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+    "M11_media_api_source": "4e3f4f9ec6ad0c30a04566a3c6a51e5d6d7bb55e23371bbae740831f3f866a08"
+  },
+  "evidence_refs": [
+    {
+      "path": "iter132-promotion-studio/promotion-05/evidence/7b8bf1a0c0f54b979e206d5a83b2b8aa8556032206f157c210ffe6ab5b5f8638.json",
+      "sha256": "ff313ab1934a84b7cedfee065bf50bf209d7a0e8c1bd896fef2b5490a62f9de7"
+    }
+  ],
+  "acceptance_checks": [
+    "published receipt exists",
+    "empty analytics history state",
+    "metrics fetched from local platform",
+    "local/synthetic label",
+    "receipt identity binding",
+    "history metrics visible",
+    "fetched_at visible",
+    "history persists after restart",
+    "no JavaScript errors"
+  ],
+  "checker": "D:\\VeriArbor\\tools\\m12_b09_acceptance.py",
+  "checker_sha256": "ea61cb776551c7f8605a352b8efb1eb35c225129ab5617d433d88e8062ffa417",
+  "invalidation_triggers": [
+    "certified section changes",
+    "checker identity changes",
+    "neighbor contract changes"
+  ],
+  "authority": "Original FileRunStore evidence plus VeriArbor Certificate",
+  "host_business_patches": 0,
+  "canonical_evidence_ref": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/77ab54ca73b93019a39f02721fae3fb95d39f1b8ed8ea9d3c64fc516775855f8.json",
+    "sha256": "6920d71055bf0f709eb5c9fdf82da2cf43f658fff6f70fc21a279028e64d8c87"
+  }
+}

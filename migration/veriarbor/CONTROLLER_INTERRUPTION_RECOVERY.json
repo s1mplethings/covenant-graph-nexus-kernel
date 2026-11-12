@@ -1,0 +1,79 @@
+{
+  "proof": {
+    "kind": "LocalBoundedFileEffectInspection",
+    "disposition": "NOT_APPLIED",
+    "source_receipt_sha256": "ae565fbcbe4bb56d4db5061565f7e90c8d7401e3156529b63797624ad362ec83",
+    "target_scope": [
+      "early_main.py"
+    ],
+    "existing_targets_match_prior_successful_origin_stage_and_workspace": {
+      "early_main.py": "904f5b7229cc02ee0c35b2b10a11768efbd1848f798f6f5247dee6555d1d07f9"
+    },
+    "prior_successful_origin_ref": {
+      "path": "iter132-promotion-studio/promotion-05/attempts/sem-node-0091/attempt-0054.json",
+      "sha256": "9a503bebc4819b2cec65020bc216e7450c15e5ba36d0fa37686cb1454301adf8"
+    },
+    "read_dependencies_match_stage": {
+      "early_main.py": "904f5b7229cc02ee0c35b2b10a11768efbd1848f798f6f5247dee6555d1d07f9",
+      "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+      "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+      "milestones/milestone_33270fed0c9054f5ae04/api.py": "78dd17fe6722f4fa573580b6a59d33374e925ccf309641d9241081a53e755cbc",
+      "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+      "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+      "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+      "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+    },
+    "publication_intent_absent": true,
+    "original_request_ref": {
+      "path": "iter132-promotion-studio/promotion-05/provider_calls/40aa69df42f2487a81263209c373c619/request.json",
+      "sha256": "c6dfd11a74abd7cefb065684647820f8eec138fb9f7910c58096d09b5680c9b3"
+    },
+    "controller_interruption_receipt_ref": {
+      "path": "iter132-promotion-studio/promotion-05/attempts/sem-node-0091/attempt-0055.json",
+      "sha256": "8d21756cef6a662fc0cb9c07189339c3f05bdd17626d571c01165a2fa92c8fec"
+    },
+    "scope": "Local file effects only; interrupted upstream response/usage/cost UNKNOWN remains. Original request is not retried."
+  },
+  "result": {
+    "schema_version": "1.0",
+    "project_id": "iter132-promotion-studio",
+    "run_id": "promotion-05",
+    "attempt_id": "attempt-0056",
+    "node_id": "sem-node-0091",
+    "executor_ref": "verify.local-file-effects@1",
+    "status": "BLOCKED",
+    "outputs": {},
+    "artifact_refs": [],
+    "test_observations": [],
+    "error": {
+      "code": "POLICY_BLOCKED",
+      "message": "VERIFIED_NOT_APPLIED: explicit retry permitted",
+      "details": {}
+    },
+    "started_at": "2026-11-03T10:43:43.279089+00:00",
+    "ended_at": "2026-11-03T10:43:43.279089+00:00",
+    "duration_ms": 0,
+    "usage": {},
+    "retryable": false,
+    "metadata": {
+      "reconciliation": {
+        "source_receipt_hash": "ae565fbcbe4bb56d4db5061565f7e90c8d7401e3156529b63797624ad362ec83",
+        "disposition": "NOT_APPLIED",
+        "evidence_refs": [
+          {
+            "path": "iter132-promotion-studio/promotion-05/evidence/56de7f3ec4a801465ef057e0dcb97ff58433cc302d3e28247b80c05bea9dd483.json",
+            "sha256": "d463879f687e3852d888b702604454eccffd7faf3ebc515dcf97ae5a2559f184"
+          }
+        ]
+      },
+      "original_attempt_id": "attempt-0055",
+      "checker_receipt_hash": "43bd290ee37cea7bbc38d26b889203ce456b55735c5fbb1f8d80b2fc4f128969"
+    }
+  },
+  "upstream_outcome": "UNKNOWN_RETAINED",
+  "complete_cache": "MISS",
+  "provider_calls": 0,
+  "host_business_patches": 0,
+  "old_attempts_unchanged": true,
+  "other_ledger_rows_unchanged": true
+}

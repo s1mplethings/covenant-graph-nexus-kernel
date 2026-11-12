@@ -1,0 +1,43 @@
+{
+  "kind": "M12CurrentFailureContext",
+  "updated_at": "2026-11-04T10:02:44.152556+00:00",
+  "target_block": "B02",
+  "B01": "VERIFIED_FROZEN_REUSABLE",
+  "M1_M11": "FROZEN_REUSABLE",
+  "full_veriarbor_v1": "PARTIAL_DEFERRED",
+  "formal_current_failure": {
+    "path": "attempts/sem-node-0157/attempt-0001.json",
+    "receipt_hash": "46afff532fbe376279a19081ef535879b9e526fe8850e4655c4872a9c54d9fcf"
+  },
+  "bound_source_sha256": "60d5e9d3fcdf45f7134576b77aedc42fb4ec6bbd0cdfbb5a5e12f17fdb7eb97d",
+  "actual_current_failure": "Browser media.import returns400 path must be a non-empty string; no browser-to-server-path adapter yet. Media serving was separately corrected by143a32.",
+  "latest_execution_failure": {
+    "kind": "PatchScopeAnchorCorrection",
+    "failed_node": "sem-node-0143",
+    "failed_attempt": "attempt-0033",
+    "source_unchanged": "60d5e9d3fcdf45f7134576b77aedc42fb4ec6bbd0cdfbb5a5e12f17fdb7eb97d",
+    "old_media_range": [
+      45851,
+      47629
+    ],
+    "new_media_range": [
+      45843,
+      47629
+    ],
+    "change": "Include eight leading indentation spaces on Media heading line; no function/body scope expansion",
+    "business_patch_applied": false,
+    "browser_run_after_rejection": false,
+    "original_native_failure_still_current": "sem-node-0157/attempt-0001"
+  },
+  "next_action": "Original143 retry under corrected whole-line boundary and qualified atomic multi-range patch protocol; no browser after unchanged rejectedsource.",
+  "invalidated_historical_strategies": [
+    "B01 bootstrap repair is complete and frozen",
+    "old module mapping and concurrency issues resolved",
+    "full-file rewrite forbidden",
+    "143a28/a29 no-delta output not implementation",
+    "143a32 partial media-serving-only patch is not complete B02"
+  ],
+  "previous_context_retained": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\context-history\\M12_CURRENT_FAILURE_CONTEXT-554bcea616cd.json",
+  "active_continuation": "veriarbor-95",
+  "source_writer_may_be_in_flight": true
+}

@@ -27,6 +27,16 @@ class ContractTestCompilerExecutor:
     def __init__(self, workspace: Path):
         self.workspace = workspace.resolve()
 
+    @property
+    def candidate_root(self):
+        return self.workspace
+
+    def in_candidate_workspace(self, directory):
+        from copy import copy
+        worker = copy(self)
+        worker.workspace = Path(directory).resolve()
+        return worker
+
     def execute(self, request: BlockExecutionRequest) -> BlockExecutionResult:
         started, clock = utc_now(), time.perf_counter()
         try:

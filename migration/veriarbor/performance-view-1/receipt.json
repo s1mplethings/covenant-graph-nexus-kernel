@@ -1,0 +1,8 @@
+{
+  "kind": "ReadOnlyOperationalProfile",
+  "seconds": 11.375,
+  "goal_count": 88,
+  "authority_bytes": 43502406,
+  "does_not_grant_acceptance": true,
+  "provider_calls": 0
+}

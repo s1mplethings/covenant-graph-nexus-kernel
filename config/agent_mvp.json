@@ -2,7 +2,7 @@
   "kind": "CGKNAgentMVPConfig",
   "schema_version": "1.0",
   "agent": {
-    "model": "qwen3.8-max",
+    "model": "qwen3.8-flash",
     "timeout_seconds": 60,
     "max_output_tokens": 3000,
     "reasoning_effort": "none"

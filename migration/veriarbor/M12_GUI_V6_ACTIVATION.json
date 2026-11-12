@@ -1,0 +1,67 @@
+{
+  "revision": {
+    "checker_hash": "80e2d724dbc35e522ef4aca2b8f4e920b437a0a0f07173e877e80099e17d32e8",
+    "checker_key": "independent",
+    "checker_version": "qualified-revision-4",
+    "kind": "QualifiedCheckerRevision",
+    "previous_checker_hash": "b43bb596503990c24e4fc9b5eb8df2dc7b784eb101514351d6e9617cfaccfaea",
+    "qualification_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/ceb28a31af64e1aac3af949415e788585ec432a8c2a0ff75330d80e5f7b8ce5d.json",
+      "sha256": "88d19d936a14c1ce6409ca6b93cabd63f258333160964bdf6c90c7dd68e2b8dd"
+    },
+    "reason": "Frozen M12 requires real editing, project-scoped state, valid media serving and restart. Actual browser identified upload400, duplicate-save and false empty state missed by prior browser. Preserve every existing assertion and add these independent actual GUI/HTTP/process checks; scope only M12.",
+    "sequence": 4,
+    "source_ref": {
+      "path": "iter132-promotion-studio/promotion-05/private_checker/80e2d724dbc35e522ef4aca2b8f4e920b437a0a0f07173e877e80099e17d32e8.py",
+      "sha256": "80e2d724dbc35e522ef4aca2b8f4e920b437a0a0f07173e877e80099e17d32e8"
+    },
+    "revision_ref": {
+      "path": "iter132-promotion-studio/promotion-05/checker_revisions/000004.json",
+      "sha256": "be5276b95864d83ddc0b949e647778312337cf4b91b85b7a941cc09bf771c151"
+    }
+  },
+  "decision": {
+    "checker_key": "independent",
+    "previous_checker_hash": "b43bb596503990c24e4fc9b5eb8df2dc7b784eb101514351d6e9617cfaccfaea",
+    "source_path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\consumer-revisions\\final-gui-integrity-v6.py",
+    "source_sha256": "80e2d724dbc35e522ef4aca2b8f4e920b437a0a0f07173e877e80099e17d32e8",
+    "qualification_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/ceb28a31af64e1aac3af949415e788585ec432a8c2a0ff75330d80e5f7b8ce5d.json",
+      "sha256": "88d19d936a14c1ce6409ca6b93cabd63f258333160964bdf6c90c7dd68e2b8dd"
+    },
+    "reason": "Frozen M12 requires real editing, project-scoped state, valid media serving and restart. Actual browser identified upload400, duplicate-save and false empty state missed by prior browser. Preserve every existing assertion and add these independent actual GUI/HTTP/process checks; scope only M12."
+  },
+  "scope": [
+    "M12"
+  ],
+  "actual_executor_fallback_chain": [
+    {
+      "version": "qualified-revision-4",
+      "scope": [
+        "M12"
+      ],
+      "hash": "80e2d724dbc35e522ef4aca2b8f4e920b437a0a0f07173e877e80099e17d32e8"
+    },
+    {
+      "version": "qualified-revision-3",
+      "scope": [
+        "M11"
+      ],
+      "hash": "b43bb596503990c24e4fc9b5eb8df2dc7b784eb101514351d6e9617cfaccfaea"
+    },
+    {
+      "version": "qualified-revision-2",
+      "scope": [
+        "M11"
+      ],
+      "hash": "283bf80a6cd4fe3866f2c00a032d38bb4e3c7a6d58e07bcdc06e26978ccf3c11"
+    },
+    {
+      "version": "qualified-revision-1",
+      "scope": null,
+      "hash": "5201a3c5aa6c9e829890787e3a5d6b8f60d3de104b301fb9df5eeb28faeb1007"
+    }
+  ],
+  "acceptance_granted": false,
+  "provider_calls": 0
+}

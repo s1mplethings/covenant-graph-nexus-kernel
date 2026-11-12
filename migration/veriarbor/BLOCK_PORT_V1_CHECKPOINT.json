@@ -1,0 +1,106 @@
+{
+  "kind": "BlockPortV1Checkpoint",
+  "timestamp": "2026-11-03T16:54:37.918954+00:00",
+  "library_status": "VERIARBOR_BLOCK_CORE_PARTIAL",
+  "product_status": "PRODUCT_NOT_READY",
+  "checks": {
+    "block-port-core-substitution": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_*.py",
+        "-q"
+      ],
+      "cwd": "D:\\VeriArbor",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T16:46:14.142851+00:00",
+      "seconds": 0.5,
+      "log_sha256": "259d48f8466e216391e45032de75c237746d9fe6c4b23f8a28f0f4d55d174700"
+    },
+    "block-port-dedup-smoke": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_block_adapter.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T16:43:00.427212+00:00",
+      "seconds": 1.0,
+      "log_sha256": "59a98bac772ea432c64e42a38b68bb2d4a26595bebb177d7b28c8a8e0f1bf98a"
+    },
+    "block-port-host-regression-v2": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/protocol",
+        "tests/agent",
+        "tests/test_veriarbor_block_adapter.py",
+        "tests/telemetry/test_acv4_independent.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T16:49:07.006639+00:00",
+      "seconds": 106.31300000002375,
+      "log_sha256": "b7c3e076247d8f87c22b85ace3b52230ad5f442c5b328fc910f8434d4b36150e"
+    },
+    "block-port-runtime-regression": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/runtime",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T16:51:23.223544+00:00",
+      "seconds": 103.04700000002049,
+      "log_sha256": "b3c7373b11708426e7964a96c5a6f9c77dac3fd58d187745c77b8d20beb8570f"
+    },
+    "block-port-direction-gate": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/product_direction_gate.py"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T16:50:46.772837+00:00",
+      "seconds": 9.311999999976251,
+      "log_sha256": "0adf4b9dcb9ec18efd6555a7085c498243309e832d7fc36aa3b285f52ae57ee1"
+    }
+  },
+  "shadow": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\BLOCK_PORT_SHADOW_RESULTS.json",
+  "switch_receipts": [
+    22,
+    23,
+    24,
+    25,
+    26,
+    27
+  ],
+  "min_core_smoke_passed": true,
+  "current_product_continuation": "veriarbor-38",
+  "limitations": [
+    "True product identical replacement witness pending current media repair",
+    "Compatible/adaptable/breaking exercised by deterministic tests; actual product boundary-change migrations not yet witnessed",
+    "Compiler current-check dedup active; universal pre-Provider novelty gate still incomplete",
+    "Historical DAG execution retry closures still conservative; no complete runtime locality claim",
+    "Enum/wrapper/split/merge adapter transforms not yet implemented; ambiguous adapters denied"
+  ],
+  "history": "Original failures, UNKNOWNs and receipts retained; no Provider replay; no business source edits by host"
+}

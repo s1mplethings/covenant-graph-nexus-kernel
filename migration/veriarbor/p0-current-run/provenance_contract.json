@@ -1,0 +1,169 @@
+{
+  "environment_ref": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/5c451177469f057912466ef220eb6b50e93093e12f36abb697baf55cff58ae24.json",
+    "sha256": "5d85bb65c43892d19d4b78aaf92f692a55e89de12a0823ee6b2affee916e12dc"
+  },
+  "goals": {},
+  "incremental_checker_bindings": {
+    "independent": {
+      "checker_hash": "b7e697de795cfe88237793a9954e803beaf55dd3253a1a9936364f2ec0e24f26",
+      "checker_ref": "project.acceptance@1",
+      "checker_version": "1",
+      "predicate": {
+        "expected": true,
+        "operator": "equal"
+      }
+    }
+  },
+  "input_ref": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/194949b2d6f27b990c06d6f75e63d7f3039f1e4628d3406415e4133d50201703.json",
+    "sha256": "3905300e80617b6de177dc9d03850c1ed4ea02f37d1e026cb8812123f3d43693"
+  },
+  "kind": "ProvenanceContract",
+  "logical_task_id": "iter132-promotion-studio/promotion-05",
+  "requirements": {
+    "M1": {
+      "checker_keys": [
+        "independent"
+      ],
+      "depends_on": [],
+      "description": "Implement only this milestone, reusing verified dependencies without overwriting their artifacts.\nThe source module exposes MILESTONE_ID as the literal milestone identifier (M1 etc.) and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string. Return a JSON-compatible dict. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError. Do not return success-shaped error objects. Persistence must survive another Python process; storage format and internal design are Agent-owned. Read all needed dependency source contracts before integration. Existing modules may be discovered by their literal MILESTONE_ID, not guessed hash filenames. Dependencies may be imported normally or via importlib. Standard library only for the application; public tests may use pytest. No public network publication or dependency installation. Return one aggregate acceptance intent for this milestone: its independent suite covers every public behavior below, so no requirement is dropped. Worker-authored tests must exercise actual behavior.\n\nCurrent milestone M1:\nProject Workspace. handle ops: project.create(name) -> {id,name}; project.get(project_id) -> same record; project.list() -> {items:[records]}. IDs are nonempty opaque strings, stable across reopening, different for different projects even with identical names. Reject empty/whitespace-only names and missing IDs. A new store lists no projects. Names preserve Unicode. Two distinct data_dir stores are isolated. Create/open/list survive a fresh process. Do not impose a database schema on subsequent milestones.",
+      "must": true
+    },
+    "M10": {
+      "checker_keys": [
+        "independent"
+      ],
+      "depends_on": [
+        "M9"
+      ],
+      "description": "Implement only this milestone, reusing verified dependencies without overwriting their artifacts.\nThe source module exposes MILESTONE_ID as the literal milestone identifier (M1 etc.) and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string. Return a JSON-compatible dict. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError. Do not return success-shaped error objects. Persistence must survive another Python process; storage format and internal design are Agent-owned. Read all needed dependency source contracts before integration. Existing modules may be discovered by their literal MILESTONE_ID, not guessed hash filenames. Dependencies may be imported normally or via importlib. Standard library only for the application; public tests may use pytest. No public network publication or dependency installation. Return one aggregate acceptance intent for this milestone: its independent suite covers every public behavior below, so no requirement is dropped. Worker-authored tests must exercise actual behavior.\n\nCurrent milestone M10:\nAnalytics and evidence reuse. analytics.fetch(project_id,receipt_id,platform_url)->{id,receipt_id,content_id,revision,channel,fetched_at,metrics:{views,impressions,reactions,comments}} using an actual GET '/metrics?remote_id='+remote_id. Require PUBLISHED receipt with known remote id; reject negative/malformed metrics and wrong response remote_id. Retain each fetched sample separately. analytics.history(project_id,receipt_id)->{items:[samples]}. analytics.recommend(project_id)->{sample_count,confidence:'LOW' when fewer than 5 samples,evidence_refs:[analytics sample IDs],reason_summary,recommendation}; facts may not be overwritten by recommendations or self-reports. Persist and reuse actual metrics evidence; no invented causal improvement or model score.",
+      "must": true
+    },
+    "M11": {
+      "checker_keys": [
+        "independent"
+      ],
+      "depends_on": [
+        "M10"
+      ],
+      "description": "Implement only this milestone, reusing verified dependencies without overwriting their artifacts.\nThe source module exposes MILESTONE_ID as the literal milestone identifier (M1 etc.) and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string. Return a JSON-compatible dict. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError. Do not return success-shaped error objects. Persistence must survive another Python process; storage format and internal design are Agent-owned. Read all needed dependency source contracts before integration. Existing modules may be discovered by their literal MILESTONE_ID, not guessed hash filenames. Dependencies may be imported normally or via importlib. Standard library only for the application; public tests may use pytest. No public network publication or dependency installation. Return one aggregate acceptance intent for this milestone: its independent suite covers every public behavior below, so no requirement is dropped. Worker-authored tests must exercise actual behavior.\n\nCurrent milestone M11:\nMedia. media.import(project_id,path,kind)->{id,project_id,kind,sha256,path,status:VALID}, kind image or video. Copy actual nonempty image/video bytes into project-owned storage, hash them, preserve type. Recognize at least PNG/JPEG and MP4/WebM signatures; reject mismatched/empty input. media.get(project_id,media_id) returns current validity; media.list(project_id)->{items:[...]}; missing or modified stored bytes yield BROKEN. Integrate with M5 media_ids and M6/M7 checks so broken media blocks approval and publication even if approved earlier. GUI shows actual images and video controls/preview; failures visible, not silent placeholders.",
+      "must": true
+    },
+    "M12": {
+      "artifact_layout": {
+        "source": "main.py",
+        "support": [
+          {
+            "path": "README.md",
+            "purpose": "Document actual local server startup, data directory, local test platform, complete user workflows and limits"
+          },
+          {
+            "path": "TEST_PLAN.md",
+            "purpose": "Reproducible actual product/API/browser tests and expected outcomes"
+          }
+        ],
+        "test": "tests/test_promotion_gui.py"
+      },
+      "checker_keys": [
+        "independent"
+      ],
+      "depends_on": [
+        "M11"
+      ],
+      "description": "Implement only this milestone, reusing verified dependencies without overwriting their artifacts.\nThe source module exposes MILESTONE_ID as the literal milestone identifier (M1 etc.) and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string. Return a JSON-compatible dict. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError. Do not return success-shaped error objects. Persistence must survive another Python process; storage format and internal design are Agent-owned. Read all needed dependency source contracts before integration. Existing modules may be discovered by their literal MILESTONE_ID, not guessed hash filenames. Dependencies may be imported normally or via importlib. Standard library only for the application; public tests may use pytest. No public network publication or dependency installation. Return one aggregate acceptance intent for this milestone: its independent suite covers every public behavior below, so no requirement is dropped. Worker-authored tests must exercise actual behavior.\n\nCurrent milestone M12:\nComplete usable GUI and clean startup. Deliver main.py, tests/test_promotion_gui.py, README.md, TEST_PLAN.md. main.py --serve --port PORT --data DIR serves a real local app; no args or --help displays usage and exits0. GET /health -> {status:'ok'}; POST /api/action dispatches {milestone:'M1'..'M11',op,...} to verified modules and returns real persistent JSON; invalid requests return HTTP400 with {error:string}, no traceback/secrets. GET /api/state returns current projects, campaigns, contents, receipts and schedules for rendering (project scoping explicit). GET /media/ID?project_id=ID serves only valid project-owned media with correct type, no path traversal. GUI has visible navigation Projects, Signals, Campaigns, Content, Schedule/Publish, Receipts/Analytics. Accessible labeled forms and buttons support real create/edit/review/approve/publish/schedule/cancel/reconcile/fetch actions; do not make the user type raw JSON or internal module IDs. Visible empty/loading/error/success, approval, partial failure and UNKNOWN states. Test automation anchors: input label Project name and button Create project; input label Audience; input label Campaign name and button Create campaign; textarea label Content text; button Save content; buttons Review and Approve; input label Platform URL; button Publish; receipts show remote IDs. Preserve actual channel variants, revision comparison, claims/evidence links, media previews and analytics history. Browser creates project/campaign/content, sees persisted values after reload and process restart. Include handle(data_dir,request) for op product.status returning {status:'ready',milestones:['M1',...,'M12']} only when modules present, plus MILESTONE_ID='M12'. The independent suite runs actual browser operations, not just HTML text matching.\nBrowser workflow contract for both early_main.py and final main.py: use human-readable project/campaign/claim selections, never require raw record IDs or JSON. Navigation texts Projects, Campaigns, Content, Receipts/Analytics. Forms expose accessible labels Project name, Campaign name, Audience, Channels (comma-separated text), Content text (textarea), Channel (select with actual campaign channels), Claims (select displaying current claim text), Platform URL. Buttons Create project, Create campaign, Save content, Review, Approve, Publish. With one project/campaign, selection may default to that real object. Successful creation shows the actual name; receipts visibly show remote IDs. Errors use role=alert and progress/result messages use role=status. A reload keeps selected persisted project data. Final GUI additionally exposes Fetch analytics and Schedule/Publish with a When text input accepting timezone-aware ISO8601 and buttons Schedule, Cancel, Reschedule. Media previews render actual linked images/videos, and broken assets are visibly blocked.",
+      "must": true
+    },
+    "M2": {
+      "checker_keys": [
+        "independent"
+      ],
+      "depends_on": [
+        "M1"
+      ],
+      "description": "Implement only this milestone, reusing verified dependencies without overwriting their artifacts.\nThe source module exposes MILESTONE_ID as the literal milestone identifier (M1 etc.) and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string. Return a JSON-compatible dict. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError. Do not return success-shaped error objects. Persistence must survive another Python process; storage format and internal design are Agent-owned. Read all needed dependency source contracts before integration. Existing modules may be discovered by their literal MILESTONE_ID, not guessed hash filenames. Dependencies may be imported normally or via importlib. Standard library only for the application; public tests may use pytest. No public network publication or dependency installation. Return one aggregate acceptance intent for this milestone: its independent suite covers every public behavior below, so no requirement is dropped. Worker-authored tests must exercise actual behavior.\n\nCurrent milestone M2:\nEvidence Import and Signals. Reuse M1 projects. evidence.import(project_id,path) reads an existing bounded local directory or Git working directory without executing source files, following symlinks outside it, or reading .git internals/secrets. It returns {id,project_id,source_path,version,sha256,status,files:[{path,sha256,text}]}; relative paths are stable, digest is SHA-256 of actual content (64 lowercase hex; aggregate algorithm documented). Unchanged refresh keeps the same version identity. evidence.refresh(project_id,evidence_id) rereads the stored path: changed bytes create a new id/version and mark the prior record status=SUPERSEDED. evidence.get(project_id,evidence_id) returns historical/current records. evidence.list(project_id) -> {items:[...]}. signal.create(project_id,evidence_id,text) -> {id,project_id,evidence_id,text,status:OPEN}; signal.reject(project_id,signal_id,reason) persists status=REJECTED and reason; signal.list(project_id) -> {items:[...]}. Reject nonexistent/foreign evidence and blank signal text/rejection reason. Keep historical evidence bytes and source refs.",
+      "must": true
+    },
+    "M3": {
+      "checker_keys": [
+        "independent"
+      ],
+      "depends_on": [
+        "M2"
+      ],
+      "description": "Implement only this milestone, reusing verified dependencies without overwriting their artifacts.\nThe source module exposes MILESTONE_ID as the literal milestone identifier (M1 etc.) and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string. Return a JSON-compatible dict. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError. Do not return success-shaped error objects. Persistence must survive another Python process; storage format and internal design are Agent-owned. Read all needed dependency source contracts before integration. Existing modules may be discovered by their literal MILESTONE_ID, not guessed hash filenames. Dependencies may be imported normally or via importlib. Standard library only for the application; public tests may use pytest. No public network publication or dependency installation. Return one aggregate acceptance intent for this milestone: its independent suite covers every public behavior below, so no requirement is dropped. Worker-authored tests must exercise actual behavior.\n\nCurrent milestone M3:\nClaim Ledger. claim.create(project_id,text,evidence_ids) -> {id,project_id,text,evidence_ids,status}; claim.get(project_id,claim_id) recomputes current validity; claim.list(project_id)->{items:[...]}; claim.conflict(project_id,claim_id,reason) marks CONFLICT with persistent reason. A grounded claim whose text is an actual substring of current imported evidence may be SUPPORTED. No evidence or a claim absent from cited evidence is UNSUPPORTED, never silently publishable. Superseded cited evidence yields STALE; explicit conflict yields CONFLICT. This deterministic baseline cannot manufacture inference as fact. Foreign/missing evidence IDs are rejected. Retain all source links and contradiction history. Do not modify prior modules.",
+      "must": true
+    },
+    "M4": {
+      "checker_keys": [
+        "independent"
+      ],
+      "depends_on": [
+        "M3"
+      ],
+      "description": "Implement only this milestone, reusing verified dependencies without overwriting their artifacts.\nThe source module exposes MILESTONE_ID as the literal milestone identifier (M1 etc.) and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string. Return a JSON-compatible dict. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError. Do not return success-shaped error objects. Persistence must survive another Python process; storage format and internal design are Agent-owned. Read all needed dependency source contracts before integration. Existing modules may be discovered by their literal MILESTONE_ID, not guessed hash filenames. Dependencies may be imported normally or via importlib. Standard library only for the application; public tests may use pytest. No public network publication or dependency installation. Return one aggregate acceptance intent for this milestone: its independent suite covers every public behavior below, so no requirement is dropped. Worker-authored tests must exercise actual behavior.\n\nCurrent milestone M4:\nCampaign CRUD. campaign.create(project_id,name,audience,channels) -> {id,project_id,name,audience,channels,status:ACTIVE,history:[...]}; campaign.get(project_id,campaign_id); campaign.update(project_id,campaign_id,name,audience,channels) preserves id and appends history; campaign.archive(project_id,campaign_id) sets ARCHIVED; campaign.list(project_id)->{items:[...]}. Reject blank name/audience, empty channels, non-string/empty channels; channels are unique. Different project cannot see/update/archive another project's campaign. Persist all changes and preserve prior values in history.",
+      "must": true
+    },
+    "M5": {
+      "checker_keys": [
+        "independent"
+      ],
+      "depends_on": [
+        "M4"
+      ],
+      "description": "Implement only this milestone, reusing verified dependencies without overwriting their artifacts.\nThe source module exposes MILESTONE_ID as the literal milestone identifier (M1 etc.) and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string. Return a JSON-compatible dict. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError. Do not return success-shaped error objects. Persistence must survive another Python process; storage format and internal design are Agent-owned. Read all needed dependency source contracts before integration. Existing modules may be discovered by their literal MILESTONE_ID, not guessed hash filenames. Dependencies may be imported normally or via importlib. Standard library only for the application; public tests may use pytest. No public network publication or dependency installation. Return one aggregate acceptance intent for this milestone: its independent suite covers every public behavior below, so no requirement is dropped. Worker-authored tests must exercise actual behavior.\n\nCurrent milestone M5:\nContent Studio. content.create(project_id,campaign_id,channel,text,claim_ids,media_ids optional default []) -> {id,project_id,campaign_id,channel,text,claim_ids,media_ids,revision:1,status:DRAFT}; content.get(project_id,content_id) returns current; content.revisions(project_id,content_id)->{items:[immutable revision records]}; content.edit(project_id,content_id,text,claim_ids optional,media_ids optional) creates a new revision and status=DRAFT, retaining previous revision; content.compare(project_id,content_id,from_revision,to_revision)->{before:revision record,after:revision record}; content.list(project_id,campaign_id optional)->{items:[...]}. Validate current project/campaign, active campaign, permitted channel, nonempty text, and claim ownership. Separate channel variants have distinct IDs and independent history. Unsupported claims may remain drafts, never automatically approved. Persist edits and revision comparisons.",
+      "must": true
+    },
+    "M6": {
+      "checker_keys": [
+        "independent"
+      ],
+      "depends_on": [
+        "M5"
+      ],
+      "description": "Implement only this milestone, reusing verified dependencies without overwriting their artifacts.\nThe source module exposes MILESTONE_ID as the literal milestone identifier (M1 etc.) and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string. Return a JSON-compatible dict. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError. Do not return success-shaped error objects. Persistence must survive another Python process; storage format and internal design are Agent-owned. Read all needed dependency source contracts before integration. Existing modules may be discovered by their literal MILESTONE_ID, not guessed hash filenames. Dependencies may be imported normally or via importlib. Standard library only for the application; public tests may use pytest. No public network publication or dependency installation. Return one aggregate acceptance intent for this milestone: its independent suite covers every public behavior below, so no requirement is dropped. Worker-authored tests must exercise actual behavior.\n\nCurrent milestone M6:\nApproval. approval.review(project_id,content_id)->{content_id,revision,status:REVIEW}; approval.approve(project_id,content_id)->{content_id,revision,status:APPROVED}; approval.status(project_id,content_id)->{content_id,revision,status}. Approve only after review of the same current revision, with every claim currently SUPPORTED and every referenced media asset present/valid (media can be empty before M11). A semantic content.edit makes the current approval status DRAFT; old approval remains historical and cannot authorize new content. Reject unsupported/stale/conflicting claims, missing media, foreign content, and approve-before-review. Persist decisions and exact revision bindings. Downstream publication/scheduling must consult current validity, not a stale approved boolean.",
+      "must": true
+    },
+    "M7": {
+      "artifact_layout": {
+        "source": "promotion_publish.py",
+        "support": [
+          {
+            "path": "early_main.py",
+            "purpose": "First working browser GUI through Projects, Campaign, Content, Approval, Local Publish and Receipts; implement the public GUI contract"
+          }
+        ],
+        "test": "tests/test_publish.py"
+      },
+      "checker_keys": [
+        "independent"
+      ],
+      "depends_on": [
+        "M6"
+      ],
+      "description": "Implement only this milestone, reusing verified dependencies without overwriting their artifacts.\nThe source module exposes MILESTONE_ID as the literal milestone identifier (M1 etc.) and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string. Return a JSON-compatible dict. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError. Do not return success-shaped error objects. Persistence must survive another Python process; storage format and internal design are Agent-owned. Read all needed dependency source contracts before integration. Existing modules may be discovered by their literal MILESTONE_ID, not guessed hash filenames. Dependencies may be imported normally or via importlib. Standard library only for the application; public tests may use pytest. No public network publication or dependency installation. Return one aggregate acceptance intent for this milestone: its independent suite covers every public behavior below, so no requirement is dropped. Worker-authored tests must exercise actual behavior.\n\nCurrent milestone M7:\nLocal Publish and earliest usable GUI. publish.send(project_id,content_id,platform_url,idempotency_key)->receipt; publish.get(project_id,receipt_id)->receipt; publish.list(project_id)->{items:[receipts]}; publish.reconcile(project_id,receipt_id,platform_url)->receipt; publish.retry(project_id,receipt_id,platform_url)->receipt. Receipt includes id, project_id, content_id, revision, channel, status (PUBLISHED, RATE_LIMITED, UNKNOWN, FAILED), remote_id (null until known), idempotency_key, request_ref, response_ref, attempts:[{operation,status,started_at,ended_at}], url. Consult M6 approval and current claims/media before sending. POST platform_url+'/publish' JSON {idempotency_key,project_id,content_id,revision,channel,text}; response200 JSON {remote_id,url}. HTTP429 yields RATE_LIMITED, timeout/connection loss after request yields UNKNOWN (no blind retry). GET '/publications?key='+URL-encoded key reconciles: 200 {remote_id,url} confirms PUBLISHED; 404 proves absent, records that fact before retry can issue POST. Repeating a successful key must not send a second POST. Reusing key with changed revision/payload is rejected. Retry only the specified failed branch; successful siblings untouched. Different contents/channels can publish concurrently with safe persistent receipts and real interval overlap. Also supply serve_platform(host,port,data_dir): a real local threaded HTTP test platform with persistent idempotent /publish, /publications and /metrics?remote_id= routes, no upstream publishing. Include a separate early_main.py with usable browser GUI: Projects -> Campaign -> Content -> Review/Approve -> Local Publish -> Receipt, communicating with backend through POST /api/action {milestone:'M1'..'M7',...op request} and JSON response. It starts with python early_main.py --serve --port PORT --data DIR; no args shows help and exits0. GET /health returns JSON {status:'ok'}. Never proxy a static fake screen. Preserve this working early GUI as DOGFOOD_MVP before M8.\nBrowser workflow contract for both early_main.py and final main.py: use human-readable project/campaign/claim selections, never require raw record IDs or JSON. Navigation texts Projects, Campaigns, Content, Receipts/Analytics. Forms expose accessible labels Project name, Campaign name, Audience, Channels (comma-separated text), Content text (textarea), Channel (select with actual campaign channels), Claims (select displaying current claim text), Platform URL. Buttons Create project, Create campaign, Save content, Review, Approve, Publish. With one project/campaign, selection may default to that real object. Successful creation shows the actual name; receipts visibly show remote IDs. Errors use role=alert and progress/result messages use role=status. A reload keeps selected persisted project data. Final GUI additionally exposes Fetch analytics and Schedule/Publish with a When text input accepting timezone-aware ISO8601 and buttons Schedule, Cancel, Reschedule. Media previews render actual linked images/videos, and broken assets are visibly blocked.",
+      "must": true
+    },
+    "M8": {
+      "checker_keys": [
+        "independent"
+      ],
+      "depends_on": [
+        "M7"
+      ],
+      "description": "Implement only this milestone, reusing verified dependencies without overwriting their artifacts.\nThe source module exposes MILESTONE_ID as the literal milestone identifier (M1 etc.) and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string. Return a JSON-compatible dict. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError. Do not return success-shaped error objects. Persistence must survive another Python process; storage format and internal design are Agent-owned. Read all needed dependency source contracts before integration. Existing modules may be discovered by their literal MILESTONE_ID, not guessed hash filenames. Dependencies may be imported normally or via importlib. Standard library only for the application; public tests may use pytest. No public network publication or dependency installation. Return one aggregate acceptance intent for this milestone: its independent suite covers every public behavior below, so no requirement is dropped. Worker-authored tests must exercise actual behavior.\n\nCurrent milestone M8:\nScheduler. schedule.create(project_id,content_id,platform_url,when,idempotency_key)->{id,status:PENDING,when,...}; when is ISO8601 with timezone offset; reject naive timestamps and unapproved content. schedule.list(project_id)->{items:[...]}; schedule.cancel(project_id,schedule_id)->status CANCELLED; schedule.reschedule(project_id,schedule_id,when) keeps id and appends history; schedule.run_due(project_id,now)->{items:[processed schedule records]}. now is an explicit timezone-aware ISO8601 clock input for reproducible execution; GUI uses current UTC. Do not run future/cancelled tasks. For due tasks use M7, bind receipt_id and preserve PUBLISHED/RATE_LIMITED/UNKNOWN result. Restart and repeated run_due never duplicate successful publication. Unknown cannot silently become retryable. Rescheduling must not create an orphan duplicate job. Preserve successful siblings.",
+      "must": true
+    },
+    "M9": {
+      "checker_keys": [
+        "independent"
+      ],
+      "depends_on": [
+        "M8"
+      ],
+      "description": "Implement only this milestone, reusing verified dependencies without overwriting their artifacts.\nThe source module exposes MILESTONE_ID as the literal milestone identifier (M1 etc.) and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string. Return a JSON-compatible dict. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError. Do not return success-shaped error objects. Persistence must survive another Python process; storage format and internal design are Agent-owned. Read all needed dependency source contracts before integration. Existing modules may be discovered by their literal MILESTONE_ID, not guessed hash filenames. Dependencies may be imported normally or via importlib. Standard library only for the application; public tests may use pytest. No public network publication or dependency installation. Return one aggregate acceptance intent for this milestone: its independent suite covers every public behavior below, so no requirement is dropped. Worker-authored tests must exercise actual behavior.\n\nCurrent milestone M9:\nReceipt Queries. receipt.list(project_id,channel optional,status optional)->{items:[M7 receipts]}; receipt.get(project_id,receipt_id)->receipt; receipt.export(project_id)->{receipts:[...],exported_at:ISO8601}. Read the authoritative M7 receipts; do not create a second conflicting receipt database. Return exact revision/channel/local and remote IDs, status/error if any, idempotency key, request/response refs, timings and retry/reconciliation lineage. Foreign IDs rejected. Preserve partial and UNKNOWN outcomes without inventing usage or success.",
+      "must": true
+    }
+  },
+  "workspace_root": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate"
+}

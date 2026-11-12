@@ -1,0 +1,118 @@
+{
+  "nodes": [
+    {
+      "id": "M7",
+      "kind": "OBLIGATION_AND",
+      "children": [
+        "Backend Publish",
+        "Receipt Persistence",
+        "Idempotency",
+        "GUI Integration",
+        "Vertical Slice"
+      ],
+      "dependencies": [],
+      "required": true
+    },
+    {
+      "id": "Backend Publish",
+      "kind": "CERTIFICATE_REF",
+      "children": [],
+      "dependencies": [],
+      "required": true
+    },
+    {
+      "id": "Receipt Persistence",
+      "kind": "CERTIFICATE_REF",
+      "children": [],
+      "dependencies": [],
+      "required": true
+    },
+    {
+      "id": "Idempotency",
+      "kind": "CERTIFICATE_REF",
+      "children": [],
+      "dependencies": [],
+      "required": true
+    },
+    {
+      "id": "GUI Integration",
+      "kind": "OBLIGATION_AND",
+      "children": [
+        "DOM Closure",
+        "Event Binding",
+        "Content State",
+        "Review State",
+        "Approval State",
+        "Publish State",
+        "Receipt Display"
+      ],
+      "dependencies": [],
+      "required": true
+    },
+    {
+      "id": "Vertical Slice",
+      "kind": "OBLIGATION_AND",
+      "children": [],
+      "dependencies": [],
+      "required": true
+    },
+    {
+      "id": "DOM Closure",
+      "kind": "EXECUTION_LEAF",
+      "children": [],
+      "dependencies": [],
+      "required": true
+    },
+    {
+      "id": "Event Binding",
+      "kind": "EXECUTION_LEAF",
+      "children": [],
+      "dependencies": [],
+      "required": true
+    },
+    {
+      "id": "Content State",
+      "kind": "EXECUTION_LEAF",
+      "children": [],
+      "dependencies": [],
+      "required": true
+    },
+    {
+      "id": "Review State",
+      "kind": "EXECUTION_LEAF",
+      "children": [],
+      "dependencies": [],
+      "required": true
+    },
+    {
+      "id": "Approval State",
+      "kind": "EXECUTION_LEAF",
+      "children": [],
+      "dependencies": [],
+      "required": true
+    },
+    {
+      "id": "Publish State",
+      "kind": "EXECUTION_LEAF",
+      "children": [],
+      "dependencies": [],
+      "required": true
+    },
+    {
+      "id": "Receipt Display",
+      "kind": "EXECUTION_LEAF",
+      "children": [],
+      "dependencies": [],
+      "required": true
+    }
+  ],
+  "verdict": "FAILED",
+  "certificate_refs_status": "BOUND_TO_UNCHANGED_HISTORICAL_BACKEND_WITNESSES",
+  "execution_owner": "existing CGKN DAGRunner",
+  "certificate_refs": {
+    "Backend Publish": "M7:Backend Publish",
+    "Receipt Persistence": "M7:Receipt Persistence",
+    "Idempotency": "M7:Idempotency",
+    "Local Platform": "M7:Local Platform"
+  }
+}

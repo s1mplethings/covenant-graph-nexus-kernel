@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="0" skipped="0" tests="1" time="0.410" timestamp="2026-11-03T21:41:06.750199+08:00" hostname="test"><testcase classname="" name="migration.veriarbor.m10-generated-tests.snapshot.tests.test_milestone_af427946c6dea418047a" time="0.000"><error message="collection failure">ImportError while importing test module 'F:\CGKN-LeanLoop-V1-20261101\migration\veriarbor\m10-generated-tests\snapshot\tests\test_milestone_af427946c6dea418047a.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+D:\anaconda\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\test_milestone_af427946c6dea418047a.py:19: in &lt;module&gt;
+    from milestones.milestone_af427946c6dea418047a.api import handle as m10_handle
+E   ModuleNotFoundError: No module named 'milestones'</error></testcase></testsuite></testsuites>

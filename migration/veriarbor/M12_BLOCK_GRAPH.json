@@ -1,0 +1,116 @@
+{
+  "kind": "RequestedBlockGraphProjection",
+  "authority": "Projection of original FileRunStore CapabilityTree; no second scheduler",
+  "parent": {
+    "id": "M12",
+    "execution": "ROLLUP_ONLY",
+    "registration": "REGISTERED_NON_EXECUTABLE",
+    "canonical_node": "m12-final-rollup",
+    "status": "VERIFIED"
+  },
+  "blocks": [
+    {
+      "block_id": "B01",
+      "name": "ProjectBootstrapBlock",
+      "depends_on": [],
+      "status": "VERIFIED",
+      "canonical_node": "m12-b01"
+    },
+    {
+      "block_id": "B02",
+      "name": "BrowserUploadAdapterBlock",
+      "depends_on": [
+        "B01"
+      ],
+      "status": "VERIFIED",
+      "canonical_node": "m12-b02"
+    },
+    {
+      "block_id": "B03",
+      "name": "SignalsEvidenceBlock",
+      "depends_on": [
+        "B02"
+      ],
+      "status": "VERIFIED",
+      "canonical_node": "m12-b03"
+    },
+    {
+      "block_id": "B04",
+      "name": "ContentRevisionCompareBlock",
+      "depends_on": [
+        "B03"
+      ],
+      "status": "VERIFIED",
+      "canonical_node": "m12-b04"
+    },
+    {
+      "block_id": "B05",
+      "name": "ChannelVariantBlock",
+      "depends_on": [
+        "B04"
+      ],
+      "status": "VERIFIED",
+      "canonical_node": "m12-b05"
+    },
+    {
+      "block_id": "B06",
+      "name": "ApprovalUIBlock",
+      "depends_on": [
+        "B05"
+      ],
+      "status": "VERIFIED",
+      "canonical_node": "m12-b06"
+    },
+    {
+      "block_id": "B07",
+      "name": "SchedulerUIBlock",
+      "depends_on": [
+        "B06"
+      ],
+      "status": "VERIFIED",
+      "canonical_node": "m12-b07"
+    },
+    {
+      "block_id": "B08",
+      "name": "ReceiptUnknownReconcileBlock",
+      "depends_on": [
+        "B07"
+      ],
+      "status": "VERIFIED",
+      "canonical_node": "m12-b08"
+    },
+    {
+      "block_id": "B09",
+      "name": "AnalyticsHistoryBlock",
+      "depends_on": [
+        "B08"
+      ],
+      "status": "VERIFIED",
+      "canonical_node": "m12-b09"
+    },
+    {
+      "block_id": "B10",
+      "name": "FinalNavigationStartupDocsBlock",
+      "depends_on": [
+        "B09"
+      ],
+      "status": "VERIFIED",
+      "canonical_node": "m12-b10"
+    },
+    {
+      "block_id": "B11",
+      "name": "FinalProductVerticalSlice",
+      "depends_on": [
+        "B10"
+      ],
+      "status": "PASS",
+      "canonical_node": "m12-b11"
+    }
+  ],
+  "current_writer": {
+    "node_id": null,
+    "block_id": "B11",
+    "canonical_parent": "m12-final-rollup",
+    "status": "M12_VERIFIED"
+  }
+}

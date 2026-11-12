@@ -1,0 +1,22 @@
+{
+  "status": "FROZEN_CERTIFICATE_CURRENT",
+  "block_id": "B01",
+  "current_full_source_sha256": "60d5e9d3fcdf45f7134576b77aedc42fb4ec6bbd0cdfbb5a5e12f17fdb7eb97d",
+  "certificate_ref": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/0ac692555556442774b54feec4cce55f37b920076d5312296e1200a8a50d7934.json",
+    "sha256": "09b0f9b8b5e2c64fd1b4cc4cce4a250195692f2d8c667ce93429672fe034e026"
+  },
+  "certificate_fingerprint": "6ae36bfd54f945889e4d5764d9b6e32934861c845e55539d3ab3e5f69fd919da",
+  "reused_acceptance_count": 13,
+  "current_sections": {
+    "main.py#project-bootstrap": "deff9456978cd2f543e9293a7d25544a5d13eb83a5a91d78661511be46cb097a",
+    "main.py#project-dom": "858db31a47eb6b00e4bb17010101b2b5a9613606a1814e25fa734535df28a24e",
+    "main.py#startup": "9019c71160b426d8c008d243ee9115f0504996b69ac9ece16a855a9738dbfa1a",
+    "main.py#shared-browser-runtime": "2f49e529cd52c18784cddf622c6970b87bd78fb1567ee9181ecddf095e73300d",
+    "main.py#shared-render-helpers": "bc3bc0b42da3e58f1477d16fb0fb28d644e9e0219b65928213be267216a7fd63",
+    "main.py#state-endpoint": "da2028244ecacd5b6bab72df36b4b458d8e6d0fbc627ff931b30c3449a169ec9"
+  },
+  "browser_reruns": 0,
+  "provider_calls": 0,
+  "full_m12_verified": false
+}

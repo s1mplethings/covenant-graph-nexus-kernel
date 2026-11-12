@@ -1,0 +1,6 @@
+{
+  "snapshot_sha256": "8fa127c1739c3f052374d88082cfd32002e7246f6621eb055ba669a6e9c4261d",
+  "live_source_sha256_after": "8fa127c1739c3f052374d88082cfd32002e7246f6621eb055ba669a6e9c4261d",
+  "original_checker_unchanged": false,
+  "scope": "Immutable candidate snapshot; current live edits, if any, require new observation"
+}

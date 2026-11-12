@@ -1,0 +1,160 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "Qwen Flash Agent and DeepSeek Flash Worker only. One bounded B02 patch attempt then controller hold. No Pro/Max, no UNKNOWN replay.",
+    "milestone_completion_request": "Repair only remaining B02 in existing143. Actual143a32 changed ONLY _serve_media; current native157a1 again proves upload400 on source60d5. Do NOT repeat preview-serving patch. Complete browser-base64->temporary-server-path adapter in handle AND media JS image/video previews/list/project binding in one atomic multiple-range exactpatch batch. Host generic protocol now explicitly supports op3 payload ARRAY; original requirement nofullfilewrite unchanged. All B01sections/M1-M11 and now _serve_media are read-only. No otherblock/no completeM12/no FINISH. Controller holds after oneWorkerattempt for full B02 browser+edge acceptance.",
+    "fresh_runtime_diagnosis": {
+      "current_block": "B02",
+      "current_source_sha256": "60d5e9d3fcdf45f7134576b77aedc42fb4ec6bbd0cdfbb5a5e12f17fdb7eb97d",
+      "formal_failure_ref": {
+        "path": "attempts/sem-node-0157/attempt-0001.json",
+        "receipt_hash": "46afff532fbe376279a19081ef535879b9e526fe8850e4655c4872a9c54d9fcf"
+      },
+      "checker": "qualified-revision-9",
+      "formal_goal": "block-observation-B02-upload-port",
+      "failure_observation": {
+        "source_sha256": "60d5e9d3fcdf45f7134576b77aedc42fb4ec6bbd0cdfbb5a5e12f17fdb7eb97d",
+        "checks": [
+          "source unchanged"
+        ],
+        "scope": "Browser image upload port only; not B02/M12 completion",
+        "browser": "134.0.3124.51",
+        "upload": {
+          "status": 400,
+          "body": {
+            "error": "path must be a non-empty string"
+          }
+        },
+        "status": "FAIL",
+        "error": "AssertionError: browser image upload HTTP200",
+        "startup": {
+          "command": [
+            "D:\\anaconda\\python.exe",
+            "-X",
+            "utf8",
+            "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\main.py",
+            "--serve",
+            "--port",
+            "13730",
+            "--data",
+            "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\consumer_scratch\\sem-node-0157\\attempt-0001\\upload-port-evidence\\data"
+          ],
+          "url": "http://127.0.0.1:13730"
+        },
+        "cleanup": {
+          "server_stopped": true
+        }
+      },
+      "B01_certificate_ref": {
+        "path": "iter132-promotion-studio/promotion-05/evidence/0ac692555556442774b54feec4cce55f37b920076d5312296e1200a8a50d7934.json",
+        "sha256": "09b0f9b8b5e2c64fd1b4cc4cce4a250195692f2d8c667ce93429672fe034e026"
+      },
+      "actual_contracts": {
+        "M11": "media.import requires nonempty server path,kind(image|video),project_id. media.get requiresproject_id/media_id and returns id,project_id,kind,sha256,absolute path,status(VALID|BROKEN); no MIME field. media.list returns items. PNG/JPEG/MP4/WebM signatures supported; existing M11 copies bytes to durable project-owned media_storage. Do not change backend.",
+        "M1": "Existing B01 correct; all nonmedia operations unchanged.",
+        "source_findings": "main.py handle directly delegates media.import data base64 without path. _serve_media builds guessed media folders and never uses its media_req. importMedia always appends img even for video; loadMedia placeholder. Only four explicitly allowed source ranges can change."
+      },
+      "previous_partial_delta": "143a32 changed only owned media serving; source60d5 still has no browser upload conversion andmediaJS remains unchanged. Never repeat that patch.",
+      "generic_protocol_qualification": {
+        "19_atomic_gate_checks": "PASS",
+        "84_existing_protocol_checks": "PASS",
+        "op3_payload": "one find/replace object OR array of up to8 same-path exact nonoverlapping patches undercallerpolicy"
+      }
+    },
+    "gui_writer_policy": "Only existing143 writes main.py; B01 sections and M1-M11 are frozen. Worker exactpatch only; full_file_write false. Return all B02 adapter/media changes within policy ranges. Never manual/sourcewhole replacement.",
+    "admission_correction": "Repair143 falsifying_evidence JSONarray must contain exact {\"path\": \"attempts/sem-node-0157/attempt-0001.json\", \"receipt_hash\": \"46afff532fbe376279a19081ef535879b9e526fe8850e4655c4872a9c54d9fcf\"}. This is current canonical failure. Prior156receipt9edfb is stale. New strategy must include atomic_patch_batch:true and describe two separated required regions (handle adapter and media JS), full_file_write:false. Nativeprotocol accepts op3 payload array; allchecks atomic beforewrite. No _serve_media change.",
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "main.py"
+        ],
+        "required_dimensions": [
+          "problem",
+          "full_file_write",
+          "browser_to_server_path",
+          "owned_media_preview",
+          "temporary_cleanup",
+          "atomic_patch_batch"
+        ],
+        "dimension_types": {
+          "problem": "string",
+          "full_file_write": "boolean",
+          "browser_to_server_path": "boolean",
+          "owned_media_preview": "boolean",
+          "temporary_cleanup": "boolean",
+          "atomic_patch_batch": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": true
+          },
+          {
+            "browser_to_server_path": false
+          },
+          {
+            "owned_media_preview": false
+          },
+          {
+            "temporary_cleanup": false
+          },
+          {
+            "atomic_patch_batch": false
+          }
+        ],
+        "evidence_refs": [
+          {
+            "path": "attempts/sem-node-0157/attempt-0001.json",
+            "receipt_hash": "46afff532fbe376279a19081ef535879b9e526fe8850e4655c4872a9c54d9fcf"
+          }
+        ]
+      }
+    ],
+    "bounded_patch_policy": {
+      "mode": "patch_only",
+      "block_id": "B02",
+      "writer_node_id": "sem-node-0143",
+      "hold_after_worker_attempt": true,
+      "files": {
+        "main.py": {
+          "source_sha256": "60d5e9d3fcdf45f7134576b77aedc42fb4ec6bbd0cdfbb5a5e12f17fdb7eb97d",
+          "ranges": [
+            [
+              2216,
+              3922
+            ],
+            [
+              21139,
+              21868
+            ],
+            [
+              45851,
+              47629
+            ]
+          ],
+          "max_changed_chars": 24000,
+          "allowed_sections": [
+            "media import adapter",
+            "media DOM",
+            "media JS"
+          ]
+        }
+      },
+      "acceptance_requirements": [
+        "B02 only: browser file/base64 -> explicit temporary-file adapter -> existing M11 media.import(path,kind,project_id), safe confined temporary name, cleanup in finally for success/error; durable original M11 copy, no M11 backend edit. Reject missing/empty/malformed/broken media. Preserve all nonmedia dispatch and B01 sections exactly.",
+        "Already changed _serve_media now uses real M11 metadata and is OUTSIDE this patch scope. Remaining mandatory source deltas: explicit temporary-file adapter in handle region AND media browser JS for real image/video preview/list and project binding. You may include DOM changes only when necessary.",
+        "Media UI uses actual selected currentProjectId and real returned media.id, renders image and video correctly, clear stale previews across project loading and use actual M11 media.list on navigation/refresh. Avoid guessed IDs or modifying shared project/bootstrap/renderer code.",
+        "Only exact semantic patch operation3 within allowed source ranges. No whole-filewrite, no modulemapping/threadserver/stateendpoint/startup edits. Local imports inside adapter allowed. All target bytes outside ranges immutable.",
+        "NEW qualified protocol supports op3 payload ARRAY of up to8 {find,replace} objects, all from original observed source and nonoverlapping. Submit separated adapter andmediaJS changes in ONE atomic patch batch. Do not return just one partial patch; do not repeat _serve_media; do not bridge unrelated frozen sections."
+      ]
+    },
+    "redecision": {
+      "strategy_revision": "9456e41fa26ef7e1bfe9e3a7b4cee6e72fbd06a9203743f29e9df93ea8fbcc65",
+      "reason": "New current native failure157 on actualpartialdelta60d5 plus qualified multi-range atomic patch protocol fixes structural one-patch limitation. Complete remaining two isolated sections; preserve alreadychanged serving and B01.",
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0157\\attempt-0001.json",
+        "D:/VeriArbor/governance/checks/bounded-patch-batch54/receipt.json",
+        "D:/VeriArbor/governance/checks/bounded-patch-batch54-existing-fixed/receipt.json"
+      ]
+    }
+  }
+}

@@ -1,0 +1,1 @@
+[{"id": "6141a45cb3ee4a4b8d0f7081bf8984a5", "project_id": "01f00de8edd74afa96609adedcabe76f", "content_id": "4f141d64a68c4085856cb9629e49c261", "platform_url": "http://localhost:9999", "idempotency_key": "key-run", "when": "2030-01-01T00:00:00+00:00", "status": "PUBLISHED", "receipt_id": "receipt-1", "result_status": "PUBLISHED", "history": []}]

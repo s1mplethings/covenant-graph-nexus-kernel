@@ -1,0 +1,1 @@
+[{"id": "content1", "project_id": "proj1", "campaign_id": "camp1", "channel": "email", "text": "hello world", "claim_ids": [], "media_ids": [], "revision": 1, "status": "APPROVED", "revisions": [{"id": "content1", "project_id": "proj1", "campaign_id": "camp1", "channel": "email", "text": "hello world", "claim_ids": [], "media_ids": [], "revision": 1, "status": "DRAFT"}]}]

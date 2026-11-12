@@ -35,45 +35,7 @@ AGENT_SCHEMA['properties']['edits']['items']['allOf']=[
 ]
 
 
-@dataclass(frozen=True)
-class AgentDecisionContext:
-    project_id: str
-    run_id: str
-    goal: str
-    decision_number: int
-    tree: CapabilityTree
-    known_capabilities: tuple[str, ...]
-    capability_catalog: Mapping[str, Any]
-    run_summary: Mapping[str, Any]
-    failure_details: Mapping[str, Any]
-    execution_results: Mapping[str, Any] = field(default_factory=dict)
-    goal_acceptance: Mapping[str, Any] = field(default_factory=dict)
-    task_feedback: Mapping[str, Any] = field(default_factory=dict)
-    retrieved_knowledge: Mapping[str, Any] = field(default_factory=dict)
-    project_intent: Mapping[str, Any] = field(default_factory=dict)
-
-    def as_dict(self) -> dict[str, Any]:
-        return {"project_id": self.project_id, "run_id": self.run_id, "goal": self.goal, "decision_number": self.decision_number, "tree": self.tree.as_dict(), "known_capabilities": list(self.known_capabilities), "capability_catalog": _thaw(self.capability_catalog), "run_summary": _thaw(self.run_summary), "failure_details": _thaw(self.failure_details), "execution_results": _thaw(self.execution_results), "goal_acceptance": _thaw(self.goal_acceptance), "task_feedback": _thaw(self.task_feedback), "retrieved_knowledge": _thaw(self.retrieved_knowledge), "project_intent":_thaw(self.project_intent)}
-
-
-@dataclass(frozen=True)
-class AgentDecision:
-    decision_id: str
-    summary: str
-    reason: str
-    edits: tuple[TreeEdit, ...]
-    request_run: bool
-    finish: bool
-    needs_escalation: bool
-    escalation_reason: str
-    provider: Mapping[str, Any]
-    context_hash: str
-    context_chars: int
-    goal_plan: Mapping[str, Any] | None = None
-    decision_audit: Mapping[str, Any] = field(default_factory=dict)
-
-    def as_dict(self) -> dict[str, Any]:
-        return {"decision_audit": _thaw(self.decision_audit), "schema_version": "1.0", "decision_id": self.decision_id, "summary": self.summary, "reason": self.reason, "edits": [{"edit_id": item.edit_id, "operation": item.operation, "node_id": item.node_id, "payload": _thaw(item.payload), "provenance": _thaw(item.provenance)} for item in self.edits], "request_run": self.request_run, "finish": self.finish, "needs_escalation": self.needs_escalation, "escalation_reason": self.escalation_reason, "provider": _thaw(self.provider), "context_hash": self.context_hash, "context_chars": self.context_chars, "goal_plan": _thaw(self.goal_plan) if self.goal_plan else None}
+from cgkn.orchestration.admission import AgentDecisionContext, AgentDecision, AgentDecisionValidationError
 
 
 def parse_agent_decision(value: Mapping[str, Any], completion: ProviderCompletion, raw_context: str) -> AgentDecision:
@@ -110,25 +72,29 @@ def parse_agent_decision(value: Mapping[str, Any], completion: ProviderCompletio
     if controls != 1 and not (controls == 0 and value.get("goal_plan")):
         raise ValueError("agent decision must choose exactly one control outcome")
     audit=value.get('decision_audit',{})
-    if audit and (set(audit)!={'alternatives_considered','expected_outcome'} or not isinstance(audit['alternatives_considered'],list) or any(not isinstance(x,str) for x in audit['alternatives_considered']) or not isinstance(audit['expected_outcome'],str)):
-        raise ValueError('invalid public decision audit')
+    if audit:
+        allowed={'capability_claim','requirement_refs','facts','expected_improvement','alternatives_considered','expected_outcome'}
+        if (not isinstance(audit,dict) or set(audit)-allowed or
+            not isinstance(audit.get('expected_outcome'),str) or not audit['expected_outcome'].strip()):
+            raise ValueError('public decision audit requires a concrete expected_outcome')
+        if 'alternatives_considered' in audit and (not isinstance(audit['alternatives_considered'],list) or
+                any(not isinstance(x,str) for x in audit['alternatives_considered'])):
+            raise ValueError('alternatives_considered must be a list when supplied')
+    if 'capability_claim' in audit:
+        claim = audit['capability_claim']
+        allowed = {'target_capability_id', 'target_gap_id', 'strategy_capabilities',
+                   'exploration_reason', 'exploration_budget', 'exploration_measure'}
+        if not isinstance(claim, dict) or set(claim) - allowed:
+            raise ValueError('invalid capability claim')
     return AgentDecision(str(value["decision_id"]), str(value["summary"]), str(value["reason"]), edits, bool(value["request_run"]), bool(value["finish"]), bool(value["needs_escalation"]), str(value["escalation_reason"]), {"model": completion.model, "routing": dict(completion.routing), "request_id": completion.request_id, "usage": dict(completion.usage), "attempts": completion.attempts}, hashlib.sha256(raw_context.encode()).hexdigest(), len(raw_context), value.get("goal_plan"),audit)
-
-
-class AgentDecisionValidationError(ValueError):
-    """Rejected model text, preserved verbatim for the next bounded decision."""
-
-    def __init__(self, error: Exception, completion: ProviderCompletion):
-        super().__init__(str(error))
-        self.feedback = {"error_type": type(error).__name__, "error": str(error),
-                         "raw_response": completion.text, "model": completion.model,
-                         "request_id": completion.request_id}
 
 
 class AgentComposer:
     additional_instructions = ''
     decision_schema_name = 'cgkn_agent_decision'
     decision_schema = None
+    from cgkn.protocol.exchange import MAX_CONTEXT_EXPANSIONS
+    max_context_expansions = MAX_CONTEXT_EXPANSIONS
 
     def __init__(self, client: CompletionClient, config: ModelRoleConfig, *, require_decision_audit=False, allow_goal_plan=True, semantic_tables=None, protocol_trace=None, context_resolver=None, context_policy=None, planner_mode='EXECUTION_MODE'):
         if config.role != "agent":
@@ -141,6 +107,7 @@ class AgentComposer:
         self.semantic_tables=semantic_tables or (self._milestone_snapshot if planner_mode=='MILESTONE_MODE' else None)
         self.protocol_trace=protocol_trace
         self.context_resolver,self.context_policy=context_resolver,context_policy
+        self._explicit_context_resolver=context_resolver
         if self.semantic_tables is not None and not callable(protocol_trace):raise ValueError("semantic protocol requires an audit sink")
         self.require_decision_audit,self.allow_goal_plan=require_decision_audit,allow_goal_plan
 
@@ -153,6 +120,9 @@ class AgentComposer:
         """
         if self.planner_mode != 'MILESTONE_MODE' or not callable(self.protocol_trace):
             raise ValueError('MILESTONE_MODE and durable protocol trace required')
+        if self._explicit_context_resolver is None:
+            from cgkn.protocol.adaptive_context import public_context_view
+            _,self.context_resolver=public_context_view(context.as_dict())
         from cgkn.protocol.declaration import MilestoneContractCompiler
         from cgkn.protocol.compiler import TableSnapshot
         from cgkn.protocol.exchange import exchange
@@ -223,6 +193,9 @@ class AgentComposer:
                 'admission':'PROPOSAL_ONLY', 'acceptance':'NOT_EVALUATED'}
 
     def decide(self, context: AgentDecisionContext) -> AgentDecision:
+        if self._explicit_context_resolver is None:
+            from cgkn.protocol.adaptive_context import public_context_view
+            _,self.context_resolver=public_context_view(context.as_dict())
         if self.planner_mode == 'MILESTONE_MODE':
             if not context.project_intent or not context.goal_acceptance:
                 raise ValueError('MILESTONE_MODE requires frozen intent and independent acceptance')
@@ -234,17 +207,27 @@ class AgentComposer:
             return semantic_decide(self,context)
         from cgkn.orchestration.leaf_contract import CONTRACT_SCHEMA
         raw_context = json.dumps({**context.as_dict(),'execution_leaf_contract_schema':CONTRACT_SCHEMA}, ensure_ascii=False, sort_keys=True)
+        from cgkn.protocol.adaptive_context import public_context_view
+        from cgkn.protocol.exchange import complete_with_context
+        public_context,context_resolver=public_context_view(json.loads(raw_context))
         schema=json.loads(json.dumps(self.decision_schema or AGENT_SCHEMA))
         if context.goal_acceptance and self.allow_goal_plan and self.planner_mode != 'MILESTONE_MODE':
             schema["properties"]["goal_plan"]={"type":"object"}
-        if self.require_decision_audit:
+        if self.require_decision_audit or context.task_feedback.get('capability_governance'):
             schema['required'].append('decision_audit')
-            schema['properties']['decision_audit']={'type':'object','additionalProperties':False,'required':['alternatives_considered','expected_outcome'],'properties':{'alternatives_considered':{'type':'array','items':{'type':'string'}},'expected_outcome':{'type':'string'}}}
+            schema['properties']['decision_audit']={'type':'object','additionalProperties':False,'required':['expected_outcome'],'properties':{'alternatives_considered':{'type':'array','items':{'type':'string'}},'expected_outcome':{'type':'string'}}}
+            schema['properties']['decision_audit']['properties'].update(requirement_refs={'type':'array','items':{'type':'string'}}, facts={'type':'array','items':{'type':'string'}}, expected_improvement={'type':'string'})
+            schema['properties']['decision_audit']['properties']['capability_claim'] = {
+                'type': 'object', 'additionalProperties': False,
+                'properties': {'target_capability_id': {'type': 'string'}, 'target_gap_id': {'type': 'string'},
+                    'strategy_capabilities': {'type': 'array', 'items': {'type': 'string'}},
+                    'exploration_reason': {'type': 'string'}, 'exploration_budget': {'type': 'number', 'exclusiveMinimum': 0},
+                    'exploration_measure': {'type': 'string'}}}
         from cgkn.providers.gateway_client import GatewayCompletionError
         try:
-            completion = self.client.complete(system="""You are the CGKN composition Agent. Decide only validated CapabilityTree edits and whether to run, finish, or escalate. Never write files, execute shell/network, change the project goal, package, deliver, or reveal hidden reasoning. Return concise JSON only.
+            completion = complete_with_context(self.client, resolver=context_resolver, max_context_expansions=self.max_context_expansions, system="""You are the CGKN composition Agent. Decide only validated CapabilityTree edits and whether to run, finish, or escalate. Never write files, execute shell/network, change the project goal, package, deliver, or reveal hidden reasoning. Return concise JSON only.
     Exactly one of request_run, finish, needs_escalation must be true. Repair edits require request_run=true, finish=false, needs_escalation=false. Rejected decisions have not applied their edits; use validation feedback for a new decision.
-    Canonical edit syntax is exact: add_node payload is {\"capability_ref\": str, \"parent_id\": str, \"depends_on\": [str], \"config\": object}; update_config payload is {\"config\": object}; retry_node payload is {}. Executor selection belongs in config.executor_ref. Copy config keys and values exactly from capability_catalog; do not invent aliases or absolute paths. Use capability_ref, depends_on, and executor_ref exactly; never substitute capability, dependencies, tool, runner, model, command, instruction, target_file, or file_path. Composite nodes have empty capability_ref and cannot execute. Every executable leaf requires config.leaf_contract with schema_version=1.0, leaf_goal, task_kind, target_scope (bounded relative artifact paths), expected_delta for writes, acceptance (registered checker condition names), checker_ref, output_identity, effect_domains (one primary), executor_ref and dependencies matching the node. Research requires source_refs and completion_criterion; tests require subject, expected_observation and pass_fail_rule. Choose independently verifiable deliverables, not whole products. NEEDS_DECOMPOSITION requires Agent revision; framework never splits business work. Execution success is not deliverable or goal acceptance. A request_run decision must create or retain at least one executable node.""" + "\n" + self.additional_instructions, user=raw_context, schema_name=self.decision_schema_name, schema=schema, config=self.config)
+    Canonical edit syntax is exact: add_node payload is {\"capability_ref\": str, \"parent_id\": str, \"depends_on\": [str], \"config\": object}; update_config payload is {\"config\": object}; retry_node payload is {}. Executor selection belongs in config.executor_ref. Copy config keys and values exactly from capability_catalog; do not invent aliases or absolute paths. Use capability_ref, depends_on, and executor_ref exactly; never substitute capability, dependencies, tool, runner, model, command, instruction, target_file, or file_path. Composite nodes have empty capability_ref and cannot execute. Follow the application compiler interface when supplied; otherwise every executable leaf requires config.leaf_contract with schema_version=1.0, leaf_goal, task_kind, target_scope (bounded relative artifact paths), expected_delta for writes, acceptance (registered checker condition names), checker_ref, output_identity, effect_domains (one primary), executor_ref and dependencies matching the node. Research requires source_refs and completion_criterion; tests require subject, expected_observation and pass_fail_rule. Choose independently verifiable deliverables, not whole products. NEEDS_DECOMPOSITION requires Agent revision; framework never splits business work. Execution success is not deliverable or goal acceptance. A request_run decision must create or retain at least one executable node.""" + "\n" + self.additional_instructions, user=json.dumps(public_context,ensure_ascii=False), schema_name=self.decision_schema_name, schema=schema, config=self.config)
         except GatewayCompletionError as exc:
             document = getattr(exc, 'completed_response', None)
             if exc.category != 'schema_validation_failed' or exc.outcome_unknown or not isinstance(document, dict):
@@ -272,7 +255,7 @@ class AgentComposer:
             self.last_provider_payload=parse_json_object(completion.text)
             value=self._normalize_decision(self.last_provider_payload,context)
             if (not self.allow_goal_plan or self.planner_mode == 'MILESTONE_MODE') and value.get('goal_plan'):raise ValueError('goal_plan is frozen; omit goal_plan, retain current acceptance contract')
-            if self.require_decision_audit and not value.get('decision_audit'):raise ValueError('public decision_audit required: brief alternatives_considered and expected_outcome, no hidden reasoning')
+            if self.require_decision_audit and not value.get('decision_audit'):raise ValueError('public decision_audit required: brief evidence and expected_outcome, no hidden reasoning')
             return parse_agent_decision(value, completion, raw_context)
         except (ValueError, TypeError, KeyError) as exc:
             # Transport errors remain outside this handler. No response repair.
@@ -317,7 +300,10 @@ class AgentComposer:
                                 'checker':{'enum':checkers},
                                 'reason_summary':{'type':'string','minLength':1}}}
         raw=json.dumps(public,ensure_ascii=False,sort_keys=True)
-        completion=self.client.complete(system='Select only the next small, independently verifiable milestone from registered uncovered public requirements. Do not plan the whole product, implement business code, invent checker bindings or assert success. Return the selected bindings and a brief public reason; no hidden reasoning.',
+        from cgkn.protocol.exchange import complete_with_context
+        from cgkn.protocol.adaptive_context import public_context_view
+        resolver=self._explicit_context_resolver or public_context_view(context.as_dict())[1]
+        completion=complete_with_context(self.client,resolver=resolver,system='Select only the next small, independently verifiable milestone from registered uncovered public requirements. Do not plan the whole product, implement business code, invent checker bindings or assert success. Return the selected bindings and a brief public reason; no hidden reasoning.',
             user=raw,schema_name='cgkn_next_milestone',schema=schema,config=self.config)
         trace={'kind':'MILESTONE_SELECTION','decision_number':context.decision_number,
                'context':public,'raw_response':completion.text,'model':completion.model,

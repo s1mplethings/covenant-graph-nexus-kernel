@@ -1,0 +1,20 @@
+{
+  "status": "FAIL",
+  "explicit_milestone_preserved": false,
+  "nonmedia_concurrency_preserved": false,
+  "dispatch_calls": [
+    "M11"
+  ],
+  "dispatch_error": null,
+  "concurrency": [
+    {
+      "milestone": "M1",
+      "error": "ValueError: "
+    },
+    {
+      "milestone": "M4",
+      "error": "ValueError: "
+    }
+  ],
+  "probe_scope": "Current adapter boundary with injected handlers; original backend source unchanged"
+}

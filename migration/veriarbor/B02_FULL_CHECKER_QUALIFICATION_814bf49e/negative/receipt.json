@@ -1,0 +1,114 @@
+{
+  "subject_hashes": {
+    "early_main.py": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+    "main.py": "60d5e9d3fcdf45f7134576b77aedc42fb4ec6bbd0cdfbb5a5e12f17fdb7eb97d",
+    "promotion_publish.py": "c3d9f8917f484c7001a5bffe8c8a72bf330a783c3edf8233689a5291373c3592",
+    "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+    "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+    "milestones/milestone_33270fed0c9054f5ae04/api.py": "fa6720fa72e5e955987349f999c1314360f448310c1fa52d2e63179df741f950",
+    "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+    "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+    "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+    "milestones/milestone_989800776c3d6229e431/api.py": "a613d313a070daefc416eb56ab9f7f0ea4b9ab6c11d6ad745a0d029f67e71b38",
+    "milestones/milestone_af427946c6dea418047a/api.py": "95c470c2bb2e3ad0fed836dfe705f1baa29648b8c954b572629f6eb9940672c3",
+    "milestones/milestone_c511a8ebd29978f5ba97/api.py": "544d890040f5e119f9bb26d797d2a3d2f8669fac93f581bc98811431db651558",
+    "milestones/milestone_dbb8341c8910593063a8/api.py": "4e3f4f9ec6ad0c30a04566a3c6a51e5d6d7bb55e23371bbae740831f3f866a08"
+  },
+  "checker_dependencies": {
+    "B01_preflight": "b90a255391c9318600f9a544f1226f93a8e1e6f55cf666b9d6da73c23208642d",
+    "B02_concurrency": "9bd8467182b5ace7b32640ab2325e94568fe0ce9e4eee5bc4a3267a4da105562"
+  },
+  "kind": "B02BrowserUploadAcceptance",
+  "block_id": "B02",
+  "source_sha256": "60d5e9d3fcdf45f7134576b77aedc42fb4ec6bbd0cdfbb5a5e12f17fdb7eb97d",
+  "checker_sha256": "f37ad4a88cf60d9b600dafb37b4e9c40d66e553d0ceb855dfaf6799c5e9eab7b",
+  "checks": [
+    "missing browser file visibly rejected"
+  ],
+  "network": [
+    {
+      "url": "http://127.0.0.1:57162/",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:57162/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:57162/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:57162/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:57162/api/state?project_id=31181c3bfe7242b391a41387ea9840a5",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:57162/api/action",
+      "status": 400,
+      "method": "POST",
+      "error_body": "{\"error\": \"path must be a non-empty string\"}"
+    }
+  ],
+  "console": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+    },
+    {
+      "type": "error",
+      "text": "Error: path must be a non-empty string\n    at apiCall (http://127.0.0.1:57162/:403:36)\n    at async reader.onload (http://127.0.0.1:57162/:1323:33)"
+    }
+  ],
+  "javascript_errors": [],
+  "host_business_patches": 0,
+  "browser": "134.0.3124.51",
+  "preflight": {
+    "html_parsed": true,
+    "js_parse": true,
+    "duplicate_ids": [],
+    "literal_dom_references_resolved": true
+  },
+  "image_response": {
+    "status": 400,
+    "body": {
+      "error": "path must be a non-empty string"
+    }
+  },
+  "status": "FAIL",
+  "error": "AssertionError: image browser import HTTP200",
+  "startup": {
+    "command": [
+      "D:\\anaconda\\python.exe",
+      "-X",
+      "utf8",
+      "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_FULL_CHECKER_QUALIFICATION_814bf49e\\negative\\snapshot\\main.py",
+      "--serve",
+      "--port",
+      "57162",
+      "--data",
+      "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_FULL_CHECKER_QUALIFICATION_814bf49e\\negative\\data"
+    ],
+    "url": "http://127.0.0.1:57162",
+    "data_dir": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_FULL_CHECKER_QUALIFICATION_814bf49e\\negative\\data"
+  },
+  "cleanup": {
+    "server_stopped": true
+  },
+  "fixture_hashes": {
+    "png": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e",
+    "video": "378731f8c5fd006ebf842d00c05038d5a6cfb93a16361d979ca45dd156919a47"
+  }
+}

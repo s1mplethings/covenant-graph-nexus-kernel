@@ -1,0 +1,33 @@
+{
+  "kind": "PurePatchScopeQualification",
+  "status": "PASS",
+  "actual_response_sha256": "03f069bcca70488ef7a083a601d906aebb3d91cd3a5a0440a19965baa192693c",
+  "source_before_after_unchanged": "60d5e9d3fcdf45f7134576b77aedc42fb4ec6bbd0cdfbb5a5e12f17fdb7eb97d",
+  "planned_receipts": [
+    {
+      "path": "main.py",
+      "before_sha256": "60d5e9d3fcdf45f7134576b77aedc42fb4ec6bbd0cdfbb5a5e12f17fdb7eb97d",
+      "after_sha256": "a778d69384a352e02880195142431ff06bfdb5d201aeaa71e27256c5830fdd62",
+      "policy_source_sha256": "60d5e9d3fcdf45f7134576b77aedc42fb4ec6bbd0cdfbb5a5e12f17fdb7eb97d",
+      "changed_ranges": [
+        {
+          "start_char": 3479,
+          "end_char": 3918,
+          "start_line": 239,
+          "end_line": 257,
+          "replacement_sha256": "558e00bade648b31260a4f0dbc4b4451194ffa98337db868524f8188023cc770"
+        },
+        {
+          "start_char": 45843,
+          "end_char": 47617,
+          "start_line": 2081,
+          "end_line": 2159,
+          "replacement_sha256": "9a21f4c03f9176793cdaba728d0d45a5f9d6b168a1ae4f6a5c326fd98fcb0fd7"
+        }
+      ],
+      "verdict": "BOUNDED_PATCH_WITH_SOURCE_DELTA"
+    }
+  ],
+  "business_bytes_written": 0,
+  "purpose": "Verify corrected indentation boundary only; original rejected output is NEVER applied or supplied as business patch to Worker"
+}

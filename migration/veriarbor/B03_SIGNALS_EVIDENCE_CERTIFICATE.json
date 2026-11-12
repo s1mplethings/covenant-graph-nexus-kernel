@@ -1,0 +1,156 @@
+{
+  "kind": "AuthenticatedLocalBlockCertificate",
+  "block_id": "B03",
+  "status": "VERIFIED",
+  "reuse_status": "FROZEN_REUSABLE",
+  "certificate": {
+    "block_id": "B03",
+    "variant_id": "B03-711c0519",
+    "input_contract_hash": "02d3a86e3d433fd62eddd563ff901cb07b8bbc4f1eaf5ef7a1f3b07098c88533",
+    "output_contract_hash": "cd2e8ba6cd99121206e090e10c8d6d4049bb6e204102f760f890be50d95f8023",
+    "effect_contract_hash": "726512e078c13b8e5fa7b5790c25f6f83c1bdb1c5f014867b4efd8d4dbd24793",
+    "acceptance_ids": [
+      "B03:project created",
+      "B03:evidence imported and visible",
+      "B03:evidence selectable",
+      "B03:signal created and visible",
+      "B03:signal OPEN",
+      "B03:supported claim visible with reference",
+      "B03:signal rejected with reason",
+      "B03:signals/claims persist after refresh",
+      "B03:no JavaScript errors"
+    ],
+    "artifact_hashes": [
+      [
+        "main.py#signals-dom",
+        "59598761b36f5038a46be151a26d0d9d2ee96161be5e9f90814a6bcd4855272b"
+      ],
+      [
+        "main.py#signals-js",
+        "9698123fea050396a105624bb094821dc889ec1153ae0139e0d74084a1a0a549"
+      ]
+    ],
+    "checker_hashes": [
+      [
+        "B03.browser",
+        "10203e035f5ce21a0db9b81754cb91d742dc0093dbb6caa5510206bb1f1416b5"
+      ]
+    ],
+    "known_limits": [
+      "Block scope only; full M12 rollup requires B01-B11."
+    ],
+    "evidence_refs": [
+      "iter132-promotion-studio/promotion-05/evidence/c35735c36d8785e1c05efccf69a2f6d528162d1ce5dc7777a6f792c267e0bcd8.json"
+    ],
+    "created_at": "2026-11-05T18:01:29.079003+00:00",
+    "invalidated": false
+  },
+  "certificate_fingerprint": "74df4e15f89cea884e8f63580a9ab3d8058f87e2cafe7bbe3c633426ccc45b08",
+  "block": {
+    "block_id": "B03",
+    "capability": "SignalsEvidenceBlock",
+    "input_ports": [
+      {
+        "port_id": "SignalsEvidenceBlockInput",
+        "version": "1",
+        "direction": "input",
+        "contract": {
+          "schema_json": "{\"additionalProperties\":false,\"properties\":{\"evidence_path\":{\"type\":\"string\"},\"project_id\":{\"type\":\"string\"},\"signal_text\":{\"type\":\"string\"}},\"required\":[\"project_id\",\"evidence_path\",\"signal_text\"],\"type\":\"object\"}",
+          "semantic": "Independent browser acceptance for SignalsEvidenceBlock."
+        },
+        "required": true,
+        "default_json": "null",
+        "compatibility_policy": "structural-v1"
+      }
+    ],
+    "output_ports": [
+      {
+        "port_id": "SignalsEvidenceBlockOutput",
+        "version": "1",
+        "direction": "output",
+        "contract": {
+          "schema_json": "{\"additionalProperties\":false,\"properties\":{\"evidence_id\":{\"type\":\"string\"},\"signal_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}},\"required\":[\"evidence_id\",\"signal_id\",\"status\"],\"type\":\"object\"}",
+          "semantic": "Independent browser acceptance for SignalsEvidenceBlock."
+        },
+        "required": true,
+        "default_json": "null",
+        "compatibility_policy": "structural-v1"
+      }
+    ],
+    "effect_contract": {
+      "reads": [
+        "persisted milestone state",
+        "selected project identity"
+      ],
+      "writes": [
+        "browser UI state",
+        "project-scoped persistence"
+      ],
+      "external_effects": [
+        "loopback HTTP only"
+      ],
+      "persistence": "restart persistence verified",
+      "idempotency": "duplicate idempotency keys preserve one receipt and one platform post",
+      "concurrency": "threaded server; M11 store lock only at media boundary",
+      "ordering": "UI action -> milestone handler -> persistence -> browser refresh",
+      "rollback": "bounded source patches; isolated acceptance data"
+    },
+    "variants": [
+      {
+        "variant_id": "B03-711c0519",
+        "artifacts": [
+          [
+            "main.py#signals-dom",
+            "59598761b36f5038a46be151a26d0d9d2ee96161be5e9f90814a6bcd4855272b"
+          ],
+          [
+            "main.py#signals-js",
+            "9698123fea050396a105624bb094821dc889ec1153ae0139e0d74084a1a0a549"
+          ]
+        ],
+        "status": "VERIFIED"
+      }
+    ],
+    "active_variant": "B03-711c0519",
+    "certificate_ref": null
+  },
+  "source_sha256_at_verification": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+  "relevant_section_hashes": {
+    "main.py#signals-dom": "59598761b36f5038a46be151a26d0d9d2ee96161be5e9f90814a6bcd4855272b",
+    "main.py#signals-js": "9698123fea050396a105624bb094821dc889ec1153ae0139e0d74084a1a0a549"
+  },
+  "neighbor_contract_hashes": {
+    "M1_project_api_source": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+    "M11_media_api_source": "4e3f4f9ec6ad0c30a04566a3c6a51e5d6d7bb55e23371bbae740831f3f866a08"
+  },
+  "evidence_refs": [
+    {
+      "path": "iter132-promotion-studio/promotion-05/evidence/c35735c36d8785e1c05efccf69a2f6d528162d1ce5dc7777a6f792c267e0bcd8.json",
+      "sha256": "9ba3ccf2bb5bf389a9307a7930b61f766e5ae1c33c8236827694ae1435cad5b6"
+    }
+  ],
+  "acceptance_checks": [
+    "project created",
+    "evidence imported and visible",
+    "evidence selectable",
+    "signal created and visible",
+    "signal OPEN",
+    "supported claim visible with reference",
+    "signal rejected with reason",
+    "signals/claims persist after refresh",
+    "no JavaScript errors"
+  ],
+  "checker": "D:\\VeriArbor\\tools\\m12_b03_acceptance.py",
+  "checker_sha256": "10203e035f5ce21a0db9b81754cb91d742dc0093dbb6caa5510206bb1f1416b5",
+  "invalidation_triggers": [
+    "certified section changes",
+    "checker identity changes",
+    "neighbor contract changes"
+  ],
+  "authority": "Original FileRunStore evidence plus VeriArbor Certificate",
+  "host_business_patches": 0,
+  "canonical_evidence_ref": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/9dcc7463d92ccb44af9fb843e77dc7c6c4ac8995cb3be24a42fb9e9a8d2af1be.json",
+    "sha256": "b342f50c135b5e0481e4b68b86154f93f03e6a1178a240f8866ac1303046ab63"
+  }
+}

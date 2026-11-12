@@ -6,6 +6,8 @@ import json
 import pathlib
 import platform
 import sys
+import subprocess
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 
 from kernel_source_identity import ROOT, identity
@@ -48,6 +50,8 @@ def generate(profile_path: pathlib.Path, coverage_path: pathlib.Path, source_com
 
 
 def main() -> int:
+    if len(sys.argv)>1 and sys.argv[1]=='working-tree':
+        return generate_working_tree_receipt(sys.argv[2:])
     parser = argparse.ArgumentParser()
     parser.add_argument("--profiles", required=True)
     parser.add_argument("--coverage", required=True)
@@ -58,6 +62,57 @@ def main() -> int:
     (ROOT / args.output).write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(value, indent=2))
     return 0 if value["final_verdict"] == "PASS" else 1
+
+
+def generate_working_tree_receipt(argv):
+    """Run mapped checks and offline application/experiment validation.
+
+    This is the producer for freshness checks, not a full-closure verdict.
+    The full profile subsequently tests those freshness checks themselves.
+    Historical committed receipts are retained unchanged.
+    """
+    from source_boundaries import BOUNDARIES,boundary_identity
+    from receipt_freshness import WORKTREE_RECEIPT,junit_nodeid
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--output-directory',type=pathlib.Path,required=True)
+    args=parser.parse_args(argv)
+    output=args.output_directory.resolve();output.mkdir(parents=True,exist_ok=False)
+    before={name:boundary_identity(name,'WORKTREE') for name in BOUNDARIES}
+    (output/'source-before.json').write_text(json.dumps(before,indent=2),encoding='utf-8')
+    manifest=json.loads((ROOT/'governance/test_coverage_manifest.json').read_text(encoding='utf-8'))
+    mapped=sorted({case['nodeid'] for row in manifest['sources'].values() for case in row['test_cases']})
+    junit=output/'validation.xml'
+    arguments=[*mapped,'tests/application/software_project','tests/experiments',
+        '--run-profile-marked','-m','not live_provider and not provider and not stress and not soak and not benchmark and not longrun and not long_journey',
+        '-q','--junitxml='+str(junit)]
+    argument_file=output/'pytest-arguments.json'
+    argument_file.write_text(json.dumps(arguments),encoding='utf-8')
+    command=[sys.executable,'-c','import json,sys,pytest;sys.exit(pytest.main(json.load(open(sys.argv[1],encoding="utf-8"))))',str(argument_file)]
+    with (output/'validation.log').open('w',encoding='utf-8') as log:
+        code=subprocess.call(command,cwd=ROOT,stdout=log,stderr=subprocess.STDOUT)
+    after={name:boundary_identity(name,'WORKTREE') for name in BOUNDARIES}
+    unchanged=before==after
+    passed=set();failed=[];skipped=[]
+    if junit.exists():
+        for case in ET.parse(junit).iter('testcase'):
+            nodeid=junit_nodeid(case)
+            if case.find('failure') is not None or case.find('error') is not None:failed.append(nodeid)
+            elif case.find('skipped') is not None:skipped.append(nodeid)
+            else:passed.add(nodeid)
+    required={'kernel':mapped,
+        'application':sorted(p for p in passed if p.startswith('tests/application/software_project/')),
+        'experiment':sorted(p for p in passed if p.startswith('tests/experiments/'))}
+    valid=code==0 and unchanged and not failed and not skipped and set(mapped)<=passed and all(required.values())
+    receipt={'kind':'CGKNWorkingTreeTestReceipt','status':'PASS' if valid else 'FAIL',
+        'scope':'Host mapped source checks and offline application/experiment validation; not C01-C10 qualification',
+        'boundaries':before,'required_node_ids':required,'failed_node_ids':failed,'skipped_node_ids':skipped,
+        'runs':[{'command':command,'pytest_arguments':arguments,'returncode':code,'source_unchanged':unchanged,
+            'junit_path':str(junit),'junit_sha256':hashlib.sha256(junit.read_bytes()).hexdigest() if junit.exists() else None}]}
+    rendered=json.dumps(receipt,indent=2)+'\n'
+    (output/'TestReceipt.json').write_text(rendered,encoding='utf-8')
+    if valid:(ROOT/WORKTREE_RECEIPT).write_text(rendered,encoding='utf-8')
+    print(json.dumps({'status':receipt['status'],'passed':len(passed),'failed':len(failed),'skipped':len(skipped),'source_unchanged':unchanged}))
+    return 0 if valid else 1
 
 
 if __name__ == "__main__":

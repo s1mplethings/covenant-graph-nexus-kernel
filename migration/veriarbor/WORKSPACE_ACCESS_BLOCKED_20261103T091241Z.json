@@ -1,0 +1,48 @@
+{
+  "status": "VERIARBOR_ROOT_WRITE_BLOCKED",
+  "VERIARBOR_ROOT": "D:\\VeriArbor",
+  "CGNK_ROOT": "F:\\CGKN-LeanLoop-V1-20261101",
+  "PROMOTION_ROOT": "F:\\CGKN-ITER-132\\production-core-convergence-v1",
+  "checks": {
+    "veriarbor": {
+      "read": true,
+      "write": false,
+      "error": "PermissionError WinError 5 creating D:\\VeriArbor\\governance"
+    },
+    "cgkn": {
+      "read": true,
+      "write": true
+    },
+    "promotion": {
+      "read": true,
+      "write": true
+    }
+  },
+  "windows_user": "test\\sunom",
+  "owner": "BUILTIN\\Administrators",
+  "python": "C:\\Users\\sunom\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+  "library_git": {
+    "existing": true,
+    "remote": "https://github.com/s1mplethings/VeriArbor.git"
+  },
+  "provider_calls": 0,
+  "source_changes": 0,
+  "host_business_patches": 0,
+  "push_publish": false,
+  "completed": [
+    "Read user-authorized prompt",
+    "Read host AGENTS.md and product authority",
+    "Read required project-management skill",
+    "Checked root binding and Git identity",
+    "Ran actual read/write probes"
+  ],
+  "not_completed": [
+    "P0 baseline capture (blocked before governance write)",
+    "Library extraction",
+    "Host integration",
+    "Shadow and authority migration",
+    "M7-M12",
+    "Product delivery"
+  ],
+  "next_action": "Grant current Windows account Modify access to D:\\VeriArbor including child files, then resume from P0; do not substitute a different root."
+}

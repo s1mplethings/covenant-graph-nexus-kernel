@@ -67,9 +67,10 @@ def test_store_rejects_artifact_directory_symlink_escape(tmp_path) -> None:
 def test_artifact_round_trip_and_deterministic_identity(tmp_path) -> None:
     store = ArtifactStore(tmp_path, ArtifactTypeRegistry(ROOT))
     artifact = _artifact(store)
-    ref = store.write_artifact(artifact)
+    ref = store.write_artifact(artifact, execution_mode='IMPORTED_UNMANAGED')
     assert ArtifactRef.from_dict(ref.as_dict()) == ref
     assert store.read_artifact(ref.artifact_instance_id).as_dict() == artifact.as_dict()
+
 
 
 @pytest.mark.negative
@@ -120,9 +121,10 @@ def test_fsync_failure_cleans_temp_and_reports_no_success(tmp_path, monkeypatch:
     store = ArtifactStore(tmp_path, ArtifactTypeRegistry(ROOT))
     monkeypatch.setattr("cgkn.artifacts.store.os.fsync", lambda _fd: (_ for _ in ()).throw(OSError("fsync failed")))
     with pytest.raises(OSError, match="fsync failed"):
-        store.write_artifact(_artifact(store))
+        store.write_artifact(_artifact(store), execution_mode='IMPORTED_UNMANAGED')
     assert not (tmp_path / "artifacts" / "ai.goal.001.json").exists()
     assert not list((tmp_path / "artifacts").glob("*.tmp"))
+
 
 
 @pytest.mark.fault_injection

@@ -1,0 +1,32 @@
+{
+  "kind": "FrozenGeneratedTestsDiagnostic",
+  "argv": [
+    "D:\\anaconda\\python.exe",
+    "-I",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/test_milestone_989800776c3d6229e431.py",
+    "tests/test_milestone_c511a8ebd29978f5ba97.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "--basetemp=F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\m8-m9-generated-tests",
+    "--junitxml=F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m8-m9-generated-tests\\junit.xml"
+  ],
+  "cwd": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m10-diagnostic-95c470c2\\snapshot",
+  "seconds": 12.26600000000326,
+  "exit_code": 0,
+  "collected": 57,
+  "failures": [],
+  "test_identities": {
+    "tests/test_milestone_989800776c3d6229e431.py": "c4624029d91897e236dfa1787d7f8d338e3d8f8c90a20aefbcc650cff22c4090",
+    "tests/test_milestone_c511a8ebd29978f5ba97.py": "b17d3c9d847fbd6f5bc01783ecabe068dd642c189408c5c3dc47085b8c131e32"
+  },
+  "source_snapshot_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m10-diagnostic-95c470c2\\receipt.json",
+  "log_sha256": "fe3ac7f5978298a37f1a1a6dd22335e82b58d31085b382c2357a579e895c0876",
+  "junit_sha256": "4c938762a6cb3c6b09f0316276f8231e8a6b7b0d7120b4257fcc97ac7710d0af",
+  "acceptance_authority": false,
+  "host_business_patches": 0
+}

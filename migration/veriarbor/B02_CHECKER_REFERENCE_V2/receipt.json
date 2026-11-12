@@ -1,0 +1,107 @@
+{
+  "kind": "B02BrowserUploadAcceptance",
+  "block_id": "B02",
+  "source_sha256": "041a367eaaaf2b318ecd380f26a5227019733457bce918de5d224286dd35e8cb",
+  "checker_sha256": "245b242021121989a4a667a50b06f7b098046525f8468f46e829d15352146aa5",
+  "checks": [],
+  "network": [
+    {
+      "url": "http://127.0.0.1:55523/",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:55523/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:55523/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:55523/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:55523/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:55523/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:55523/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:55523/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:55523/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:55523/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:55523/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:55523/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:55523/api/action",
+      "status": 200,
+      "method": "POST"
+    }
+  ],
+  "javascript_errors": [],
+  "host_business_patches": 0,
+  "browser": "134.0.3124.51",
+  "preflight": {
+    "html_parsed": true,
+    "js_parse": true,
+    "duplicate_ids": [],
+    "literal_dom_references_resolved": true
+  },
+  "status": "FAIL",
+  "error": "TimeoutError: Locator.click: Timeout 8000ms exceeded.\nCall log:\n  - waiting for get_by_role(\"button\", name=\"Import media\", exact=True)\n",
+  "startup": {
+    "command": [
+      "D:\\anaconda\\python.exe",
+      "-X",
+      "utf8",
+      "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_CHECKER_REFERENCE_V2\\snapshot\\main.py",
+      "--serve",
+      "--port",
+      "55523",
+      "--data",
+      "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_CHECKER_REFERENCE_V2\\data"
+    ],
+    "url": "http://127.0.0.1:55523",
+    "data_dir": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_CHECKER_REFERENCE_V2\\data"
+  },
+  "cleanup": {
+    "server_stopped": true
+  },
+  "fixture_hashes": {
+    "png": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e",
+    "video": "378731f8c5fd006ebf842d00c05038d5a6cfb93a16361d979ca45dd156919a47"
+  }
+}

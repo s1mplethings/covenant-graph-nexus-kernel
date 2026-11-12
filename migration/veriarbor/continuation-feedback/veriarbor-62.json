@@ -1,0 +1,122 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "Qwen Flash Agent and Worker24000; no Pro/Max. Server route repairs nowcomplete; switch cheap Worker for distinct GUI integration after DeepSeek143a5 onlychanged4imports. New currentnativeClaims failure and explicitGUI-onlycontract. Preserve8upstreamUNKNOWN and alloldcost; no replay.",
+    "milestone_completion_request": "Complete original M12 and final delivery without restarting M1-M11 or redefining the declared M12 milestone. main.py now exists, writer143 succeeded; retain it and repair only demonstrated gaps. Finish README.md, TEST_PLAN.md, tests/test_promotion_gui.py via bounded original Provider tasks. M12 final GUI must implement actual reachable file upload with server-side adaptation to unchanged path-based M11 API, same-content edit/approval invalidation, correct project-scoped /api/state, all navigation/config/review/publish/receipt/scheduler/analytics/restart/error behaviors in frozen public contract. Original independent measurement and generated meaningful tests must pass. Preserve previous test debts and fix their original test-owner fixtures against qualified evidence, no assertion deletion/waiver. Finish canonical packaging/delivery/accounting/provenance/Corpus and reports. Existing M1-M11 certificates remain reusable except real boundary impact. Known test144 platform fixture qualification: migration/veriarbor/m12-platform-fixture-qualification/receipt.json proves nonexistent server.port caused500; original test owner corrects server_port, retains PUBLISHED assertion, and uses explicit project_id for scoped /api/state checks. Preserve meaningful valid image bytes and assertions; no M7 source repair for this fixture defect.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "main.py": "09283ff67ccec8f78268362d44e66264a598728b19bd040b8ef1c5fcbd08e2f7"
+        }
+      },
+      "current_owner": 143,
+      "attempt": 5,
+      "native_current_failure": {
+        "bound_reference": {
+          "path": "attempts/sem-node-0149/attempt-0002.json",
+          "receipt_hash": "136718072e20cf3ab4ab81fa71b070831969a26d704ef2c13cc675428ce6d853"
+        },
+        "reason": "M12_independent_business_suite: TimeoutError: Locator.select_option: Timeout 30000ms exceeded.\nCall log:\n  - waiting for get_by_label(\"Claims\", exact=True)\n    - locator resolved to <select id=\"content-claims\"></select>\n  - attempting select option action\n    2 \u00d7 waiting for element to be visible and enabled\n      - did not find some options\n    - retrying select option action\n    - waiting 20ms\n    2 \u00d7 waiting for element to be visible and enabled\n      - did not find some options\n    - retrying select option action\n      - waiting 100ms\n    59 \u00d7 waiting for element to be visible and enabled\n       - did not find some options\n     - retrying select option action\n       - waiting 500ms\n"
+      },
+      "fixed_and_reusable": "Actual all11HANDLERS literalMILESTONE_ID matches nowPASS; actualproject.createPASS. ThreadedHTTPServer alreadycorrect. Preserve imports and backend files.",
+      "actual_last_delta": "143a5 changedONLY4importlines; INDEX_HTML andallGUIJS unchanged. It didnotimplementanypromisedClaimsrefresh, fileupload or contentedit. M12_143A5_DELTA.txt proves exactdiff. Do not call this fullrepairPASS.",
+      "current_failure_mechanism": "#nav-content eventonly showView. It never invokes loadClaims/loadMedia/loadContents whenenteringContent, so newlycreatedactualclaims absentfromselect; native149a2 failsselectoption. Actual awaitedrefresh/hydration must be invoked onreachableContentnavigation andselectedproject/campaign/content transitions. Adding unusedhelper is insufficient.",
+      "gui_operation_bindings": {
+        "project": "M1",
+        "evidence": "M2",
+        "signal": "M2",
+        "claim": "M3",
+        "campaign": "M4",
+        "content": "M5",
+        "approval": "M6",
+        "publish": "M7",
+        "schedule": "M8",
+        "receipt": "M9",
+        "analytics": "M10",
+        "media": "M11"
+      },
+      "additional_real_GUI_faults": "ExistingJS stilldispatches some schedule/publish/analytics ops towrongmilestone tags even thoughservermap isfixed. Everyactionmustcarrycorrectproject/content/campaign/schedule/receipt identities fromselection; followop map. Savealwayscontent.create; selectedcontent nothydrated; noNewcontentclear mode; fileinput/uploadMedia navigation/bridge absent; PlatformURL/Publish hiddeninschedule-view whilebasicfrozenworkflow remainsContent afterApprove.",
+      "bounded_task_to_pass_to_worker": "Implement the missing executable GUI integration in main.py ONLY, retaining allcorrect11imports/ThreadingHTTPServer/verifiedbackends. NavContent awaits currentclaims/media/contents load thenhydrates actualselectedtext/channel/claim/media; saveexistingusesM5content.edit currentID andrefreshesrevision/currentapproval, explicitNewcontentcreatesseconditemwithoutoverwriting. RealMedia navigation with labeledMediafile/Media kind/Importmedia: actualFileReaderbytes via/api/action media.import toGUIserver bridge ownedboundedtemp then unchangedM11path API; actualimg/video previews serveownedvalidbytes. Populate /api/state?project_id fromcurrentactualrecords and rejectunknownproject. Save->Review->Approve mustleaveactualPlatformURL/Publish reachable without anunrequestednavstep. CorrectJSop milestone/IDs forschedule/cancel/reschedule/receipts/analytics/reconcile/variants/compare againstactualAPIs. Do not removefeatures, replaceformswithstaticHTML, orclaimsuccessafteronlyimportchanges. Include these concrete executableeventrequirements instrategy/leafexpected suppliedtoWorker.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A5_DELTA.txt",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-09283ff6\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_PREFLIGHT_143A5.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-final-product-143a2-selection-corrected\\receipt.json"
+      ],
+      "phase": "Currentfailurealreadymeasured; GUI-only143repair next. Diagnosisexpireswhenmainchanges; measurelatestthen."
+    },
+    "admission_correction": "Currentmain09283ff6 has trusted native149a2 FAILED qualifiedrevision6 Claimsrefresh. Repair143 deps:[] now. Full initialstrategy/hypothesis; exact falsifyingevidence ARRAY object {\"path\": \"attempts/sem-node-0149/attempt-0002.json\", \"receipt_hash\": \"136718072e20cf3ab4ab81fa71b070831969a26d704ef2c13cc675428ce6d853\"}. ALL11SERVERHANDLERIMPORTS ARE NOW CORRECT AND FROZEN for thisrepair (actualidentityprobePASS). Do NOT propose another import-only edit, serialserverfix or businessbackendchange. Task is executable GUI event and upload integration. Keep correct nested strategy.module_bindings and preservationflags. Add sibling strategy.gui_operation_bindings OBJECT {\"project\": \"M1\", \"evidence\": \"M2\", \"signal\": \"M2\", \"claim\": \"M3\", \"campaign\": \"M4\", \"content\": \"M5\", \"approval\": \"M6\", \"publish\": \"M7\", \"schedule\": \"M8\", \"receipt\": \"M9\", \"analytics\": \"M10\", \"media\": \"M11\"} and strategy.gui_event_paths STRING describing concrete changes to actuallyexecutednav/save/upload/hydration/visibility eventpaths; these are required so Worker receives facts, not vaguegoals. Preserve map fields; module_M* remain nested inmodule_bindings. After newsource usecurrent149measurement; never repeat unchangedkey or repairnewsource from092failure.",
+    "gui_writer_policy": "Final main.py writer143 is the sole current GUI owner. Only143 may repair that file; inspections/tests read completed snapshot. Original early_main91 and backend sources unchanged unless independent new failure proves actual boundary need.",
+    "redecision": {
+      "strategy_revision": "615ca5730cde4df94cd05b2973e67f92cd902b419d7e2c70271db395a4418144",
+      "reason": "143a5 correctlyfixedlast4serverimports butnothinginGUIchanged; currentnative149a2 repeatsactualClaimsrefreshfailure onnewsource. ExplicitGUI-onlyleaf/operationmap/concreteeventpaths preventsanotherimportonlychange. Existingstrategyconstraintmechanism only, nohostkernelchange. AlternatecheapQwenWorker24000 for coherentGUIintegration, preserveallbackendcertificates.",
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0149\\attempt-0002.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A5_DELTA.txt",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-09283ff6\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_PREFLIGHT_143A5.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-final-product-143a2-selection-corrected\\receipt.json"
+      ]
+    },
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "early_main.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\GUI_COUPLED_PREFLIGHT_24125.json"
+        ]
+      },
+      {
+        "scope_paths": [
+          "main.py"
+        ],
+        "required_dimensions": [
+          "module_bindings",
+          "gui_contract_preservation",
+          "preserve_existing_features",
+          "restore_media_upload",
+          "gui_operation_bindings",
+          "gui_event_paths"
+        ],
+        "dimension_types": {
+          "gui_contract_preservation": "string",
+          "preserve_existing_features": "boolean",
+          "restore_media_upload": "boolean",
+          "gui_event_paths": "string"
+        },
+        "forbidden_patterns": [
+          {
+            "preserve_existing_features": false
+          },
+          {
+            "restore_media_upload": false
+          },
+          {
+            "module_bindings": {}
+          },
+          {
+            "module_bindings": null
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\provider_calls\\f410393316a64efaaf4eb33f38215e86\\response.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-572685e6\\receipt.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A5_DELTA.txt",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-09283ff6\\receipt.json"
+        ]
+      }
+    ]
+  }
+}

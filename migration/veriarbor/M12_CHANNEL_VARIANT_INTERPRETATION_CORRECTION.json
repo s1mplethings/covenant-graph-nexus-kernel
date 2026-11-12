@@ -1,0 +1,11 @@
+{
+  "kind": "DiagnosticContractInterpretationCorrection",
+  "acceptance_authority": false,
+  "original_diagnostic": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_CAPABILITY_CLOSURE_5F467864.json",
+  "original_preserved": true,
+  "backend_source": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\milestones\\milestone_9165a990eed5b9c8801e\\api.py",
+  "backend_sha256": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+  "correction": "M12 requires actual channel variants, but M5 has no content.variant operation. Variants can be created as distinct contents using existing content.create with the desired actual campaign channel. Absence of a literal content.variant string does not establish a GUI defect. Keep real revision comparison via content.revisions/content.compare and reconciliation via publish.reconcile obligations. Do not add or require invented backend operation.",
+  "required_verification": "Actual GUI can create two channel variants with separate identities and preserve existing content; new-content versus edit control must make this possible.",
+  "host_business_patches": 0
+}

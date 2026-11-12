@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "D:\\anaconda\\python.exe",
+    "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\consumer-revisions\\gui-locators-v3.py",
+    "--request",
+    "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m7-4ed2-full-check\\request.json"
+  ],
+  "cwd": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m7-4ed2-full-check",
+  "exit_code": 0,
+  "seconds": 37.18800000002375,
+  "candidate_sha256": "4ed2f6a1c91c0194c3834197a8675d4000c694e3c4f09739818c811c8892e143",
+  "checker_sha256": "5201a3c5aa6c9e829890787e3a5d6b8f60d3de104b301fb9df5eeb28faeb1007",
+  "output_sha256": "d830ec4af2f891ec51d3e50c3a3a9b1ef7d758acf7402c7c2201c7f0db4b5bef",
+  "scope": "Full original qualified M7 suite on immutable current candidate snapshot; no canonical acceptance mutation",
+  "host_business_patches": 0
+}

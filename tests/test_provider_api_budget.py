@@ -168,3 +168,67 @@ def test_failure_before_http_send_cancels_reservation(
     value = json.loads(ledger.read_text(encoding="utf-8"))
     assert value["calls"][0]["status"] == "CANCELLED_BEFORE_SEND"
     assert value["totals"]["api_calls"] == 0
+
+
+def test_accounting_only_is_call_scoped_and_retains_unknowns(tmp_path, monkeypatch):
+    ledger=tmp_path/'ledger.json';_configure(monkeypatch,ledger)
+    common=dict(case_id='continuous',purpose='planning',model='agent',estimated_input_tokens=200,requested_output_tokens=100,retry_count=0)
+    with pytest.raises(ValueError,match='authorization'):
+        provider_api_budget.reserve_call(**common,request_identity='denied',execution_policy='accounting_only')
+    first=provider_api_budget.reserve_call(**common,request_identity='one',execution_policy='accounting_only',authorization_reference='user-v2.1')
+    provider_api_budget.mark_request_started(first)
+    provider_api_budget.finalize_call(first,usage=None,http_status='UNKNOWN',status='FAILED')
+    second=provider_api_budget.reserve_call(**common,request_identity='two',execution_policy='accounting_only',authorization_reference='user-v2.1')
+    usage={'prompt_tokens':10,'completion_tokens':5}
+    provider_api_budget.finalize_call(second,usage=usage,http_status=200,status='PASS')
+    provider_api_budget.finalize_call(second,usage=usage,http_status=200,status='PASS')
+    data=json.loads(ledger.read_text())
+    assert len(data['calls'])==2 and not data['totals']['actual_token_usage_complete']
+    assert data['totals']['input_tokens']==210
+    with pytest.raises(provider_api_budget.ProviderBudgetExhausted):
+        provider_api_budget.reserve_call(**common,request_identity='limited')
+
+
+@pytest.mark.boundary
+def test_budget_liveness_query_does_not_signal_or_kill_real_child(monkeypatch):
+    import os, subprocess, sys
+    process=subprocess.Popen([sys.executable,'-c','import sys; print("ready",flush=True); sys.stdin.readline()'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True)
+    try:
+        assert process.stdout.readline().strip()=='ready'
+        if os.name=='nt':monkeypatch.setattr(os,'kill',lambda *args:pytest.fail('liveness must not signal Windows process'))
+        assert provider_api_budget._process_alive(process.pid) is True
+        assert process.poll() is None
+        process.stdin.write('done\n');process.stdin.flush();assert process.wait(timeout=10)==0
+        assert provider_api_budget._process_alive(process.pid) is False
+    finally:
+        if process.poll() is None:
+            process.terminate();process.wait(timeout=10)
+
+
+@pytest.mark.boundary
+@pytest.mark.parametrize('error,alive',[(5,True),(87,False),(6,True)])
+def test_windows_unknown_process_query_never_claims_dead(monkeypatch,error,alive):
+    import os,ctypes
+    from types import SimpleNamespace
+    if os.name!='nt':pytest.skip('Windows API contract')
+    kernel=SimpleNamespace(OpenProcess=lambda *args:0,CloseHandle=lambda *args:1)
+    monkeypatch.setattr(ctypes,'WinDLL',lambda *args,**kwargs:kernel)
+    monkeypatch.setattr(ctypes,'get_last_error',lambda:error)
+    monkeypatch.setattr(os,'kill',lambda *args:pytest.fail('must not signal'))
+    assert provider_api_budget._process_alive(99999999) is alive
+
+
+@pytest.mark.boundary
+@pytest.mark.parametrize('queried,code,alive',[(False,0,True),(True,259,True),(True,0,False)])
+def test_windows_process_query_closes_handle_and_retains_uncertainty(monkeypatch,queried,code,alive):
+    import os,ctypes
+    from types import SimpleNamespace
+    if os.name!='nt':pytest.skip('Windows API contract')
+    closed=[]
+    def query(handle,pointer):
+        pointer._obj.value=code
+        return queried
+    kernel=SimpleNamespace(OpenProcess=lambda *args:42,CloseHandle=lambda handle:closed.append(handle) or 1,GetExitCodeProcess=query)
+    monkeypatch.setattr(ctypes,'WinDLL',lambda *args,**kwargs:kernel)
+    assert provider_api_budget._process_alive(99999999) is alive
+    assert closed==[42]

@@ -1,0 +1,74 @@
+{
+  "proof": {
+    "kind": "LocalBoundedFileEffectInspection",
+    "disposition": "NOT_APPLIED",
+    "source_receipt_sha256": "cb687f0f986f5c7453b2dc93831f9625f592ea9a69037901257a2b757ba02e33",
+    "target_scope": [
+      "early_main.py"
+    ],
+    "current_targets_match_staged_and_successful_dependency_origin": {
+      "early_main.py": "4ed2f6a1c91c0194c3834197a8675d4000c694e3c4f09739818c811c8892e143"
+    },
+    "prior_successful_origin_ref": {
+      "path": "iter132-promotion-studio/promotion-05/attempts/sem-node-0092/attempt-0040.json",
+      "sha256": "1a165f8c8d16d9347666fa0c8b4f8eafb4a0e60bb2d9ef7330644875bbc29087"
+    },
+    "read_dependencies_match_stage": {
+      "early_main.py": "4ed2f6a1c91c0194c3834197a8675d4000c694e3c4f09739818c811c8892e143",
+      "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+      "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+      "milestones/milestone_33270fed0c9054f5ae04/api.py": "78dd17fe6722f4fa573580b6a59d33374e925ccf309641d9241081a53e755cbc",
+      "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+      "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+      "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+      "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+    },
+    "publication_intent_absent": true,
+    "new_recorded_requests_for_attempt": [],
+    "guard_receipt_ref": {
+      "path": "iter132-promotion-studio/promotion-05/attempts/sem-node-0091/attempt-0057.json",
+      "sha256": "3dc29468053278671a283c818e7cb6e1d452ad63c76eb92531c08f20239db546"
+    },
+    "scope": "The admission latch prevented any new Provider request. Original interrupted request remains unresolved and cannot be replayed. No business acceptance inferred."
+  },
+  "result": {
+    "schema_version": "1.0",
+    "project_id": "iter132-promotion-studio",
+    "run_id": "promotion-05",
+    "attempt_id": "attempt-0058",
+    "node_id": "sem-node-0091",
+    "executor_ref": "verify.local-file-effects@1",
+    "status": "BLOCKED",
+    "outputs": {},
+    "artifact_refs": [],
+    "test_observations": [],
+    "error": {
+      "code": "POLICY_BLOCKED",
+      "message": "VERIFIED_NOT_APPLIED: explicit retry permitted",
+      "details": {}
+    },
+    "started_at": "2026-11-03T10:55:35.350642+00:00",
+    "ended_at": "2026-11-03T10:55:35.350642+00:00",
+    "duration_ms": 0,
+    "usage": {},
+    "retryable": false,
+    "metadata": {
+      "reconciliation": {
+        "source_receipt_hash": "cb687f0f986f5c7453b2dc93831f9625f592ea9a69037901257a2b757ba02e33",
+        "disposition": "NOT_APPLIED",
+        "evidence_refs": [
+          {
+            "path": "iter132-promotion-studio/promotion-05/evidence/8c12898fb79616f6e99c187b7df86a7b9b06bd7c51ceb9b8189e71038e15185c.json",
+            "sha256": "9018e058ffab29f1d0adc018ce85dc13f9d5d00dca859f43a6a0485fb1332d25"
+          }
+        ]
+      },
+      "original_attempt_id": "attempt-0057",
+      "checker_receipt_hash": "465971be571e6c0a0090dc61a2528ca64d8fdddeda53f420be81b29435a608c7"
+    }
+  },
+  "ledger_unchanged": true,
+  "old_attempts_unchanged": true,
+  "provider_calls": 0,
+  "host_business_patches": 0
+}

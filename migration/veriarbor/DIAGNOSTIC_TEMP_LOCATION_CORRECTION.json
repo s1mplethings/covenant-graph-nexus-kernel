@@ -1,0 +1,9 @@
+{
+  "kind": "DiagnosticTemporaryLocationCorrection",
+  "timestamp": "2026-11-03T14:47:13.110719+00:00",
+  "scope": "Supplementary diagnostics only; original canonical real_test_execution already pins TEMP/TMP to its owned output directory.",
+  "prior_behavior": "diagnose_milestone.py omitted cwd; unchanged consumer created its scratch under inherited controller cwd D:/VeriArbor. Supplementary generated-test script omitted TEMP/TMP overrides; Windows default observed C:/Users/sunom/AppData/Local/Temp. Exact prior unittest temp names were not recorded and are not reconstructed.",
+  "correction": "Future milestone diagnostics run with cwd=F: frozen snapshot. Future supplementary selftests pin TEMP/TMP to owned F: migration/scratch directory; pytest basetemp separate. Future receipts record cwd/script hash/temp path. Earlier receipts remain unchanged; old diagnostic source versions archived under tool-revisions.",
+  "old_results": "No assertion/evaluator or business source changed. Old diagnostics remain scoped diagnostic evidence, not acceptance or proof of F-only scratch placement.",
+  "host_business_patches": 0
+}

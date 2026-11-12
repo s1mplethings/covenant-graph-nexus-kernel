@@ -1,0 +1,144 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "Qwen Flash Agent and DeepSeek Flash bounded Worker20000; no Pro/Max. New Qwen143a3 regressed10of11 public module routes and removed working upload assumptions; use alternate cheap family for genuinely new source failure, not replay. Eight old UNKNOWN outcomes retained; same-model critique is never independent acceptance.",
+    "milestone_completion_request": "Complete original M12 and final delivery without restarting M1-M11 or redefining the declared M12 milestone. main.py now exists, writer143 succeeded; retain it and repair only demonstrated gaps. Finish README.md, TEST_PLAN.md, tests/test_promotion_gui.py via bounded original Provider tasks. M12 final GUI must implement actual reachable file upload with server-side adaptation to unchanged path-based M11 API, same-content edit/approval invalidation, correct project-scoped /api/state, all navigation/config/review/publish/receipt/scheduler/analytics/restart/error behaviors in frozen public contract. Original independent measurement and generated meaningful tests must pass. Preserve previous test debts and fix their original test-owner fixtures against qualified evidence, no assertion deletion/waiver. Finish canonical packaging/delivery/accounting/provenance/Corpus and reports. Existing M1-M11 certificates remain reusable except real boundary impact. Known test144 platform fixture qualification: migration/veriarbor/m12-platform-fixture-qualification/receipt.json proves nonexistent server.port caused500; original test owner corrects server_port, retains PUBLISHED assertion, and uses explicit project_id for scoped /api/state checks. Preserve meaningful valid image bytes and assertions; no M7 source repair for this fixture defect.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "main.py": "572685e6aa3a4666b4e53a885c61a4a1f6d88cd6462fad8e67c13dca6ba2a68b"
+        }
+      },
+      "current_owner": 143,
+      "attempt": 4,
+      "native_current_failure": {
+        "bound_reference": {
+          "path": "attempts/sem-node-0149/attempt-0001.json",
+          "receipt_hash": "c7b0308c993e011a1b0d22357385f97bf9a4a567377b5fcdad3bee49868d8169"
+        },
+        "reason": "M12_independent_business_suite: TimeoutError: Locator.select_option: Timeout 30000ms exceeded.\nCall log:\n  - waiting for get_by_label(\"Claims\", exact=True)\n    - locator resolved to <select id=\"content-claims\"></select>\n  - attempting select option action\n    2 \u00d7 waiting for element to be visible and enabled\n      - did not find some options\n    - retrying select option action\n    - waiting 20ms\n    2 \u00d7 waiting for element to be visible and enabled\n      - did not find some options\n    - retrying select option action\n      - waiting 100ms\n    59 \u00d7 waiting for element to be visible and enabled\n       - did not find some options\n     - retrying select option action\n       - waiting 500ms\n"
+      },
+      "actual_source_identity_map": {
+        "M7": "promotion_publish.py",
+        "M3": "milestones/milestone_1369a82cde04a7e5887d/api.py",
+        "M1": "milestones/milestone_20f2614f6ae8403d4a4e/api.py",
+        "M6": "milestones/milestone_33270fed0c9054f5ae04/api.py",
+        "M2": "milestones/milestone_4e7c26281cf61a85851e/api.py",
+        "M4": "milestones/milestone_90b8868c7203e2958397/api.py",
+        "M5": "milestones/milestone_9165a990eed5b9c8801e/api.py",
+        "M8": "milestones/milestone_989800776c3d6229e431/api.py",
+        "M10": "milestones/milestone_af427946c6dea418047a/api.py",
+        "M9": "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+        "M11": "milestones/milestone_dbb8341c8910593063a8/api.py"
+      },
+      "actual_partial_progress": "M1-M6 and M9 now correctlyrouted; realproject.create succeeds. Actual per-request ThreadingHTTPServer alreadyfixed; preserve, do not again callitserial.",
+      "actual_remaining_routes": "Four stillWRONG: currentM7 pointsM8schedule, currentM8 pointsM10analytics, currentM10 pointsM11media, currentM11 pointsM7publisher. Correctall11 againstexactliteralmap in strategy AND everyJS milestone/op binding. Currenthandlersbeingnon-null is not correctness.",
+      "native_claims_cause": "Current#nav-content click only calls showView; it does not reload claims/evidence after they change. Independent actualbrowser creates claim throughactualAPI thenentersContent, Claimsoptions remainempty. Refresh currentproject claims/media/contents and hydrate selection on enteringContent; awaitcompletedloads before readiness.",
+      "lost_working_features": "143a4 reverted to an older earlyGUI layout: no Media navigation/fileinput/uploadhandler/serverbase64bridge, savealwayscontent.create, no New content mode, onlyselector preview, no content.compare/variant/reconcile controls. CurrentPlatformURL/Publish reside hidden schedule-view without the old working Save->Review->Approve->PlatformURL/Publish visibility handoff. Do not repeat obsolete earlyGUI regressions. Prior143a2 source5f actualbrowser uploadedimage/video, decodedvideo, scheduled/cancelled/published/fetchedanalytics. Preserve those demonstrated capabilities while repairingcurrentwhole-fileintegration; useactualM1-M11contracts, no fakeHTML/API mocks.",
+      "concrete_repair_scope": "Only143 main.py. Ensure all11 mappings; asyncContentnavigation refresh; Saveexistingcontent.edit preservingidentity/approvalinvalidating; hydrate text/channel/claims/media onselection/reload; explicitNewcontent; realMediafileinput and server uploadbytes->ownedtemp->M11path API; visibleimg/video withownedbytes; GET/api/state actualscopedrecords; actualPublish handoff reachable afterApprove; scheduler/analytics/reconcile/readback/errors usecorrectIDs. Full coherent singlewriter can choose boundedactions, but must not discard currentorpreviousrequiredfeatures. No changes to verifiedbackends, early_main, tests/docs inthiswriter. Missingreconcile/variant/compare are frozenM12requirements, not optionalnewscope.",
+      "worker_context_observation": "Originalexecutor already automatically supplies full currentmain.py and early_main.py observations; it does NOT automatically copy arbitrary continuationdiagnosis intoWorker. Therefore exactmodulebindings and concreteGUIpreservationmechanisms MUST be in strategy and boundedleafgoal/expected. Do not provideonlygeneric current-state correctness language.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-572685e6\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_PREFLIGHT_143A4.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-final-product-143a2-selection-corrected\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_V8_ACTIVATION.json"
+      ],
+      "scope": "Expires aftermain.pychanges; usecurrentnative149result thereafter."
+    },
+    "admission_correction": "Current143a4 main572685e6 has current trusted native149a1 FAILED (Claims never populated); repair existing143 deps:[] now, not another unchanged measurement. Qualifiedrevision6 only corrects compatible When label; it does not invalidate actual v5 Claims counterexample. Supply full strategy/hypothesis initially, falsifying_evidence ARRAY includes exact object {\"path\": \"attempts/sem-node-0149/attempt-0001.json\", \"receipt_hash\": \"c7b0308c993e011a1b0d22357385f97bf9a4a567377b5fcdad3bee49868d8169\"}. MANDATORY: copy these factual source bindings verbatim into strategy so bounded Worker receives them, not merely a summary to guess module IDs: {\"module_M7\": \"promotion_publish.py\", \"module_M3\": \"milestones/milestone_1369a82cde04a7e5887d/api.py\", \"module_M1\": \"milestones/milestone_20f2614f6ae8403d4a4e/api.py\", \"module_M6\": \"milestones/milestone_33270fed0c9054f5ae04/api.py\", \"module_M2\": \"milestones/milestone_4e7c26281cf61a85851e/api.py\", \"module_M4\": \"milestones/milestone_90b8868c7203e2958397/api.py\", \"module_M5\": \"milestones/milestone_9165a990eed5b9c8801e/api.py\", \"module_M8\": \"milestones/milestone_989800776c3d6229e431/api.py\", \"module_M10\": \"milestones/milestone_af427946c6dea418047a/api.py\", \"module_M9\": \"milestones/milestone_c511a8ebd29978f5ba97/api.py\", \"module_M11\": \"milestones/milestone_dbb8341c8910593063a8/api.py\"}. Include preserve_existing_features:true, restore_media_upload:true and concrete gui_contract_preservation string covering refresh/navigation, reachableworkflow, edit/newcontent, true upload/preview/scopedstate/restart. These are required strategy dimensions. Native149 after any newsource; do not continue using572failure onceartifactchanges. Do not add a third writer or remeasure oldkey. Original144/145 need genuinely changed bounded repair contracts for qualifiedfixture/doc defects; simple RETRY remainsNO_NOVEL_DELTA.",
+    "gui_writer_policy": "Final main.py writer143 is the sole current GUI owner. Only143 may repair that file; inspections/tests read completed snapshot. Original early_main91 and backend sources unchanged unless independent new failure proves actual boundary need.",
+    "redecision": {
+      "strategy_revision": "80425e2e25c98314803e7f5dd4a90c2dbac499152129be7129a7ccbbc9890fb1",
+      "reason": "143a4 fixed7routes/projectcreate but left4wrongandlostfullGUI features. Native149 confirmscurrentClaimsrefreshfailure. PriorAgentcompressedactualmodulemap into vaguegoal, Workerreceivedonlymain/earlyGUI. Existingstrategyconstraints now requireexactsourcebindingdimensions andpreservationmechanisms, nohostkernelchanges. OnlyM12labelcompatibilitycheckerrevision6, actualfailureunchanged. Repair143currentfailure thenmeasurefutureartifact.",
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0149\\attempt-0001.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-572685e6\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_PREFLIGHT_143A4.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-final-product-143a2-selection-corrected\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_V8_ACTIVATION.json"
+      ]
+    },
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "early_main.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\GUI_COUPLED_PREFLIGHT_24125.json"
+        ]
+      },
+      {
+        "scope_paths": [
+          "main.py"
+        ],
+        "required_dimensions": [
+          "module_M7",
+          "module_M3",
+          "module_M1",
+          "module_M6",
+          "module_M2",
+          "module_M4",
+          "module_M5",
+          "module_M8",
+          "module_M10",
+          "module_M9",
+          "module_M11",
+          "gui_contract_preservation",
+          "preserve_existing_features",
+          "restore_media_upload"
+        ],
+        "dimension_types": {
+          "module_M7": "string",
+          "module_M3": "string",
+          "module_M1": "string",
+          "module_M6": "string",
+          "module_M2": "string",
+          "module_M4": "string",
+          "module_M5": "string",
+          "module_M8": "string",
+          "module_M10": "string",
+          "module_M9": "string",
+          "module_M11": "string",
+          "gui_contract_preservation": "string",
+          "preserve_existing_features": "boolean",
+          "restore_media_upload": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "preserve_existing_features": false
+          },
+          {
+            "restore_media_upload": false
+          },
+          {
+            "module_M7": "milestones/milestone_989800776c3d6229e431/api.py"
+          },
+          {
+            "module_M8": "milestones/milestone_af427946c6dea418047a/api.py"
+          },
+          {
+            "module_M10": "milestones/milestone_dbb8341c8910593063a8/api.py"
+          },
+          {
+            "module_M11": "promotion_publish.py"
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-572685e6\\receipt.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-final-product-143a2-selection-corrected\\receipt.json"
+        ]
+      }
+    ]
+  }
+}

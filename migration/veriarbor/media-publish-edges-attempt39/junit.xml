@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="2" time="1.042" timestamp="2026-11-04T01:49:38.869100+08:00" hostname="test"><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_publish_blocks_broken_media" time="0.366"><failure message="NameError: name 'hashlib' is not defined. Did you forget to import 'hashlib'">data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\media-publish-edges-attempt39\\test_publish_blocks_broken_med0\\data'
+tmp_path = WindowsPath('F:/CGKN-LeanLoop-V1-20261101/migration/veriarbor/scratch/media-publish-edges-attempt39/test_publish_blocks_broken_med0')
+
+    def test_publish_blocks_broken_media(data_dir, tmp_path):
+        src = _write_file(tmp_path, "pic.png", PNG_BYTES)
+        proj = _make_project(data_dir)
+        imported = _import_media(data_dir, proj["id"], src, "image")
+    
+        campaign = m4.handle(data_dir, {
+            "op": "campaign.create",
+            "project_id": proj["id"],
+            "name": "c",
+            "audience": "a",
+            "channels": ["email"],
+        })
+        content = m5.handle(data_dir, {
+            "op": "content.create",
+            "project_id": proj["id"],
+            "campaign_id": campaign["id"],
+            "channel": "email",
+            "text": "hello world",
+            "claim_ids": [],
+            "media_ids": [imported["id"]],
+        })
+    
+        # Approve while media is valid.
+        m6.handle(data_dir, {
+            "op": "approval.review",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+        m6.handle(data_dir, {
+            "op": "approval.approve",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+    
+        # Now corrupt the media bytes.
+        stored = os.path.join(data_dir, imported["path"])
+        with open(stored, "wb") as f:
+            f.write(b"corrupted")
+    
+        with pytest.raises(ValueError):
+&gt;           m7.handle(data_dir, {
+                "op": "publish.send",
+                "project_id": proj["id"],
+                "content_id": content["id"],
+                "platform_url": "http://127.0.0.1:1",
+                "idempotency_key": "k1",
+            })
+
+tests\test_milestone_dbb8341c8910593063a8.py:516: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+promotion_publish.py:348: in handle
+    return _do_send(data_dir, project_id, content_id, platform_url, idempotency_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\media-publish-edges-attempt39\\test_publish_blocks_broken_med0\\data'
+project_id = '9ce51ca6cbdd4445af6bc8a39992a18e'
+content_id = '88f4e40e9df0401f8068226e9be821ee'
+platform_url = 'http://127.0.0.1:1', idempotency_key = 'k1'
+
+    def _do_send(data_dir, project_id, content_id, platform_url, idempotency_key):
+        """Perform a publish.send. Caller must hold the data_dir lock."""
+        if not isinstance(platform_url, str) or not platform_url:
+            raise ValueError("platform_url must be a non-empty string")
+        if not isinstance(idempotency_key, str) or not idempotency_key:
+            raise ValueError("idempotency_key must be a non-empty string")
+    
+        # Validate content and approval
+        content_record = _validate_approval_status(data_dir, project_id, content_id)
+    
+        # M11 media validation: every referenced media_id must exist and be VALID.
+        # Missing or BROKEN media blocks publication with ValueError before any
+        # network effects or receipt creation. Validity is re-checked against the
+        # stored SHA-256 by hashing the current bytes on disk, so media that was
+        # modified or deleted after import is detected as BROKEN here.
+        media_ids = content_record.get("media_ids") or []
+        if media_ids:
+            media_items = _load_list(data_dir, _MEDIA_FILENAME)
+            for media_id in media_ids:
+                found = None
+                for m in media_items:
+                    if m.get("id") == media_id:
+                        found = m
+                        break
+                if found is None:
+                    raise ValueError("media not found: %s" % media_id)
+                if found.get("project_id") != project_id:
+                    raise ValueError("media not found: %s" % media_id)
+                if found.get("status") == "BROKEN":
+                    raise ValueError("media is BROKEN: %s" % media_id)
+                stored_sha = found.get("sha256")
+                stored_path = found.get("path") or found.get("stored_path")
+                if stored_sha and stored_path:
+                    if not os.path.isabs(stored_path):
+                        stored_path = os.path.join(data_dir, stored_path)
+                    if not os.path.exists(stored_path):
+                        raise ValueError("media is BROKEN: %s" % media_id)
+                    try:
+                        with open(stored_path, "rb") as mf:
+                            current_bytes = mf.read()
+                    except OSError:
+                        raise ValueError("media is BROKEN: %s" % media_id)
+&gt;                   if hashlib.sha256(current_bytes).hexdigest() != stored_sha:
+                       ^^^^^^^
+E                   NameError: name 'hashlib' is not defined. Did you forget to import 'hashlib'
+
+promotion_publish.py:211: NameError</failure></testcase><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_publish_blocks_missing_media" time="0.440" /></testsuite></testsuites>

@@ -1,0 +1,86 @@
+{
+  "kind": "ReadOnlyGUIBoundaryObservation",
+  "artifact_sha256": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+  "checker_sha256": "5201a3c5aa6c9e829890787e3a5d6b8f60d3de104b301fb9df5eeb28faeb1007",
+  "buttons": [
+    {
+      "id": "nav-review",
+      "text": "Review",
+      "visible": true,
+      "disabled": false,
+      "section": null,
+      "inNav": true
+    },
+    {
+      "id": "nav-publish",
+      "text": "Publish",
+      "visible": true,
+      "disabled": false,
+      "section": null,
+      "inNav": true
+    },
+    {
+      "id": "review-action",
+      "text": "Review",
+      "visible": true,
+      "disabled": true,
+      "section": "review-view",
+      "inNav": false
+    },
+    {
+      "id": "approve-action",
+      "text": "Approve",
+      "visible": true,
+      "disabled": true,
+      "section": "review-view",
+      "inNav": false
+    },
+    {
+      "id": "publish-action",
+      "text": "Publish",
+      "visible": true,
+      "disabled": false,
+      "section": "publish-view",
+      "inNav": false
+    }
+  ],
+  "page_state": {
+    "storage": {
+      "campaignId": "9d6576f657d942d68be9ab9a2388eb44",
+      "contentId": "01d57598f7974f488b0228de07e8db5e",
+      "projectId": "0d9c21ab3f9140749e36a6d93447f5bd"
+    },
+    "visibleSections": [
+      "content-view",
+      "review-view",
+      "publish-view"
+    ],
+    "alerts": [
+      ""
+    ]
+  },
+  "api_observations": {
+    "content.get": {
+      "id": "01d57598f7974f488b0228de07e8db5e",
+      "project_id": "0d9c21ab3f9140749e36a6d93447f5bd",
+      "campaign_id": "9d6576f657d942d68be9ab9a2388eb44",
+      "channel": "alpha",
+      "text": "Offline workflows are supported.",
+      "claim_ids": [
+        "96025edd4dc647959558c0acb4c274a3"
+      ],
+      "media_ids": [],
+      "revision": 1,
+      "status": "APPROVED"
+    },
+    "approval.status": {
+      "content_id": "01d57598f7974f488b0228de07e8db5e",
+      "revision": 1,
+      "status": "APPROVED"
+    }
+  },
+  "action_bar_element_count": 0,
+  "test_boundary": "Immediately before qualified Publish click, after preceding original workflow steps",
+  "acceptance_authority": false,
+  "host_business_patches": 0
+}

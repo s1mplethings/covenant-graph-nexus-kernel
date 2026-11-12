@@ -1,0 +1,30 @@
+{
+  "revision": {
+    "checker_hash": "b41ec83e317c3623f33be1ec58323e2baac66ae3b0f4849e1947078bcbace1cb",
+    "checker_key": "independent",
+    "checker_version": "qualified-revision-10",
+    "kind": "QualifiedCheckerRevision",
+    "previous_checker_hash": "0e9d2b4f6071d51af8ed390e4fca14061e8a2dff524ba2b9879946067dc0226c",
+    "qualification_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/c3d682fe2ec848c59d7091ac211be4992c7429297c26c66fb036946a6c443d21.json",
+      "sha256": "1ff750430aa3cabe291b96fc1c9317c696fc9c906ea39ea8b0907a737e39ed40"
+    },
+    "reason": "Same B02 owned preview contract under concurrent browser reads; original complete M12 unchanged; independent positive, negative, mutation and object binding controls passed. No business implementation or full M12 verification granted.",
+    "sequence": 10,
+    "source_ref": {
+      "path": "iter132-promotion-studio/promotion-05/private_checker/b41ec83e317c3623f33be1ec58323e2baac66ae3b0f4849e1947078bcbace1cb.py",
+      "sha256": "b41ec83e317c3623f33be1ec58323e2baac66ae3b0f4849e1947078bcbace1cb"
+    },
+    "revision_ref": {
+      "path": "iter132-promotion-studio/promotion-05/checker_revisions/000010.json",
+      "sha256": "46f880cd7fd4dc4f3397ec2a1d00cfdc488772b8d5dad528e3538cbfb6dae903"
+    }
+  },
+  "qualification": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/c3d682fe2ec848c59d7091ac211be4992c7429297c26c66fb036946a6c443d21.json",
+    "sha256": "1ff750430aa3cabe291b96fc1c9317c696fc9c906ea39ea8b0907a737e39ed40"
+  },
+  "source_qualification": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_CONCURRENT_CHECKER_QUALIFICATION\\receipt.json",
+  "business_writes": 0,
+  "acceptance_granted": false
+}

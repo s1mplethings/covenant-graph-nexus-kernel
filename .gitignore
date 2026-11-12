@@ -3,6 +3,8 @@ __pycache__/
 *$py.class
 
 .venv/
+.venv-substrate/
+.venv-substrate-check/
 venv/
 env/
 
@@ -70,3 +72,9 @@ examples/product_studio/runs/*/user_summary.md
 examples/product_studio/runs/*/known_limits.md
 examples/product_studio/runs/*/revision_entry.json
 examples/product_studio/runs/*/run_summary.md
+
+# Local profiling scratch and private environment settings
+/.service_scratch/
+.env
+.env.*
+!.env.example

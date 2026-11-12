@@ -94,27 +94,13 @@ class GenerationCompletionContractTests(unittest.TestCase):
             self.assertIs(CaptureThread.target, bridge.run_provider_generation_job)
             self.assertEqual("api_provider_project_generation", saved["generation"]["driver"])
 
-    def test_simulator_mode_is_preflight_only(self) -> None:
+    def test_simulator_entry_is_retired_and_unconfigured_session_cannot_deliver(self) -> None:
+        self.assertFalse(hasattr(bridge,'run_simulator_preflight'))
         with tempfile.TemporaryDirectory() as temp_dir:
-            root = pathlib.Path(temp_dir)
-            session_dir = root / "sessions"
-            log_dir = root / "logs"
-            session = bridge.default_session("simulator-contract")
-            session["messages"].append({"role": "user", "text": "做一个本地任务工具"})
-            bridge.save_session(session_dir, session)
-            result = bridge.run_simulator_preflight(
-                FakeCodexConversation(),
-                "simulator-contract",
-                session_dir,
-                log_dir,
-                session,
-                reason="test",
-            )
-            saved = bridge.load_session(session_dir, "simulator-contract")
-            self.assertNotEqual("pass", str(result["status"]).lower())
-            self.assertEqual("simulator_preflight", saved["generation"]["driver"])
-            self.assertFalse(saved["generation"]["delivery_allowed"])
-            self.assertFalse((ROOT / "generated" / "simulator_preflight" / "simulator-contract" / "final_project_bundle.zip").exists())
+            root=pathlib.Path(temp_dir)
+            with self.assertRaisesRegex(ValueError,'PROJECT_SESSION_PROFILE_REQUIRED'):
+                bridge.run_formal_generation_once(root,goal='task board')
+            self.assertFalse((root/'final_project_bundle.zip').exists())
 
     def test_provider_json_validates_and_writes_bounded_project(self) -> None:
         doc = valid_provider_doc()
@@ -194,85 +180,25 @@ class GenerationCompletionContractTests(unittest.TestCase):
         self.assertEqual(["CGKN_OPENAI_API_KEY or OPENAI_API_KEY"], bridge.provider_missing_config(raised.exception))
 
     def test_final_provider_failure_is_recoverable_blocked_result(self) -> None:
-        args = mock.Mock()
-        args.goal = "Build a task board"
-        args.plan = ""
-        args.out_dir = ""
-        args.run_dir = ""
-        args.result = ""
-        args.allow_network = True
-        args.allow_provider = True
-        args.use_api = True
-        args.provider_mode = "live"
-        args.replay_dir = ""
-        args.project_id = "generation-completion-contract"
-        args.model = "gpt-test"
-        args.timeout = 30
-        args.phase_log_path = ""
-        args.resume_run_dir = ""
-        args.small_model = ""
-        args.large_model = ""
-        args.disable_model_routing = True
-        args.provider_semantic_repair_attempts = None
-        args.post_build_repair_attempts = None
-        args.allow_model_usage_planning = False
-        args.codex_capability_brief = ""
+        from cgkn.application.software_project.service import SoftwareProjectGenerationService
         with tempfile.TemporaryDirectory() as temp_dir:
-            root = pathlib.Path(temp_dir)
-            args.out_dir = str(root / "project")
-            args.run_dir = str(root / "run")
-            args.result = str(root / "result.json")
-            with (
-                mock.patch.object(run_local_pipeline.compose_local_pipeline, "compose", return_value={"steps": []}),
-                mock.patch.object(run_local_pipeline._impl, "provider_generate_project_by_components", side_effect=RuntimeError("provider_api_request_failed: TLS failure")),
-                mock.patch.object(run_local_pipeline.requirement_blueprint, "build_requirement_blueprint", return_value={}),
-                mock.patch.object(run_local_pipeline.online_input_agent, "collect_online_inputs", return_value={}),
-                mock.patch.object(run_local_pipeline.market_research_agent, "run_market_research", return_value={}),
-                mock.patch.object(
-                    run_local_pipeline._impl,
-                    "run_canonical_requirement_planning",
-                    return_value=(
-                        {
-                            "status": "PASS",
-                            "selected_requirement": {
-                                "selected_requirement_id": "task_board",
-                                "selected_requirement_name": "Task Board",
-                                "goal_spec": {"domain": "task_board"},
-                            },
-                            "goal_spec": {"domain": "task_board", "capabilities": []},
-                            "project_plan": {"expected_project_structure": []},
-                            "acceptance_contract": {},
-                            "product_design_governance": {},
-                        },
-                        {},
-                    ),
-                ),
-                mock.patch.object(run_local_pipeline._impl, "provider_stage_checkpoint", return_value={}),
-                mock.patch.object(
-                    run_local_pipeline._impl.capability_execution,
-                    "discover_goal_spec_executors",
-                    return_value={"status": "PASS", "selected": []},
-                ),
-                mock.patch.object(
-                    run_local_pipeline._impl.discovery_selection_lane,
-                    "run_discovery_selection",
-                    return_value={
-                        "status": "PASS",
-                        "selected_project_direction": {
-                            "selected_id": "task_board",
-                            "selected_name": "Task Board",
-                            "goal_spec_domain": "task_board",
-                        },
-                        "complexity_project_contract": {},
-                        "paths": {},
-                        "candidate_count": 1,
-                    },
-                ),
-            ):
-                result = run_local_pipeline.execute(args)
-        self.assertEqual("BLOCKED", result["status"])
-        self.assertEqual("provider_fact_blocked", result["reason"])
-        self.assertFalse((root / "project" / "final_project_bundle.zip").exists())
+            root=pathlib.Path(temp_dir)
+            session={'project_session_profile':str(root/'profile.json'),
+                     'whiteboard':{'project_summary':'Build a task board'}}
+            error=RuntimeError('provider_api_request_failed: TLS failure')
+            with (mock.patch.object(bridge,'load_session',return_value=session),
+                  mock.patch.object(bridge,'save_session'),
+                  mock.patch.object(SoftwareProjectGenerationService,'__init__',return_value=None),
+                  mock.patch.object(SoftwareProjectGenerationService,'run_profile',side_effect=error) as run,
+                  mock.patch.object(bridge,'send_delivery_from_manifest') as delivery):
+                with self.assertRaises(RuntimeError) as raised:
+                    bridge.run_provider_generation_job(None,'completion',root,root,'ignored',30)
+                self.assertIs(raised.exception,error)
+                self.assertEqual(run.call_count,1)
+                delivery.assert_not_called()
+            self.assertEqual(session['generation']['status'],'blocked')
+            self.assertEqual(session['generation']['delivery_status'],'NOT_EVALUATED')
+            self.assertFalse((root/'final_project_bundle.zip').exists())
 
     def test_missing_local_image_model_cannot_claim_real_image_pass(self) -> None:
         session = bridge.default_session("missing-local-image")

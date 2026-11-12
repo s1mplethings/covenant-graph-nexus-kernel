@@ -1,0 +1,65 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "Qwen Flash Agent/Worker only, Worker bounded24000 after observed12000 output truncation; no Pro/Max. Eight old upstreamUNKNOWNs remain; no replay or ledger reset. Independent checkers, not same-model critique, grant acceptance.",
+    "milestone_completion_request": "Complete original M12 and final delivery without restarting M1-M11 or redefining the declared M12 milestone. main.py now exists, writer143 succeeded; retain it and repair only demonstrated gaps. Finish README.md, TEST_PLAN.md, tests/test_promotion_gui.py via bounded original Provider tasks. M12 final GUI must implement actual reachable file upload with server-side adaptation to unchanged path-based M11 API, same-content edit/approval invalidation, correct project-scoped /api/state, all navigation/config/review/publish/receipt/scheduler/analytics/restart/error behaviors in frozen public contract. Original independent measurement and generated meaningful tests must pass. Preserve previous test debts and fix their original test-owner fixtures against qualified evidence, no assertion deletion/waiver. Finish canonical packaging/delivery/accounting/provenance/Corpus and reports. Existing M1-M11 certificates remain reusable except real boundary impact. Known test144 platform fixture qualification: migration/veriarbor/m12-platform-fixture-qualification/receipt.json proves nonexistent server.port caused500; original test owner corrects server_port, retains PUBLISHED assertion, and uses explicit project_id for scoped /api/state checks. Preserve meaningful valid image bytes and assertions; no M7 source repair for this fixture defect.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "main.py": "5f4678644367eb19460fdc6ddcca68bba2a43f347dee19be141547d312181ed1"
+        }
+      },
+      "current_source_owner": 143,
+      "source_attempt": 2,
+      "current_source_status": "SUCCEEDED",
+      "fixed_actual_browser": "Actual image/video file upload now persists bytes; video decodes; GUI schedule/reschedule/cancel and local publication/analytics reached real HTTP fixture. Old upload400 is resolved. Static DOM closure PASS. Generated M12 tests now5PASS1FAIL (known test144 server.port fixture, no M7 source issue).",
+      "remaining_actual_failure": "Actual process-restart workflow times out on receipt read. Independent ordinary idle-socket probe proves candidate ThreadedHTTPServer inherits serial HTTPServer: idle preconnection blocks concurrent /health, closing idle unblocks; standard ThreadingHTTPServer same-handler control returns immediately. Fix actual GUI server request concurrency, not backend receipt storage. This is normal browser behavior, not load testing.",
+      "remaining_source_observations": "GUI now calls content.edit for selected content, but loadContents/select handler never restores text/channel/claim/media controls, and there is no explicit New content/blank selection to create another content. Preserve selected persisted form values and offer new-content workflow without overwriting existing content. Do not require multiple media selection (current UI single-select); preserve actual chosen/linked media through edits.",
+      "required_local_scope": "Only main.py143 for GUI/service/editing integration. Preserve M1-M11 backend sources and early_main.py. Coherent actual full-file change retaining DOM anchors, real upload bridge and /api/state. Nativev7 checks existingv6 plus idle responsiveness, actualschedule/receiptmediarevision/idempotency, changed/missingmedia block beforePOST, restartreceipt, formhydration and newcontent.",
+      "native_checker": "qualified-revision-5",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_V7_ACTIVATION.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-idle-connection-5f467864\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-final-product-143a2-selection-corrected\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_FINAL_PROBE_SELECTION_CORRECTION.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-generated-tests-5f467864\\receipt.json"
+      ],
+      "owner144_fixture_requirement": "Correct nonexistent self.server.port to actual ThreadingHTTPServer.server_port in local test mock. Use real valid PNG and project_id query for scopedstate. Retain PUBLISHED/media/state assertions; no source89 change. Qualification m12-platform-fixture-qualification/receipt.json.",
+      "owner145_doc_requirement": "Document actual separate GUI and local platform process commands, ports and distinct data dirs. promotion_publish exposes serve_platform(host,port,data_dir) but no CLI: provide executable Python invocation. GUI localhost8080 is not /publish platform. Describe actual Signals and schedule controls. M12_DOCUMENTATION_DIAGNOSIS.json findings1-3 apply; content.json is actually correct, no rename needed."
+    },
+    "admission_correction": "Select current phase from canonical facts. Current143a2 succeeded with NEW main.py5f467864. Old147a2 failure belongs to650460ff and cannot authorize another143 repair. First recover prerequisite144/145 if needed, then reuse existing147 with action3 preserving independent predicate; new qualified-revision5 and current artifact require current measurement. If147 is blocked by144/145, explicitly recover those existing test/doc owners using changed143 dependency; do not add duplicate checker or GUI writer. Once new147 records current native failure, repair only143 with existing deps:[] and complete strategy/hypothesis bound to the NEW failure object (path plus receipt_hash array). Never reuse old650 failure to repair current5f. No repeated unchanged verification.",
+    "gui_writer_policy": "Final main.py writer143 is the sole current GUI owner. Only143 may repair that file; inspections/tests read completed snapshot. Original early_main91 and backend sources unchanged unless independent new failure proves actual boundary need.",
+    "redecision": {
+      "strategy_revision": "312777541220d786d5879b3159e7c54ec3b309d1d70172b64c1cb2ba490677c4",
+      "reason": "56 original143a2 repaired real uploads and editing dispatch. Browser validated upload/video/schedule/publish/analytics, found restart hang localized to serial GUI server. Nativev7 qualifies onlyM12 with oldassertionsretained; current5f has no native measurement. Recover existing144145 prerequisites as necessary then147 currentkey, not repeat143 repair from stale650failure. Preserve hold/error/history.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_V7_ACTIVATION.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-idle-connection-5f467864\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-final-product-143a2-selection-corrected\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_FINAL_PROBE_SELECTION_CORRECTION.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-generated-tests-5f467864\\receipt.json"
+      ]
+    },
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "early_main.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\GUI_COUPLED_PREFLIGHT_24125.json"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "kind": "CurrentDocumentationDiagnostic",
+  "acceptance_authority": false,
+  "artifact": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\README.md",
+  "sha256": "ed2393761e5b4a6cd623e04ec108abaeb212e6058c90c279a792aad870d781d7",
+  "owner": 145,
+  "findings": [
+    {
+      "problem": "No executable local-platform startup command; example permits GUI URL itself even though GUI has no platform /publish endpoint.",
+      "source_evidence": "promotion_publish.py exposes serve_platform(host,port,data_dir) and no CLI; main.py serves GUI/API only.",
+      "required": "Document two separate terminals and ports, exact existing serve_platform invocation, separate platform data dir and actual Platform URL; exercise those commands before delivery."
+    },
+    {
+      "problem": "Evidence and claims described as not exposed in a primary tab, but Signals tab exists.",
+      "required": "Describe actual Signals evidence import/claim workflow and approval prerequisites."
+    },
+    {
+      "problem": "Scheduler described only as backend API despite visible Schedule/Cancel/Reschedule actions.",
+      "required": "Explain actual GUI schedule selection/operations and timezone, matching final implemented behavior."
+    },
+    {
+      "problem": "Storage lists content.json; verify actual storage rather than assumed names.",
+      "required": "Describe writable data directory accurately, persistence/restart and media copy behavior."
+    }
+  ],
+  "host_business_patches": 0
+}

@@ -1,0 +1,721 @@
+--- a/cgkn/state/provenance.py
++++ b/cgkn/state/provenance.py
+@@ -13,6 +13,7 @@
+ 
+ from cgkn.execution.check_evidence import predicate
+ from .acceptance import identity
++from . import release_authorization
+ 
+ 
+ def file_hash(path):
+@@ -62,9 +63,17 @@
+ 
+ 
+ class ProvenanceGate:
+-    def __init__(self, store, project_id, run_id):
++    def __init__(self, store, project_id, run_id, *, release_trust_anchor=None,
++                 release_authorization=None):
+         self.store, self.project_id, self.run_id = store, project_id, run_id
+         self.root = store.run_dir(project_id, run_id)
++        # The public key must live outside agent-writable roots.  The signed
++        # authorization may live in the run store because its bytes are signed.
++        self.release_trust_anchor = (Path(release_trust_anchor).resolve()
++                                     if release_trust_anchor else None)
++        self.release_authorization_path = (Path(release_authorization).resolve()
++                                           if release_authorization
++                                           else self.root/'release_authorization.json')
+ 
+     def resolve(self, ref, kind=None):
+         if not isinstance(ref, dict) or not ref.get('path') or not ref.get('sha256'):
+@@ -403,22 +412,64 @@
+                 'receipt_ref':doc['receipt_ref'],'candidate_ref':doc['candidate_ref'],
+                 'provider_calls':verified,'imported':True,'old_acceptance_imported':False}
+ 
+-    def _authorized_agent_origin(self, doc, workspace, digest):
++    def verify_release_authorization(self, manifest, workspace):
++        """Load and verify the batch-scoped Ed25519 release authorization.
++
++        Fail closed when no protected trust anchor is configured.  Without a
++        real external signer this is PENDING_TRUST_ANCHOR, never a PASS.
++        """
++        if not self.release_trust_anchor:
++            raise ProvenanceError(
++                'INSUFFICIENT_EVIDENCE',
++                'PENDING_TRUST_ANCHOR: no protected release trust anchor is configured')
++        path = self.release_authorization_path
++        if not path.is_file():
++            raise ProvenanceError(
++                'INSUFFICIENT_EVIDENCE',
++                'PENDING_TRUST_ANCHOR: signed release authorization is missing')
++        try:
++            document = json.loads(path.read_text(encoding='utf-8'))
++            return release_authorization.verify_release_authorization(
++                document, anchor_path=self.release_trust_anchor,
++                store_root=self.store.root, workspace_root=workspace,
++                expected_logical_task_id=self.binding()['logical_task_id'],
++                manifest=manifest)
++        except release_authorization.ReleaseAuthorizationError as exc:
++            raise ProvenanceError('INVALID_PROVENANCE',
++                                  'release authorization: '+str(exc)) from exc
++        except (OSError, ValueError, UnicodeError) as exc:
++            raise ProvenanceError('INVALID_PROVENANCE',
++                                  'release authorization bytes are invalid') from exc
++
++    def _authorized_agent_origin(self, doc, workspace, digest, *, release=None):
+         """Validate an explicitly user-authorized non-Worker source.
+ 
+         This deliberately does not label the source as Worker or claim a
+         recorded Provider generation call. It preserves the real agent author
+-        and requires an explicit user authorization plus independent M12/B10
+-        review evidence bound to the exact bytes.
++        and requires a signed release authorization from a key outside the
++        agent-writable trust domain, plus B10/B11 evidence whose exact bytes
++        are pinned by that signature.
+         """
++        if not release:
++            raise ProvenanceError(
++                'INSUFFICIENT_EVIDENCE',
++                'PENDING_TRUST_ANCHOR: authorized agent source needs a signed release authorization')
+         if (doc.get('kind')!='AuthorizedAgentSource' or doc.get('author_type')!='agent'
+                 or not doc.get('author_identity') or not doc.get('authorization_ref')
+                 or not doc.get('review_ref') or not digest or doc.get('sha256')!=digest):
+             raise ProvenanceError('INVALID_PROVENANCE','authorized agent source binding mismatch')
++        release_entry=release.get('artifacts',{}).get(doc['artifact'])
++        if (not isinstance(release_entry,dict) or release_entry.get('sha256')!=digest
++                or release_entry.get('author_type')!='agent'
++                or release_entry.get('author_identity')!=doc.get('author_identity')):
++            raise ProvenanceError('INVALID_PROVENANCE','authorized agent release authorization mismatch')
+         workspace=Path(workspace).resolve();relative=Path(doc['artifact']);candidate=(workspace/relative).resolve()
+         if (relative.is_absolute() or '..' in relative.parts or not candidate.is_relative_to(workspace)
+                 or not candidate.is_file() or file_hash(candidate)!=digest):
+             raise ProvenanceError('INVALID_PROVENANCE','authorized agent artifact mismatch')
++        if (doc['authorization_ref'].get('sha256')!=release_entry.get('authorization_sha256')
++                or doc['review_ref'].get('sha256')!=release_entry.get('review_sha256')):
++            raise ProvenanceError('INVALID_PROVENANCE','authorized agent record is not signed')
+         authorization=json.loads(self.resolve(doc['authorization_ref']))
+         review=json.loads(self.resolve(doc['review_ref']))
+         if (authorization.get('kind')!='AuthorizedAgentSourceAuthorization'
+@@ -432,8 +483,13 @@
+                 or review.get('source_sha256')!=file_hash(main)
+                 or review.get('artifacts',{}).get(doc['artifact'])!=digest):
+             raise ProvenanceError('INVALID_PROVENANCE','authorized agent review mismatch')
+-        b11=json.loads(self.resolve(review.get('b11_acceptance_ref',{})))
+-        b10=json.loads(self.resolve(review.get('b10_certificate_ref',{})))
++        b11_ref=review.get('b11_acceptance_ref',{})
++        b10_ref=review.get('b10_certificate_ref',{})
++        if (b10_ref.get('sha256')!=release_entry.get('b10_certificate_sha256')
++                or b11_ref.get('sha256')!=release_entry.get('b11_acceptance_sha256')):
++            raise ProvenanceError('INVALID_PROVENANCE','authorized agent review evidence is not signed')
++        b11=json.loads(self.resolve(b11_ref))
++        b10=json.loads(self.resolve(b10_ref))
+         if (b11.get('status')!='PASS'
+                 or b11.get('source_sha256')!=review['source_sha256']
+                 or b11.get('observed',{}).get('observed',{}).get('value') is not True):
+@@ -441,8 +497,19 @@
+         if (b10.get('status')!='VERIFIED'
+                 or b10.get('source_sha256_at_verification')!=review['source_sha256']):
+             raise ProvenanceError('INVALID_PROVENANCE','authorized agent B10 review mismatch')
++        sections=b10.get('relevant_section_hashes')
++        if not isinstance(sections,dict):
++            raise ProvenanceError('INVALID_PROVENANCE','authorized agent B10 lacks section hashes')
++        section=sections.get(doc['artifact']+'#full')
++        if section!=release_entry.get('b10_section_sha256'):
++            raise ProvenanceError('INVALID_PROVENANCE','authorized agent B10 section claim differs from signed release')
++        if section is not None and section!=digest:
++            raise ProvenanceError('INVALID_PROVENANCE','authorized agent B10 section hash mismatch')
++        if sections.get('main.py#full')!=file_hash(main):
++            raise ProvenanceError('INVALID_PROVENANCE','authorized agent B10 main.py section mismatch')
+         return {'sha256':digest,'author_type':'authorized_agent','author_identity':doc['author_identity'],
+                 'authorization_ref':doc['authorization_ref'],'review_ref':doc['review_ref'],
++                'release_id':release.get('release_id'),'release_signer_key_id':release.get('signer',{}).get('key_id'),
+                 'provider_calls':[],'imported':False,'old_acceptance_imported':False}
+ 
+     def delivery_sources(self, acceptance, workspace, manifest):
+@@ -509,22 +576,42 @@
+                 origins.setdefault(name,[]).append({'sha256':digest,'node_id':node.id,'attempt_id':result.attempt_id,
+                     'receipt_ref':reference(self.store.root,self.root/'attempts'/node.id/(result.attempt_id+'.json')),
+                     'candidate_ref':reference(self.store.root,staged_path),'provider_calls':calls})
++        imports=[]
+         for path in sorted((self.root/'source_imports').glob('*.json')):
+             doc=json.loads(path.read_text(encoding='utf8'))
+             if path.stem!=identity(doc):raise ProvenanceError('INVALID_PROVENANCE','source import manifest changed')
++            imports.append((path,doc))
++        needs_release=any(doc.get('kind')=='AuthorizedAgentSource'
++                and doc.get('artifact') in manifest
++                and doc.get('sha256')==manifest[doc.get('artifact')]
++                for _,doc in imports)
++        release=self.verify_release_authorization(manifest,workspace) if needs_release else None
++        for path,doc in imports:
+             name=doc.get('artifact')
+             if name in origins or name not in manifest or doc.get('sha256')!=manifest[name]:continue
+             kind=doc.get('kind')
+             if kind=='ImportedWorkerSource':
++                if release and release.get('artifacts',{}).get(name,{}).get('author_type')!='worker':
++                    raise ProvenanceError('INVALID_PROVENANCE','worker source release authorization mismatch')
+                 origin=self._worker_import_origin(doc,workspace,manifest[name])
+             elif kind=='AuthorizedAgentSource':
+-                origin=self._authorized_agent_origin(doc,workspace,manifest[name])
++                origin=self._authorized_agent_origin(doc,workspace,manifest[name],release=release)
+             else:
+                 continue
+             origin['import_ref']=reference(self.store.root,path)
+             origins.setdefault(name,[]).append(origin)
+         if set(origins)!=set(manifest):
+-            raise ProvenanceError('INSUFFICIENT_EVIDENCE','delivered source lacks bounded Worker or authorized Agent origin: '+','.join(sorted(set(manifest)-set(origins))))
++            missing=','.join(sorted(set(manifest)-set(origins)))
++            if any(doc.get('kind')=='AuthorizedAgentSource' for _,doc in imports):
++                reason='delivered source lacks bounded Worker or authorized Agent origin: '+missing
++            else:
++                reason='delivered source lacks bounded Worker origin: '+missing
++            raise ProvenanceError('INSUFFICIENT_EVIDENCE',reason)
+         return {'status':'TRUSTED','source_origins':origins,'acceptance_chains':trusted['chains'],
+             'real_provider_backed':all(c['real_provider_identity_bound'] for rows in origins.values() for row in rows for c in row['provider_calls']),
++            'release_authorization':({'release_id':release['release_id'],
++                'signer_key_id':release.get('signer',{}).get('key_id'),
++                'trust_anchor_path':release.get('trust_anchor_path'),
++                'manifest_digest':release.get('manifest_digest')}
++                if release else None),
+             'delivery_authorized':False}
+--- a/scripts/final_delivery_truth.py
++++ b/scripts/final_delivery_truth.py
+@@ -7,17 +7,23 @@
+ try:
+     import artifact_integrity
+     import formal_model_contract
++    import production_candidate_provenance
+     from pipeline_contracts import base_result
+ except ModuleNotFoundError:  # pragma: no cover - package import path
+     from scripts import artifact_integrity
+     from scripts import formal_model_contract
++    from scripts import production_candidate_provenance
+     from scripts.pipeline_contracts import base_result
+ 
+ 
+-def evaluate(project_dir: pathlib.Path, manifest: dict[str, Any] | None = None, session: dict[str, Any] | None = None, *, evidence: dict[str, Any] | None = None, phase: str = "final", production_provenance_ref: str | pathlib.Path | None = None) -> dict[str, Any]:
++def evaluate(project_dir: pathlib.Path, manifest: dict[str, Any] | None = None, session: dict[str, Any] | None = None, *, evidence: dict[str, Any] | None = None, phase: str = "final", production_provenance_ref: str | pathlib.Path | None = None, release_trust_anchor: str | pathlib.Path | None = None, release_authorization: str | pathlib.Path | None = None) -> dict[str, Any]:
+     import codex_conversation as bridge
+ 
+     project = pathlib.Path(project_dir)
++    production_candidate_provenance.configure_release_trust(
++        release_trust_anchor=release_trust_anchor,
++        release_authorization=release_authorization,
++    )
+     if (project / "_CGNK_CANDIDATE_ONLY_DO_NOT_DELIVER.json").exists():
+         return base_result(
+             status="fail",
+--- a/scripts/production_candidate_provenance.py
++++ b/scripts/production_candidate_provenance.py
+@@ -64,6 +64,27 @@
+     return canonical_evidence_hash.canonical_json_hash(
+         {"candidate_source_manifest": manifest}, ()
+     )
++
++
++_RELEASE_CONTEXT: dict[str, str] = {}
++
++
++def configure_release_trust(release_trust_anchor=None, release_authorization=None) -> None:
++    """Controller-only injection point for the protected Ed25519 trust anchor.
++
++    The anchor path must be outside the agent-writable run store and workspace;
++    the verifier enforces that.  This is a controller-only entry point: if
++    agent-controlled code can call it, it can point at an anchor it controls,
++    so the anchor path must come from a protected controller configuration.
++    A signature cannot be forged, but a writable anchor is not a trust root.
++    """
++    _RELEASE_CONTEXT.clear()
++    if release_trust_anchor is not None:
++        _RELEASE_CONTEXT["release_trust_anchor"] = str(
++            pathlib.Path(release_trust_anchor).resolve())
++    if release_authorization is not None:
++        _RELEASE_CONTEXT["release_authorization"] = str(
++            pathlib.Path(release_authorization).resolve())
+ 
+ 
+ def _parse_time(value: Any) -> datetime | None:
+@@ -352,7 +373,11 @@
+     expected_candidate_id: str | None = None,
+     expected_candidate_hash: str | None = None,
+     expected_commit_sha: str | None = None,
++    release_trust_anchor: str | pathlib.Path | None = None,
++    release_authorization: str | pathlib.Path | None = None,
+ ) -> dict[str, Any]:
++    release_trust_anchor = release_trust_anchor or _RELEASE_CONTEXT.get("release_trust_anchor")
++    release_authorization = release_authorization or _RELEASE_CONTEXT.get("release_authorization")
+     path = pathlib.Path(provenance_ref).resolve()
+     failures: list[str] = []
+     if path.name != FILE_NAME or not path.is_file() or path.is_symlink():
+@@ -366,7 +391,8 @@
+         return _inspect_project_session(path,document,
+             expected_candidate_dir=expected_candidate_dir,expected_production_run_dir=expected_production_run_dir,
+             expected_run_id=expected_run_id,expected_candidate_id=expected_candidate_id,
+-            expected_candidate_hash=expected_candidate_hash,expected_commit_sha=expected_commit_sha)
++            expected_candidate_hash=expected_candidate_hash,expected_commit_sha=expected_commit_sha,
++            release_trust_anchor=release_trust_anchor,release_authorization=release_authorization)
+     if (
+         document.get("kind") != KIND
+         or document.get("schema_version") != SCHEMA_VERSION
+@@ -550,7 +576,8 @@
+     }
+ 
+ 
+-def _project_session_projection(store, project_id, run_id, candidate):
++def _project_session_projection(store, project_id, run_id, candidate, *,
++                                release_trust_anchor=None, release_authorization=None):
+     """Rebuild existing core facts; no legacy stage attribution is synthesized."""
+     from cgkn.state.acceptance import GoalAcceptance
+     from cgkn.state.provenance import ProvenanceGate,reference
+@@ -565,7 +592,9 @@
+     data=_read(root/'goal_acceptance.json')
+     acceptance=GoalAcceptance(store,project_id,run_id,profile['requirements'],data['checker_bindings'])
+     manifest=canonical_evidence_hash.candidate_source_manifest(candidate)
+-    sources=ProvenanceGate(store,project_id,run_id).delivery_sources(acceptance,candidate,manifest)
++    sources=ProvenanceGate(store,project_id,run_id,
++        release_trust_anchor=release_trust_anchor,
++        release_authorization=release_authorization).delivery_sources(acceptance,candidate,manifest)
+     audit=[];failures=[];agent_bound=False
+     for request_path in sorted((root/'provider_calls').glob('*/request.json')):
+         request=_read(request_path);response_path=request_path.with_name('response.json');error_path=request_path.with_name('error.json')
+@@ -597,12 +626,15 @@
+         'candidate_source_manifest':manifest,'failures':sorted(set(failures))}
+ 
+ 
+-def produce_project_session(store, project_id, run_id, *, candidate_dir, commit_sha):
++def produce_project_session(store, project_id, run_id, *, candidate_dir, commit_sha,
++                            release_trust_anchor=None, release_authorization=None):
+     """Versioned input to the same production provenance/delivery authority."""
+     root=store.run_dir(project_id,run_id);candidate=pathlib.Path(candidate_dir).resolve()
+     if not commit_sha or _candidate_symlinks(candidate):
+         raise ValueError('source commit and regular candidate files required')
+-    projection=_project_session_projection(store,project_id,run_id,candidate)
++    projection=_project_session_projection(store,project_id,run_id,candidate,
++        release_trust_anchor=release_trust_anchor,
++        release_authorization=release_authorization)
+     path=root/FILE_NAME;previous=_read(path) if path.exists() else {}
+     if previous and previous.get('generation_route')!='project_session':
+         raise ValueError('historical provenance cannot be reinterpreted; use a new run')
+@@ -658,7 +690,9 @@
+                           ('expected_candidate_hash','candidate_hash'),('expected_commit_sha','commit_sha')]:
+             if expected.get(key) is not None and str(expected[key])!=document[field]:
+                 raise ValueError('core production identity mismatch: '+field)
+-        projection=_project_session_projection(store,document['project_id'],document['run_id'],candidate)
++        projection=_project_session_projection(store,document['project_id'],document['run_id'],candidate,
++            release_trust_anchor=expected.get('release_trust_anchor'),
++            release_authorization=expected.get('release_authorization'))
+         if any(document.get(k)!=v for k,v in projection.items()):
+             raise ValueError('core production evidence changed')
+         failures.extend(projection['failures'])
+--- /dev/null
++++ b/cgkn/state/release_authorization.py
+@@ -0,0 +1,230 @@
++"""Signed release-authorization verification for non-Worker delivery sources.
++
++Trust model
++-----------
++The run store and the candidate workspace are writable by the executing agent.
++Nothing inside them can prove *who* authorized a release.  This module only
++accepts a release authorization that is signed with Ed25519 by a key listed in
++a trust anchor file that lives outside both writable roots.  The verifier never
++reads a private key.
++
++The trust anchor file still has to be protected by the host (filesystem ACL,
++separate OS account, HSM, or a remote signing service).  If the agent can write
++the anchor or invoke the signer, this module provides tamper *evidence* only,
++not a real trust boundary; callers must report PENDING_TRUST_ANCHOR in that
++case.  See docs/RELEASE_AUTHORIZATION.md for the deployment contract.
++"""
++from __future__ import annotations
++
++import base64
++import hashlib
++import json
++from datetime import datetime, timezone
++from pathlib import Path
++
++AUTHORIZATION_KIND = "SignedReleaseAuthorization"
++ANCHOR_KIND = "ReleaseTrustAnchor"
++SCHEMA_VERSION = "1"
++def _b64(value, validate=False):
++    return base64.b64decode(value, validate=validate)
++
++
++class ReleaseAuthorizationError(ValueError):
++    """Fail-closed authorization error; never downgraded to a warning."""
++
++
++def _canonical(value):
++    return json.dumps(value, sort_keys=True, ensure_ascii=False,
++                      separators=(",", ":"), allow_nan=False)
++
++
++def payload_bytes(document):
++    """Canonical bytes covered by the signature (everything except signature)."""
++    if not isinstance(document, dict):
++        raise ReleaseAuthorizationError("authorization must be an object")
++    signed = {key: value for key, value in document.items() if key != "signature"}
++    return _canonical(signed).encode("utf-8")
++
++
++def manifest_digest(manifest):
++    normalized = normalize_manifest(manifest)
++    return hashlib.sha256(_canonical(normalized).encode("utf-8")).hexdigest()
++
++
++def normalize_manifest(manifest):
++    if not isinstance(manifest, dict) or not manifest:
++        raise ReleaseAuthorizationError("delivery manifest must be a non-empty object")
++    normalized = {}
++    for name, value in sorted(manifest.items()):
++        if not isinstance(name, str) or not name:
++            raise ReleaseAuthorizationError("manifest artifact name is invalid")
++        digest = str(value).removeprefix("sha256:").lower()
++        if len(digest) != 64 or any(ch not in "0123456789abcdef" for ch in digest):
++            raise ReleaseAuthorizationError("manifest artifact hash is not SHA-256: " + name)
++        normalized[name] = digest
++    return normalized
++
++
++def _parse_time(value, field):
++    if not isinstance(value, str) or not value.strip():
++        raise ReleaseAuthorizationError("authorization " + field + " is missing")
++    text = value.strip().replace("Z", "+00:00")
++    try:
++        parsed = datetime.fromisoformat(text)
++    except ValueError as exc:
++        raise ReleaseAuthorizationError("authorization " + field + " is not ISO-8601") from exc
++    if parsed.tzinfo is None:
++        raise ReleaseAuthorizationError("authorization " + field + " needs a timezone")
++    return parsed.astimezone(timezone.utc)
++
++
++def _outside(path, root, label):
++    try:
++        if path.is_relative_to(root):
++            raise ReleaseAuthorizationError(label + " is inside an untrusted writable root")
++    except OSError as exc:
++        raise ReleaseAuthorizationError(label + " cannot be resolved") from exc
++
++
++def load_trust_anchor(anchor_path, *, store_root, workspace_root):
++    """Load the protected public-key configuration; never a private key."""
++    try:
++        anchor = Path(anchor_path).resolve(strict=True)
++    except (OSError, RuntimeError) as exc:
++        raise ReleaseAuthorizationError("release trust anchor is missing") from exc
++    if anchor.is_symlink():
++        raise ReleaseAuthorizationError("release trust anchor must not be a symlink")
++    _outside(anchor, Path(store_root).resolve(), "release trust anchor")
++    _outside(anchor, Path(workspace_root).resolve(), "release trust anchor")
++    try:
++        document = json.loads(anchor.read_text(encoding="utf-8"))
++    except (OSError, ValueError, UnicodeError) as exc:
++        raise ReleaseAuthorizationError("release trust anchor is unreadable") from exc
++    if (not isinstance(document, dict) or document.get("kind") != ANCHOR_KIND
++            or str(document.get("schema_version")) != SCHEMA_VERSION
++            or not document.get("authority_id") or not isinstance(document.get("keys"), dict)):
++        raise ReleaseAuthorizationError("release trust anchor contract is invalid")
++    for key_id, key in document["keys"].items():
++        if (not isinstance(key, dict) or not key_id
++                or key.get("algorithm") != "ed25519"
++                or not key.get("public_key_b64")):
++            raise ReleaseAuthorizationError("release trust anchor key is invalid: " + str(key_id))
++        try:
++            raw = _b64(str(key["public_key_b64"]), validate=True)
++        except Exception as exc:
++            raise ReleaseAuthorizationError("release trust anchor key is not base64") from exc
++        if len(raw) != 32:
++            raise ReleaseAuthorizationError("release trust anchor key is not Ed25519")
++    document["_path"] = str(anchor)
++    return document
++
++
++def _verify_signature(document, anchor, key_id):
++    keys = anchor["keys"]
++    if key_id not in keys:
++        raise ReleaseAuthorizationError("authorization signer is not in the trust anchor")
++    signature = document.get("signature")
++    if (not isinstance(signature, dict) or signature.get("algorithm") != "ed25519"
++            or signature.get("key_id") != key_id or not signature.get("value_b64")):
++        raise ReleaseAuthorizationError("authorization signature block is invalid")
++    try:
++        blob = _b64(str(signature["value_b64"]), validate=True)
++    except Exception as exc:
++        raise ReleaseAuthorizationError("authorization signature is not base64") from exc
++    if len(blob) != 64:
++        raise ReleaseAuthorizationError("authorization signature is not Ed25519")
++    try:
++        from cryptography.exceptions import InvalidSignature
++        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
++    except ImportError as exc:  # fail closed, never fall back to unsigned JSON
++        raise ReleaseAuthorizationError("Ed25519 verifier is unavailable") from exc
++    public = Ed25519PublicKey.from_public_bytes(
++        _b64(str(anchor["keys"][key_id]["public_key_b64"]), validate=True))
++    try:
++        public.verify(blob, payload_bytes(document))
++    except InvalidSignature as exc:
++        raise ReleaseAuthorizationError("authorization signature does not match") from exc
++
++
++def verify_release_authorization(
++    document,
++    *,
++    anchor_path,
++    store_root,
++    workspace_root,
++    expected_logical_task_id,
++    manifest,
++    now=None,
++):
++    """Verify one signed, batch-scoped release authorization.
++
++    Binds release identity, logical task, exact delivery manifest, per-artifact
++    SHA-256 and author type, per-file authorization/review/B10/B11 hashes, and
++    an expiry window.  A signature from a key outside the trust anchor, or a
++    document whose bytes changed after signing, fails closed.
++    """
++    if not isinstance(document, dict) or document.get("kind") != AUTHORIZATION_KIND:
++        raise ReleaseAuthorizationError("signed release authorization is missing or mistyped")
++    if str(document.get("schema_version")) != SCHEMA_VERSION:
++        raise ReleaseAuthorizationError("signed release authorization schema is unsupported")
++    anchor = load_trust_anchor(anchor_path, store_root=store_root, workspace_root=workspace_root)
++    signer = document.get("signer")
++    if not isinstance(signer, dict) or not signer.get("key_id"):
++        raise ReleaseAuthorizationError("authorization signer identity is missing")
++    key_id = signer["key_id"]
++    _verify_signature(document, anchor, key_id)
++    if document.get("authority_id") != anchor["authority_id"]:
++        raise ReleaseAuthorizationError("authorization authority differs from the trust anchor")
++
++    moment = now or datetime.now(timezone.utc)
++    if moment.tzinfo is None:
++        moment = moment.replace(tzinfo=timezone.utc)
++    not_before = _parse_time(document.get("not_before"), "not_before")
++    expires_at = _parse_time(document.get("expires_at"), "expires_at")
++    if not_before > expires_at:
++        raise ReleaseAuthorizationError("authorization time window is inverted")
++    if moment.astimezone(timezone.utc) < not_before:
++        raise ReleaseAuthorizationError("authorization is not valid yet")
++    if moment.astimezone(timezone.utc) > expires_at:
++        raise ReleaseAuthorizationError("authorization has expired")
++
++    if not document.get("release_id"):
++        raise ReleaseAuthorizationError("authorization release_id is missing")
++    if document.get("logical_task_id") != expected_logical_task_id:
++        raise ReleaseAuthorizationError("authorization belongs to another logical task")
++    nonce = str(document.get("nonce", ""))
++    if len(nonce) < 32 or any(ch not in "0123456789abcdef" for ch in nonce.lower()):
++        raise ReleaseAuthorizationError("authorization nonce is missing or too weak")
++    if not document.get("scope"):
++        raise ReleaseAuthorizationError("authorization scope is missing")
++
++    normalized = normalize_manifest(manifest)
++    if document.get("candidate_source_manifest_sha256") != manifest_digest(normalized):
++        raise ReleaseAuthorizationError("authorization does not bind the delivered manifest")
++
++    artifacts = document.get("artifacts")
++    if not isinstance(artifacts, dict) or set(artifacts) != set(normalized):
++        raise ReleaseAuthorizationError("authorization artifact coverage differs from the manifest")
++    for name, digest in normalized.items():
++        entry = artifacts.get(name)
++        if not isinstance(entry, dict) or entry.get("sha256") != digest:
++            raise ReleaseAuthorizationError("authorization artifact hash mismatch: " + name)
++        author_type = entry.get("author_type")
++        if author_type not in {"worker", "agent"}:
++            raise ReleaseAuthorizationError("authorization author_type is invalid: " + name)
++        if author_type == "agent":
++            for field in ("author_identity", "authorization_sha256", "review_sha256",
++                          "b10_certificate_sha256", "b11_acceptance_sha256"):
++                if not entry.get(field):
++                    raise ReleaseAuthorizationError(
++                        "agent authorization is incomplete for " + name + ": " + field)
++            if "b10_section_sha256" not in entry:
++                raise ReleaseAuthorizationError(
++                    "agent authorization omits B10 coverage claim for " + name)
++    return {
++        **{key: value for key, value in document.items() if key != "signature"},
++        "trust_anchor_path": anchor["_path"],
++        "signer_key": {key: value for key, value in anchor["keys"][key_id].items()
++                       if key != "public_key_b64"},
++        "manifest_digest": manifest_digest(normalized),
++    }
+--- /dev/null
++++ b/tools/sign_release_authorization.py
+@@ -0,0 +1,178 @@
++#!/usr/bin/env python3
++"""Sign one batch-scoped release authorization with a protected Ed25519 key.
++
++Run this OUTSIDE the agent workspace, from a controller/account that can read
++the private key.  The verifier never calls this module and never needs the
++private key.  Do not check a production private key into the repository and do
++not store it in the run store or candidate workspace.
++"""
++from __future__ import annotations
++
++import argparse
++import base64
++import hashlib
++import json
++import pathlib
++import sys
++
++
++def _sha(path):
++    return hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
++
++
++def _read(path):
++    return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
++
++
++def _resolve(store_root, ref):
++    root = pathlib.Path(store_root).resolve()
++    path = (root / ref["path"]).resolve()
++    if not path.is_relative_to(root) or not path.is_file():
++        raise SystemExit("referenced object is outside the run store: " + str(path))
++    if _sha(path) != ref["sha256"]:
++        raise SystemExit("referenced object hash changed: " + str(path))
++    return path
++
++
++def build_artifacts(*, store_root, manifest, source_imports):
++    artifacts = {}
++    for path in sorted(pathlib.Path(source_imports).glob("*.json")):
++        doc = _read(path)
++        name = doc.get("artifact")
++        if name not in manifest:
++            continue
++        if doc.get("sha256") != manifest[name]:
++            raise SystemExit("source import does not match the delivery manifest: " + str(name))
++        if doc.get("kind") == "AuthorizedAgentSource":
++            auth = _resolve(store_root, doc["authorization_ref"])
++            review_path = _resolve(store_root, doc["review_ref"])
++            review = _read(review_path)
++            b10_path = _resolve(store_root, review["b10_certificate_ref"])
++            b11_path = _resolve(store_root, review["b11_acceptance_ref"])
++            b10 = _read(b10_path)
++            sections = b10.get("relevant_section_hashes", {})
++            artifacts[name] = {
++                "sha256": manifest[name],
++                "author_type": "agent",
++                "author_identity": doc.get("author_identity", ""),
++                "authorization_sha256": _sha(auth),
++                "review_sha256": _sha(review_path),
++                "b10_certificate_sha256": _sha(b10_path),
++                "b11_acceptance_sha256": _sha(b11_path),
++                "b10_section_sha256": sections.get(name + "#full"),
++            }
++        elif doc.get("kind") == "ImportedWorkerSource":
++            artifacts[name] = {
++                "sha256": manifest[name],
++                "author_type": "worker",
++                "receipt_sha256": doc.get("receipt_ref", {}).get("sha256"),
++                "source_project_id": doc.get("source_project_id"),
++                "source_run_id": doc.get("source_run_id"),
++            }
++        else:
++            raise SystemExit("unknown source import kind: " + str(doc.get("kind")))
++    missing = sorted(set(manifest) - set(artifacts))
++    if missing:
++        raise SystemExit("manifest artifacts without source imports: " + ",".join(missing))
++    return artifacts
++
++
++def main(argv=None):
++    parser = argparse.ArgumentParser()
++    parser.add_argument("--run-store", required=True,
++                        help="FileRunStore root (the store, not the run directory)")
++    parser.add_argument("--run-relative", required=True,
++                        help="project_id/run_id relative to the run store")
++    parser.add_argument("--manifest", required=True,
++                        help="JSON file mapping artifact name to SHA-256")
++    parser.add_argument("--release-id", required=True)
++    parser.add_argument("--logical-task-id", required=True)
++    parser.add_argument("--private-key", required=True,
++                        help="PKCS8 PEM Ed25519 private key outside agent-writable roots")
++    parser.add_argument("--key-id", required=True)
++    parser.add_argument("--authority-id", default="veriarbor-release-authority")
++    parser.add_argument("--anchor-out", required=True,
++                        help="protected public-key anchor output path")
++    parser.add_argument("--out", required=True,
++                        help="signed release authorization output path")
++    parser.add_argument("--not-before", required=True)
++    parser.add_argument("--expires-at", required=True)
++    parser.add_argument("--nonce", required=True)
++    parser.add_argument("--scope", default="final_delivery_source_provenance")
++    parser.add_argument("--principal", default="user")
++    args = parser.parse_args(argv)
++
++    sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
++    from cgkn.state.release_authorization import manifest_digest, normalize_manifest, payload_bytes
++
++    try:
++        from cryptography.hazmat.primitives import serialization
++        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
++    except ImportError:
++        raise SystemExit("cryptography is required to sign")
++
++    store = pathlib.Path(args.run_store).resolve()
++    run = store / args.run_relative
++    manifest = normalize_manifest(_read(args.manifest))
++    artifacts = build_artifacts(store_root=store, manifest=manifest,
++                                source_imports=run / "source_imports")
++    for name, entry in artifacts.items():
++        if entry["author_type"] == "agent" and entry["b10_section_sha256"] is not None:
++            if entry["b10_section_sha256"] != manifest[name]:
++                raise SystemExit("B10 section hash does not match delivered bytes: " + name)
++
++    document = {
++        "kind": "SignedReleaseAuthorization",
++        "schema_version": "1",
++        "authority_id": args.authority_id,
++        "release_id": args.release_id,
++        "logical_task_id": args.logical_task_id,
++        "scope": args.scope,
++        "not_before": args.not_before,
++        "expires_at": args.expires_at,
++        "nonce": args.nonce,
++        "candidate_source_manifest_sha256": manifest_digest(manifest),
++        "artifacts": artifacts,
++        "signer": {"key_id": args.key_id, "principal": args.principal},
++    }
++    key = serialization.load_pem_private_key(
++        pathlib.Path(args.private_key).read_bytes(), password=None)
++    if not isinstance(key, Ed25519PrivateKey):
++        raise SystemExit("private key is not Ed25519")
++    signature = key.sign(payload_bytes(document))
++    document["signature"] = {
++        "algorithm": "ed25519",
++        "key_id": args.key_id,
++        "value_b64": base64.b64encode(signature).decode("ascii"),
++    }
++    public = key.public_key().public_bytes(
++        serialization.Encoding.Raw, serialization.PublicFormat.Raw)
++    anchor = {
++        "kind": "ReleaseTrustAnchor",
++        "schema_version": "1",
++        "authority_id": args.authority_id,
++        "keys": {
++            args.key_id: {
++                "algorithm": "ed25519",
++                "public_key_b64": base64.b64encode(public).decode("ascii"),
++                "principal": args.principal,
++                "purpose": "final_delivery_source_authorization",
++            }
++        },
++    }
++    anchor_path = pathlib.Path(args.anchor_out).resolve()
++    anchor_path.parent.mkdir(parents=True, exist_ok=True)
++    anchor_path.write_text(json.dumps(anchor, ensure_ascii=False, indent=2) + "\n",
++                           encoding="utf-8")
++    out = pathlib.Path(args.out).resolve()
++    out.parent.mkdir(parents=True, exist_ok=True)
++    out.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n",
++                   encoding="utf-8")
++    print(json.dumps({"status": "SIGNED", "authorization": str(out),
++                      "anchor": str(anchor_path),
++                      "manifest_digest": document["candidate_source_manifest_sha256"],
++                      "release_id": args.release_id}, ensure_ascii=False, indent=2))
++
++
++if __name__ == "__main__":
++    main()

@@ -1,0 +1,29 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "QwenFlash Agent only to select existing deterministicTEST; noWorker generation orPro/Max needed for this measurement. Preserve11newUNKNOWNs.",
+    "milestone_completion_request": "CURRENT M12 MEASUREMENT ONLY. Current main.py SHA97fac580ddd0b04a91c35f26a91e3554abb82ad86e8e6159864d4e49f4dce478 from143a28 fixes all11module identities; actual project.create succeeds. Last155a1 is older artifact. Execute existing current-qualified M12 independent TEST155 against CURRENT candidate, dependencies[]. No Worker repair before this measurement. Preserve M1-M11 verified evidence. No packaging or FINISH.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "main.py": "97fac580ddd0b04a91c35f26a91e3554abb82ad86e8e6159864d4e49f4dce478"
+        }
+      },
+      "phase": "current_measurement_only",
+      "observed_delta": "All11 actual module identities match and actual project.create succeeds. Real browser diagnostic media.import returns400 path must be a non-empty string: upload bridge absent. Diagnostic is not acceptance authority. Measure current native test before repair.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-143a28\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-product-143a28\\receipt.json"
+      ]
+    },
+    "admission_correction": "Select existing M12 TEST155 (or equivalent existing current qualified M12 test) with dependencies[] against current source97fac580. Do not change143 strategy before current measurement. Operation names are project.create, media.import etc; M1.project.create is INVALID. Milestone tag is separate request field.",
+    "redecision": {
+      "strategy_revision": "010ad38d1014707943b2d02b127bef12ad07d510b5f419d82c01aab318c1a68a",
+      "reason": "New143a28 has correct11modulebindings and actualprojectcreate. Existing155counterexample predates current artifact. Measure unchanged full M12 checker against current source before bounded repair.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-143a28\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-product-143a28\\receipt.json"
+      ]
+    }
+  }
+}

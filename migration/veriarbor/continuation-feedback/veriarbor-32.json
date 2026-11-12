@@ -1,0 +1,57 @@
+{
+  "expected_gui_sha256": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+  "feedback": {
+    "cost_policy": "Qwen3.8Flash Agent; DeepSeekFlash Worker. Both cheap-tier concrete models, fallback deny. DeepSeek planner25 repeatedly selected cyclic deps118 for target117 despite current existing_dependency_targets=[]; switch planner family, keep WorkerDeepSeek to avoid Qwen previous unused-variable edits. No Pro/Max; preserve5upstreamUNKNOWNs, noexactreplay. Cross-family identity alone is not independent business acceptance.",
+    "milestone_completion_request": "Current M1-M10 VERIFIED; M11 fails genuine missing/broken media rejection. Source117 now350e97b9 fixed import path but media.get/list still omit data_dir. First close those remaining two real callsites in original writer117, deps=[] and current M11 API scope, preserving complete file. The explicit full_file_write boolean must be TRUE in strategy and leaf must use op2, now mechanically enforced. Then address actual failed integration through ORIGINAL dependency owners: M6 owner86 must reject missing/broken referenced media at approval; M7 owner89 must reject it at publication, without relying on a prior media.get call. Current owner scope expansion exposes these original dependency artifacts; choose each matching owner, scope and contract separately, not M11-owned rewrites of M6/M7 and not monkeypatching. Use current evidence refs, preserve all public predicates. Original early GUI owner91 also lacks actual image/video previews: implement real preview interaction at its authorized original owner, never merely insert the word media to satisfy a weak selftest. Existing original observers119-122: refresh stale122 explicitly with retry action3, do not create more duplicates. Re-measure affected old milestones after dependency changes. Preserve meaningful34-case M11 tests, including all4 missing/broken approval/publication negatives and GUI requirement; improve weak preview assertion through real browser verification, never waive it. Continue M12 and all retained test debts through original Provider-owned source/test tasks and canonical finalization, delivery, accounting/provenance and Corpus. No host-authored business implementation.",
+    "admission_correction": "Initial full decision MUST include strategy.full_file_write=true as JSON boolean for the M11 API repair; preserve meaningful problem and other mechanism dimensions. If missing/type error, exact bounded patch correction now asks to replace only strategy, not whole decision. For target117 preserve deps=[];118 is downstream. Use original current owner targets and exact current scope IDs for M6/M7/GUI separately. hypothesis.falsifying_evidence is an ARRAY of exact current bound evidence-ref objects. Do not repeatedly resend rejected fields.",
+    "fresh_runtime_diagnosis": {
+      "current_source": "350e97b959d7ec3fee8f88d4a7961e09e044a6fa61b57718d34a4cb378a1e666",
+      "current_observations": {
+        "import_path": "fixed",
+        "get_list": "two remaining _public_media callers omit data_dir",
+        "canonical_M11_failure": "Expected ValueError for invalid or foreign input",
+        "selftests": "34 cases,29PASS5FAIL; four real missing/broken approval/publication failures plus missing early GUI preview"
+      },
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-diagnostic-350e97b9\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-generated-tests-350e97b9\\receipt.json"
+      ],
+      "retained_old_test_debts": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\ADDITIONAL_TEST_DEBT_TRIAGE.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\TEST_DEBT_CONTRACT_QUALIFICATION.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M10_M11_DIAGNOSTIC_TRIAGE.json"
+      ],
+      "previous_feedback_archive": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\continuation-feedback\\veriarbor-31.json"
+    },
+    "redecision": {
+      "strategy_revision": "95623747b3d4971e358c8af43e7d050372236096b693cf0584f1613b43950596",
+      "reason": "Prior missing full_file_write strategy was correctly rejected but feedback incorrectly called it forbidden and did not permit bounded correction. Fixed exact type/required constraints plus strategy-only patch, unchanged false-pattern rejection and unchanged business failure; no source/evidence waiver.",
+      "evidence_refs": [
+        "D:\\VeriArbor\\governance\\checks\\strategy-constraint-feedback-v2\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\AUTHORITY_SWITCH_RECEIPTS.jsonl"
+      ]
+    },
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "milestones/milestone_dbb8341c8910593063a8/api.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-diagnostic-350e97b9\\receipt.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-generated-tests-350e97b9\\receipt.json"
+        ]
+      }
+    ]
+  }
+}

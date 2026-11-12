@@ -1,15 +1,21 @@
-from .context import build_context_pack
-from .fingerprint import execution_fingerprint
-from .invalidation import ArtifactInvalidator
-from .runner import ArtifactModuleRunner, ModuleExecutionError
-from .dag_runner import DAGRunner, RunSummary
+"""Runtime entry exports loaded on demand, without pulling a scheduler into contracts."""
+from importlib import import_module
 
-__all__ = [
-    "ArtifactInvalidator",
-    "ArtifactModuleRunner",
-    "ModuleExecutionError",
-    "DAGRunner",
-    "RunSummary",
-    "build_context_pack",
-    "execution_fingerprint",
-]
+_EXPORTS = {
+    'build_context_pack': '.context',
+    'execution_fingerprint': '.fingerprint',
+    'ArtifactInvalidator': '.invalidation',
+    'ArtifactModuleRunner': '.runner',
+    'ModuleExecutionError': '.runner',
+    'DAGRunner': '.dag_runner',
+    'RunSummary': '.dag_runner',
+}
+__all__ = list(_EXPORTS)
+
+
+def __getattr__(name):
+    if name not in _EXPORTS:
+        raise AttributeError(name)
+    value = getattr(import_module(_EXPORTS[name], __name__), name)
+    globals()[name] = value
+    return value

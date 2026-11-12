@@ -1,0 +1,152 @@
+{
+  "kind": "VisiblePlatformLocatorQualification",
+  "status": "PASS",
+  "controls": [
+    {
+      "name": "valid_uploaded_bytes",
+      "kind": "positive",
+      "expected": true,
+      "observed": true,
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "actual_upload_400",
+      "kind": "negative",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "GUI file upload must persist valid original bytes"
+    },
+    {
+      "name": "wrong_uploaded_identity",
+      "kind": "mutation",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "GUI file upload must persist valid original bytes"
+    },
+    {
+      "name": "same_content_revision_advanced",
+      "kind": "positive",
+      "expected": true,
+      "observed": true,
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "duplicate_content_save",
+      "kind": "negative",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "Saving selected content must edit rather than duplicate"
+    },
+    {
+      "name": "stale_approval",
+      "kind": "mutation",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "GUI semantic edit must invalidate current approval"
+    },
+    {
+      "name": "wrong_edited_identity",
+      "kind": "mutation",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "GUI semantic edit must preserve identity and advance revision"
+    },
+    {
+      "name": "actual_scoped_state",
+      "kind": "positive",
+      "expected": true,
+      "observed": true,
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "false_empty_state",
+      "kind": "negative",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "Project-scoped state does not match persisted campaigns"
+    },
+    {
+      "name": "cross_project_state",
+      "kind": "mutation",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "Project-scoped state does not match persisted campaigns"
+    },
+    {
+      "kind": "negative",
+      "name": "actual_serial_server_idle_connection",
+      "passed": true
+    },
+    {
+      "kind": "positive",
+      "name": "independent_threaded_server_same_handler",
+      "passed": true
+    },
+    {
+      "name": "actual_browser_label_When",
+      "kind": "positive",
+      "passed": true
+    },
+    {
+      "name": "actual_browser_label_When (ISO8601)",
+      "kind": "positive",
+      "passed": true
+    },
+    {
+      "name": "actual_browser_label_Unrelated field",
+      "kind": "negative",
+      "passed": true
+    },
+    {
+      "name": "single_visible",
+      "kind": "positive",
+      "passed": true
+    },
+    {
+      "name": "visible_and_hidden",
+      "kind": "positive",
+      "passed": true
+    },
+    {
+      "name": "hidden_before_visible",
+      "kind": "positive",
+      "passed": true
+    },
+    {
+      "name": "all_hidden",
+      "kind": "negative",
+      "passed": true
+    },
+    {
+      "name": "two_visible",
+      "kind": "negative",
+      "passed": true
+    },
+    {
+      "name": "actual143a14_content_dom_visible_platform",
+      "kind": "positive",
+      "passed": true
+    }
+  ],
+  "checker_hash": "6184bb1a75d8dc497187013c62709f1527c6057acf0ae13d91b5ad5aafbf7f3d",
+  "previous_checker_hash": "af46c7b59f05ff97ec89d9dc3a242218868a7d199ec578de25621707dab68647",
+  "scope": [
+    "M12"
+  ],
+  "product_acceptance_granted": false,
+  "qualification_only": true,
+  "control_scope": "Six real browser controls include actual candidate DOM. Visible field selected despite hidden same-name field; no visible field and two visible matches still fail. No business assertions removed.",
+  "actual_negative_evidence": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-idle-connection-5f467864\\receipt.json",
+  "actual_browser_evidence": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-final-product-143a2-selection-corrected\\receipt.json",
+  "preserved_assertions": "All v8 business assertions retained; only two Platform URL field lookups filter visible elements. Existing historical failure retained; no product acceptance granted."
+}

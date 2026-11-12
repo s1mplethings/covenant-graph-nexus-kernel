@@ -1,0 +1,64 @@
+{
+  "kind": "P11ToVeriArborMigrationAnalysis",
+  "created_at": "2026-11-06T06:10:00+00:00",
+  "status": "ANALYSIS_COMPLETE_NOT_EXECUTED",
+  "source_host": "F:\\CGKN-LeanLoop-V1-20261101",
+  "destination_library": "D:\\VeriArbor",
+  "isolated_copy": "D:\\VeriArbor_",
+  "host_p11_commit": "cf5c754b5e2ed3991010fb1dc91b8f3e19adb3d2",
+  "library_source_sync": {
+    "recorded_files": 21,
+    "matching_files": 21,
+    "mismatching_files": 0,
+    "missing_files": 0
+  },
+  "host_source_sync": {
+    "recorded_files": 376,
+    "matching_files": 373,
+    "mismatching_files": 3,
+    "mismatches": [
+      "cgkn/state/provenance.py",
+      "scripts/final_delivery_truth.py",
+      "scripts/production_candidate_provenance.py"
+    ],
+    "reason": "Intentional P11 signed-release hardening; host-only, not library modules."
+  },
+  "library_regression": {
+    "status": "PASS_FOR_RECORDED_SCOPE",
+    "checks_total": 83,
+    "checks_pass": 62,
+    "checks_fail_retained": 21,
+    "product_acceptance": "NOT_VERIFIED_BY_THESE_CHECKS",
+    "incomplete_checks": ["host-original-interpreter"]
+  },
+  "migration_receipt": {
+    "product_status": "PRODUCT_NOT_READY",
+    "M1_M11": "VERIFIED",
+    "M12": "FAILED",
+    "host_switches": 55,
+    "must_not_modify": true
+  },
+  "verified": {
+    "library_sources": "21/21 match recorded regression",
+    "host_p11": "P01-P19 24/24; 112 provenance regression passed",
+    "host_m12": "VERIFIED via separate host evidence",
+    "frozen_candidate_zip": "unchanged"
+  },
+  "not_verified": [
+    "D:\\VeriArbor M12 = FAILED (historical record)",
+    "product acceptance not verified by recorded checks",
+    "21 historical FAIL checks retained",
+    "full Provider/external-asset suite out-of-scope failures",
+    "formal trust anchor and release authorization"
+  ],
+  "minimal_migration_plan": [
+    "Create a controlled branch in D:\\VeriArbor.",
+    "Commit 389 untracked files in logical batches; exclude .venv/build/dist/caches/secrets/run stores.",
+    "Do not modify MIGRATION_RECEIPT.json; add MIGRATION_ACCEPTANCE_P11_20261106.json.",
+    "Run library tests once and host integration tests once; no paid Provider calls.",
+    "Switch OpenCode to D:\\VeriArbor after baseline commit; keep F: for host/P11 closure."
+  ],
+  "code_copy_required": false,
+  "reason_no_copy": "The 21 pure library sources already match the recorded regression; P11 is a host security change and must not be copied into the library.",
+  "next_approval_required": "Approve D:\\VeriArbor baseline commit plan and new acceptance record; do not overwrite old MIGRATION_RECEIPT."
+}

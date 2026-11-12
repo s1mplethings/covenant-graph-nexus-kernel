@@ -1,0 +1,11 @@
+{
+  "kind": "DerivedBlockAcceptanceView",
+  "status": "PASS",
+  "source_sha256": "9edfb2e6f74a325c9c6375bff9dcb91c52026d087e5fa4146dd886ee1e23c1a6",
+  "canonical_observation": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/fd24a3848844dc6f44b5e1855dab23e7f209b3d5ae223badacae61bb359eab98.json",
+    "sha256": "7880170d974aad77b282eea38766376270932edae446c3aa65ccda15e570c85f"
+  },
+  "evidence_path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b01-current-9edfb2e6\\receipt.json",
+  "checker_qualification": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B01_CHECKER_QUALIFICATION\\receipt.json"
+}

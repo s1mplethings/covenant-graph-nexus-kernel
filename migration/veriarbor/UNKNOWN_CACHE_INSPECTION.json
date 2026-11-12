@@ -1,0 +1,9 @@
+{
+  "request_identity": "sha256:1894e73031f2493253630bb4e22d27a6b4940f355b52d7a8424dbc47c9bf69e1",
+  "recovered_complete_response": false,
+  "ledger_status": "INTERRUPTED_UNKNOWN",
+  "ledger_unchanged": true,
+  "provider_calls": 0,
+  "upstream_outcome": "UNKNOWN_RETAINED",
+  "next": "Inspect bounded local file effects against immutable successful origin; do not replay original request"
+}

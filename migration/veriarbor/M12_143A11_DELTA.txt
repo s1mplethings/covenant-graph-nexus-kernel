@@ -1,0 +1,55 @@
+--- 143a5
++++ 143a11
+@@ -221,6 +221,9 @@
+   <label for="content-select">Select content</label>
+   <select id="content-select"></select>
+   <div id="content-media-preview"></div>
++  <label for="media-upload">Upload media</label>
++  <input id="media-upload" type="file">
++  <button id="upload-media-btn" type="button">Import Media</button>
+ </section>
+ 
+ <section id="schedule-view" class="view">
+@@ -816,11 +819,41 @@
+       enqueue(function () { return loadAnalytics(); }).catch(function (e) { setAlert(e.message); });
+     });
+ 
++    bind('upload-media-btn', function () {
++      setAlert(''); setStatus('');
++      var fileInput = el('media-upload');
++      if (!fileInput.files || !fileInput.files[0]) {
++        setAlert('Please select a file to upload');
++        return;
++      }
++      var file = fileInput.files[0];
++      var reader = new FileReader();
++      reader.onload = function (e) {
++        var base64 = e.target.result.split(',')[1];
++        enqueue(function () {
++          return action({
++            milestone: 'M11', op: 'media.import', project_id: state.projectId,
++            filename: file.name, kind: file.type.startsWith('image/') ? 'image' : 'video',
++            data: base64
++          }).then(function () {
++            setStatus('Media uploaded: ' + file.name);
++            return loadMedia();
++          });
++        }).catch(function (err) { setAlert(err.message); });
++      };
++      reader.readAsDataURL(file);
++    });
++
+     var navButtons = document.querySelectorAll('#main-nav button[data-view]');
+     Array.prototype.forEach.call(navButtons, function (button) {
+       button.addEventListener('click', function () {
+         showView(button.getAttribute('data-view'));
+-        if (button.id === 'nav-receipts-analytics') {
++        if (button.id === 'nav-content') {
++          setAlert(''); setStatus('');
++          enqueue(function () {
++            return loadClaims().then(loadMedia).then(loadContents);
++          }).catch(function (e) { setAlert(e.message); });
++        } else if (button.id === 'nav-receipts-analytics') {
+           setAlert(''); setStatus('');
+           enqueue(function () { return loadReceipts().then(loadAnalytics); }).catch(function (e) { setAlert(e.message); });
+         } else if (button.id === 'nav-schedule') {

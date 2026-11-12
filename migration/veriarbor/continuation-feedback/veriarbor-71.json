@@ -1,0 +1,77 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "Use Qwen Flash Agent 7000 and DeepSeek Flash Worker 20000. No Pro/Max. Preserve all historical calls and nine new upstream UNKNOWNs. Do not replay old requests.",
+    "milestone_completion_request": "Finish original M12, generated tests and documentation, actual browser/product validation, then the original packaging/delivery gate, accounting/provenance/Corpus and reports. Reuse verified M1-M11. Never grant product PASS from a successful source write. main.py has one owner: 143. Keep the frozen full M12 contract and all documented test debts. For the next bounded source task, implement the two concrete integration mechanisms below completely in one write. Remaining edit/new-content, project state, schedule/analytics, evidence/claim creation, reconciliation/revision comparison and test/documentation debts remain open after this slice.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "main.py": "8981690ec13e83042dc170ec62f202e67fb12b6ac4378a34a3cb1e0f36fe0afd"
+        }
+      },
+      "current_owner": 143,
+      "attempt": 14,
+      "native_current_failure": {
+        "bound_reference": {
+          "path": "attempts/sem-node-0151/attempt-0002.json",
+          "receipt_hash": "179156aa7fa166de01d35978a62797500b8996b632469469afb74772cd49eece"
+        },
+        "reason": "M12_independent_business_suite: TimeoutError: Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for get_by_role(\"button\", name=\"Fetch analytics\", exact=True).first\n"
+      },
+      "resolved": "Native151a2 qualifiedrev7 now passes Claims, visiblePlatformURL and actual local HTTP publication/receipt. Fails Fetch analytics on Receipts/Analytics view. RealPNGupload200/hashbytesmatch and malformedbase64400 independently proven. Preserve these working paths, all11serverimports, ThreadingHTTPServer, existinghydration andbackends.",
+      "current_failure_mechanism": "Fetch analytics exists only inside hidden schedule-view, not receipts-analytics-view. Even if clicked, it dispatches M11 analytics.fetch with content_id only, but actual M10 requires project_id, receipt_id, platform_url. loadAnalytics also calls nonexistent M11 analytics.list. This is real GUI wiring, not a checker locator defect.",
+      "complete_next_gui_integration": [
+        "Move the existing unique Fetch analytics action into Receipts/Analytics. Maintain an actual receipt selection (default the current PUBLISHED receipt when one exists), retain the platform URL used to publish across view transitions/reload, call M10 analytics.fetch(project_id,receipt_id,platform_url), then M10 analytics.history(project_id,receipt_id) and render returned metrics/history. Empty/UNKNOWN/nonpublished receipt must have a visible appropriate state, not a false empty success. Preserve actual remote IDs in receipt display.",
+        "Correct Schedule/Publish operations to M8 (currently incorrectly M11). schedule.create needs project_id,content_id,platform_url,idempotency_key,when; cancel/reschedule need selected actual schedule_id, reschedule when. Provide actual schedule selection; select newly created record. Keep timezone-aware input and persistence. Share the configured Platform URL with Content publish and Receipts analytics; no stale blank duplicate fields.",
+        "Make the working upload bridge discoverable: reachable Media navigation with Media file, Media kind, Import media controls, using the existing /api/action media.import base64-to-path adapter. Preserve Content media selection and linked image/video preview. Do not reimplement the already working backend bridge or alter M11.",
+        "Save an existing selected content using M5 content.edit with current content_id; preserve hydration. Provide explicit New content to clear selection and create a distinct content/channel variant; after save select returned actual ID. Reload current approval/status after edit so semantic change becomes DRAFT and cannot publish on historical approval. Preserve original revision history.",
+        "Fix /api/state?project_id explicitly: validate project through M1 project.get, return actual M4 campaigns, M5 contents, M9 receipts and M8 schedules for that project, do not swallow missing project errors as empty arrays. Unknown project returns400. No cross-project rows. Keep project list available for startup."
+      ],
+      "atomic_protocol": "Original executor ends after first write. strategy.full_file_write=true enforces op2 only. Return one complete main.py addressing every listed integration branch, not a partial CSS/import/helper change. Raw JSON operation only, no prose/Markdown. Existing source and backend contracts are available in observations/read scope; use actual APIs.",
+      "remaining_afterward": "Original frozen fullM12 still includes evidence/claim/Signals workflow, UNKNOWN reconcile, revision comparison, meaningful tests anddocs. Channelvariants use actualcontent.create onanotherchannel, no inventedcontent.variant op. Test144 has5PASS1knownfixturefailure self.server.port; original testowner must fix server_port andkeepPUBLISHEDassertion, scopedquery/validPNG. No productPASSuntilfull originalacceptance+delivery.",
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0151\\attempt-0002.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_REMAINING_GUI_API_CONTRACTS_8DA2B883.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-upload-8981690e\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-generated-tests-8981690e\\receipt.json"
+      ],
+      "phase": "Current151a2 is observedfailure. Repair143 deps[] now; afternewsource measurecurrent151 beforefurtherrepair. PreserveM1-M11reuse."
+    },
+    "gui_writer_policy": "Only original node 143 writes main.py. Backend files and early_main.py remain unchanged. No parallel GUI writers. Host business patches remain zero.",
+    "admission_correction": "Repair original143 dependencies[] from current151a2 failure. Use initial fullstrategy with full_file_write:true boolean and TOP-LEVEL hypothesis.falsifying_evidence=[{\"path\": \"attempts/sem-node-0151/attempt-0002.json\", \"receipt_hash\": \"179156aa7fa166de01d35978a62797500b8996b632469469afb74772cd49eece\"}]. Put the actual analytics receipt/URL contracts, M8 scheduler fields, existingcontent.edit/Newcontent, Media navigation andscopedstate mechanisms into the boundedWorker leaf goal/expected. Preserveworkingupload/publication/Claims. No anotherGUIwriter. Afternewsource, measureexisting151 currentkey, neverreplayunchangedchecks.",
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "main.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0150\\attempt-0002.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A13_DELTA.txt",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-full-write-policy-qualification\\pytest.log",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-upload-8da2b883\\receipt.json"
+        ]
+      }
+    ],
+    "redecision": {
+      "strategy_revision": "ace5eecd5203ca2e238d7738de9fc0b9891f0e3280598494190556a4676f1783",
+      "reason": "Qualified current151a2 passes actualpublication thenfailsFetchanalytics hiddenwrongview. ActualAPI audit identifies missingreceipt/URL andwrongmodule bindings, plus existingedit/scopedstate/media navigation gaps. CompleteGUIintegration underexistingfull-file policy, backendsfrozen.",
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0151\\attempt-0002.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_REMAINING_GUI_API_CONTRACTS_8DA2B883.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-upload-8981690e\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-generated-tests-8981690e\\receipt.json"
+      ]
+    }
+  }
+}

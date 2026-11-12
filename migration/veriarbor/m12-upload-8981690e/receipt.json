@@ -1,0 +1,26 @@
+{
+  "kind": "ActualGuiFileUploadDiagnostic",
+  "source_sha256": "8981690ec13e83042dc170ec62f202e67fb12b6ac4378a34a3cb1e0f36fe0afd",
+  "acceptance_authority": false,
+  "host_business_patches": 0,
+  "diagnostic_sha256": "373034a2b99de7dd7958bb276ef7f84dfdeda4cc46774b78592b4e74a71db1cf",
+  "upload_http_status": 200,
+  "upload_response": {
+    "id": "06423ffeb78e4ef895fed649e4a7e0fc",
+    "project_id": "0595c64456364348b1b69c3b638d9b32",
+    "kind": "image",
+    "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e",
+    "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-upload-8981690e\\data\\media_storage\\0595c64456364348b1b69c3b638d9b32\\06423ffeb78e4ef895fed649e4a7e0fc.png",
+    "status": "VALID"
+  },
+  "request_path": "/api/action",
+  "visible_alerts": [
+    ""
+  ],
+  "page_errors": [],
+  "served_bytes_match": true,
+  "visible_library_preview_count": 0,
+  "invalid_upload_http_status": 400,
+  "diagnostic_passed": true,
+  "limitations": "Attached-content image/video preview and full publication are checked separately; absence of a library thumbnail is not a product failure."
+}

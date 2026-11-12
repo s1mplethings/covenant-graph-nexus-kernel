@@ -1,0 +1,46 @@
+{
+  "kind": "AnchorBudgetQualification",
+  "attempt": "attempt-0040",
+  "status": "PASS_FOR_PURE_PREFLIGHT_ONLY",
+  "source_sha256": "f269c86e84826bcdb09e4422cb480e3cffe9fded7c2788ee2334aabdb9537ea1",
+  "anchor_lengths": [
+    389,
+    70
+  ],
+  "anchor_match_counts": [
+    1,
+    1
+  ],
+  "old_limit": 120,
+  "new_limit": 400,
+  "scope_ranges_unchanged": true,
+  "preflight_receipts": [
+    {
+      "path": "main.py",
+      "before_sha256": "f269c86e84826bcdb09e4422cb480e3cffe9fded7c2788ee2334aabdb9537ea1",
+      "after_sha256": "c6309c5eb5e679153f67a3c4aa32a0661edeaaa13e3e479b5f3bfe9e892afa18",
+      "policy_source_sha256": "f269c86e84826bcdb09e4422cb480e3cffe9fded7c2788ee2334aabdb9537ea1",
+      "changed_ranges": [
+        {
+          "start_char": 3479,
+          "end_char": 3868,
+          "start_line": 239,
+          "end_line": 248,
+          "replacement_sha256": "ca0a062add35bd35f1c762346233b3cbea735f05da666b50b1ffa28d50cb037b"
+        },
+        {
+          "start_char": 3872,
+          "end_char": 3942,
+          "start_line": 252,
+          "end_line": 254,
+          "replacement_sha256": "3a91e79b8c8eea3db0933df715b24a6910ad0a344e6f2762f54e9a2f63a83d80"
+        }
+      ],
+      "verdict": "BOUNDED_PATCH_WITH_SOURCE_DELTA"
+    }
+  ],
+  "applied": false,
+  "browser_executed": false,
+  "implementation_accepted": false,
+  "reason": "Qwen exact current anchors are valid inside original function range; 120-character limit overconstrained a valid 389-character anchor. Restore bounded400 budget, not broader function authority. Rejected output not applied or supplied to Worker."
+}

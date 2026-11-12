@@ -1,0 +1,1 @@
+[{"id": "f63ff7f154954f36941262f9efa7ee18", "project_id": "407f3fe3538c43158d579a95a4ac0185", "content_id": "6e9de4a6a03d48c3a28870b1cf689e7f", "platform_url": "http://localhost:9999", "idempotency_key": "key-cancel-run", "when": "2030-01-01T00:00:00+00:00", "status": "CANCELLED", "receipt_id": null, "result_status": null, "history": []}]

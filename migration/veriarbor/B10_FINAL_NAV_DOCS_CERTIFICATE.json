@@ -1,0 +1,176 @@
+{
+  "kind": "AuthenticatedLocalBlockCertificate",
+  "block_id": "B10",
+  "status": "VERIFIED",
+  "reuse_status": "FROZEN_REUSABLE",
+  "certificate": {
+    "block_id": "B10",
+    "variant_id": "B10-711c0519",
+    "input_contract_hash": "95f0bdb2ac50a48d94bcdbd34fb0f400f7acddb90205592dd0a39e3bc783be01",
+    "output_contract_hash": "a4d530cc0deae8893b898b22f4bfb87d30aec3348a8be968ae248e1f0fecca72",
+    "effect_contract_hash": "726512e078c13b8e5fa7b5790c25f6f83c1bdb1c5f014867b4efd8d4dbd24793",
+    "acceptance_ids": [
+      "B10:HTML/JS parse and DOM ID uniqueness",
+      "B10:all navigation labels present",
+      "B10:startup command/config/URL documented",
+      "B10:README describes current GUI workflows",
+      "B10:TEST_PLAN covers M12 and restart",
+      "B10:server_port test fixture corrected",
+      "B10:required test suite file exists",
+      "B10:product.status ready with M12",
+      "B10:all seven views navigate with content",
+      "B10:no JavaScript errors"
+    ],
+    "artifact_hashes": [
+      [
+        "README.md#full",
+        "ace221c8e4bb11bf92106d83e00f5b9cadc92e816e44fe22cf91971a1a44b930"
+      ],
+      [
+        "TEST_PLAN.md#full",
+        "97e922ee07d1b61c4476ff143300566fb2d6ecd56c7f06d4e8519b9262fe1c34"
+      ],
+      [
+        "main.py#full",
+        "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237"
+      ],
+      [
+        "tests/test_promotion_gui.py#full",
+        "d01c4609a5ad4b898b3996f3b693d05c3eb98dc4ed36158003d635b256d4c23b"
+      ]
+    ],
+    "checker_hashes": [
+      [
+        "B10.browser",
+        "83b1734f8e4c8cd7526c117356a4da835e78082eb6c2c045388403d4e6012132"
+      ]
+    ],
+    "known_limits": [
+      "Block scope only; full M12 rollup requires B01-B11."
+    ],
+    "evidence_refs": [
+      "iter132-promotion-studio/promotion-05/evidence/0d25e41731cdb1734de86ed0fe43e0cc8fb4340bde643a7fa69eb339994f0c1b.json"
+    ],
+    "created_at": "2026-11-05T18:01:29.079003+00:00",
+    "invalidated": false
+  },
+  "certificate_fingerprint": "72d8f0e8f87c2f582492c1c4ac5e5b53b3ae8f562b28c6cba352ba32d65f5f7b",
+  "block": {
+    "block_id": "B10",
+    "capability": "FinalNavigationStartupDocsBlock",
+    "input_ports": [
+      {
+        "port_id": "FinalNavigationStartupDocsBlockInput",
+        "version": "1",
+        "direction": "input",
+        "contract": {
+          "schema_json": "{\"additionalProperties\":false,\"properties\":{\"navigation\":{\"type\":\"string\"},\"startup_command\":{\"type\":\"string\"}},\"required\":[\"startup_command\",\"navigation\"],\"type\":\"object\"}",
+          "semantic": "Independent browser acceptance for FinalNavigationStartupDocsBlock."
+        },
+        "required": true,
+        "default_json": "null",
+        "compatibility_policy": "structural-v1"
+      }
+    ],
+    "output_ports": [
+      {
+        "port_id": "FinalNavigationStartupDocsBlockOutput",
+        "version": "1",
+        "direction": "output",
+        "contract": {
+          "schema_json": "{\"additionalProperties\":false,\"properties\":{\"documented\":{\"type\":\"string\"},\"unique_selectors\":{\"type\":\"string\"}},\"required\":[\"documented\",\"unique_selectors\"],\"type\":\"object\"}",
+          "semantic": "Independent browser acceptance for FinalNavigationStartupDocsBlock."
+        },
+        "required": true,
+        "default_json": "null",
+        "compatibility_policy": "structural-v1"
+      }
+    ],
+    "effect_contract": {
+      "reads": [
+        "persisted milestone state",
+        "selected project identity"
+      ],
+      "writes": [
+        "browser UI state",
+        "project-scoped persistence"
+      ],
+      "external_effects": [
+        "loopback HTTP only"
+      ],
+      "persistence": "restart persistence verified",
+      "idempotency": "duplicate idempotency keys preserve one receipt and one platform post",
+      "concurrency": "threaded server; M11 store lock only at media boundary",
+      "ordering": "UI action -> milestone handler -> persistence -> browser refresh",
+      "rollback": "bounded source patches; isolated acceptance data"
+    },
+    "variants": [
+      {
+        "variant_id": "B10-711c0519",
+        "artifacts": [
+          [
+            "README.md#full",
+            "ace221c8e4bb11bf92106d83e00f5b9cadc92e816e44fe22cf91971a1a44b930"
+          ],
+          [
+            "TEST_PLAN.md#full",
+            "97e922ee07d1b61c4476ff143300566fb2d6ecd56c7f06d4e8519b9262fe1c34"
+          ],
+          [
+            "main.py#full",
+            "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237"
+          ],
+          [
+            "tests/test_promotion_gui.py#full",
+            "d01c4609a5ad4b898b3996f3b693d05c3eb98dc4ed36158003d635b256d4c23b"
+          ]
+        ],
+        "status": "VERIFIED"
+      }
+    ],
+    "active_variant": "B10-711c0519",
+    "certificate_ref": null
+  },
+  "source_sha256_at_verification": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+  "relevant_section_hashes": {
+    "main.py#full": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+    "README.md#full": "ace221c8e4bb11bf92106d83e00f5b9cadc92e816e44fe22cf91971a1a44b930",
+    "TEST_PLAN.md#full": "97e922ee07d1b61c4476ff143300566fb2d6ecd56c7f06d4e8519b9262fe1c34",
+    "tests/test_promotion_gui.py#full": "d01c4609a5ad4b898b3996f3b693d05c3eb98dc4ed36158003d635b256d4c23b"
+  },
+  "neighbor_contract_hashes": {
+    "M1_project_api_source": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+    "M11_media_api_source": "4e3f4f9ec6ad0c30a04566a3c6a51e5d6d7bb55e23371bbae740831f3f866a08"
+  },
+  "evidence_refs": [
+    {
+      "path": "iter132-promotion-studio/promotion-05/evidence/0d25e41731cdb1734de86ed0fe43e0cc8fb4340bde643a7fa69eb339994f0c1b.json",
+      "sha256": "850239b9fdc2a71c8b7d9051ebefb850d3b73a6344f1387baf46466a85561f30"
+    }
+  ],
+  "acceptance_checks": [
+    "HTML/JS parse and DOM ID uniqueness",
+    "all navigation labels present",
+    "startup command/config/URL documented",
+    "README describes current GUI workflows",
+    "TEST_PLAN covers M12 and restart",
+    "server_port test fixture corrected",
+    "required test suite file exists",
+    "product.status ready with M12",
+    "all seven views navigate with content",
+    "no JavaScript errors"
+  ],
+  "checker": "D:\\VeriArbor\\tools\\m12_b10_acceptance.py",
+  "checker_sha256": "83b1734f8e4c8cd7526c117356a4da835e78082eb6c2c045388403d4e6012132",
+  "invalidation_triggers": [
+    "certified section changes",
+    "checker identity changes",
+    "neighbor contract changes"
+  ],
+  "authority": "Original FileRunStore evidence plus VeriArbor Certificate",
+  "host_business_patches": 0,
+  "canonical_evidence_ref": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/dd6251966fe7dd35d61264bf8759ed962ea1f9a23bce0072917fc02a8be3d303.json",
+    "sha256": "ba2797d73ceb08a6d73036b123078e199d221c431d5266099d0f2f7d8a79822f"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "kind": "ProjectBootstrapBrowserDiagnostic",
+  "acceptance_authority": false,
+  "host_business_patches": 0,
+  "source_sha256": "97fac580ddd0b04a91c35f26a91e3554abb82ad86e8e6159864d4e49f4dce478",
+  "create_status": 200,
+  "create_result": {
+    "id": "0dd59a38a624437db4d6000a931eb12e",
+    "name": "Browser Created Project"
+  },
+  "visible_project_names": 0,
+  "failed_http": [
+    {
+      "url": "http://127.0.0.1:4973/api/state",
+      "status": 400
+    },
+    {
+      "url": "http://127.0.0.1:4973/api/state",
+      "status": 400
+    }
+  ],
+  "javascript_errors": [],
+  "body": "Promotion Studio\nProjects\nSignals\nCampaigns\nContent\nSchedule/Publish\nReceipts/Analytics\nMedia\nProjects\nProject name\n Create project\nCreated Project: 0dd59a38a624437db4d6000a931eb12e\nproject_id is required for state retrieval"
+}

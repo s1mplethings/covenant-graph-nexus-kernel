@@ -1,0 +1,36 @@
+{
+  "expected_gui_sha256": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+  "feedback": {
+    "cost_policy": "QwenFlash Agent and DeepSeekFlash Worker. Qwen test87 emitted prose/tool_call text instead ofJSON; choose alternatecheapWorkerfamily for new work, not replay. NoPro/Max andall6upstreamUNKNOWNspreserved.",
+    "milestone_completion_request": "Continue original project, not P0. Current publish73c47a74 only added the missing constant; BOTH direct publish-after-byte-mutation/deletion tests still fail DIDNOTRAISE. New independently qualified checker revision qualified-revision-2 applies ONLY to M11; all old assertions preserved plus valid-media positive publish/idempotency and fresh-byte-mutation/deletion BEFORE media.get. FIRST: if no current M11 evidence using qualified-revision-2 on current subjects, remeasure existing122 once (action3,target122), no new observer. Then use its genuine current publication counterexample to repair89 only: prepublish call existing canonical M11 media.get semantics for each reference and reject invalid/missing/current-bytehash mismatch BEFORE network effects; preserve valid-media and idempotency. A constant-only patch or cached-status-only check does not implement this task. Ensure one bounded write replaces the complete guard body with executable validation, not an unused helper/constant. Preserve M6fa and M11e4737: correct path/import is solved. Do not repair117 for a publish89 failure. After actual89 repair verify changed block and M11, preserve M8/M9/M10 certificates. Then91 GUI attach/preview/review/approve/publish/receipt, and M12 all final workflows. Backend-only M11 check is insufficient for requested real GUI preview; full final user requirements still mandatory. Final test owner debts remain, including87 fixture issue detailed below. No host business patches.",
+    "admission_correction": "First refresh existing122 for new qualified M11 checker. Do not repair on obsolete same-goal failure before current checker evidence. After fresh failure select89-owned promotion_publish.py scope from registry writer_target_ids; scope0 may belong117, never blindly choose0 or retarget117. Preserve89 original dependencies and no117cycle. No newM1-M10measurements. Full guard validation semantic delta in bounded edit; require actual reachable call before publish, not declaration only.",
+    "fresh_runtime_diagnosis": {
+      "current_publish_sha256": "73c47a7467ad4b29695ae280dd280ecc8194b907c28b3bff26a44d2b093629c1",
+      "current_failure": "Both generated local publish_blocks tests: DID NOT RAISE ValueError. New strengthened independent checker reaches valid publish/idempotency then detects missing fresh-byte guard.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\MEDIA_CHECKER_V4_ACTIVATION.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-checker-v4-current73\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-publish-edges-73c47a74\\receipt.json"
+      ],
+      "checker_scope": "M11 only; M1-M10 keep qualified-revision-1 identity, no mandatory checker refresh.",
+      "resolved_paths": "M6fa canonical M11 module; M11e4737 API unchanged and valid. Old path messages do not apply.",
+      "test87_fixture_debt": {
+        "source_sha256": "7885a399ad8eccd6dd1882c0ba4887019de44c928bcd2c14edd010091216030d",
+        "diagnosis": "Fixture always creates CURRENT evidence supporting exact claim text even for UNSUPPORTED/STALE labels; runtime recomputes current support. Must supply unrelated evidence / SUPERSEDED evidence respectively, keeping assertions. Not M6 source defect.",
+        "qualification_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m6-fixture-qualification-7885a399\\receipt.json"
+      },
+      "prior_test_debts": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\continuation-feedback\\veriarbor-33.json"
+    },
+    "redecision": {
+      "strategy_revision": "83ed0b040664b94258443571cf1206bc2d1304f1893d570b1979d1ea785a3e5f",
+      "reason": "New qualified independent observer catches previously untested direct publish mutation/deletion while preserving valid-media positive/idempotency and original assertions. Scoped executor retains old checker identity for unrelated requirements.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\MEDIA_CHECKER_V4_ACTIVATION.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-checker-v4-current73\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-publish-edges-73c47a74\\receipt.json"
+      ]
+    },
+    "strategy_constraints": [],
+    "gui_writer_policy": "91 sole GUI writer;89 publicationguard;86fa and117e4737 unchanged.87 may later correct isolated proven fixtures, not business validator semantics."
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "kind": "P11GitCommitResult",
+  "created_at": "2026-11-06T06:35:32.203823+00:00",
+  "repo": "F:\\CGKN-LeanLoop-V1-20261101",
+  "branch": "codex/leanloop-v1-20261101",
+  "commit": "cf5c754b5e2ed3991010fb1dc91b8f3e19adb3d2",
+  "parent": "0bd7134ade87cb6ece13f8f7868860cd2c3ba67c",
+  "commit_short": "cf5c754",
+  "files_in_commit": [
+    "cgkn/state/provenance.py",
+    "cgkn/state/release_authorization.py",
+    "scripts/final_delivery_truth.py",
+    "scripts/production_candidate_provenance.py",
+    "tools/sign_release_authorization.py"
+  ],
+  "files_in_commit_count": 5,
+  "commit_stat": "cf5c754 security(p11): add M12 provenance baseline and signed release authorization\n cgkn/state/provenance.py                   | 617 +++++++++++++++++++++++++++++\n cgkn/state/release_authorization.py        | 230 +++++++++++\n scripts/final_delivery_truth.py            |  11 +-\n scripts/production_candidate_provenance.py | 166 ++++++++\n tools/sign_release_authorization.py        | 178 +++++++++\n 5 files changed, 1200 insertions(+), 2 deletions(-)",
+  "worktree_hashes": {
+    "cgkn/state/provenance.py": "55f5ee9c917d451663021d3c9ef5ad18142e9ca91c4b307272b2e459767ba837",
+    "cgkn/state/release_authorization.py": "d839298f8c0cab161327377cb757e10b9bffec7af3332ffe11dde80847e6bc44",
+    "scripts/final_delivery_truth.py": "02e1cfd39ec262d806669ba7519f047bd84c35c0262924bcb535024d5a1fafd7",
+    "scripts/production_candidate_provenance.py": "ac31aad7430f28a5dbcede167f952100f41a21048f04b8b79115b0bec385d5aa",
+    "tools/sign_release_authorization.py": "3f8ff161cc9fa7282d3134c40bc9a93879f4522ffa1fc005632f76eb4c67979c"
+  },
+  "commit_blob_sha256": {
+    "cgkn/state/provenance.py": "55f5ee9c917d451663021d3c9ef5ad18142e9ca91c4b307272b2e459767ba837",
+    "cgkn/state/release_authorization.py": "d839298f8c0cab161327377cb757e10b9bffec7af3332ffe11dde80847e6bc44",
+    "scripts/final_delivery_truth.py": "42b11ebefbca244d0d54bfe09a8c5aaf1a1c50cc69473203c3f29cf1dca92784",
+    "scripts/production_candidate_provenance.py": "7ce9515bc08e72b098bc639f364c74de208a3bed5ecd9359c2c059224ba5242c",
+    "tools/sign_release_authorization.py": "3f8ff161cc9fa7282d3134c40bc9a93879f4522ffa1fc005632f76eb4c67979c"
+  },
+  "tested_hashes": {
+    "cgkn/state/provenance.py": "55f5ee9c917d451663021d3c9ef5ad18142e9ca91c4b307272b2e459767ba837",
+    "cgkn/state/release_authorization.py": "d839298f8c0cab161327377cb757e10b9bffec7af3332ffe11dde80847e6bc44",
+    "scripts/final_delivery_truth.py": "02e1cfd39ec262d806669ba7519f047bd84c35c0262924bcb535024d5a1fafd7",
+    "scripts/production_candidate_provenance.py": "ac31aad7430f28a5dbcede167f952100f41a21048f04b8b79115b0bec385d5aa",
+    "tools/sign_release_authorization.py": "3f8ff161cc9fa7282d3134c40bc9a93879f4522ffa1fc005632f76eb4c67979c"
+  },
+  "worktree_matches_tested": true,
+  "blob_matches_tested": {
+    "cgkn/state/provenance.py": true,
+    "cgkn/state/release_authorization.py": true,
+    "scripts/final_delivery_truth.py": false,
+    "scripts/production_candidate_provenance.py": false,
+    "tools/sign_release_authorization.py": true
+  },
+  "normalization_note": "Git index normalizes CRLF text to LF under core.autocrlf=true. Worktree remains byte-identical to tested files; provenance.py and the two new files match in both worktree and blob. final_delivery_truth.py and production_candidate_provenance.py differ only by CRLF->LF normalization in the commit blob.",
+  "target_status_after_commit": "",
+  "m12_hashes": {
+    "candidate_main": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+    "bundle": "f6eb10fb8283b250c28796e0ac95308bb6135e8434f6eef742acc58fbb469f8f"
+  },
+  "frozen_candidate_unchanged": true,
+  "frozen_bundle_unchanged": true,
+  "push_executed": false,
+  "reset_executed": false,
+  "clean_executed": false,
+  "formal_delivery_status": "PAUSED_PENDING_TRUST_ANCHOR",
+  "security_tests_rerun_after_commit": false,
+  "reason_tests_not_rerun": "Commit changes only Git tracking/index state; worktree bytes are unchanged and already passed 24/24 and 112 tests."
+}

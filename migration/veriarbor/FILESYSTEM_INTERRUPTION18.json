@@ -1,0 +1,60 @@
+{
+  "kind": "FilesystemInterruptionRecovery",
+  "timestamp": "2026-11-03T13:14:12.495780+00:00",
+  "original_exec_session": 64298,
+  "interruption": "Original process observed Errno22 reading feedback/0030d1eacea5396d2120da32985d5e4ac907128d0adae897a79b2b64d3d9f072.json, then WinError3 for F:\\ and FileNotFoundError for original ledger. Exception/finally persistence also failed. Full traceback was returned by exec session64298; this is a new recovery record, not a fabricated original error.json.",
+  "all_feedback_receipts_authenticated": 584,
+  "critical_json_sha256": {
+    "agent_checkpoint.json": "6aaa827f3236ed6cada088a445b1d7348ac4b42b1adee0178b79b7e6dbf62b3d",
+    "capability_tree.json": "03d68d1a1f22bcc233af8457edebf099bcbe08d64492922b04cd9db53cfde05f",
+    "run_state.json": "7c065db21a5fc726a102e6c19003823c94585ce771efa6349f648ad9adad5905",
+    "goal_acceptance.json": "3d1aa21f8fb95b7ea62db48230c6b3dbe6cbd83378d551993218b8d7c9532d4c",
+    "execution_dag.json": "6a9a44eb787d4aea4e0329872043ad2f35e96ca5c1696f599bbb08a5db0a43ed"
+  },
+  "ledger_prefix_unchanged": true,
+  "new_calls": [
+    {
+      "status": "SUCCEEDED",
+      "request_identity": "sha256:a70eaf6d75c1e6854624604e0b1d0b0a14ec3d12ae85a1a8da39a598ce6e6d73",
+      "model": "deepseek-flash"
+    },
+    {
+      "status": "SUCCEEDED",
+      "request_identity": "sha256:4d7313b445b8b8ecefc9ff1091a25d5cfcda47b9153ca724a67247687296b5a0",
+      "model": "deepseek-flash"
+    },
+    {
+      "status": "SUCCEEDED",
+      "request_identity": "sha256:55fbbf5baf46c8820d69d6bcc0d2a38c8df0521d18f44aae86c9f6e9934479ea",
+      "model": "deepseek-flash"
+    },
+    {
+      "status": "SUCCEEDED",
+      "request_identity": "sha256:e9476d82d21da499737905fa297b88014b826a986d00dc6b72f80ac289928194",
+      "model": "deepseek-flash"
+    },
+    {
+      "status": "SUCCEEDED",
+      "request_identity": "sha256:17ca770606ec4433abcc2c808d1fbaeb450537aebec0f463ac81810a9ca0c6ff",
+      "model": "deepseek-flash"
+    },
+    {
+      "status": "SUCCEEDED",
+      "request_identity": "sha256:83c69d57e615d824458d88aa446fc61b999a5d92aaa91bb634cc826ecde96d99",
+      "model": "deepseek-flash"
+    },
+    {
+      "status": "SUCCEEDED",
+      "request_identity": "sha256:333c052a4c661e29efdfff327cb1995d7683b386cb358b50747ef833cf575335",
+      "model": "deepseek-flash"
+    }
+  ],
+  "new_unknown_calls": 0,
+  "new_provider_replay": false,
+  "write_read_probe_paths": [
+    "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\recovered-access-probe-813accb5f24f46cd8058f56f6c2b23c9.txt",
+    "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\continuations\\veriarbor-18\\recovered-access-probe-f4e386f0c28041b285e76a5a1c66d08b.txt"
+  ],
+  "candidate_not_modified": true,
+  "status": "ACCESS_RESTORED_SCOPED_INTEGRITY_CHECKS_PASS"
+}

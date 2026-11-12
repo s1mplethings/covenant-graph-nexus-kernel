@@ -1,0 +1,107 @@
+{
+  "kind": "CompleteGuiObserverQualification",
+  "status": "PASS",
+  "controls": [
+    {
+      "name": "valid_uploaded_bytes",
+      "kind": "positive",
+      "expected": true,
+      "observed": true,
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "actual_upload_400",
+      "kind": "negative",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "GUI file upload must persist valid original bytes"
+    },
+    {
+      "name": "wrong_uploaded_identity",
+      "kind": "mutation",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "GUI file upload must persist valid original bytes"
+    },
+    {
+      "name": "same_content_revision_advanced",
+      "kind": "positive",
+      "expected": true,
+      "observed": true,
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "duplicate_content_save",
+      "kind": "negative",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "Saving selected content must edit rather than duplicate"
+    },
+    {
+      "name": "stale_approval",
+      "kind": "mutation",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "GUI semantic edit must invalidate current approval"
+    },
+    {
+      "name": "wrong_edited_identity",
+      "kind": "mutation",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "GUI semantic edit must preserve identity and advance revision"
+    },
+    {
+      "name": "actual_scoped_state",
+      "kind": "positive",
+      "expected": true,
+      "observed": true,
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "false_empty_state",
+      "kind": "negative",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "Project-scoped state does not match persisted campaigns"
+    },
+    {
+      "name": "cross_project_state",
+      "kind": "mutation",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "Project-scoped state does not match persisted campaigns"
+    },
+    {
+      "kind": "negative",
+      "name": "actual_serial_server_idle_connection",
+      "passed": true
+    },
+    {
+      "kind": "positive",
+      "name": "independent_threaded_server_same_handler",
+      "passed": true
+    }
+  ],
+  "checker_hash": "d05800394ccd73afbe141e347cf23b949518397cc1a71adbe82f4b0ff88c8469",
+  "previous_checker_hash": "80e2d724dbc35e522ef4aca2b8f4e920b437a0a0f07173e877e80099e17d32e8",
+  "scope": [
+    "M12"
+  ],
+  "product_acceptance_granted": false,
+  "qualification_only": true,
+  "control_scope": "Prior upload/edit/state predicate controls plus real idle-connection negative and independent threaded same-handler positive. New full workflow driver is not claimed positive on current product.",
+  "actual_negative_evidence": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-idle-connection-5f467864\\receipt.json",
+  "actual_browser_evidence": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-final-product-143a2-selection-corrected\\receipt.json",
+  "preserved_assertions": "Every v6 assertion retained. Adds ordinary idle socket responsiveness, actual scheduling, publish/media-bound revision/idempotency, changed/missing-media rejection before POST, receipt restart, edit-form hydration and second content creation. No simultaneous multi-select assumption."
+}

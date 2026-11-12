@@ -1,0 +1,15 @@
+{
+  "kind": "OriginalPlannerRequestGuidanceExpiry",
+  "original_request_ref": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\provider_calls\\b41b29f11fc14a949b7eb118e1b87814\\request.json",
+  "projected_diagnosis": {
+    "history_policy": "Original guidance retained in bound raw context and continuation receipt.",
+    "instruction": "Use current canonical goal observations and artifact identities. This expired guidance selects no action.",
+    "original_guidance_hash": "1b62194c167e77572fcf94151d2d387c3a023e4c75e90714d4ca687413a56b0d",
+    "reasons": [
+      "ARTIFACT_CHANGED:early_main.py"
+    ],
+    "status": "GUIDANCE_NOT_APPLICABLE"
+  },
+  "source_delta": "early_main.py0e6->b9eaa970",
+  "claim": "Bound staleGUIUnknownmilestone guidance no longer in current planner instructions; raw originalcontinuation/historyretained."
+}

@@ -1,0 +1,35 @@
+{
+  "kind": "P11PreApplyBackup",
+  "created_at": "2026-11-06T05:29:00.606246+00:00",
+  "repo": "F:\\CGKN-LeanLoop-V1-20261101",
+  "git_head": "0bd7134ade87cb6ece13f8f7868860cd2c3ba67c",
+  "git_branch": "codex/leanloop-v1-20261101",
+  "patch": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\P11_FIX_20261106\\P11_FIX_MINIMAL.patch",
+  "patch_sha256": "3f7caed58227d25685ccd0f1792955f2420260e28020e55f10559b41696f237c",
+  "apply_mode": "git -c core.autocrlf=false apply -p1",
+  "backup_files": {
+    "cgkn/state/provenance.py": "8055c145f81b314f7bc3e2c909f2876c6dc931bb9d5a2f3213f85efe5112c859",
+    "scripts/final_delivery_truth.py": "a857a159bd3f6f7b316d40d7384887889775eadc6dbc45cf21320aae7dc3813e",
+    "scripts/production_candidate_provenance.py": "ea2fdd607b8237e5dbcd79119d4d2f3ef9862ef657f8b913d3a9ef0f11c2676a"
+  },
+  "expected_before": {
+    "cgkn/state/provenance.py": "8055c145f81b314f7bc3e2c909f2876c6dc931bb9d5a2f3213f85efe5112c859",
+    "scripts/final_delivery_truth.py": "a857a159bd3f6f7b316d40d7384887889775eadc6dbc45cf21320aae7dc3813e",
+    "scripts/production_candidate_provenance.py": "ea2fdd607b8237e5dbcd79119d4d2f3ef9862ef657f8b913d3a9ef0f11c2676a"
+  },
+  "expected_after": {
+    "cgkn/state/provenance.py": "55f5ee9c917d451663021d3c9ef5ad18142e9ca91c4b307272b2e459767ba837",
+    "scripts/final_delivery_truth.py": "02e1cfd39ec262d806669ba7519f047bd84c35c0262924bcb535024d5a1fafd7",
+    "scripts/production_candidate_provenance.py": "ac31aad7430f28a5dbcede167f952100f41a21048f04b8b79115b0bec385d5aa",
+    "cgkn/state/release_authorization.py": "d839298f8c0cab161327377cb757e10b9bffec7af3332ffe11dde80847e6bc44",
+    "tools/sign_release_authorization.py": "3f8ff161cc9fa7282d3134c40bc9a93879f4522ffa1fc005632f76eb4c67979c"
+  },
+  "new_files_absent_before": {
+    "cgkn/state/release_authorization.py": true,
+    "tools/sign_release_authorization.py": true
+  },
+  "status_before_apply": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\P11_FIX_20261106\\STATUS_BEFORE_APPLY.txt",
+  "formal_source_modified_by_backup": false,
+  "commit_created": false,
+  "push_executed": false
+}

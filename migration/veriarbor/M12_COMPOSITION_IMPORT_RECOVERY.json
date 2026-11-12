@@ -1,0 +1,7 @@
+{
+  "canonical_import": "COMMITTED",
+  "checkpoint_matches": true,
+  "source_changes": 0,
+  "failure": "Only derived graph export attempted original store API outside state root; rejected",
+  "recovery": "Read canonical tree and regenerate derived projection; no graph replay"
+}

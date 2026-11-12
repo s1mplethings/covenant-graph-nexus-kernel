@@ -1,0 +1,156 @@
+{
+  "kind": "AuthenticatedLocalBlockCertificate",
+  "block_id": "B06",
+  "status": "VERIFIED",
+  "reuse_status": "FROZEN_REUSABLE",
+  "certificate": {
+    "block_id": "B06",
+    "variant_id": "B06-711c0519",
+    "input_contract_hash": "b94037f11b8370edd3b6364fb34c6af7ffac190a085b46c1640e2caba5aa9a85",
+    "output_contract_hash": "6b634876666db201f46509f4248b879734b4f4e17d34d8801a5ca3a64b685d0d",
+    "effect_contract_hash": "726512e078c13b8e5fa7b5790c25f6f83c1bdb1c5f014867b4efd8d4dbd24793",
+    "acceptance_ids": [
+      "B06:review enabled for DRAFT",
+      "B06:approve disabled before review",
+      "B06:review then approve succeeded",
+      "B06:publish enabled after approval",
+      "B06:semantic edit invalidates approval",
+      "B06:review re-enabled and publish disabled after edit",
+      "B06:re-review and re-approve",
+      "B06:missing media blocks approval with visible error",
+      "B06:no JavaScript errors"
+    ],
+    "artifact_hashes": [
+      [
+        "main.py#approval-js",
+        "b5afd2bfe47ac34effee9aeaed36fdb91b57fc8502210ee317843f5f197774e4"
+      ],
+      [
+        "main.py#content-dom",
+        "fe236e162827f1479772b4ffb50f2cdd140559789c194eeb219308e0bc6a3470"
+      ]
+    ],
+    "checker_hashes": [
+      [
+        "B06.browser",
+        "6e96bf5cb32110babccbaf7d6f89013c5f7ba26567a3772cebec391ae6b9c66c"
+      ]
+    ],
+    "known_limits": [
+      "Block scope only; full M12 rollup requires B01-B11."
+    ],
+    "evidence_refs": [
+      "iter132-promotion-studio/promotion-05/evidence/172a60159bfced6c27dd3de1c1e2ffaf579faaff67033f6208d6d433a1c0a1ef.json"
+    ],
+    "created_at": "2026-11-05T18:01:29.079003+00:00",
+    "invalidated": false
+  },
+  "certificate_fingerprint": "0e2a0f165f8b46e5fec85315badbc68e37f68615fbefd401fd1e534838c589f0",
+  "block": {
+    "block_id": "B06",
+    "capability": "ApprovalUIBlock",
+    "input_ports": [
+      {
+        "port_id": "ApprovalUIBlockInput",
+        "version": "1",
+        "direction": "input",
+        "contract": {
+          "schema_json": "{\"additionalProperties\":false,\"properties\":{\"content_id\":{\"type\":\"string\"},\"project_id\":{\"type\":\"string\"}},\"required\":[\"project_id\",\"content_id\"],\"type\":\"object\"}",
+          "semantic": "Independent browser acceptance for ApprovalUIBlock."
+        },
+        "required": true,
+        "default_json": "null",
+        "compatibility_policy": "structural-v1"
+      }
+    ],
+    "output_ports": [
+      {
+        "port_id": "ApprovalUIBlockOutput",
+        "version": "1",
+        "direction": "output",
+        "contract": {
+          "schema_json": "{\"additionalProperties\":false,\"properties\":{\"approval_status\":{\"type\":\"string\"},\"publish_enabled\":{\"type\":\"string\"}},\"required\":[\"approval_status\",\"publish_enabled\"],\"type\":\"object\"}",
+          "semantic": "Independent browser acceptance for ApprovalUIBlock."
+        },
+        "required": true,
+        "default_json": "null",
+        "compatibility_policy": "structural-v1"
+      }
+    ],
+    "effect_contract": {
+      "reads": [
+        "persisted milestone state",
+        "selected project identity"
+      ],
+      "writes": [
+        "browser UI state",
+        "project-scoped persistence"
+      ],
+      "external_effects": [
+        "loopback HTTP only"
+      ],
+      "persistence": "restart persistence verified",
+      "idempotency": "duplicate idempotency keys preserve one receipt and one platform post",
+      "concurrency": "threaded server; M11 store lock only at media boundary",
+      "ordering": "UI action -> milestone handler -> persistence -> browser refresh",
+      "rollback": "bounded source patches; isolated acceptance data"
+    },
+    "variants": [
+      {
+        "variant_id": "B06-711c0519",
+        "artifacts": [
+          [
+            "main.py#approval-js",
+            "b5afd2bfe47ac34effee9aeaed36fdb91b57fc8502210ee317843f5f197774e4"
+          ],
+          [
+            "main.py#content-dom",
+            "fe236e162827f1479772b4ffb50f2cdd140559789c194eeb219308e0bc6a3470"
+          ]
+        ],
+        "status": "VERIFIED"
+      }
+    ],
+    "active_variant": "B06-711c0519",
+    "certificate_ref": null
+  },
+  "source_sha256_at_verification": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+  "relevant_section_hashes": {
+    "main.py#content-dom": "fe236e162827f1479772b4ffb50f2cdd140559789c194eeb219308e0bc6a3470",
+    "main.py#approval-js": "b5afd2bfe47ac34effee9aeaed36fdb91b57fc8502210ee317843f5f197774e4"
+  },
+  "neighbor_contract_hashes": {
+    "M1_project_api_source": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+    "M11_media_api_source": "4e3f4f9ec6ad0c30a04566a3c6a51e5d6d7bb55e23371bbae740831f3f866a08"
+  },
+  "evidence_refs": [
+    {
+      "path": "iter132-promotion-studio/promotion-05/evidence/172a60159bfced6c27dd3de1c1e2ffaf579faaff67033f6208d6d433a1c0a1ef.json",
+      "sha256": "a8ec5803acb6d9972d1eb2492d94651e0f24af41c355cf2626ffed9f57e5945b"
+    }
+  ],
+  "acceptance_checks": [
+    "review enabled for DRAFT",
+    "approve disabled before review",
+    "review then approve succeeded",
+    "publish enabled after approval",
+    "semantic edit invalidates approval",
+    "review re-enabled and publish disabled after edit",
+    "re-review and re-approve",
+    "missing media blocks approval with visible error",
+    "no JavaScript errors"
+  ],
+  "checker": "D:\\VeriArbor\\tools\\m12_b06_acceptance.py",
+  "checker_sha256": "6e96bf5cb32110babccbaf7d6f89013c5f7ba26567a3772cebec391ae6b9c66c",
+  "invalidation_triggers": [
+    "certified section changes",
+    "checker identity changes",
+    "neighbor contract changes"
+  ],
+  "authority": "Original FileRunStore evidence plus VeriArbor Certificate",
+  "host_business_patches": 0,
+  "canonical_evidence_ref": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/a19a623abcbbdf1155e59846e6416264ba21f0143a0d2c9ba194de3ea95c1304.json",
+    "sha256": "7c6a7719673a6810bc7a5a8ac6a40c65671ee2f91dba512096143579a208e5e1"
+  }
+}

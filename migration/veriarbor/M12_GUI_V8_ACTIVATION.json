@@ -1,0 +1,81 @@
+{
+  "revision": {
+    "checker_hash": "af46c7b59f05ff97ec89d9dc3a242218868a7d199ec578de25621707dab68647",
+    "checker_key": "independent",
+    "checker_version": "qualified-revision-6",
+    "kind": "QualifiedCheckerRevision",
+    "previous_checker_hash": "d05800394ccd73afbe141e347cf23b949518397cc1a71adbe82f4b0ff88c8469",
+    "qualification_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/8acee6286a8961775c7659e3a655c44cbb421d6cc9c1e208168d7f1fa00bc0f2.json",
+      "sha256": "56333bf58dc717447e05b2470d55030da55ffea313712078b514cf9ed0732f75"
+    },
+    "reason": "Frozen M12 requires accessible When input, not literal implementation-specific When (ISO8601). Both labels occur in original Provider artifacts. Three realbrowser controls qualify locator compatibility and reject unrelated fields. Preserve all v7 business assertions and old failures; only M12.",
+    "sequence": 6,
+    "source_ref": {
+      "path": "iter132-promotion-studio/promotion-05/private_checker/af46c7b59f05ff97ec89d9dc3a242218868a7d199ec578de25621707dab68647.py",
+      "sha256": "af46c7b59f05ff97ec89d9dc3a242218868a7d199ec578de25621707dab68647"
+    },
+    "revision_ref": {
+      "path": "iter132-promotion-studio/promotion-05/checker_revisions/000006.json",
+      "sha256": "a1a86d471c198f7d7a5e50efa8efdb09ae08edfcbec258a471e557ff6bac5e3f"
+    }
+  },
+  "decision": {
+    "checker_key": "independent",
+    "previous_checker_hash": "d05800394ccd73afbe141e347cf23b949518397cc1a71adbe82f4b0ff88c8469",
+    "source_path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\consumer-revisions\\final-gui-complete-v8.py",
+    "source_sha256": "af46c7b59f05ff97ec89d9dc3a242218868a7d199ec578de25621707dab68647",
+    "qualification_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/8acee6286a8961775c7659e3a655c44cbb421d6cc9c1e208168d7f1fa00bc0f2.json",
+      "sha256": "56333bf58dc717447e05b2470d55030da55ffea313712078b514cf9ed0732f75"
+    },
+    "reason": "Frozen M12 requires accessible When input, not literal implementation-specific When (ISO8601). Both labels occur in original Provider artifacts. Three realbrowser controls qualify locator compatibility and reject unrelated fields. Preserve all v7 business assertions and old failures; only M12."
+  },
+  "scope": [
+    "M12"
+  ],
+  "actual_executor_fallback_chain": [
+    {
+      "version": "qualified-revision-6",
+      "scope": [
+        "M12"
+      ],
+      "hash": "af46c7b59f05ff97ec89d9dc3a242218868a7d199ec578de25621707dab68647"
+    },
+    {
+      "version": "qualified-revision-5",
+      "scope": [
+        "M12"
+      ],
+      "hash": "d05800394ccd73afbe141e347cf23b949518397cc1a71adbe82f4b0ff88c8469"
+    },
+    {
+      "version": "qualified-revision-4",
+      "scope": [
+        "M12"
+      ],
+      "hash": "80e2d724dbc35e522ef4aca2b8f4e920b437a0a0f07173e877e80099e17d32e8"
+    },
+    {
+      "version": "qualified-revision-3",
+      "scope": [
+        "M11"
+      ],
+      "hash": "b43bb596503990c24e4fc9b5eb8df2dc7b784eb101514351d6e9617cfaccfaea"
+    },
+    {
+      "version": "qualified-revision-2",
+      "scope": [
+        "M11"
+      ],
+      "hash": "283bf80a6cd4fe3866f2c00a032d38bb4e3c7a6d58e07bcdc06e26978ccf3c11"
+    },
+    {
+      "version": "qualified-revision-1",
+      "scope": null,
+      "hash": "5201a3c5aa6c9e829890787e3a5d6b8f60d3de104b301fb9df5eeb28faeb1007"
+    }
+  ],
+  "acceptance_granted": false,
+  "provider_calls": 0
+}

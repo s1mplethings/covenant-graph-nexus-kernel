@@ -1,0 +1,17 @@
+{
+  "kind": "CurrentScopedCheckerCoverageCorrection",
+  "observed_failure": "52 Agent incorrectly completed from147 legacyPASS even after scopedv6 activation; direct GUI counterexamples remained. Delivery then stopped at source-origin projection before packaging.",
+  "host_switches": [
+    39,
+    40,
+    41
+  ],
+  "qualification_scope": "Only requirements with explicit scoped observer revisions require current applicable version; unscoped historical compatibility unchanged. Old raw receipts remain trusted history; old counterexamples are not discarded.",
+  "tests": "D:\\VeriArbor\\governance\\checks\\current-scoped-checker-coverage-v2\\receipt.json",
+  "test_receipt_sha256": "dcb6294d1279c4e0bb2bdb1f4b8f5566108a60db29c0f275c63d8a3220980a95",
+  "passed": 23,
+  "current_effect": "M1-M11 VERIFIED retained, M12 INSUFFICIENT_EVIDENCE until qualifiedrevision4 observation",
+  "origin_recovery": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\HISTORICAL_WORKER_ORIGIN_RECOVERY.json",
+  "candidate_modified": false,
+  "provider_calls": 0
+}

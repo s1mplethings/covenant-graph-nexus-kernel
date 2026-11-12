@@ -1,0 +1,151 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "QwenFlashAgent7000/Worker24000 only. Preserve11newUNKNOWN. NoPro/Max. 143a25 is fresh bad artifact,154 nativeFAIL,actualdispatch10/11wrong; qualified generic input fix provides all actual sources before firstWorkerresponse, no paid context-reading loopsneeded.",
+    "milestone_completion_request": "Repair original143 currentGUI APIbinding unit completely: all11modulebindings andALLqualifiedoperationnames/arguments inHTTPstate/media andGUIcalls. Existingnative154a2nowpassesconcurrencyandfailsprojectcreation. Do not changeThreadingHTTPServeragain. Use actualprovidedM1-M11sources andearly_main asreference. Thenmeasureexisting154currentkey; originalfullGUI/tests/docs/finaldeliveryobligationsremain.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "main.py": "9e5497551960c82760e0e8a7c1d3d7897de3a68e0805f659f1e30d2101c957b1"
+        }
+      },
+      "current_owner": 143,
+      "attempt": 26,
+      "native_current_failure": {
+        "bound_reference": {
+          "path": "attempts/sem-node-0154/attempt-0002.json",
+          "receipt_hash": "1ae7b4d37219a248061de2e4929ad82e36c2224933612ae346381588e2e3d5f5"
+        },
+        "reason": "M12_independent_business_suite: TimeoutError: Locator.wait_for: Timeout 5000ms exceeded.\nCall log:\n  - waiting for get_by_text(\"Browser Created Project\").filter(visible=True).or_(get_by_role(\"combobox\").filter(has=get_by_role(\"option\", name=\"Browser Created Project\", exact=True, selected=True, include_hidden=True))).first to be visible\n"
+      },
+      "actual_cause": "a26changedONLYHTTPServer->ThreadingHTTPServer. All10wrongbindingsandbareoperationstringsremain. DirectM1project.createfailsunknownoperationbecauseM1actuallyM3. GUIalsoPOSTsop=createinsteadproject.create. Native154a2passesconcurrencythenprojectnameinvisible. ThisisactualAPIintegrationfailure, notmissingUIlabel orCSS.",
+      "module_bindings": {
+        "M1": "milestones.milestone_20f2614f6ae8403d4a4e.api",
+        "M2": "milestones.milestone_4e7c26281cf61a85851e.api",
+        "M3": "milestones.milestone_1369a82cde04a7e5887d.api",
+        "M4": "milestones.milestone_90b8868c7203e2958397.api",
+        "M5": "milestones.milestone_9165a990eed5b9c8801e.api",
+        "M6": "milestones.milestone_33270fed0c9054f5ae04.api",
+        "M7": "promotion_publish",
+        "M8": "milestones.milestone_989800776c3d6229e431.api",
+        "M9": "milestones.milestone_c511a8ebd29978f5ba97.api",
+        "M10": "milestones.milestone_af427946c6dea418047a.api",
+        "M11": "milestones.milestone_dbb8341c8910593063a8.api"
+      },
+      "operation_bindings": {
+        "M1": [
+          "project.list",
+          "project.create",
+          "project.get"
+        ],
+        "M2": [
+          "evidence.import",
+          "evidence.list",
+          "signal.create",
+          "signal.list"
+        ],
+        "M3": [
+          "claim.create",
+          "claim.list"
+        ],
+        "M4": [
+          "campaign.list",
+          "campaign.create",
+          "campaign.get"
+        ],
+        "M5": [
+          "content.list",
+          "content.create",
+          "content.edit",
+          "content.get",
+          "content.revisions",
+          "content.compare"
+        ],
+        "M6": [
+          "approval.review",
+          "approval.approve",
+          "approval.status"
+        ],
+        "M7": [
+          "publish.send",
+          "publish.list",
+          "publish.reconcile"
+        ],
+        "M8": [
+          "schedule.create",
+          "schedule.list",
+          "schedule.cancel",
+          "schedule.reschedule"
+        ],
+        "M9": [
+          "receipt.list",
+          "receipt.get",
+          "receipt.export"
+        ],
+        "M10": [
+          "analytics.fetch",
+          "analytics.history"
+        ],
+        "M11": [
+          "media.import",
+          "media.list",
+          "media.get"
+        ]
+      },
+      "required_complete_edge_fix": [
+        "CorrectALL11imports/HANDLERS usingactualMILESTONE_ID identities. DO NOT sortopaque filenames toassignMnumbers. Nativehandlers providedcompleteinline; actualearly_main.py alreadyhascorrectbindings. Fixall10mismatches, notonlyM1.",
+        "ReplaceALLbareop strings inGUIandserverwithactualqualifiedops above. Review/Approve belongM6, PublishM7, MediaM11, AnalyticsM10. CurrentGET/get/list/create/review/approve/publish/upload/fetch_analytics assumptionsarewrong. _serve_state mustcallproject.get/campaign.list/content.list/receipt.list/schedule.list. /media mustcallmedia.get.",
+        "Populateallactualrequiredarguments fromcurrentselectedobjects: project_id for everyproject-boundoperation; content_id forapproval/publish; platform_url+idempotency_key forpublish/schedule; schedule_id+project_id forcancel/reschedule; receipt_id+project_id foranalytics.history andplatform_urlforfetch. MediaGUIupload mustdecodebase64toownedtempfilethenM11media.import(path,kind,project_id),cleanupfinally. Readactualsourcecontracts, neverguessaliases.",
+        "Loadrealreturnshapes {items:[...]}; human-readableselectors mustcarryactualopaqueIDs internally andpersiststate. Projectcreationmustrenderactualprojectname andpopulateotherprojectselectors (currentpopulateProjectSelects isemptyplaceholder). Preserveconcurrentserver, namespaceandfrozenAPIs; no backendedits."
+      ],
+      "qualified_context": "Real a26requesthad13inlineobservations/all13PATHobserved; existingtarget+early_main+11actualbackendfilesareavailable. Full_file_write=true retainsallinputs. Readtheprovidedsourcecontent; no unchangedreread/list loops.",
+      "next": "Original143deps[] repairAPIbindingunit fully. Thenexisting154currentqualifiedrevision8key, deps[]. Do notrepairtwicebeforemeasuringnewsource. RemainingfullGUIfeatures/test/docs stillrequired, notwaived.",
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0154\\attempt-0002.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-143a26\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A26_DELTA.txt",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\full-write-inputs45\\receipt.json"
+      ]
+    },
+    "gui_writer_policy": "Only original node 143 writes main.py. Backend files and early_main.py remain unchanged. No parallel GUI writers. Host business patches remain zero.",
+    "admission_correction": "Repair143deps[] from current154a2 {\"path\": \"attempts/sem-node-0154/attempt-0002.json\", \"receipt_hash\": \"1ae7b4d37219a248061de2e4929ad82e36c2224933612ae346381588e2e3d5f5\"}. strategy MUSTinclude full_file_write:true, module_bindings:string explicitlycontainingall11actualtag->modulepairs, operation_bindings:string explicitlylistingqualifiedops/currentparameterfixes. Putactualmappingandoperationrequirements inWorkerleafgoal/expected, notonlyouterfeedback. Thisatomicbindingunitrepairsthe10mismatchesandbareops asonecompletechange. Threadingalreadyfixed;do notrewriteonlythreadingagain. Thenmeasure154newkey.",
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "main.py"
+        ],
+        "required_dimensions": [
+          "full_file_write",
+          "module_bindings",
+          "operation_bindings"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean",
+          "module_bindings": "string",
+          "operation_bindings": "string"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0154\\attempt-0002.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-143a26\\receipt.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A26_DELTA.txt",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\full-write-inputs45\\receipt.json"
+        ]
+      }
+    ],
+    "redecision": {
+      "strategy_revision": "6829aba3ba908670b95966ae6aa35da971df5dd7a25fe7ea6ddf9fd44822e2c5",
+      "reason": "Current154a2 independentlyconfirmsconcurrencyfixandprojectcreationfailure; actual11moduleidentitydiagnosticpinpoints10wrongbindings andallbareopnames. NarrowcompleteAPIedgeunit withactualexplicitbindingmatrix, unchangedverifiedbackends, allsourcesinline.",
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0154\\attempt-0002.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-143a26\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A26_DELTA.txt",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\full-write-inputs45\\receipt.json"
+      ]
+    }
+  }
+}

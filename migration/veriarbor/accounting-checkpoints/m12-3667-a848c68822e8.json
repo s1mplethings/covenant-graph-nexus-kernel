@@ -1,0 +1,22 @@
+{
+  "kind": "DerivedM12AccountingCheckpoint",
+  "observed_at": "2026-11-04T11:01:36.898435+00:00",
+  "baseline": "2026-11-04T15:54:55.344079+08:00",
+  "baseline_rows": 3633,
+  "ledger_rows_observed": 3667,
+  "new_rows": 34,
+  "status_counts": {
+    "SUCCEEDED": 34
+  },
+  "ledger_model_counts": {
+    "qwen3.8-flash": 24,
+    "deepseek-flash": 10
+  },
+  "numeric_total_tokens": 1910959,
+  "non_numeric_usage_rows": 0,
+  "ledger_snapshot_sha256": "a848c68822e846d6626c87a4385aa9259ec1909d32ef7c5bc97c6f72a18d231a",
+  "historical_rows_modified": false,
+  "classification": "Pending REQUEST_STARTED is not UNKNOWN; final response/model provenance reconciliation remains required. No inference from ledger model alone.",
+  "estimated_cost_policy": "Retain original row estimates; no repricing or invoice claim",
+  "product_completion": false
+}

@@ -1,0 +1,70 @@
+{
+  "kind": "ConcurrentMediaReadDiagnostic",
+  "source_sha256": "61bebcfedac3c0624cdb0bb1a65e208eeb05a95eb664488042b5b84ecb11bdd4",
+  "backend_sha256": "4e3f4f9ec6ad0c30a04566a3c6a51e5d6d7bb55e23371bbae740831f3f866a08",
+  "requests": [
+    {
+      "n": 0,
+      "status": 200,
+      "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+    },
+    {
+      "n": 1,
+      "status": 400,
+      "error_body": "{\"error\": \"[WinError 32] \\u53e6\\u4e00\\u4e2a\\u7a0b\\u5e8f\\u6b63\\u5728\\u4f7f\\u7528\\u6b64\\u6587\\u4ef6\\uff0c\\u8fdb\\u7a0b\\u65e0\\u6cd5\\u8bbf\\u95ee\\u3002: 'F:\\\\\\\\CGKN-LeanLoop-V1-20261101\\\\\\\\migration\\\\\\\\veriarbor\\\\\\\\b02-concurrent-preview-61bebcfe\\\\\\\\data\\\\\\\\media.json.tmp' -> 'F:\\\\\\\\CGKN-LeanLoop-V1-20261101\\\\\\\\migration\\\\\\\\veriarbor\\\\\\\\b02-concurrent-preview-61bebcfe\\\\\\\\data\\\\\\\\media.json'\"}"
+    },
+    {
+      "n": 2,
+      "status": 200,
+      "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+    },
+    {
+      "n": 3,
+      "status": 400,
+      "error_body": "{\"error\": \"[WinError 32] \\u53e6\\u4e00\\u4e2a\\u7a0b\\u5e8f\\u6b63\\u5728\\u4f7f\\u7528\\u6b64\\u6587\\u4ef6\\uff0c\\u8fdb\\u7a0b\\u65e0\\u6cd5\\u8bbf\\u95ee\\u3002: 'F:\\\\\\\\CGKN-LeanLoop-V1-20261101\\\\\\\\migration\\\\\\\\veriarbor\\\\\\\\b02-concurrent-preview-61bebcfe\\\\\\\\data\\\\\\\\media.json.tmp' -> 'F:\\\\\\\\CGKN-LeanLoop-V1-20261101\\\\\\\\migration\\\\\\\\veriarbor\\\\\\\\b02-concurrent-preview-61bebcfe\\\\\\\\data\\\\\\\\media.json'\"}"
+    },
+    {
+      "n": 4,
+      "status": 200,
+      "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+    },
+    {
+      "n": 5,
+      "status": 400,
+      "error_body": "{\"error\": \"[Errno 13] Permission denied: 'F:\\\\\\\\CGKN-LeanLoop-V1-20261101\\\\\\\\migration\\\\\\\\veriarbor\\\\\\\\b02-concurrent-preview-61bebcfe\\\\\\\\data\\\\\\\\media.json.tmp'\"}"
+    },
+    {
+      "n": 6,
+      "status": 200,
+      "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+    },
+    {
+      "n": 7,
+      "status": 400,
+      "error_body": "{\"error\": \"[WinError 32] \\u53e6\\u4e00\\u4e2a\\u7a0b\\u5e8f\\u6b63\\u5728\\u4f7f\\u7528\\u6b64\\u6587\\u4ef6\\uff0c\\u8fdb\\u7a0b\\u65e0\\u6cd5\\u8bbf\\u95ee\\u3002: 'F:\\\\\\\\CGKN-LeanLoop-V1-20261101\\\\\\\\migration\\\\\\\\veriarbor\\\\\\\\b02-concurrent-preview-61bebcfe\\\\\\\\data\\\\\\\\media.json.tmp' -> 'F:\\\\\\\\CGKN-LeanLoop-V1-20261101\\\\\\\\migration\\\\\\\\veriarbor\\\\\\\\b02-concurrent-preview-61bebcfe\\\\\\\\data\\\\\\\\media.json'\"}"
+    },
+    {
+      "n": 8,
+      "status": 400,
+      "error_body": "{\"error\": \"[WinError 32] \\u53e6\\u4e00\\u4e2a\\u7a0b\\u5e8f\\u6b63\\u5728\\u4f7f\\u7528\\u6b64\\u6587\\u4ef6\\uff0c\\u8fdb\\u7a0b\\u65e0\\u6cd5\\u8bbf\\u95ee\\u3002: 'F:\\\\\\\\CGKN-LeanLoop-V1-20261101\\\\\\\\migration\\\\\\\\veriarbor\\\\\\\\b02-concurrent-preview-61bebcfe\\\\\\\\data\\\\\\\\media.json.tmp' -> 'F:\\\\\\\\CGKN-LeanLoop-V1-20261101\\\\\\\\migration\\\\\\\\veriarbor\\\\\\\\b02-concurrent-preview-61bebcfe\\\\\\\\data\\\\\\\\media.json'\"}"
+    },
+    {
+      "n": 9,
+      "status": 200,
+      "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+    },
+    {
+      "n": 10,
+      "status": 400,
+      "error_body": "{\"error\": \"[WinError 32] \\u53e6\\u4e00\\u4e2a\\u7a0b\\u5e8f\\u6b63\\u5728\\u4f7f\\u7528\\u6b64\\u6587\\u4ef6\\uff0c\\u8fdb\\u7a0b\\u65e0\\u6cd5\\u8bbf\\u95ee\\u3002: 'F:\\\\\\\\CGKN-LeanLoop-V1-20261101\\\\\\\\migration\\\\\\\\veriarbor\\\\\\\\b02-concurrent-preview-61bebcfe\\\\\\\\data\\\\\\\\media.json.tmp' -> 'F:\\\\\\\\CGKN-LeanLoop-V1-20261101\\\\\\\\migration\\\\\\\\veriarbor\\\\\\\\b02-concurrent-preview-61bebcfe\\\\\\\\data\\\\\\\\media.json'\"}"
+    },
+    {
+      "n": 11,
+      "status": 200,
+      "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+    }
+  ],
+  "all_successful": false,
+  "business_sources_changed": false,
+  "external_writes": false
+}

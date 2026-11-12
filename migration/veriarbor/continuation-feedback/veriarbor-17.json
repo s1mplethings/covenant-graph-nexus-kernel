@@ -1,0 +1,74 @@
+{
+  "expected_gui_sha256": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+  "feedback": {
+    "cost_policy": "DeepSeek Flash Agent and Worker only. No Pro/Max for stream/parser/schema/ordinary bugs. All upstream UNKNOWNs and cost retained. Never replay request82d2fdd58a01481ca634c21a9a38098e or its original exact contract. Same-model review is SELF_CRITIQUE.",
+    "milestone_completion_request": "Continue original M9->M10->M11->M12 with M1-M8 preserved. M9 API node107 succeeded. Test writer108 returned invalid JSON trailing DSML; writer109 stream failed with UNKNOWN and no local file publication. The original DAGRunner has now reconciled ONLY local effects NOT_APPLIED. Select a NEW bounded test-generation contract with distinct current identity, not an exact retry of109. Keep tests compact and exercise all receipt list/get/export, filtering, immutable identity/revision/channel, partial/UNKNOWN and retry/reconcile attempt preservation, isolation and persistence. Use actual dependency contracts. Then registered independent M9 measurement. Complete M10/M11. Before final M12 FINISH/formal delivery, repair the additional generated-test debt through bounded Provider-owned nodes; do not leave 54 known failures or weaken/delete assertions. Details below. All product/test/doc source remains Worker authored. No external publishing or dependency installation.",
+    "fresh_runtime_diagnosis": {
+      "transport_recovery_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M9_TEST_EFFECT_RECONCILIATION.json",
+      "additional_test_triage_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\ADDITIONAL_TEST_DEBT_TRIAGE.json",
+      "additional_test_facts": {
+        "kind": "AdditionalTestDebtTriage",
+        "authority": "Diagnostic only. Must use original ProjectSession Provider-owned repairs and rerun original assertions. No failure waived.",
+        "baseline": {
+          "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_MVP\\packaging-failure-summary.json",
+          "sha256": "f862489b0b98d66f0678ec969a4e3bf4accba49c67ee067ce2b3a3affbbf1bf8"
+        },
+        "observations": [
+          {
+            "scope": "M1 tests",
+            "failed": 2,
+            "finding": "Tests expect project.list.projects; qualify against declared public contract and actual result before correcting test assertions."
+          },
+          {
+            "scope": "M2/M3 tests",
+            "failed": 18,
+            "finding": "Fixture writes a legacy project storage layout directly; replace fixture setup through existing public M1 API. Preserve behavior assertions."
+          },
+          {
+            "scope": "M5 tests",
+            "failed": 30,
+            "finding": "Setup calls project.create/campaign.create/claim.create against M5-only handler; dispatch fixture setup through actual dependency APIs, retain negative and integration assertions."
+          },
+          {
+            "scope": "M7 publish tests",
+            "failed": 3,
+            "finding": "All three existing test assertion bodies PASS when only fixture storage paths are corrected; no product code change. Two use separate client/remote stores; GUI fixture must not use http:\\platform_data as filesystem path.",
+            "evidence": [
+              {
+                "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\publish-fixture-diagnostic\\receipt.json",
+                "sha256": "56f84664c679714ce253255454bb968f05bf237fe06f9976bfe10c2d6ef176ae"
+              },
+              {
+                "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\publish-fixture-diagnostic\\gui-receipt.json",
+                "sha256": "0ee038a17f52d88cb61b98b3aec0849250961c74eff316c282bac7290d3a32d1"
+              }
+            ]
+          },
+          {
+            "scope": "M6 missing media",
+            "failed": 1,
+            "finding": "Current _validate_media_present only validates string/list shape. Missing referenced media test still needs actual product validation; do not weaken or delete it. M11 public requirement explicitly requires broken media to block M6 approval and M7 publication.",
+            "source": {
+              "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_MVP\\application\\milestones\\milestone_33270fed0c9054f5ae04\\api.py",
+              "sha256": "78dd17fe6722f4fa573580b6a59d33374e925ccf309641d9241081a53e755cbc"
+            }
+          }
+        ],
+        "host_business_patches": 0,
+        "tests_excluded": 0
+      },
+      "readiness_rule": "M6 missing referenced media is still a real product validation defect: current implementation only validates list/string shape. M11 explicitly requires missing/broken media to block M6 approval and M7 publication; preserve the original failing test assertion and fix the actual behavior as part of that integration. M1/M2/M3/M5/M7 fixture faults have separate evidence. Never declare every test failure a fixture problem."
+    },
+    "gui_writer_policy": "One authoritative writer per coupled GUI. Reuse source0e6 and verified backend; no arbitrary rewrite of M1-M8. M11 may integrate media validation into dependency modules only where its explicit public contract requires it; preserve and remeasure affected acceptance.",
+    "admission_correction": "Use available numeric targets from current tables. A known failed original test writer may need a new current contract. Return exactly one valid JSON object, no DSML/tool XML/fences/trailing text. When repair requires current observed failure, use original registered independent measurement first; diagnostic evidence never grants acceptance. Strategy uses problem and two distinct top-level mechanism fields; hypothesis includes exact bound falsifying_evidence array.",
+    "redecision": {
+      "strategy_revision": "25eadbe68485f524f409c4d9a3a85b28941bc5354de08d33ef305d6ffd41cf15",
+      "reason": "M9 first test response malformed; second stream failed with no bounded local publication. Original local recovery proves NOT_APPLIED but upstream UNKNOWN persists. Use a new compact test contract, retain current API, and incorporate new fixture-isolation diagnostics and actual missing-media defect into final readiness work.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M9_TEST_EFFECT_RECONCILIATION.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\ADDITIONAL_TEST_DEBT_TRIAGE.json",
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\continuations\\veriarbor-16\\result.json"
+      ]
+    }
+  }
+}

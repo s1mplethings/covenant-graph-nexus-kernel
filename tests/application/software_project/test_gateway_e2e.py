@@ -15,6 +15,12 @@ from cgkn.providers import CGKNModelRouting, GatewayCompletionClient
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 
+def execution_authorization():
+    from tests.session_authority_support import authorization
+    return authorization('seeded_repair',('workspace.inspect@1','project.file.patch@1',
+        'project.python.pytest@1','project.snapshot@1','project.acceptance.external@1'),
+        'Repair add and independently verify arithmetic',calls=4)
+
 
 class ProjectGateway(BaseHTTPRequestHandler):
     models: list[str] = []
@@ -48,18 +54,23 @@ class ProjectGateway(BaseHTTPRequestHandler):
                 value = {"schema_version": "1.0", "decision_id": "d1", "summary": "compose", "reason": "bounded repair", "edits": edits, "request_run": True, "finish": False, "needs_escalation": False, "escalation_reason": ""}
             else:
                 value = {"schema_version": "1.0", "decision_id": "d2", "summary": "finish", "reason": "acceptance passed", "edits": [], "request_run": False, "finish": True, "needs_escalation": False, "escalation_reason": ""}
-        body = json.dumps({"id": f"mock-{len(self.models)}", "status": "completed", "model": model, "output_text": json.dumps(value), "usage": {"input_tokens": 10, "output_tokens": 10, "total_tokens": 20}}).encode()
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+            value['decision_audit']={'alternatives_considered':['inspect','repair','verify'],
+                'expected_outcome':'Independent arithmetic verification','capability_claim':{
+                    'target_capability_id':'project.file.patch@1','target_gap_id':'project.file.patch@1',
+                    'strategy_capabilities':['workspace.inspect@1','project.file.patch@1',
+                        'project.python.pytest@1','project.snapshot@1','project.acceptance.external@1']}}
+        body = json.dumps({"id": f"mock-{len(self.models)}", "status": "completed", "model": payload['cgkn_model_id'], "output_text": json.dumps(value), "usage": {"input_tokens": 10, "output_tokens": 10, "total_tokens": 20}}).encode()
+        from tests.providers.stream_fixtures import send_gateway
+        send_gateway(self,payload,json.loads(body))
+
 
 
 @pytest.mark.happy_path
 @pytest.mark.local_functional
 @pytest.mark.generation
-def test_qwen_agent_deepseek_worker_crosses_real_runtime_pytest_and_external_acceptance(tmp_path: pathlib.Path) -> None:
+def test_qwen_agent_deepseek_worker_crosses_real_runtime_pytest_and_external_acceptance(tmp_path: pathlib.Path,monkeypatch) -> None:
+    profile=tmp_path/"legacy.json";profile.write_text('{"mode":"legacy"}')
+    monkeypatch.setenv("CGKN_APPLICATION_PROFILE",str(profile))
     ProjectGateway.models = []
     ProjectGateway.agent_calls = 0
     server = ThreadingHTTPServer(("127.0.0.1", 0), ProjectGateway)
@@ -68,7 +79,13 @@ def test_qwen_agent_deepseek_worker_crosses_real_runtime_pytest_and_external_acc
     try:
         client = GatewayCompletionClient(f"http://127.0.0.1:{server.server_port}/v1", "ephemeral-test-token", enforce_budget=False)
         routing = CGKNModelRouting.load(ROOT / "config" / "provider_profiles" / "gateway_model_routing.json")
-        result = SoftwareProjectGenerationService(ROOT, tmp_path / "artifacts", client=client, routing=routing).run_case("seeded_repair", max_repair_rounds=0)
+        # Old provider-only configuration still loads. Production admission
+        # binds the fixture's concrete models before sending a request.
+        from dataclasses import replace
+        routing=replace(routing,agent=replace(routing.agent,model_id='qwen-fixture'),
+                        worker=replace(routing.worker,model_id='deepseek-fixture'))
+        result = SoftwareProjectGenerationService(ROOT, tmp_path / "artifacts", client=client, routing=routing,
+            config={'execution_authorization':execution_authorization()}).run_case("seeded_repair", max_repair_rounds=0)
     finally:
         server.shutdown()
         server.server_close()

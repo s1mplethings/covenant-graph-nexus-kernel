@@ -1,0 +1,104 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "QwenFlashAgent7000/Worker24000 only, noPro/Max. NineupstreamUNKNOWN preserved. Thisnewsource/currentnativefailure/actualGUIuploadcounterexample is newevidence; noreplayofoldrequests.",
+    "milestone_completion_request": "Complete original M12 and final delivery without restarting M1-M11 or redefining the declared M12 milestone. main.py now exists, writer143 succeeded; retain it and repair only demonstrated gaps. Finish README.md, TEST_PLAN.md, tests/test_promotion_gui.py via bounded original Provider tasks. M12 final GUI must implement actual reachable file upload with server-side adaptation to unchanged path-based M11 API, same-content edit/approval invalidation, correct project-scoped /api/state, all navigation/config/review/publish/receipt/scheduler/analytics/restart/error behaviors in frozen public contract. Original independent measurement and generated meaningful tests must pass. Preserve previous test debts and fix their original test-owner fixtures against qualified evidence, no assertion deletion/waiver. Finish canonical packaging/delivery/accounting/provenance/Corpus and reports. Existing M1-M11 certificates remain reusable except real boundary impact. Known test144 platform fixture qualification: migration/veriarbor/m12-platform-fixture-qualification/receipt.json proves nonexistent server.port caused500; original test owner corrects server_port, retains PUBLISHED assertion, and uses explicit project_id for scoped /api/state checks. Preserve meaningful valid image bytes and assertions; no M7 source repair for this fixture defect.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "main.py": "8da2b8839f19ab62297a5ea4df7b2b1b7cb875ee77cedf80185456ceddf6018f"
+        }
+      },
+      "current_owner": 143,
+      "attempt": 11,
+      "native_current_failure": {
+        "bound_reference": {
+          "path": "attempts/sem-node-0150/attempt-0001.json",
+          "receipt_hash": "d1271640eb57c81409fc46e4fdce497015f8f6f71f4c707b0afa9c900f5d1fe8"
+        },
+        "reason": "M12_independent_business_suite: TimeoutError: Locator.fill: Timeout 30000ms exceeded.\nCall log:\n  - waiting for get_by_label(\"Platform URL\", exact=True)\n    - locator resolved to <input type=\"text\" id=\"platform-url\"/>\n    - fill(\"http://127.0.0.1:47342\")\n  - attempting fill action\n    2 × waiting for element to be visible, enabled and editable\n      - element is not visible\n    - retrying fill action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and editable\n      - element is not visible\n    - retrying fill action\n      - waiting 100ms\n    59 × waiting for element to be visible, enabled and editable\n       - element is not visible\n     - retrying fill action\n       - waiting 500ms\n"
+      },
+      "resolved": "Content nav nowactually invokes loadClaims/loadMedia/loadContents. Native150 proceeds pastClaims to hiddenPlatformURL. All11serverroutes andactualprojectcreatePASS; keepimports/ThreadingHTTPServer/backendmodules unchanged. hydrateContentForm alreadyexistsandiscalled byloadContents/select; do not falselyclaimabsent.",
+      "actual_delta": "143a11 adds onlyContentnavrefresh plusfrontendfileinput/ImportMedia handler. NoPythonuploadbridge, noexistingcontent.edit, noscopedstatefix, noJSschedulemapfix. Exactdiff preserved.",
+      "bounded_next_leaf": "Same writer143, main.py only. Close TWO concrete connectedGUIgaps atomically: (1) visible reachable Platform URL and Publish afterReview/Approve inContent workflow, keeping actualapprovalreadiness anduniqueDOMIDs; (2) completeactualmediaimport UI-to-server-toM11path bridge. Existingdata base64payload goes straighttoM11 andreturns400 path mustbe nonempty. Add actualserverowned boundedtemporaryfile adaptation beforecallingunchangedM11media.import; ensurecleanupafterM11copiesbytes; validatebadbase64/empty/project/kind throughnormal400errors, donotuseclientfilenameaswritepath. Provide reachableMedia navigation and labeledMedia file/Media kind/Import media controls; preserveContentmedia selection/actualimagevideo previews andnavrefresh. This is a bounded implementation slice, not a reductionof finalM12acceptance. Do notclaimfullM12PASSafterit.",
+      "required_worker_handoff": "Put both complete mechanisms in leaf_goal, expected_delta andstrategy soWorker receives executable requirements. Worker must return rawJSONONLY, nointro/Markdown/codefences; previous readcommandwithprosewas INVALID_OUTPUT. Preserve existingbehavior andallcorrectimports; do not replacewholeappwithsimplifiedplaceholder.",
+      "remaining_after_slice": "CurrentSavealwayscontent.create, noNewcontentmode; /api/state ignoresprojectquery andswallowsmissingIDs; scheduleJS usesM11 insteadM8, analyticsM11insteadM10; receipts needactualM9contract; reconcile/variants/compare remain. These stillmustbe completed underfrozenM12contract, but do not describe themasimplemented by143a11. Tests144server.portfixture/docs145146 debtsalsoopen.",
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0150\\attempt-0001.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-upload-8da2b883\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A11_DELTA.txt",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-8da2b883\\receipt.json"
+      ],
+      "phase": "Current150FAILED alreadymeasured. Repair143 twoboundedgaps withdeps[]; aftersourcechanges expires, thenmeasurecurrentkey using150 ifready, notoldsourcefailure.",
+      "constraint_correction": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_BOUNDED_STRATEGY_CONSTRAINT_QUALIFICATION.json"
+    },
+    "admission_correction": "Currentmain8da2b883 has trustednative150a1FAILED hiddenPlatformURL andrealGUIuploadHTTP400. Repair original143deps:[]; use full initialstrategy and TOP-LEVEL hypothesis (not inside strategy), falsifying_evidence ARRAY [{\"path\": \"attempts/sem-node-0150/attempt-0001.json\", \"receipt_hash\": \"d1271640eb57c81409fc46e4fdce497015f8f6f71f4c707b0afa9c900f5d1fe8\"}]. Use currentboundedstrategyrequiredfields: module_bindings,gui_event_paths,preserve_existing_features:true,restore_media_upload:true. No needgui_contract_preservation/gui_operation_bindings wrapperfields forthisnarrowleaf. Existingall11serverimportsmuststayunchanged.  gui_event_paths must describe actualreachableContentworkflowPlatformURL/Publish visibility plusMediafile/FileReader->servertemporarypath->unchangedM11media.import->preview, notjustfrontendbutton. Outputformat rawJSONonly. Only these two concreteintegrationgaps fornextboundedleaf, retainingallotherfinalobligations. Oncehashchanges thisfailure isold; measure150currentbeforefurtherbusinessrepair. Nevercreateanothermain.pywriter. Claims refresh nowworks; preserveit, do notlistitasunresolved. Channelvariants useactualM5content.create withdifferentchannel; content.variant operationdoesnotexist. ",
+    "gui_writer_policy": "Final main.py writer143 is the sole current GUI owner. Only143 may repair that file; inspections/tests read completed snapshot. Original early_main91 and backend sources unchanged unless independent new failure proves actual boundary need.",
+    "redecision": {
+      "strategy_revision": "adf08cd80945008dfa487e0821853d49849274a1b8ffa92620a0ccdfa6b10f59",
+      "reason": "66concreteupload/visibilityproposal blocked onredundantwholeGUIstrategyfields. Existingconstraintconfiguration nowrequiresonlyrelevantmodulebinding/eventpath/preservationdimensions, fourcontrolsPASSincludingnegativeguards. Allbusinessacceptance/frozenbackend unchanged. Newconfigurationqualification admissiondelta.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_BOUNDED_STRATEGY_CONSTRAINT_QUALIFICATION.json",
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\provider_calls\\945c96fccbb74d4482a2c040f6ecc990\\response.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_CHANNEL_VARIANT_INTERPRETATION_CORRECTION.json"
+      ]
+    },
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "early_main.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\GUI_COUPLED_PREFLIGHT_24125.json"
+        ]
+      },
+      {
+        "scope_paths": [
+          "main.py"
+        ],
+        "required_dimensions": [
+          "module_bindings",
+          "gui_event_paths",
+          "preserve_existing_features",
+          "restore_media_upload"
+        ],
+        "dimension_types": {
+          "preserve_existing_features": "boolean",
+          "restore_media_upload": "boolean",
+          "gui_event_paths": "string"
+        },
+        "forbidden_patterns": [
+          {
+            "preserve_existing_features": false
+          },
+          {
+            "restore_media_upload": false
+          },
+          {
+            "module_bindings": {}
+          },
+          {
+            "module_bindings": null
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\provider_calls\\f410393316a64efaaf4eb33f38215e86\\response.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-572685e6\\receipt.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A5_DELTA.txt",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-09283ff6\\receipt.json"
+        ]
+      }
+    ]
+  }
+}

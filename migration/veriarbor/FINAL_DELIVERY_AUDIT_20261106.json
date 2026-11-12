@@ -1,0 +1,296 @@
+{
+  "kind": "FinalDeliveryIndependentAudit",
+  "created_at": "2026-11-06T04:07:54.683464+00:00",
+  "M12_SOURCE_INTEGRITY": "PASS",
+  "PACKAGE_INTEGRITY": "PASS",
+  "PROVENANCE_AUDIT": "PASS",
+  "AUTHORIZATION_AUDIT": "PASS_WITH_CAVEAT",
+  "NEGATIVE_TESTS": "PASS",
+  "FINAL_DELIVERY": "DELIVER_WITH_WARNINGS",
+  "DOGFOOD_EXECUTION": "PASS",
+  "DOGFOOD_ACCEPTANCE": "PASS_LOCAL_HARNESS",
+  "NEW_PAID_PROVIDER_CALLS": 0,
+  "NEW_PROVIDER_COST": 0,
+  "OVERALL_RESULT": "PASS_WITH_WARNINGS",
+  "source_hash": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+  "package_hash": "f6eb10fb8283b250c28796e0ac95308bb6135e8434f6eef742acc58fbb469f8f",
+  "manifest_hash": "532268d612728bdbaeabc08afa3b9931cdc676b3d2eeab037f685c3c343c7c1b",
+  "source_provenance_status": {
+    "total_origins": 30,
+    "worker": 23,
+    "authorized_agent": 7,
+    "exact_manifest_match": true
+  },
+  "authorization_status": {
+    "status": "PASS_WITH_CAVEAT",
+    "basis": "User replied '都批准你按怎么方便怎么快来' after being shown option B (new Agent-source import/review mechanism).",
+    "record": "AuthorizedAgentSourceAuthorization with authorized_by=user, artifact hashes, and scope.",
+    "caveat": "The authorization is conversation-derived and recorded by the agent, not a separately signed per-file authorization. It is not a Worker claim."
+  },
+  "independent_acceptance_status": {
+    "B11_M12": "VERIFIED",
+    "B10": "VERIFIED",
+    "canonical_evidence_gate": "PASS",
+    "final_delivery_truth": "pass"
+  },
+  "negative_tests": {
+    "passed": 10,
+    "total": 10,
+    "results": [
+      {
+        "test_id": "P01",
+        "description": "Agent source missing valid authorization",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INSUFFICIENT_EVIDENCE: referenced object missing: iter132-promotion-studio/final-validation-01/agent_authorizations/e1727072d379945283dbe2821a75c820ed5a97ffb6396fc7065b9a9cc2ed3410.json",
+        "verdict": "PASS",
+        "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P01-002ew234"
+      },
+      {
+        "test_id": "P02",
+        "description": "modify authorized agent source",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INVALID_PROVENANCE: authorized agent artifact mismatch",
+        "verdict": "PASS",
+        "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P02-cq1bjw4s"
+      },
+      {
+        "test_id": "P03",
+        "description": "agent source claims Worker type",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INVALID_PROVENANCE: authorized agent source binding mismatch",
+        "verdict": "PASS",
+        "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P03-ky0nqoqv"
+      },
+      {
+        "test_id": "P04",
+        "description": "B11 review observed false",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INVALID_PROVENANCE: object hash mismatch: iter132-promotion-studio/final-validation-01/agent_reviews/B11_ACCEPTANCE.json",
+        "verdict": "PASS",
+        "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P04-izwirwdg"
+      },
+      {
+        "test_id": "P05",
+        "description": "invalid Worker receipt hash",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INVALID_PROVENANCE: object hash mismatch: iter132-promotion-studio/final-validation-01/import_objects/19b815dbc247abac4f894ba135cb067c23b5a068b40fe03bc75ec2259bc82172",
+        "verdict": "PASS",
+        "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P05-taziixs2"
+      },
+      {
+        "test_id": "P06",
+        "description": "delivered file hash mismatch",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INVALID_PROVENANCE: imported current artifact mismatch",
+        "verdict": "PASS",
+        "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P06-_odatoa0"
+      },
+      {
+        "test_id": "P07",
+        "description": "replay old candidate hash",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INSUFFICIENT_EVIDENCE: delivered source lacks bounded Worker or authorized Agent origin: README.md",
+        "verdict": "PASS",
+        "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P07-3qyg9ozb"
+      },
+      {
+        "test_id": "P08",
+        "description": "missing B10 review evidence",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "ProvenanceError: INSUFFICIENT_EVIDENCE: referenced object missing: iter132-promotion-studio/final-validation-01/agent_reviews/B10_CERTIFICATE.json",
+        "verdict": "PASS",
+        "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P08-x1pte7py"
+      },
+      {
+        "test_id": "P09",
+        "description": "unrelated production_provenance_ref",
+        "expected_result": "REJECT",
+        "actual_result": "REJECT",
+        "error": "AssertionError: unrelated provenance reference rejected: {\"status\": \"NEEDS_REWORK\", \"failures\": [\"production_provenance_path_invalid\"], \"provenance_ref\": \"F:\\\\CGKN-LeanLoop-V1-20261101\\\\migration\\\\veriarbor\\\\M12_ACCEPTANCE.json\"}",
+        "verdict": "PASS",
+        "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P09-i_n17luq"
+      },
+      {
+        "test_id": "P10",
+        "description": "valid Agent source and all evidence",
+        "expected_result": "ACCEPT",
+        "actual_result": "ACCEPT",
+        "error": null,
+        "verdict": "PASS",
+        "temp_root": "C:\\Users\\sunom\\AppData\\Local\\Temp\\prov-P10-w_q3o564"
+      }
+    ]
+  },
+  "dogfood": {
+    "kind": "VeriArborDogfoodResult",
+    "created_at": "2026-11-06T04:07:36.236397+00:00",
+    "task": "Safe ZIP entry name normalization (Zip Slip prevention), independent of M12",
+    "not_m12": true,
+    "source": "safe_zip_path.py",
+    "source_sha256": "07f1f451386596d83684edd52e800aef3593e86ebceb84701ee118ce653faa3f",
+    "checker_sha256": "9da15106ab159b1a039b9a2c667f5002ca4301dbe72b5f5f624988b24351cabd",
+    "test_command": "D:\\anaconda\\python.exe -X utf8 -m unittest discover -s tests -v",
+    "test_exit_code": 0,
+    "tests": {
+      "ran": 8,
+      "passed": 8,
+      "failed": 0
+    },
+    "certificate": {
+      "kind": "VeriArborDogfoodCertificate",
+      "task": "Safe ZIP entry name normalization",
+      "source_sha256": "07f1f451386596d83684edd52e800aef3593e86ebceb84701ee118ce653faa3f",
+      "checker_sha256": "sha256:9da15106ab159b1a039b9a2c667f5002ca4301dbe72b5f5f624988b24351cabd",
+      "certificate": {
+        "block_id": "SAFE_ZIP",
+        "variant_id": "safe-zip-v1",
+        "input_contract_hash": "b30baa99150b0eba343cf427b7626acae34517f6dc833ea7180ae88ffc16eae7",
+        "output_contract_hash": "52366fe695f132ff43ee324c92444e084b04be46eb2b84e890e0743a103697ae",
+        "effect_contract_hash": "45e18dd5716df699b345534fb72b15153eb6f9b48d6a186776a7edfd71209572",
+        "acceptance_ids": [
+          "SAFE_ZIP:normalization",
+          "SAFE_ZIP:traversal-rejection",
+          "SAFE_ZIP:absolute-rejection",
+          "SAFE_ZIP:nul-rejection",
+          "SAFE_ZIP:empty-segment-rejection"
+        ],
+        "artifact_hashes": [
+          [
+            "safe_zip_path.py",
+            "sha256:07f1f451386596d83684edd52e800aef3593e86ebceb84701ee118ce653faa3f"
+          ]
+        ],
+        "checker_hashes": [
+          [
+            "independent",
+            "sha256:9da15106ab159b1a039b9a2c667f5002ca4301dbe72b5f5f624988b24351cabd"
+          ]
+        ],
+        "known_limits": [
+          "Pure local normalization; no archive extraction is performed here."
+        ],
+        "evidence_refs": [
+          "C:\\Users\\sunom\\AppData\\Local\\Temp\\opencode\\dogfood_veriarbor_20261106\\TEST_REPORT.md"
+        ],
+        "created_at": "2026-11-06T04:07:26.294257+00:00",
+        "invalidated": false
+      },
+      "certificate_fingerprint": "2e610a9fc32f975d1cfd3bc10d7376f22af2105ed94256ff8ef9cf5466e13013",
+      "compatibility": {
+        "without_adapter": "BREAKING",
+        "with_adapter": "ADAPTABLE",
+        "blocks": "ADAPTABLE"
+      },
+      "acceptance_rollup": {
+        "obligations": {
+          "SAFE_ZIP": {
+            "verdict": "VERIFIED",
+            "weight": 1,
+            "must": true
+          }
+        },
+        "completion": 1.0,
+        "evidence_coverage": 1.0,
+        "hard_verdict": "VERIFIED"
+      },
+      "empty_rollup": {
+        "obligations": {
+          "SAFE_ZIP": {
+            "verdict": "INSUFFICIENT_EVIDENCE",
+            "weight": 1,
+            "must": true
+          }
+        },
+        "completion": 0.0,
+        "evidence_coverage": 0.0,
+        "hard_verdict": "INSUFFICIENT_EVIDENCE"
+      },
+      "certificate_matches": true,
+      "independent": true
+    },
+    "negative_control": {
+      "kind": "VeriArborDogfoodNegativeControl",
+      "status": "PASS",
+      "tampered_certificate_matches": false,
+      "tampered_can_substitute": false,
+      "expected": "both False"
+    },
+    "compatibility": {
+      "without_adapter": "BREAKING",
+      "with_adapter": "ADAPTABLE",
+      "blocks": "ADAPTABLE"
+    },
+    "rollup": {
+      "obligations": {
+        "SAFE_ZIP": {
+          "verdict": "VERIFIED",
+          "weight": 1,
+          "must": true
+        }
+      },
+      "completion": 1.0,
+      "evidence_coverage": 1.0,
+      "hard_verdict": "VERIFIED"
+    },
+    "empty_rollup": {
+      "obligations": {
+        "SAFE_ZIP": {
+          "verdict": "INSUFFICIENT_EVIDENCE",
+          "weight": 1,
+          "must": true
+        }
+      },
+      "completion": 0.0,
+      "evidence_coverage": 0.0,
+      "hard_verdict": "INSUFFICIENT_EVIDENCE"
+    },
+    "mechanisms_exercised": [
+      "Block/Port/Contract boundary modeling",
+      "explicit Adapter rename",
+      "directional Port compatibility (compatible/adaptable/breaking)",
+      "Certificate exact artifact/checker binding",
+      "can_substitute",
+      "reduce_obligations with missing evidence"
+    ],
+    "provider_calls": 0,
+    "paid_cost": 0,
+    "limitations": [
+      "Deterministic local execution; not a Provider/DAG end-to-end run.",
+      "The independent test harness was authored for this dogfood task in this session.",
+      "No external third-party acceptance was performed."
+    ]
+  },
+  "remaining_warnings": [
+    "The real project artifacts are deliverable with explicit limitations."
+  ],
+  "must_not_claim": [
+    "placeholder/mock/fallback artifacts as real screenshots, backgrounds, sprites, or generated evidence",
+    "original user goal is fully validated",
+    "production-ready",
+    "real-world validated"
+  ],
+  "known_caveats": [
+    "Original goal_acceptance.json was not modified and still contains historical M12 failures; final delivery is a derived public-gate result.",
+    "7 source files use explicit AuthorizedAgentSource, not Worker authorship.",
+    "The Agent-source authorization is broad, conversation-derived, and agent-recorded; it is not a signed per-file authorization.",
+    "DOGFOOD is a deterministic local task with a locally authored independent harness; it did not exercise Provider/DAG execution.",
+    "B03-B10 receipts do not embed browser version; B01/B02 do.",
+    "The gate-view manifest copy in the application normalizes package_path for final truth; the canonical package/manifest in the delivery directory are unchanged."
+  ],
+  "evidence": {
+    "freeze_audit": "C:\\Users\\sunom\\AppData\\Local\\Temp\\opencode\\FINAL_DELIVERY_FREEZE_AUDIT.json",
+    "reverse_tests": "C:\\Users\\sunom\\AppData\\Local\\Temp\\opencode\\PROVENANCE_REVERSE_TEST_RESULTS.json",
+    "dogfood": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\DOGFOOD_SAFE_ZIP_20261106\\DOGFOOD_RESULT.json",
+    "final_status": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\FINAL_DELIVERY_STATUS.json",
+    "final_result": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\FINAL_DELIVERY_RESULT_FINAL.json",
+    "package": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\PROMOTION_DELIVERY_M12_FINAL_20261106\\final_project_bundle.zip"
+  }
+}

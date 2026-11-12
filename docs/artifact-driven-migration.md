@@ -108,3 +108,60 @@ Storage and cache are local files. Projections support top-level fields only.
 Diff is structural JSON. The runtime is single-machine and deterministic; it
 does not add a queue, database, graph database, distributed scheduler, external
 artifact store, or alternate delivery engine.
+
+
+## Portable components and Skill transfer (code-only, not exercised)
+
+These entries use `scripts/run_goal_driven.py --config <config>` and the existing
+ProjectSession/FileRunStore/ExecutionAuthority. They do not use the historical
+artifact-flow CLI above. Administrative commands return before Provider setup.
+
+- `export-component --package <manifest> --output <new-file>` consumes a Block,
+  exact `artifact_paths`, current `receipt_id`, `entrypoint`, `dependencies`,
+  `applicability`, and optional `invocation`. Source exports require current
+  receipt-bound artifact bytes. `import-component --package <envelope>` stores
+  an unqualified candidate; import dependency packages first.
+- Direct invocation requires `invocation` with exactly `protocol`,
+  `input_semantics`, `error_semantics`; protocol is `python-json-stdio@1`.
+  The selected `.py` entry receives UTF-8 JSON on stdin:
+  `{"inputs":{"port_id":"value"},"dependencies":{"block_id":{"root":"relative package directory","entrypoint":"main.py"}}}`.
+  It writes one JSON object mapping output port IDs to values to stdout; logs go
+  to stderr. Nonzero exit, malformed output, mismatched input or changed content
+  rejects the candidate. A timeout requires reconciliation, not automatic retry.
+- The Agent proposes `local.component@1` with `goal`, `package_identity`,
+  `inputs`, `bindings`, and `output_paths`. A binding is
+  `{"input_port":{"node_id":"declared_dependency","port_id":"producer_output"}}`;
+  the node must be in `depends_on`. Each output port has a distinct bounded
+  destination. All values use the imported Port schemas; semantic requirements
+  remain subject to independent acceptance. Evidence-policy Ports and remote
+  effects require an explicit specialized adapter. v1 packages remain source
+  inputs and cannot silently become executable.
+- `register-skill --skill <json>` takes `manifest` and `receipt_ids`, registering
+  a current-project candidate through existing source authorities.
+  `export-skill --skill <json> --output <new-file>` takes `skill_id`, `version`
+  and exports only a currently qualified, portable strategy.
+  `import-skill --skill <envelope>` binds the candidate to the target project,
+  discards source receipts as qualification and clears source metrics.
+- Configure `skill_sources` as explicit objects with `store_root`, `project_id`,
+  `run_id`. `store_root` is the actual FileRunStore directory (normally the
+  source run root's `store` child). Source discovery never follows paths in a
+  package. List source authorities during import and other target trial runs
+  during requalification. Existing authority hashes and receipts are rechecked.
+- Configure `skill_trial: {"skill_id":"...","version":"..."}` plus `skill_task`
+  (`task_family`, `capability_id`, `inputs`, `outputs`, `dependency_versions`,
+  `dependency_contract_hashes`, current `checker_identities` and
+  `environment_identity`, applicable `context`, `requirement_refs`, and the
+  current `capability_claim`). Public strategy steps pass through the ordinary
+  GoalComposer compiler and admission. The Permit binds the exact strategy;
+  an imported candidate is never selected as verified by SkillMatcher.
+- Import the same strategy into the same target project in two distinct runs
+  and obtain real independent execution/acceptance evidence. Then
+  `requalify-skill --skill <json>` takes `skill_id`, `version`, `receipt_ids`.
+  Existing promotion_check requires compatible target receipts and current
+  passing gates; source-project success is insufficient. Normal sessions then
+  consume the qualified strategy through the same compiler/admission path.
+  Changed strategy/dependencies require an explicit new candidate version.
+
+All six administrative commands use the existing session lock. No command here
+has been executed as part of this code-only change, and no qualification is
+claimed. Process effects retain the existing Host boundary, not an OS sandbox.

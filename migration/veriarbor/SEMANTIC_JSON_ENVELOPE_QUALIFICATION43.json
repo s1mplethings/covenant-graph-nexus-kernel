@@ -1,0 +1,19 @@
+{
+  "kind": "SemanticJsonEnvelopeQualification",
+  "status": "PASS",
+  "host_switch_steps": [
+    42,
+    43
+  ],
+  "production_candidate_changed": false,
+  "production_ledger_unchanged": true,
+  "tests": {
+    "frozen_runtime": 110,
+    "isolated_runtime": 110
+  },
+  "supported_transport": "json_schema envelope with only type:object and strict:false; actual installed gateway _options parser verified for chat/responses",
+  "semantics": "No field schema, aliases, coercion, rejected-text extraction or automatic replay introduced. Existing semantic protocol validates field meanings, actions, paths and evidence. Nonsemantic unstructured and explicit schema requests unchanged.",
+  "checker": "M12 qualifiedrevision8 active;32controls; no productPASS",
+  "dependencies_installed_scope": "D:/VeriArbor/.venv only",
+  "remaining": "Actual provider and product verification pending"
+}

@@ -1,0 +1,48 @@
+{
+  "checks": [
+    "visible empty state",
+    "project.create HTTP200",
+    "real nonempty project identity",
+    "created project name visible"
+  ],
+  "network": [
+    {
+      "url": "http://127.0.0.1:20478/",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:20478/api/action",
+      "method": "POST",
+      "status": 200,
+      "request_body": "{\"op\":\"project.list\"}"
+    },
+    {
+      "url": "http://127.0.0.1:20478/api/action",
+      "method": "POST",
+      "status": 200,
+      "request_body": "{\"op\":\"project.create\",\"name\":\"Browser Created Project\"}"
+    },
+    {
+      "url": "http://127.0.0.1:20478/api/action",
+      "method": "POST",
+      "status": 200,
+      "request_body": "{\"op\":\"project.list\"}"
+    }
+  ],
+  "javascript_errors": [],
+  "console": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    }
+  ],
+  "preflight": {
+    "html_parsed": true,
+    "js_parse": true,
+    "duplicate_ids": [],
+    "literal_dom_references_resolved": true
+  },
+  "status": "FAIL",
+  "error": "TimeoutError: Page.wait_for_function: Timeout 8000ms exceeded."
+}

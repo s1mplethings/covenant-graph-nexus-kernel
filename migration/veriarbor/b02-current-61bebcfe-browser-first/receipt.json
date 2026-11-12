@@ -1,0 +1,202 @@
+{
+  "subject_hashes": {
+    "early_main.py": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+    "main.py": "61bebcfedac3c0624cdb0bb1a65e208eeb05a95eb664488042b5b84ecb11bdd4",
+    "promotion_publish.py": "c3d9f8917f484c7001a5bffe8c8a72bf330a783c3edf8233689a5291373c3592",
+    "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+    "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+    "milestones/milestone_33270fed0c9054f5ae04/api.py": "fa6720fa72e5e955987349f999c1314360f448310c1fa52d2e63179df741f950",
+    "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+    "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+    "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+    "milestones/milestone_989800776c3d6229e431/api.py": "a613d313a070daefc416eb56ab9f7f0ea4b9ab6c11d6ad745a0d029f67e71b38",
+    "milestones/milestone_af427946c6dea418047a/api.py": "95c470c2bb2e3ad0fed836dfe705f1baa29648b8c954b572629f6eb9940672c3",
+    "milestones/milestone_c511a8ebd29978f5ba97/api.py": "544d890040f5e119f9bb26d797d2a3d2f8669fac93f581bc98811431db651558",
+    "milestones/milestone_dbb8341c8910593063a8/api.py": "4e3f4f9ec6ad0c30a04566a3c6a51e5d6d7bb55e23371bbae740831f3f866a08"
+  },
+  "checker_dependencies": {
+    "B01_preflight": "b90a255391c9318600f9a544f1226f93a8e1e6f55cf666b9d6da73c23208642d"
+  },
+  "kind": "B02BrowserUploadAcceptance",
+  "block_id": "B02",
+  "source_sha256": "61bebcfedac3c0624cdb0bb1a65e208eeb05a95eb664488042b5b84ecb11bdd4",
+  "checker_sha256": "84fdc4b7fbf21cc640ead0759db8b5521bc9d4ad32876778b113a12543f42f8e",
+  "checks": [
+    "missing browser file visibly rejected",
+    "image browser import HTTP200",
+    "image real identity/hash/project binding",
+    "image visible preview",
+    "image browser decodes preview",
+    "image served bytes exact",
+    "image correct MIME",
+    "image foreign project cannot read media",
+    "image durable owned copy",
+    "image temporary files cleaned",
+    "image no duplicate temporary media in data",
+    "video browser import HTTP200",
+    "video real identity/hash/project binding",
+    "video visible preview",
+    "video browser decodes preview",
+    "video served bytes exact",
+    "video correct MIME",
+    "video foreign project cannot read media",
+    "video durable owned copy",
+    "video temporary files cleaned",
+    "video no duplicate temporary media in data",
+    "empty upload HTTP400",
+    "empty upload cleanup",
+    "broken upload HTTP400",
+    "broken upload cleanup",
+    "malformed upload HTTP400",
+    "malformed upload cleanup",
+    "original fixtures unchanged",
+    "image restart durable identity/bytes",
+    "video restart durable identity/bytes",
+    "no JavaScript errors",
+    "real adapter composition and cleanup on both outcomes"
+  ],
+  "network": [
+    {
+      "url": "http://127.0.0.1:23220/",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:23220/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:23220/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:23220/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:23220/api/state?project_id=5281871390a048388e5fb643b751f6eb",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:23220/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:23220/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:23220/media/d5fe0b324b1240e8a68b46f57983d327?project_id=5281871390a048388e5fb643b751f6eb",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:23220/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:23220/media/c8952ce668804c82afd9117649a30a11?project_id=5281871390a048388e5fb643b751f6eb",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:23220/",
+      "status": 200,
+      "method": "GET"
+    },
+    {
+      "url": "http://127.0.0.1:23220/api/action",
+      "status": 200,
+      "method": "POST"
+    },
+    {
+      "url": "http://127.0.0.1:23220/api/state?project_id=5281871390a048388e5fb643b751f6eb",
+      "status": 200,
+      "method": "GET"
+    }
+  ],
+  "console": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    }
+  ],
+  "javascript_errors": [],
+  "host_business_patches": 0,
+  "browser": "134.0.3124.51",
+  "preflight": {
+    "html_parsed": true,
+    "js_parse": true,
+    "duplicate_ids": [],
+    "literal_dom_references_resolved": true
+  },
+  "image_response": {
+    "status": 200,
+    "body": {
+      "id": "d5fe0b324b1240e8a68b46f57983d327",
+      "project_id": "5281871390a048388e5fb643b751f6eb",
+      "kind": "image",
+      "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e",
+      "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b02-current-61bebcfe-browser-first\\data\\media_storage\\5281871390a048388e5fb643b751f6eb\\d5fe0b324b1240e8a68b46f57983d327.png",
+      "status": "VALID"
+    }
+  },
+  "video_response": {
+    "status": 200,
+    "body": {
+      "id": "c8952ce668804c82afd9117649a30a11",
+      "project_id": "5281871390a048388e5fb643b751f6eb",
+      "kind": "video",
+      "sha256": "378731f8c5fd006ebf842d00c05038d5a6cfb93a16361d979ca45dd156919a47",
+      "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b02-current-61bebcfe-browser-first\\data\\media_storage\\5281871390a048388e5fb643b751f6eb\\c8952ce668804c82afd9117649a30a11.mp4",
+      "status": "VALID"
+    }
+  },
+  "adapter_edge": {
+    "status": "PASS",
+    "temporary_paths": [
+      "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b02-current-61bebcfe-browser-first\\edge-data\\.tmp_media\\upload_7ww4nchf_pixel.png",
+      "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b02-current-61bebcfe-browser-first\\edge-data\\.tmp_media\\upload_mr56ezgt_pixel.png",
+      "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b02-current-61bebcfe-browser-first\\edge-data\\.tmp_media\\upload_t9110_r2_qualification-escape.png"
+    ],
+    "checks": [
+      "real path passed to original M11",
+      "confined absolute temporary file",
+      "untrusted filename cannot escape",
+      "success cleanup",
+      "downstream failure cleanup",
+      "durable original M11 copy"
+    ]
+  },
+  "status": "PASS",
+  "project_id": "5281871390a048388e5fb643b751f6eb",
+  "startup": {
+    "command": [
+      "D:\\anaconda\\python.exe",
+      "-X",
+      "utf8",
+      "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b02-current-61bebcfe-browser-first\\snapshot\\main.py",
+      "--serve",
+      "--port",
+      "23220",
+      "--data",
+      "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b02-current-61bebcfe-browser-first\\data"
+    ],
+    "url": "http://127.0.0.1:23220",
+    "data_dir": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b02-current-61bebcfe-browser-first\\data"
+  },
+  "cleanup": {
+    "server_stopped": true
+  },
+  "fixture_hashes": {
+    "png": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e",
+    "video": "378731f8c5fd006ebf842d00c05038d5a6cfb93a16361d979ca45dd156919a47"
+  }
+}

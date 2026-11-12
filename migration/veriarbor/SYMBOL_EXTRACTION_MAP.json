@@ -1,0 +1,261 @@
+[
+  {
+    "file": "cgkn/state/acceptance.py",
+    "symbol": "GoalAcceptance._view",
+    "classification": "EXTRACT_TO_VERIARBOR",
+    "callers_static": [
+      {
+        "file": "cgkn/state/acceptance.py",
+        "line": 198
+      },
+      {
+        "file": "cgkn/state/acceptance.py",
+        "line": 203
+      },
+      {
+        "file": "cgkn/state/acceptance.py",
+        "line": 207
+      }
+    ],
+    "dynamic_entrypoints": "UNRESOLVED until shadow and targeted regression",
+    "state_ownership": "CGNK FileRunStore",
+    "execution_ownership": "CGNK DAGRunner",
+    "compatibility": "Preserve host public signature, errors, persisted hashes and verdicts",
+    "destination": "veriarbor pure modules via cgkn/adapters/veriarbor",
+    "required_tests": [
+      "differential",
+      "historical replay",
+      "targeted host regression"
+    ],
+    "rollback": "Restore byte-exact pre-edit source after post-edit hash check"
+  },
+  {
+    "file": "cgkn/protocol/context_pack.py",
+    "symbol": "dependency_ready_goals",
+    "classification": "EXTRACT_TO_VERIARBOR",
+    "callers_static": [
+      {
+        "file": "cgkn/agent/composer.py",
+        "line": 383
+      },
+      {
+        "file": "cgkn/protocol/context_pack.py",
+        "line": 88
+      },
+      {
+        "file": "cgkn/protocol/context_pack.py",
+        "line": 120
+      },
+      {
+        "file": "cgkn/protocol/context_pack.py",
+        "line": 94
+      }
+    ],
+    "dynamic_entrypoints": "UNRESOLVED until shadow and targeted regression",
+    "state_ownership": "CGNK FileRunStore",
+    "execution_ownership": "CGNK DAGRunner",
+    "compatibility": "Preserve host public signature, errors, persisted hashes and verdicts",
+    "destination": "veriarbor pure modules via cgkn/adapters/veriarbor",
+    "required_tests": [
+      "differential",
+      "historical replay",
+      "targeted host regression"
+    ],
+    "rollback": "Restore byte-exact pre-edit source after post-edit hash check"
+  },
+  {
+    "file": "cgkn/protocol/context_pack.py",
+    "symbol": "task_readiness_projection",
+    "classification": "EXTRACT_TO_VERIARBOR",
+    "callers_static": [
+      {
+        "file": "cgkn/agent/composer.py",
+        "line": 420
+      }
+    ],
+    "dynamic_entrypoints": "UNRESOLVED until shadow and targeted regression",
+    "state_ownership": "CGNK FileRunStore",
+    "execution_ownership": "CGNK DAGRunner",
+    "compatibility": "Preserve host public signature, errors, persisted hashes and verdicts",
+    "destination": "veriarbor pure modules via cgkn/adapters/veriarbor",
+    "required_tests": [
+      "differential",
+      "historical replay",
+      "targeted host regression"
+    ],
+    "rollback": "Restore byte-exact pre-edit source after post-edit hash check"
+  },
+  {
+    "file": "cgkn/protocol/progress.py",
+    "symbol": "strategy_fingerprint",
+    "classification": "EXTRACT_TO_VERIARBOR",
+    "callers_static": [
+      {
+        "file": "cgkn/protocol/progress.py",
+        "line": 54
+      }
+    ],
+    "dynamic_entrypoints": "UNRESOLVED until shadow and targeted regression",
+    "state_ownership": "CGNK FileRunStore",
+    "execution_ownership": "CGNK DAGRunner",
+    "compatibility": "Preserve host public signature, errors, persisted hashes and verdicts",
+    "destination": "veriarbor pure modules via cgkn/adapters/veriarbor",
+    "required_tests": [
+      "differential",
+      "historical replay",
+      "targeted host regression"
+    ],
+    "rollback": "Restore byte-exact pre-edit source after post-edit hash check"
+  },
+  {
+    "file": "cgkn/protocol/progress.py",
+    "symbol": "ProgressGuidedBacktracking.assess",
+    "classification": "EXTRACT_TO_VERIARBOR",
+    "callers_static": [
+      {
+        "file": "cgkn/protocol/repair.py",
+        "line": 171
+      }
+    ],
+    "dynamic_entrypoints": "UNRESOLVED until shadow and targeted regression",
+    "state_ownership": "CGNK FileRunStore",
+    "execution_ownership": "CGNK DAGRunner",
+    "compatibility": "Preserve host public signature, errors, persisted hashes and verdicts",
+    "destination": "veriarbor pure modules via cgkn/adapters/veriarbor",
+    "required_tests": [
+      "differential",
+      "historical replay",
+      "targeted host regression"
+    ],
+    "rollback": "Restore byte-exact pre-edit source after post-edit hash check"
+  },
+  {
+    "file": "cgkn/protocol/review_policy.py",
+    "symbol": "review_kind",
+    "classification": "EXTRACT_TO_VERIARBOR",
+    "callers_static": [
+      {
+        "file": "cgkn/state/task_feedback.py",
+        "line": 97
+      }
+    ],
+    "dynamic_entrypoints": "UNRESOLVED until shadow and targeted regression",
+    "state_ownership": "CGNK FileRunStore",
+    "execution_ownership": "CGNK DAGRunner",
+    "compatibility": "Preserve host public signature, errors, persisted hashes and verdicts",
+    "destination": "veriarbor pure modules via cgkn/adapters/veriarbor",
+    "required_tests": [
+      "differential",
+      "historical replay",
+      "targeted host regression"
+    ],
+    "rollback": "Restore byte-exact pre-edit source after post-edit hash check"
+  },
+  {
+    "file": "cgkn/protocol/review_policy.py",
+    "symbol": "evaluator_disposition",
+    "classification": "EXTRACT_TO_VERIARBOR",
+    "callers_static": [
+      {
+        "file": "cgkn/protocol/repair.py",
+        "line": 106
+      }
+    ],
+    "dynamic_entrypoints": "UNRESOLVED until shadow and targeted regression",
+    "state_ownership": "CGNK FileRunStore",
+    "execution_ownership": "CGNK DAGRunner",
+    "compatibility": "Preserve host public signature, errors, persisted hashes and verdicts",
+    "destination": "veriarbor pure modules via cgkn/adapters/veriarbor",
+    "required_tests": [
+      "differential",
+      "historical replay",
+      "targeted host regression"
+    ],
+    "rollback": "Restore byte-exact pre-edit source after post-edit hash check"
+  },
+  {
+    "file": "cgkn/protocol/review_policy.py",
+    "symbol": "qualify_evaluator",
+    "classification": "EXTRACT_TO_VERIARBOR",
+    "callers_static": [],
+    "dynamic_entrypoints": "UNRESOLVED until shadow and targeted regression",
+    "state_ownership": "CGNK FileRunStore",
+    "execution_ownership": "CGNK DAGRunner",
+    "compatibility": "Preserve host public signature, errors, persisted hashes and verdicts",
+    "destination": "veriarbor pure modules via cgkn/adapters/veriarbor",
+    "required_tests": [
+      "differential",
+      "historical replay",
+      "targeted host regression"
+    ],
+    "rollback": "Restore byte-exact pre-edit source after post-edit hash check"
+  },
+  {
+    "file": "cgkn/protocol/review_policy.py",
+    "symbol": "review_needed",
+    "classification": "EXTRACT_TO_VERIARBOR",
+    "callers_static": [],
+    "dynamic_entrypoints": "UNRESOLVED until shadow and targeted regression",
+    "state_ownership": "CGNK FileRunStore",
+    "execution_ownership": "CGNK DAGRunner",
+    "compatibility": "Preserve host public signature, errors, persisted hashes and verdicts",
+    "destination": "veriarbor pure modules via cgkn/adapters/veriarbor",
+    "required_tests": [
+      "differential",
+      "historical replay",
+      "targeted host regression"
+    ],
+    "rollback": "Restore byte-exact pre-edit source after post-edit hash check"
+  },
+  {
+    "file": "cgkn/protocol/repair.py",
+    "symbol": "repair_progress",
+    "classification": "EXTRACT_TO_VERIARBOR",
+    "callers_static": [],
+    "dynamic_entrypoints": "UNRESOLVED until shadow and targeted regression",
+    "state_ownership": "CGNK FileRunStore",
+    "execution_ownership": "CGNK DAGRunner",
+    "compatibility": "Preserve host public signature, errors, persisted hashes and verdicts",
+    "destination": "veriarbor pure modules via cgkn/adapters/veriarbor",
+    "required_tests": [
+      "differential",
+      "historical replay",
+      "targeted host regression"
+    ],
+    "rollback": "Restore byte-exact pre-edit source after post-edit hash check"
+  },
+  {
+    "file": "cgkn/runtime/dag_runner.py",
+    "symbol": "DAGRunner._compatible",
+    "classification": "EXTRACT_TO_VERIARBOR",
+    "callers_static": [
+      {
+        "file": "cgkn/compiler/artifact_graph.py",
+        "line": 123
+      },
+      {
+        "file": "cgkn/runtime/dag_runner.py",
+        "line": 62
+      },
+      {
+        "file": "cgkn/runtime/dag_runner.py",
+        "line": 235
+      },
+      {
+        "file": "scripts/capability_execution.py",
+        "line": 228
+      }
+    ],
+    "dynamic_entrypoints": "UNRESOLVED until shadow and targeted regression",
+    "state_ownership": "CGNK FileRunStore",
+    "execution_ownership": "CGNK DAGRunner",
+    "compatibility": "Preserve host public signature, errors, persisted hashes and verdicts",
+    "destination": "veriarbor pure modules via cgkn/adapters/veriarbor",
+    "required_tests": [
+      "differential",
+      "historical replay",
+      "targeted host regression"
+    ],
+    "rollback": "Restore byte-exact pre-edit source after post-edit hash check"
+  }
+]

@@ -1,0 +1,37 @@
+{
+  "kind": "FinalDeliveryStatus",
+  "created_at": "2026-11-06T03:50:57.822493+00:00",
+  "M12": "VERIFIED",
+  "DOGFOOD": "PASS",
+  "package": "DELIVER_WITH_WARNINGS",
+  "Corpus": "PASS",
+  "accounting": "PASS",
+  "final_delivery": "DELIVER_WITH_WARNINGS",
+  "delivery_allowed": true,
+  "verdict": "DELIVER_WITH_WARNINGS",
+  "final_delivery_truth": "pass",
+  "canonical_evidence_gate": "PASS",
+  "source_sha256": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+  "provenance_ref": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\FINAL_VALIDATION_20261106_RUN3\\state\\iter132-promotion-studio\\final-validation-01\\production_candidate_provenance.json",
+  "provenance_hash": "sha256:ff63d17a7348c92d537aad97fa4517d6c343e532b6f0dc6424693cdcb87c197f",
+  "worker_imports": 23,
+  "authorized_agent_sources": 7,
+  "provider_calls_added_by_repair": 0,
+  "goal_acceptance_modified": false,
+  "warnings": [
+    "The real project artifacts are deliverable with explicit limitations."
+  ],
+  "must_not_claim": [
+    "placeholder/mock/fallback artifacts as real screenshots, backgrounds, sprites, or generated evidence",
+    "original user goal is fully validated",
+    "production-ready",
+    "real-world validated"
+  ],
+  "evidence": {
+    "final_result": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\FINAL_DELIVERY_RESULT_FINAL.json",
+    "gate_view_result": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\FINAL_DELIVERY_GATE_VIEW_RESULT.json",
+    "package": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\PROMOTION_DELIVERY_M12_FINAL_20261106\\final_project_bundle.zip",
+    "manifest": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\PROMOTION_DELIVERY_M12_FINAL_20261106\\delivery_manifest.json",
+    "provenance": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\FINAL_VALIDATION_20261106_RUN3\\state\\iter132-promotion-studio\\final-validation-01\\production_candidate_provenance.json"
+  }
+}

@@ -1,0 +1,241 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "Qwen Flash Agent and DeepSeek Flash Worker only, noPro/Max, noUNKNOWN replay. One boundedadapter repair then controllerhold.",
+    "milestone_completion_request": "Repair existing143 B02 only using exactcurrent158a1failure qualified-revision-10 on61bebcfe. Remaining scope ONLY handle/media-import adapter region for shared M11 store coordination and preservation of existing path/milestone ports. GUI upload/video rendering nowpasses sequentialbrowser35checks andmustnotbe rewritten. M1-M11core andB01frozen. NofullM12/nootherblock/noFINISH. OneWorkerattempt then fullB02check/certificate. Attempt35 was atomically rejected for a third patch outside scope, not a product execution failure. New evidence is B02_SCOPE_REJECTION_35.json. Author a fresh bounded patch strictly inside the unchanged allowed handle/adapter region. Existing _serve_media calls handle, and must remain byte-identical. No additional serving or GUI edits are authorized.",
+    "fresh_runtime_diagnosis": {
+      "current_block": "B02",
+      "source_sha256": "61bebcfedac3c0624cdb0bb1a65e208eeb05a95eb664488042b5b84ecb11bdd4",
+      "formal_failure_ref": {
+        "path": "attempts/sem-node-0158/attempt-0001.json",
+        "receipt_hash": "86c12b1d71d9d43dc63d909532b9e900c6b4812d8a229cc16e31016aa79a0dde"
+      },
+      "checker": "qualified-revision-10",
+      "failure_observation": {
+        "source_sha256": "61bebcfedac3c0624cdb0bb1a65e208eeb05a95eb664488042b5b84ecb11bdd4",
+        "checks": [
+          "browser image upload HTTP200",
+          "real identity",
+          "project and bytes binding",
+          "owned preview bytes",
+          "source unchanged"
+        ],
+        "scope": "Browser image upload port only; not B02/M12 completion",
+        "browser": "134.0.3124.51",
+        "upload": {
+          "status": 200,
+          "body": {
+            "id": "502399ee96044acdbea1d42c213cf033",
+            "project_id": "23c6127efdbb4eab9be4a23cae39a5da",
+            "kind": "image",
+            "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e",
+            "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\consumer_scratch\\sem-node-0158\\attempt-0001\\upload-port-evidence\\data\\media_storage\\23c6127efdbb4eab9be4a23cae39a5da\\502399ee96044acdbea1d42c213cf033.png",
+            "status": "VALID"
+          }
+        },
+        "concurrent_preview": {
+          "passed": false,
+          "requests": [
+            {
+              "index": 0,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 1,
+              "status": 400,
+              "error": "{\"error\": \"[WinError 32] \\u53e6\\u4e00\\u4e2a\\u7a0b\\u5e8f\\u6b63\\u5728\\u4f7f\\u7528\\u6b64\\u6587\\u4ef6\\uff0c\\u8fdb\\u7a0b\\u65e0\\u6cd5\\u8bbf\\u95ee\\u3002: 'F:\\\\\\\\CGKN-ITER-132\\\\\\\\production-core-convergence-v1\\\\\\\\promotion\\\\\\\\run-05\\\\\\\\state\\\\\\\\iter132-promotion-studio\\\\\\\\promotion-05\\\\\\\\consumer_scratch\\\\\\\\sem-node-0158\\\\\\\\attempt-0001\\\\\\\\upload-port-evidence\\\\\\\\data\\\\\\\\media.json.tmp' -> 'F:\\\\\\\\CGKN-ITER-132\\\\\\\\production-core-convergence-v1\\\\\\\\promotion\\\\\\\\run-05\\\\\\\\state\\\\\\\\iter132-promotion-studio\\\\\\\\promotion-05\\\\\\\\consumer_scratch\\\\\\\\sem-node-0158\\\\\\\\attempt-0001\\\\\\\\upload-port-evidence\\\\\\\\data\\\\\\\\media.json'\"}"
+            },
+            {
+              "index": 2,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 3,
+              "status": 400,
+              "error": "{\"error\": \"[WinError 2] \\u7cfb\\u7edf\\u627e\\u4e0d\\u5230\\u6307\\u5b9a\\u7684\\u6587\\u4ef6\\u3002: 'F:\\\\\\\\CGKN-ITER-132\\\\\\\\production-core-convergence-v1\\\\\\\\promotion\\\\\\\\run-05\\\\\\\\state\\\\\\\\iter132-promotion-studio\\\\\\\\promotion-05\\\\\\\\consumer_scratch\\\\\\\\sem-node-0158\\\\\\\\attempt-0001\\\\\\\\upload-port-evidence\\\\\\\\data\\\\\\\\media.json.tmp' -> 'F:\\\\\\\\CGKN-ITER-132\\\\\\\\production-core-convergence-v1\\\\\\\\promotion\\\\\\\\run-05\\\\\\\\state\\\\\\\\iter132-promotion-studio\\\\\\\\promotion-05\\\\\\\\consumer_scratch\\\\\\\\sem-node-0158\\\\\\\\attempt-0001\\\\\\\\upload-port-evidence\\\\\\\\data\\\\\\\\media.json'\"}"
+            },
+            {
+              "index": 4,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 5,
+              "status": 400,
+              "error": "{\"error\": \"[WinError 32] \\u53e6\\u4e00\\u4e2a\\u7a0b\\u5e8f\\u6b63\\u5728\\u4f7f\\u7528\\u6b64\\u6587\\u4ef6\\uff0c\\u8fdb\\u7a0b\\u65e0\\u6cd5\\u8bbf\\u95ee\\u3002: 'F:\\\\\\\\CGKN-ITER-132\\\\\\\\production-core-convergence-v1\\\\\\\\promotion\\\\\\\\run-05\\\\\\\\state\\\\\\\\iter132-promotion-studio\\\\\\\\promotion-05\\\\\\\\consumer_scratch\\\\\\\\sem-node-0158\\\\\\\\attempt-0001\\\\\\\\upload-port-evidence\\\\\\\\data\\\\\\\\media.json.tmp' -> 'F:\\\\\\\\CGKN-ITER-132\\\\\\\\production-core-convergence-v1\\\\\\\\promotion\\\\\\\\run-05\\\\\\\\state\\\\\\\\iter132-promotion-studio\\\\\\\\promotion-05\\\\\\\\consumer_scratch\\\\\\\\sem-node-0158\\\\\\\\attempt-0001\\\\\\\\upload-port-evidence\\\\\\\\data\\\\\\\\media.json'\"}"
+            },
+            {
+              "index": 6,
+              "status": 400,
+              "error": "{\"error\": \"[WinError 32] \\u53e6\\u4e00\\u4e2a\\u7a0b\\u5e8f\\u6b63\\u5728\\u4f7f\\u7528\\u6b64\\u6587\\u4ef6\\uff0c\\u8fdb\\u7a0b\\u65e0\\u6cd5\\u8bbf\\u95ee\\u3002: 'F:\\\\\\\\CGKN-ITER-132\\\\\\\\production-core-convergence-v1\\\\\\\\promotion\\\\\\\\run-05\\\\\\\\state\\\\\\\\iter132-promotion-studio\\\\\\\\promotion-05\\\\\\\\consumer_scratch\\\\\\\\sem-node-0158\\\\\\\\attempt-0001\\\\\\\\upload-port-evidence\\\\\\\\data\\\\\\\\media.json.tmp' -> 'F:\\\\\\\\CGKN-ITER-132\\\\\\\\production-core-convergence-v1\\\\\\\\promotion\\\\\\\\run-05\\\\\\\\state\\\\\\\\iter132-promotion-studio\\\\\\\\promotion-05\\\\\\\\consumer_scratch\\\\\\\\sem-node-0158\\\\\\\\attempt-0001\\\\\\\\upload-port-evidence\\\\\\\\data\\\\\\\\media.json'\"}"
+            },
+            {
+              "index": 7,
+              "status": 400,
+              "error": "{\"error\": \"[WinError 32] \\u53e6\\u4e00\\u4e2a\\u7a0b\\u5e8f\\u6b63\\u5728\\u4f7f\\u7528\\u6b64\\u6587\\u4ef6\\uff0c\\u8fdb\\u7a0b\\u65e0\\u6cd5\\u8bbf\\u95ee\\u3002: 'F:\\\\\\\\CGKN-ITER-132\\\\\\\\production-core-convergence-v1\\\\\\\\promotion\\\\\\\\run-05\\\\\\\\state\\\\\\\\iter132-promotion-studio\\\\\\\\promotion-05\\\\\\\\consumer_scratch\\\\\\\\sem-node-0158\\\\\\\\attempt-0001\\\\\\\\upload-port-evidence\\\\\\\\data\\\\\\\\media.json.tmp' -> 'F:\\\\\\\\CGKN-ITER-132\\\\\\\\production-core-convergence-v1\\\\\\\\promotion\\\\\\\\run-05\\\\\\\\state\\\\\\\\iter132-promotion-studio\\\\\\\\promotion-05\\\\\\\\consumer_scratch\\\\\\\\sem-node-0158\\\\\\\\attempt-0001\\\\\\\\upload-port-evidence\\\\\\\\data\\\\\\\\media.json'\"}"
+            },
+            {
+              "index": 8,
+              "status": 400,
+              "error": "{\"error\": \"[WinError 2] \\u7cfb\\u7edf\\u627e\\u4e0d\\u5230\\u6307\\u5b9a\\u7684\\u6587\\u4ef6\\u3002: 'F:\\\\\\\\CGKN-ITER-132\\\\\\\\production-core-convergence-v1\\\\\\\\promotion\\\\\\\\run-05\\\\\\\\state\\\\\\\\iter132-promotion-studio\\\\\\\\promotion-05\\\\\\\\consumer_scratch\\\\\\\\sem-node-0158\\\\\\\\attempt-0001\\\\\\\\upload-port-evidence\\\\\\\\data\\\\\\\\media.json.tmp' -> 'F:\\\\\\\\CGKN-ITER-132\\\\\\\\production-core-convergence-v1\\\\\\\\promotion\\\\\\\\run-05\\\\\\\\state\\\\\\\\iter132-promotion-studio\\\\\\\\promotion-05\\\\\\\\consumer_scratch\\\\\\\\sem-node-0158\\\\\\\\attempt-0001\\\\\\\\upload-port-evidence\\\\\\\\data\\\\\\\\media.json'\"}"
+            },
+            {
+              "index": 9,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 10,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 11,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            }
+          ]
+        },
+        "status": "FAIL",
+        "error": "AssertionError: concurrent owned preview reads return exact bytes",
+        "startup": {
+          "command": [
+            "D:\\anaconda\\python.exe",
+            "-X",
+            "utf8",
+            "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\main.py",
+            "--serve",
+            "--port",
+            "44321",
+            "--data",
+            "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\consumer_scratch\\sem-node-0158\\attempt-0001\\upload-port-evidence\\data"
+          ],
+          "url": "http://127.0.0.1:44321"
+        },
+        "cleanup": {
+          "server_stopped": true
+        }
+      },
+      "existing_port_regressions": {
+        "kind": "AdapterExistingPortPreservationDiagnostic",
+        "source_sha256": "61bebcfedac3c0624cdb0bb1a65e208eeb05a95eb664488042b5b84ecb11bdd4",
+        "results": {
+          "server_path": {
+            "error": "ValueError: data (base64) is required for media import"
+          },
+          "wrong_milestone": {
+            "returned": {
+              "id": "147e9bbcdc6d4ad78d214ed94af02f59",
+              "project_id": "c41599ac943d40c1a0c9390d26d88a66",
+              "kind": "image",
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e",
+              "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b02-server-path-regression-61bebcfe\\data\\media_storage\\c41599ac943d40c1a0c9390d26d88a66\\147e9bbcdc6d4ad78d214ed94af02f59.png",
+              "status": "VALID"
+            }
+          }
+        },
+        "expected": {
+          "server_path": "existing M11 import remains supported",
+          "wrong_milestone": "M1 unsupported media operation rejected"
+        },
+        "product_sources_changed": false
+      },
+      "actual_cause": "Existing M11 media.get/list perform integrity persistence using shared media.json.tmp; concurrent GUI adapter calls collide. Do not remove threaded server or edit verified backend. Current handle also routes every media.import to browser-only adapter regardless of explicit milestone or path-only transport. Preserve dispatch identity and original M11 ServerPathPort.",
+      "new_scope_failure": {
+        "attempt": "attempt-0035",
+        "node": "sem-node-0143",
+        "verdict": "PATCH_SCOPE_EXCEEDED",
+        "source_sha256": "61bebcfedac3c0624cdb0bb1a65e208eeb05a95eb664488042b5b84ecb11bdd4",
+        "applied": false,
+        "source_unchanged": true,
+        "browser_executed": false,
+        "new_failure_evidence": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0143\\attempt-0035.json",
+        "reason": "Third patch targeted _serve_media outside authorized adapter region; entire batch rejected atomically. Existing _serve_media already calls handle; its implementation remains read-only."
+      }
+    },
+    "gui_writer_policy": "Only143 writes one bounded main.py adapterregion. All frontend/B01/_serve_media andbackendmodules read-only. No wholefilewrite.",
+    "admission_correction": "Repair143 mustbind falsifying_evidence JSONarray exact {\"path\": \"attempts/sem-node-0158/attempt-0001.json\", \"receipt_hash\": \"86c12b1d71d9d43dc63d909532b9e900c6b4812d8a229cc16e31016aa79a0dde\"}. New bounded strategy describes shared_store_coordination plus preserve_server_path_port:true, honor_explicit_milestone:true, preserve_nonmedia_concurrency:true, full_file_write:false. No old157/156receipt. Existingpatchbatch protocol optional; onepatch maycoverentireallowed adapterregion.",
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "main.py"
+        ],
+        "required_dimensions": [
+          "problem",
+          "full_file_write",
+          "shared_store_coordination",
+          "preserve_server_path_port",
+          "honor_explicit_milestone",
+          "preserve_nonmedia_concurrency"
+        ],
+        "dimension_types": {
+          "problem": "string",
+          "full_file_write": "boolean",
+          "shared_store_coordination": "string",
+          "preserve_server_path_port": "boolean",
+          "honor_explicit_milestone": "boolean",
+          "preserve_nonmedia_concurrency": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": true
+          },
+          {
+            "preserve_server_path_port": false
+          },
+          {
+            "honor_explicit_milestone": false
+          },
+          {
+            "preserve_nonmedia_concurrency": false
+          }
+        ],
+        "evidence_refs": [
+          {
+            "path": "attempts/sem-node-0158/attempt-0001.json",
+            "receipt_hash": "86c12b1d71d9d43dc63d909532b9e900c6b4812d8a229cc16e31016aa79a0dde"
+          }
+        ]
+      }
+    ],
+    "bounded_patch_policy": {
+      "mode": "patch_only",
+      "block_id": "B02",
+      "writer_node_id": "sem-node-0143",
+      "hold_after_worker_attempt": true,
+      "files": {
+        "main.py": {
+          "source_sha256": "61bebcfedac3c0624cdb0bb1a65e208eeb05a95eb664488042b5b84ecb11bdd4",
+          "ranges": [
+            [
+              2212,
+              6351
+            ]
+          ],
+          "max_changed_chars": 18000,
+          "allowed_sections": [
+            "handle dispatch and media adapter helpers; preceding blank lines for local coordination declaration"
+          ]
+        }
+      },
+      "acceptance_requirements": [
+        "B02 remaining boundary repair only. Current12 concurrent realHTTP preview reads collide on M11 media.json.tmp. Coordinate access to the existing M11 shared store at the GUI adapter boundary, covering browser imports and ordinary media.import/get/list requests. Keep server ThreadingHTTPServer and unrelated milestone concurrency intact. No M11 backend edits, second store, retry masking or fake success.",
+        "Preserve existing ServerPathPort: M11 media.import with valid path and no browser data must still reach original M11 and import successfully. BrowserFile conversion applies only to the actual M11 media.import browser payload; M1+media.import must be rejected by original M1 dispatch, not silently rerouted toM11. Do not relax project or media integrity checks.",
+        "Preserve existing explicit temporary-file adapter, original copied durable media, cleanup success/error, safe filenames, real image/video UI, media serving and B01. Only handle/adapter region may change. One exactpatch or nonoverlapping batch within this region; nowholefilewrite.",
+        "After this one attempt, full B02 acceptance requires38 actualchecks: sequential image/video previews, negativepayloads, cleanup, original path port, milestoneguard,12 concurrent reads, processrestart+library previews andforeign project switch. Source delta precedesmeasurement.",
+        "Attempt35 proved the out-of-region _serve_media edit invalid. All patch anchors, including context, must fall within [2212,6351) normalized source characters. No _serve_media edits. Do not resend the rejected batch. Preserve exact source binding; one current attempt only."
+      ]
+    },
+    "redecision": {
+      "strategy_revision": "e533fce31e5388214bdb6c2c5d6125fab5847e7ce37b73f215f6786bd3d63365",
+      "reason": "New concrete scope rejection: remove serving-layer writes from repair scope; preserve original serve-media delegation through handle. Same native current failure remains bound; source unchanged.",
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0158\\attempt-0001.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b02-server-path-regression-61bebcfe\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_SCOPE_REJECTION_35.json"
+      ]
+    }
+  }
+}

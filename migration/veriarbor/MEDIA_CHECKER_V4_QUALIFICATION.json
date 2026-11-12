@@ -1,0 +1,96 @@
+{
+  "kind": "IndependentMediaCheckerControls",
+  "status": "PASS",
+  "previous_checker_hash": "5201a3c5aa6c9e829890787e3a5d6b8f60d3de104b301fb9df5eeb28faeb1007",
+  "checker_hash": "283bf80a6cd4fe3866f2c00a032d38bb4e3c7a6d58e07bcdc06e26978ccf3c11",
+  "controls": [
+    {
+      "name": "correct",
+      "kind": "positive",
+      "expected": true,
+      "observed": true,
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "cached_only",
+      "kind": "negative",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "AssertionError: Expected ValueError for invalid or foreign input"
+    },
+    {
+      "name": "always_reject",
+      "kind": "negative",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "ValueError: fixture rejects everything"
+    },
+    {
+      "name": "changed_only",
+      "kind": "mutation",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "AssertionError: Expected ValueError for invalid or foreign input"
+    },
+    {
+      "name": "post_then_reject",
+      "kind": "mutation",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "AssertionError: Changed media caused a network effect"
+    },
+    {
+      "name": "duplicate_post",
+      "kind": "mutation",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "AssertionError: Media publication must retain idempotency"
+    }
+  ],
+  "unchanged_functions_and_classes": [
+    "check",
+    "require",
+    "invalid",
+    "load_modules",
+    "call",
+    "ident",
+    "base",
+    "fresh",
+    "Platform",
+    "publish_fixture",
+    "milestone1",
+    "milestone2",
+    "make_boundary_link",
+    "assert_no_boundary_leak",
+    "evidence_boundary_probe",
+    "milestone3",
+    "assert_campaign_history_transition",
+    "milestone4",
+    "secret_variant_probe",
+    "campaign_input_probe",
+    "milestone5",
+    "milestone6",
+    "milestone7",
+    "milestone8",
+    "milestone9",
+    "milestone10",
+    "http_action",
+    "delivered_platform_probe",
+    "visible_record_name",
+    "workflow_button",
+    "browser_probe",
+    "milestone12"
+  ],
+  "changed_functions": [
+    "milestone11"
+  ],
+  "policy": "Adds real valid-media publish/idempotency and mutation/deletion-before-media.get assertions. All previous assertions retained. Fixture controls are observer qualification, not product acceptance.",
+  "activation": "NOT_ACTIVATED",
+  "host_business_patches": 0
+}

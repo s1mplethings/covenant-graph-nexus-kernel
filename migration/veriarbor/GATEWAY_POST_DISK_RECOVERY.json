@@ -1,0 +1,34 @@
+{
+  "kind": "OriginalGatewayRecovery",
+  "timestamp": "2026-11-03T13:32:50.659859+00:00",
+  "original_pid": 34072,
+  "replacement_pid": 24648,
+  "same_original_entrypoint": "python313 -X utf8 -m scripts.domestic_gateway serve",
+  "same_network_config": "F:\\CGKN-LeanLoop-V1-20261101\\config\\network_routes.json",
+  "config_sha256": "ea7b5582c92b7e8be7f29d924086924b50bf6c013a31ef8ce5a50526ab28f48a",
+  "restart": "Original graceful stop file protocol; oldprocess exited and sessionremoved. Newprocess Hidden, same state directory, append-only history preserved.",
+  "post_restart_readonly_models": [
+    {
+      "provider": "qwen",
+      "upstream_http_status": 200,
+      "generation_calls": 0,
+      "model_ids_sha256": "4578192d807a98e60d8cc86ee1bdf97d877482ec1091499a8a2b88b8e28c9f9f"
+    },
+    {
+      "provider": "deepseek",
+      "upstream_http_status": 200,
+      "generation_calls": 0,
+      "model_ids_sha256": "e681cf34479ff00c78ec9c29f37820fb449605e22da9e5780cb91e8340ed3994"
+    }
+  ],
+  "canonical_product_state_unchanged": {
+    "capability_tree.json": true,
+    "run_state.json": true,
+    "goal_acceptance.json": true,
+    "execution_dag.json": true
+  },
+  "new_unknown_count": 5,
+  "upstream_unknowns": "Retained, including20request5738bf52c1534916b038edf7e272a39b ledgerdcacde98d4657c93718ebe380f1a909c7f5b9ed35cc4088340ed3c66781b041a; no claim of upstream non-submission or zero cost.",
+  "model_generation_probes": 0,
+  "host_business_patches": 0
+}

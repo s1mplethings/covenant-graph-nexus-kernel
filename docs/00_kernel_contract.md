@@ -175,3 +175,148 @@ or delivery authority. `CapabilityTree`, `ExecutionDAG`, bounded Executor
 validation, real tests, external acceptance, and the canonical delivery route
 remain unchanged. When gateway mode is not explicitly enabled, the reviewed
 `OpenAICompatibleClient` path remains the default.
+
+## Bounded graph commits (ITER-088)
+
+Ordinary `DAGRunner.run(resume=True)` requires the saved graph, including node
+configuration and dependencies. `AgentProjectLoop` explicitly commits edits with
+`accept_edits=True`: it may append executable nodes and change unfinished nodes.
+Changing a succeeded node or its affected succeeded dependents requires the
+existing explicit `retry_node` contract. Goal changes and node removals within
+an existing run are rejected. This is a bounded runtime capability addition,
+not a claim that arbitrary incremental edits were previously supported.
+
+The committed DAG, graph revision and node records are atomically saved in the
+canonical `RunState`. Existing definition files remain readable mirrors. A
+legacy state must have its matching saved definition to be resumed; missing or
+incompatible records fail closed. Attempts and unaffected successful results
+are retained. A failed commit cannot authorize execution against a different
+graph. No second scheduler, state store or planner is introduced.
+
+## Rejected Agent decisions (ITER-089)
+
+Model decision parsing and pre-execution tree-edit validation failures are
+recorded verbatim and returned at the next bounded Agent decision. A rejected
+edit batch commits no partial tree and executes no tools. Rejected decisions
+consume the existing decision/request budget; no silent semantic repair or
+extra decision allowance is introduced. Transport, store and runtime failures
+are not recategorized as model syntax errors. The experiment's timeout recovery
+policy is separate from this canonical decision contract.
+
+### ITER-090 engineering DEV adapter
+
+The optional compact Agent interface binds a selected catalog capability to its
+unique executor and emits ordinary tree edits. Agent-authored summaries are
+preserved; this is not a second planner or scheduler. The same canonical DAG,
+executor registry and FileRunStore execute and persist all nodes. The project
+loop accepts a caller-specified positive decision resource bound; the former
+four-decision constructor ceiling is removed. Paid callers must enforce their
+shared request/token/time/cost limits across Agent and worker calls.
+
+Success and failure outputs enter the next Agent checkpoint. A mechanical six
+result window avoids replaying all source content; the isolated engineering
+adapter publishes complete own-run result references. Compact requests include
+unmodified Agent action summaries and bounded raw prefixes with hashes for long
+results. No host semantic context selection or business summaries are supplied.
+
+Failed/timed-out/blocked nodes are not replayed by an ordinary continuation.
+Explicit retry or validated edit invalidation is required. Successful nodes
+retain the prior reuse and affected-subgraph checks. Bounded workers may read
+iteratively, then return their own write/patch actions; completed outputs retain
+read observations, modified paths and expected outputs. Runtime action failures
+are not transactional filesystem rollback; partial effects must be inspected
+before explicit retries. Entire proposal field validation precedes action use.
+
+ITER-090 is engineering DEV with exposed feedback and versioned continuations,
+not a blind benchmark or public publication route. Candidate development remains
+isolated; shipping/publication continues to use the existing reviewed gates.
+
+
+### Goal-driven execution time window
+
+The normal `scripts/run_goal_driven.py` entry persists its original wall-clock
+execution window in the existing FileRunStore run directory. `resume` retains
+that deadline, including downtime, and cannot grant a fresh `max_seconds`.
+Expired windows reject new dispatch; `status` and `report` remain available.
+Missing historical windows require explicit reconciliation; no fresh window is
+synthesized on resume. This is deadline accounting, not OS sandbox isolation.
+
+
+### Goal-driven contract and lifecycle continuation (2026-11-12)
+
+`GoalComposer` publishes executor fields from the same definition used by its
+compiler. A failed compilation rolls back temporary local declarations. New
+business actions require an explicit requirement/Gap binding or an explicit
+exploration reason, budget and observable measure. Alternatives are optional.
+A local batch may contain the configured number of new nodes, bounded by the
+existing admission policy; the model still chooses its decomposition.
+
+Repeated admission failures, empty blocked runs and unverified finish claims
+stop after two occurrences without progress. Existing continuation history is
+retained across restart.
+
+The executable `OpenAICompatibleClient` facade has been removed. Provider callers
+use `completion_client_from_environment`; absent explicit Gateway configuration
+fails immediately. Historical client names in older evidence are not runtime
+entries. This replaces the former compatibility execution behavior.
+
+An admitted `remove_node` archives only a node declared `optional_strategy=true`,
+with no current consumers, goal task references, running/pending work or UNKNOWN.
+The existing RunState retains archived node definitions and execution records;
+raw attempts remain untouched. `add_node` can restore a strategy through current
+admission, but it executes anew with continued attempt numbering. It does not
+inherit a historical PASS. Planner context provides readable archive references.
+
+The normal `run_goal_driven.py extend --config <new-config>` command records an
+additive user requirement revision in the same FileRunStore. Supply
+`requirement_extension.parent_config_identity` from `status` and an explicit
+`authority_reference`. Existing goals, requirements, inputs, models, resource
+limits, source identities and deadline cannot be changed by this command.
+Only new requirement IDs and a versioned completion checker/interface may be
+added. The existing GoalAcceptance keeps old plans and checks; Host appends a
+new goal for the added obligations. The Agent selects its next work and invokes
+`goal.acceptance@1` with the appropriate `acceptance_goal_id`. Checker arguments
+are frozen configuration, never Worker-provided code.
+
+A configured `budget_ledger` is honored by both Planner feedback and actual
+Provider dispatch. It must be outside the product workspace and permits a
+campaign to share the existing ledger across separate projects. This does not
+supply authorization or silently enlarge its limits.
+
+These changes remain under offline qualification; no real RunLens delivery or
+cross-project Skill use is implied by this description.
+
+
+### RunLens continuation: dependency ownership and acceptance assembly
+
+The Host composes GoalAcceptance through `runtime.acceptance.open_goal_acceptance`.
+The existing state class remains the sole acceptance owner and requires its scoped
+ExecutionAuthority for governed evidence. Direct unbound state construction cannot
+produce a governed view. Existing consumers now use this assembly.
+Evidence identity encodings and the OS file lock moved intact to artifact utilities;
+execution no longer imports state for hashing or creates a temporary FileRunStore
+just to acquire a publication lock. Offline Oracle qualification belongs to the
+application; runtime telemetry does not import it. Runtime package exports are lazy
+so importing the receipt authority cannot import a scheduler through __init__.
+Layer declarations use the longest matching module/package prefix; reverse imports
+and same-layer cycles remain errors, including narrower module declarations.
+The monetary cap for the unstarted RunLens campaign is CNY20 by explicit user update;
+this is a ceiling, not a spending target. Prior failed checks remain historical evidence.
+
+
+### Goal-driven live source and recovery evidence (2026-11-12)
+
+The finite CLI `scripts/run_goal_driven.py revise-sources --revision PATH` delegates to the existing FileRunStore revision/event chain. It accepts exact before/after Host source hashes only before business materialization, with unchanged configuration, checker, Core, settled ledger identity and explicit authority. It grants no business PASS and does not reset the original execution window. `resume --feedback PATH` forwards explicit redecision evidence to ProjectSession; consumed revisions, interrupted contexts and UNKNOWN safeguards remain authoritative.
+
+Gateway input reservations use the existing exact-wire conservative bound for each request, not the full campaign input ceiling. Settlement still uses supplier usage. Real RunLens qualification remains blocked: goal_driven currently assembles HostPlanningScope with its default one-call decision permit, insufficient for a paid context-fetch exchange followed by planning. Offline qualification must not be cited as proof that this live path completes. Current source changes have affected-suite evidence; the pre-live full worktree receipt is historical after source revisions.
+
+
+### In-place continuation and retired generation owners (2026-11-12)
+
+Goal-driven planning allocates the existing protocol context allowance plus one final response, independently of Worker call limits; all calls still share the original campaign ledger. The final context turn exposes only the business response schema. Permit rejection before transport is recorded as known not sent, with the requested resource and allowed limit.
+
+Explicit redecision advances past every immutable interrupted context. A locally rejected context protocol response closes its Permit. Recovery of an older active Permit requires the matching Host rejection event, exact planning context identity and settled request records; unresolved calls remain blocked. Source revisions can also retain failed, unmaterialized runs, but reject successful/UNKNOWN history or existing product bytes. No previous failure is rewritten or promoted.
+
+The conversation retry/validation loop, simulator starter, direct-executor MVP baseline and ten old whole-project/component generation/repair functions have been removed. Local CLI and dynamic adapters continue delegating to SoftwareProjectGenerationService/ProjectSession. Existing post-build, typed-artifact and media/packaging helpers remain because they still have current consumers; they are not alternate generation owners. The old component-pipeline smoke script was removed. Current route guards check the session and existing finalization chain, rather than requiring the retired scheduler.
+
+Scope evidence is reports/runlens-refactor-20261112/code-completion in the VeriArbor workspace. Historical whole-project generation tests referring to the removed APIs are inventoried separately and are not a claim of current qualification. No whole-history green status or successful RunLens delivery follows from these code changes.

@@ -1,0 +1,76 @@
+{
+  "expected_gui_sha256": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+  "feedback": {
+    "cost_policy": "Qwen3.8Flash Agent and Worker for new requests after DeepSeek partial-helper regression and malformedJSON testoutput. Cheap-family substitution only, no Pro/Max, not acceptance evidence. Same-model review SELF_CRITIQUE. Preserve6upstreamUNKNOWNs and all failed responses; no exact replay.",
+    "milestone_completion_request": "M6 source86 is now2fe4fa28 and has a concrete regression: _validate_media_present signature requires3arguments but approval.approve still passes1, so approvals fail TypeError. New helper also dynamically loads milestone_9165a990eed5b9c8801e/api.py, which is NOT M11 media. The actual existing M11 media API is milestones/milestone_dbb8341c8910593063a8/api.py. M11 source117e4737c44 remains complete for public paths; preserve it. If no CURRENT canonical M6 failure is recorded yet, measure current M6 through its original registered independent checker, binding source86. Existing88 is blocked behind failed test87; use an admissible independent measurement without regenerating test87 just to obtain source evidence. Do not add duplicate observers if a suitable current one already exists. Once current M6 failure is recorded, repair ORIGINAL86 only with a coherent full-file operation: connect complete validation mechanism to actual approval path, use correct media module/API, preserve valid no-media approval and all existing claims/revision/project isolation. strategy.full_file_write MUST be booleantrue, now enforced for M6 API too. Never fix this by weakening tests or writing M6 behavior intoM11.87a6 returned malformed JSON, so staged output was rejected and old valid test file remains; later let original test owner correct its actual output separately, never replay old responses. Re-measure M6 and all actually affected M7-M10 dependencies using original checkers before continuing M11 missing/broken publication/realGUIpreview, M12, retained finaltest debts and canonical delivery/accounting/Corpus. A once-needed source measurement must not recur after current FAILED evidence is available.",
+    "admission_correction": "M6 current-source measurement only if current failure is missing; after it exists, repair86 with exactly its current declared API scope, originaldeps, full_file_write=true and hypothesis array of exact current bound failure refs. Preserve successful117 and unrelated verified modules. Do not retry stale source87 UNKNOWN (there is none;87a6 is known invalid JSON). Any repair_action patch changes only listed fields. Revalidate affected dependency goals; no ordinary defect can justify Pro/Max.",
+    "fresh_runtime_diagnosis": {
+      "M6_source_sha256": "2fe4fa288e027f32fc2411364dc9ca8207f39aebc58e3b268f51991c7f1ef060",
+      "frozen_M6_result": "1/2; TypeError _validate_media_present missing project_id and media_ids",
+      "source_observations": {
+        "helper_definition_line": 128,
+        "unmodified_callsite_line": 180,
+        "wrong_loader_path_line": 121,
+        "correct_media_module": "milestones/milestone_dbb8341c8910593063a8/api.py"
+      },
+      "test87_attempt6": "INVALID_OUTPUT / INVALID_OR_INCOMPLETE_JSON; provider completed6073outputtokens, no upstreamUNKNOWN; candidate test stillold valid20df669d",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m6-diagnostic-2fe4fa28\\receipt.json",
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0087\\attempt-0006.json"
+      ],
+      "retained_old_debts": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\continuation-feedback\\veriarbor-33.json",
+      "upstream_unknowns": 6
+    },
+    "redecision": {
+      "strategy_revision": "c50e1a557a3812bd2aec87f69e80570a91737df218cfdda30326517f57d1bf21",
+      "reason": "Actual originalowner86 helper-only patch broke existing call signature and chose wrong module. Frozen M6 checker exposes TypeError;87testresponse was malformed and rejected. Fullfile constraint now scopes M6, cheap Worker family changes for a new complete repair; preserve failedsource/cost and original acceptance.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m6-diagnostic-2fe4fa28\\receipt.json",
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0087\\attempt-0006.json"
+      ]
+    },
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "milestones/milestone_dbb8341c8910593063a8/api.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-diagnostic-350e97b9\\receipt.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-generated-tests-350e97b9\\receipt.json"
+        ]
+      },
+      {
+        "scope_paths": [
+          "milestones/milestone_33270fed0c9054f5ae04/api.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m6-diagnostic-2fe4fa28\\receipt.json",
+          "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0087\\attempt-0006.json"
+        ]
+      }
+    ],
+    "gui_writer_policy": "Do not rewrite117 or89/91 to fix M6 approval. Original86 owns current regression. Later89 owns publicationmedia guard and91 actual GUIpreview. Old unrelated artifacts preserved."
+  }
+}

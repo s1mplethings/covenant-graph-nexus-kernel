@@ -1,0 +1,82 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "QwenFlashAgent7000/Worker24000 only. Preserve11newUNKNOWN. NoPro/Max. 143a25 is fresh bad artifact,154 nativeFAIL,actualdispatch10/11wrong; qualified generic input fix provides all actual sources before firstWorkerresponse, no paid context-reading loopsneeded.",
+    "milestone_completion_request": "Repair current M12 regression in original owner143, then original independent154 measurement underqualifiedrevision8. AllM1-M11backendimplementations remainVERIFIED andmustnotchange. DeliverrealcompleteGUIusingactualprovidedAPIs, then originaltests/docs andpackaging. Do not reproduce speculative inventedops or ordinalmodule mapping.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "main.py": "1aecfa567ec7dbc557e95e4c860ae95e42c005e69a7760c362a6dacbb16d5bd9"
+        }
+      },
+      "current_owner": 143,
+      "attempt": 25,
+      "native_current_failure": {
+        "bound_reference": {
+          "path": "attempts/sem-node-0154/attempt-0001.json",
+          "receipt_hash": "59810b10ea0834fc9b09e27f9747bca92ff4d3af79ca75007e1f27b31c4a748e"
+        },
+        "reason": "M12_independent_business_suite: AssertionError: Normal browser idle connection blocks GUI requests; server is serial"
+      },
+      "actual_root_cause": "143a25write hadobservations=[] and0observedpaths. It guessedopaque modulefilenames lexicographically, inventedbarecreate/list/get andremovedactualuploadbridge/contentedit/newcontent/threading. Actualproject.create nowfails. Do notclaimprogressfromsyntaxPASS. Currentmainisregressed; early_main.py is prioractualworkingGUI reference. AllbackendAPIbodies nowprovided inline forfull_file_write=true, aswellascurrentmain; use realfacts, not guesses.",
+      "qualified_input_change": "Hoststeps44/45: existing scopedtarget automatically supplied; full-file repair keepsalreadyhashverifieddeclareddependencybodies inline. Real13file context251204bytes verified lossless withzeroProvidercalls,38testsPASS. Existingreadpermissions/contextbounds/semanticparserunchanged. No hostbusinesssourcewrites.",
+      "required_mechanisms": [
+        "Restorecorrect11handlerbindings byactual moduleMILESTONE_ID, NOTalphabeticalfilenameorder: M1 milestone_20f2614f6ae8403d4a4e;M2 milestone_4e7c26281cf61a85851e;M3 milestone_1369a82cde04a7e5887d;M4 milestone_90b8868c7203e2958397;M5 milestone_9165a990eed5b9c8801e;M6 milestone_33270fed0c9054f5ae04;M7 promotion_publish;M8 milestone_989800776c3d6229e431;M9 milestone_c511a8ebd29978f5ba97;M10 milestone_af427946c6dea418047a;M11 milestone_dbb8341c8910593063a8. All exactapi.py filesprovided.",
+        "Use actual fullyqualifiedops project.create/list/get, campaign.create/list, content.create/edit/list/get/revisions/compare, approval.review/approve/status, publish.send/list/reconcile, schedule.create/list/cancel/reschedule, receipt.list/get/export, analytics.fetch/history, media.import/list/get, evidence.import/list andsignal.create/list, claim.create/list. Currentbarecreate/list/get/review/approve/publish/upload/fetch_analytics arewrong. ReadprovidedAPIbodies forarguments andresponses. Do notinventAPIaliases.",
+        "Restore actual concurrent HTTPserver: subclass ThreadingHTTPServer or ThreadingMixIn+HTTPServer. Startingserialserve_forever inonebackgroundthread isNOTrequestconcurrency. Native154provesidleTCPsocketblockshealth. KeepCLI--serve/--port/--data andhandleproduct.status, JSONerrors400.",
+        "Complete sharedhumanreadableGUI state andselection (referenceearly_main), realProject/Campaign/Contentcreation, currentclaimselection, channelvariants via Newcontent+content.create; semanticedit usescontent.edit onSAMEID andinvalidatesapproval, NewcontentclearsID. Media previewactualimg/video withcontrols andvisibleerror; passactualselectedmedia_ids/claim_ids tocontent APIs.",
+        "ReachableMedia nav withMedia file/Media kind/Import media. BrowserFileReaderbase64->servervalidateddecode->ownedtempfileinsidedata/tmp->unchangedM11media.import(project_id,path,kind),cleanupfinally. Currentmain merelypostsupload/data towrongM11 andhasnobridge. Serveactualvalidproject-ownedmediabyM11metadata/path MIME, no guessedfilesystempath.",
+        "Shared persistedPlatformURL synchronizedContent/Schedule/Receipts. PublishcallsM7publish.send withactualproject/content/platformURL/idempotencykey andrendersactualreceipt remoteID/revision/status. AnalyticsFetchreachableReceipts, useactualselectedPUBLISHEDreceiptID+sharedURL (receipt hasrequest_ref, NOTplatform_url); analytics.historyrequiresproject_idANDreceipt_id. Renderrealmetrics/history.",
+        "ScheduleM8create requiresproject/content/when/platform_url/idempotency_key; store returnedactualschedule.id andsupportvisiblehumanreadableselection forcancel/reschedule (bothproject_id/schedule_id, reschedulewhen). WhenacceptsISO8601timezone.",
+        "_serve_state(query) validatesselectedproject viaM1project.get; listactualM4campaigns,M5contents,M9receipts,M8schedules forproject. Unknownproject400, no cross-projectrows. GETwithoutselectedprojectmayreturnproject.list+emptyprojectarrays forstartup, notswallowexceptions. Persistselectedrealproject/content acrossreload/restart.",
+        "CompleteSignals/evidence/claims workflows usingrealprovidedM2/M3 APIs andhumanreadableevidenceselection (localdirectorypath permitted; rawIDs/JSONnotrequired). Exposeactualrevisionlist/compare andUNKNOWNreceiptReconcile viaM7 withoutduplicatePOST. These arefrozenM12obligations, notbackendrewrites."
+      ],
+      "atomic_protocol": "strategy.full_file_write=true boolean. All13actualsourcefilesnowinline withobserved_content_sha256; use themdirectly, do notrereadunchangedfiles orlisttheknownpathtable. Onecompleteop2 writeaddressingthecoupledGUI/HTTP integration. Do not emit speculativeassumptions/comments guessingAPIcontracts. No referencebaselinerestore byhost, no backendchanges.",
+      "next": "ChangeStrategy143deps[] withcurrent154failureboundref, integrateallnecessaryregressionandremainingGUImechanisms. Thenexisting154currentqualifiedrevision8 measurementdeps[]. NoM1-M11reruns orduplicateGUIwriter. Tests/docs debts remain.",
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0154\\attempt-0001.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-143a25\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A25_DELTA.txt",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\full-write-inputs45\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-gui-contracts-041a367e\\receipt.json"
+      ]
+    },
+    "gui_writer_policy": "Only original node 143 writes main.py. Backend files and early_main.py remain unchanged. No parallel GUI writers. Host business patches remain zero.",
+    "admission_correction": "Current143a25hasfreshnative154FAIL and10/11actualdispatchmismatches; repairoriginal143deps[] from154boundref {\"path\": \"attempts/sem-node-0154/attempt-0001.json\", \"receipt_hash\": \"59810b10ea0834fc9b09e27f9747bca92ff4d3af79ca75007e1f27b31c4a748e\"}. strategy.full_file_write:true required. Fullcurrenttarget+12verifieddependencies nowinline, includingearly_main.py, all11actualAPIs;useexistingworkingreferenceandactualMILESTONE_ID/opstringsinstead ofguessing. Includeallrequiredmechanisms inWorkerleafgoal/expected; thenexisting154independentmeasurementunderqualifiedrevision8.",
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "main.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0150\\attempt-0002.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A13_DELTA.txt",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-full-write-policy-qualification\\pytest.log",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-upload-8da2b883\\receipt.json"
+        ]
+      }
+    ],
+    "redecision": {
+      "strategy_revision": "f335a8125b950abfdddca508e00183da89177e600f22d7be550ab18e20403c3b",
+      "reason": "Fresh1aecsource/regression and154nativefailure establishchangedartifactandconcretecause: blindwrite with0sourceobservations. Qualified genericfull-fileinputdelivery nowprovidesactualexistingtargetand12verifiedinputs, includingworkingearlyGUI; repairfromactualinterfaces andmeasureonlyM12.",
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0154\\attempt-0001.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-143a25\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A25_DELTA.txt",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\full-write-inputs45\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-gui-contracts-041a367e\\receipt.json"
+      ]
+    }
+  }
+}

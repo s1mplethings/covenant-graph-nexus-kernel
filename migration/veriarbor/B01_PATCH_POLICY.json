@@ -1,0 +1,24 @@
+{
+  "mode": "patch_only",
+  "block_id": "B01",
+  "writer_node_id": "sem-node-0143",
+  "hold_after_worker_attempt": true,
+  "files": {
+    "main.py": {
+      "source_sha256": "97fac580ddd0b04a91c35f26a91e3554abb82ad86e8e6159864d4e49f4dce478",
+      "ranges": [
+        [
+          23931,
+          26250
+        ]
+      ],
+      "max_changed_chars": 14000,
+      "allowed_sections": [
+        "loadProjects",
+        "selectProject",
+        "createProject",
+        "populateProjectSelects"
+      ]
+    }
+  }
+}

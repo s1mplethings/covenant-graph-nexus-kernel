@@ -1,0 +1,95 @@
+{
+  "revision": {
+    "checker_hash": "836e4ab1737aaa20cfa2946cea529115c46f5c3b3183117c70848971a0229194",
+    "checker_key": "independent",
+    "checker_version": "qualified-revision-8",
+    "kind": "QualifiedCheckerRevision",
+    "previous_checker_hash": "6184bb1a75d8dc497187013c62709f1527c6057acf0ae13d91b5ad5aafbf7f3d",
+    "qualification_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/eecbb3f18cadae3f12aefad8e24a9c5f3f03c18be66b342b2d1207d264c0b933.json",
+      "sha256": "1819b9ce67cffe233a7631f1685ab0b02f4bb7d592f9314e9aaeb9c2682f988b"
+    },
+    "reason": "Actual browser diagnostic observed analytics HTTP400 while old basic native probe passed by finding unscoped text 11. Eleven new response/binding controls qualify real HTTP200, exact platform metrics and published receipt remote/revision/channel/timestamp binding. All v9 assertions and historical failures retained; only M12.",
+    "sequence": 8,
+    "source_ref": {
+      "path": "iter132-promotion-studio/promotion-05/private_checker/836e4ab1737aaa20cfa2946cea529115c46f5c3b3183117c70848971a0229194.py",
+      "sha256": "836e4ab1737aaa20cfa2946cea529115c46f5c3b3183117c70848971a0229194"
+    },
+    "revision_ref": {
+      "path": "iter132-promotion-studio/promotion-05/checker_revisions/000008.json",
+      "sha256": "99d6f5244e2f9f5af26998681a581715329e20f0582135c44f5a734116f9d590"
+    }
+  },
+  "decision": {
+    "checker_key": "independent",
+    "previous_checker_hash": "6184bb1a75d8dc497187013c62709f1527c6057acf0ae13d91b5ad5aafbf7f3d",
+    "source_path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\consumer-revisions\\final-gui-complete-v10.py",
+    "source_sha256": "836e4ab1737aaa20cfa2946cea529115c46f5c3b3183117c70848971a0229194",
+    "qualification_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/eecbb3f18cadae3f12aefad8e24a9c5f3f03c18be66b342b2d1207d264c0b933.json",
+      "sha256": "1819b9ce67cffe233a7631f1685ab0b02f4bb7d592f9314e9aaeb9c2682f988b"
+    },
+    "reason": "Actual browser diagnostic observed analytics HTTP400 while old basic native probe passed by finding unscoped text 11. Eleven new response/binding controls qualify real HTTP200, exact platform metrics and published receipt remote/revision/channel/timestamp binding. All v9 assertions and historical failures retained; only M12."
+  },
+  "scope": [
+    "M12"
+  ],
+  "actual_executor_fallback_chain": [
+    {
+      "version": "qualified-revision-8",
+      "scope": [
+        "M12"
+      ],
+      "hash": "836e4ab1737aaa20cfa2946cea529115c46f5c3b3183117c70848971a0229194"
+    },
+    {
+      "version": "qualified-revision-7",
+      "scope": [
+        "M12"
+      ],
+      "hash": "6184bb1a75d8dc497187013c62709f1527c6057acf0ae13d91b5ad5aafbf7f3d"
+    },
+    {
+      "version": "qualified-revision-6",
+      "scope": [
+        "M12"
+      ],
+      "hash": "af46c7b59f05ff97ec89d9dc3a242218868a7d199ec578de25621707dab68647"
+    },
+    {
+      "version": "qualified-revision-5",
+      "scope": [
+        "M12"
+      ],
+      "hash": "d05800394ccd73afbe141e347cf23b949518397cc1a71adbe82f4b0ff88c8469"
+    },
+    {
+      "version": "qualified-revision-4",
+      "scope": [
+        "M12"
+      ],
+      "hash": "80e2d724dbc35e522ef4aca2b8f4e920b437a0a0f07173e877e80099e17d32e8"
+    },
+    {
+      "version": "qualified-revision-3",
+      "scope": [
+        "M11"
+      ],
+      "hash": "b43bb596503990c24e4fc9b5eb8df2dc7b784eb101514351d6e9617cfaccfaea"
+    },
+    {
+      "version": "qualified-revision-2",
+      "scope": [
+        "M11"
+      ],
+      "hash": "283bf80a6cd4fe3866f2c00a032d38bb4e3c7a6d58e07bcdc06e26978ccf3c11"
+    },
+    {
+      "version": "qualified-revision-1",
+      "scope": null,
+      "hash": "5201a3c5aa6c9e829890787e3a5d6b8f60d3de104b301fb9df5eeb28faeb1007"
+    }
+  ],
+  "acceptance_granted": false,
+  "provider_calls": 0
+}

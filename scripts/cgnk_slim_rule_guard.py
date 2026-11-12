@@ -154,9 +154,9 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     )
     add(
         checks,
-        "default generation dispatch marks api_provider_project_generation driver",
-        "api_provider_project_generation" in start_body and "agent_generated_pipeline" not in start_body,
-        "start_agent_generation driver is not api_provider_project_generation",
+        "default generation dispatch marks project_session driver",
+        "project_session" in start_body and "agent_generated_pipeline" not in start_body,
+        "start_agent_generation driver is not project_session",
     )
     add(
         checks,
@@ -198,27 +198,17 @@ def run_checks(strict: bool = False) -> dict[str, object]:
         and "governed_kernel_repair_required" in supervision_router,
         "canonical audit action or deterministic route is missing",
     )
-    add(
-        checks,
-        "production leaf executor is the only ProviderJob scheduler",
-        "class ProviderJob" in provider_jobs
-        and "CGKN_PROVIDER_PARALLELISM" in provider_jobs
-        and "ThreadPoolExecutor" not in provider_jobs
-        and "execute_provider_jobs" not in provider_jobs
-        and "ThreadPoolExecutor" in provider_impl
-        and "validate_patch_set" in provider_impl,
-        "ProviderJob contract, unique production scheduler, or ownership boundary is missing",
-    )
-    add(
-        checks,
-        "production bridge consumes bounded false-pass routes",
-        "MAX_SUPERVISION_REWORK_ROUNDS = 2" in bridge
-        and "run_supervision_recovery_cycle" in bridge
-        and "prepare_supervision_provider_repair" in bridge
-        and "invalidate_supervision_evidence" in bridge
-        and "execute_governed_supervision_repair" in bridge,
-        "bounded production false-pass consumer is incomplete",
-    )
+    session_service = read_text("cgkn/application/software_project/service.py")
+    add(checks, "ProjectSession owns execution scheduling",
+        "ProjectSession" in session_service and "DAGRunner" in session_service
+        and "def provider_generate_project_by_components(" not in provider_impl
+        and "def execute_provider_job_patch_generation(" not in provider_impl,
+        "single session scheduling or obsolete scheduler retirement missing")
+    add(checks, "failed finalization cannot replay or grant delivery",
+        "outcome_unknown" in session_service
+        and "public_delivery_allowed" in session_service
+        and "reconcile before replay" in session_service,
+        "explicit finalization recovery boundary missing")
     post_build_body = function_body(bridge, "post_build_finalize_provider_project")
     forbidden_kernel_repairs = [
         name
@@ -240,20 +230,13 @@ def run_checks(strict: bool = False) -> dict[str, object]:
         ", ".join(forbidden_kernel_repairs) or "Provider repair routing marker missing",
     )
 
-    provider_route_body = "\n".join(
-        (
-            function_body(bridge, "run_provider_generation_job"),
-            function_body(bridge, "run_provider_execute_with_retries"),
-            function_body(bridge, "execute_validated_provider_round"),
-        )
-    )
-    missing_provider_terms = [term for term in PROVIDER_ROUTE_TERMS if term not in provider_route_body]
-    add(
-        checks,
-        "provider route is behind validation packager and gate",
-        bool(provider_route_body.strip()) and not missing_provider_terms,
-        ", ".join(missing_provider_terms) or "provider route function bodies not found",
-    )
+    provider_route_body = function_body(bridge, "run_provider_generation_job")
+    service = read_text("cgkn/application/software_project/service.py")
+    required = ["SoftwareProjectGenerationService", "service.run_profile", "PRIOR_OUTCOME_UNKNOWN"]
+    missing_provider_terms = [term for term in required if term not in provider_route_body]
+    missing_provider_terms += [term for term in ["produce_project_session", "post_build_finalize_provider_project"] if term not in service]
+    retired = [name for name in ["run_provider_execute_with_retries", "execute_validated_provider_round", "run_simulator_preflight"] if function_body(bridge,name)]
+    add(checks, "single session route retains validation and finalization", not missing_provider_terms and not retired, ", ".join(missing_provider_terms+retired))
 
     default_session_body = function_body(bridge, "default_session")
     add(
@@ -324,7 +307,7 @@ def run_checks(strict: bool = False) -> dict[str, object]:
     add(
         checks,
         "model defaults are centralized for bridge and connectivity",
-        "model_policy.select_model(\"provider_generation\")" in bridge and "model_policy.select_model(\"connectivity\")" in connectivity,
+        "SoftwareProjectGenerationService" in bridge and "model_policy.select_model(\"connectivity\")" in connectivity,
         "bridge or connectivity still bypasses model_policy defaults",
     )
     add(

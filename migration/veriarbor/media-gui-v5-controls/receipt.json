@@ -1,0 +1,62 @@
+{
+  "kind": "IndependentMediaGuiCheckerControls",
+  "status": "PASS",
+  "controls": [
+    {
+      "name": "real_image_video",
+      "kind": "positive",
+      "expected": true,
+      "observed": true,
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "text_placeholders",
+      "kind": "negative",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "AssertionError: Actual image and video preview elements required"
+    },
+    {
+      "name": "hidden_image",
+      "kind": "negative",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "AssertionError: Actual image and video preview elements required"
+    },
+    {
+      "name": "wrong_content_identity",
+      "kind": "mutation",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "AssertionError: Image preview must display the imported bytes"
+    },
+    {
+      "name": "no_video_controls",
+      "kind": "mutation",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "AssertionError: Video preview must have controls and serve imported bytes"
+    },
+    {
+      "name": "broken_image",
+      "kind": "mutation",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "AssertionError: Image preview must display the imported bytes"
+    }
+  ],
+  "previous_checker_hash": "283bf80a6cd4fe3866f2c00a032d38bb4e3c7a6d58e07bcdc06e26978ccf3c11",
+  "checker_hash": "b43bb596503990c24e4fc9b5eb8df2dc7b784eb101514351d6e9617cfaccfaea",
+  "scope": [
+    "M11"
+  ],
+  "qualification_only": true,
+  "product_acceptance_granted": false,
+  "host_business_patches": 0
+}

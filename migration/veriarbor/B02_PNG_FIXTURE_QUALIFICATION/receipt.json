@@ -1,0 +1,17 @@
+{
+  "kind": "BrowserPNGFixtureQualification",
+  "browser": "134.0.3124.51",
+  "results": {
+    "old": {
+      "complete": true,
+      "width": 1
+    },
+    "new": {
+      "complete": true,
+      "width": 32
+    }
+  },
+  "old_sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e",
+  "new_sha256": "dada2178f26775cb9b6739efeffbf839a358fcea215644f34ac6feee9a2d1cb9",
+  "product_sources_changed": false
+}

@@ -1,0 +1,40 @@
+{
+  "source_sha256": "041a367eaaaf2b318ecd380f26a5227019733457bce918de5d224286dd35e8cb",
+  "checks": [
+    "browser image upload HTTP200",
+    "real identity",
+    "source unchanged"
+  ],
+  "scope": "Browser image upload port only; not B02/M12 completion",
+  "browser": "134.0.3124.51",
+  "upload": {
+    "status": 200,
+    "body": {
+      "id": "e02d0b72ed9246df85a70f3575ef1787",
+      "project_id": "db3ad08bf11f433a804cb398eedcb063",
+      "kind": "image",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_PORT_QUALIFICATION\\wrong-hash\\data\\media_storage\\db3ad08bf11f433a804cb398eedcb063\\e02d0b72ed9246df85a70f3575ef1787.png",
+      "status": "VALID"
+    }
+  },
+  "status": "FAIL",
+  "error": "AssertionError: project and bytes binding",
+  "startup": {
+    "command": [
+      "D:\\anaconda\\python.exe",
+      "-X",
+      "utf8",
+      "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_PORT_QUALIFICATION\\mutation-source\\main.py",
+      "--serve",
+      "--port",
+      "20896",
+      "--data",
+      "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_PORT_QUALIFICATION\\wrong-hash\\data"
+    ],
+    "url": "http://127.0.0.1:20896"
+  },
+  "cleanup": {
+    "server_stopped": true
+  }
+}

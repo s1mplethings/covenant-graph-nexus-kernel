@@ -1,0 +1,78 @@
+{
+  "expected_gui_sha256": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+  "feedback": {
+    "cost_policy": "Qwen3.8Flash Agent and Worker for new requests after DeepSeek partial-helper regression and malformedJSON testoutput. Cheap-family substitution only, no Pro/Max, not acceptance evidence. Same-model review SELF_CRITIQUE. Preserve6upstreamUNKNOWNs and all failed responses; no exact replay.",
+    "milestone_completion_request": "Continue from current state, not P0. M6-M10 now VERIFIED for their original checker scopes; their source need not be regenerated. M11 current evidence is insufficient after M6 source change: obtain only the necessary current M11 registered independent measurement, preferably existing suitable observer with current producer dependencies. Once current failed evidence exists do NOT repeat measurement before repair. Consolidate remaining media handoff defects in original ownership:86 approval loader selects M5 instead of actual M11 (signature call already fixed);89 publication must independently reject missing/broken media on actual publish path before side effects, including bytes removed AFTER approval;91 actual GUI image/video preview. Preserve117 current e4737c44 media API. Use current failure dependency ownership to admit bounded repairs, preserve deps and public contracts. Finish all admitted related source repairs before a single necessary affected-subgraph validation sweep where legal; never bypass provenance or required failure gates. Do not regenerate unchanged M7-M10 sources or add duplicate observers. Preserve existing tests;87 current10case file lost original STALE rejection coverage and must restore it under original test owner, not wholesale rewrite. Keep34 meaningful M11 tests. Continue M11 then M12 and canonical final tests/delivery/accounting/Corpus. Earlier final fixture debts are retained, not waived.",
+    "admission_correction": "No unconditional FIRST refresh instruction. Inspect current evidence and dependencies; only measure when no current required failure exists. Reuse suitable observer and source owner; bind producer dependencies. For repair preserve exact scope/deps/acceptance, provide current falsifying_evidence array, strategy problem and distinct named mechanism fields. For scopes already constrained full_file_write must be boolean true. Worker response must satisfy original JSON protocol with no prose prefix. Never replay UNKNOWN.",
+    "fresh_runtime_diagnosis": {
+      "M6_current_source_sha256": "db223502ff57164389978d41cde5d9f850c756a714f9c8b5fd9085ffea27d511",
+      "M11_source_sha256": "e4737c448e03a9fd794b9cc86a34a0ab14a04add0ac24b6cbbe42bb7e85336af",
+      "remaining_defects": [
+        "Approval loader selects milestone_9165a990eed5b9c8801e (M5), actual media is milestone_dbb8341c8910593063a8 (M11). Valid imported media currently fails approval.",
+        "Publication guard remains absent in unchanged89. Latest generated publication tests fail at prerequisite approval, so reduced failure count is NOT publication progress.",
+        "Real GUI media preview absent.",
+        "Current M6 tests omit original STALE rejection; original12cases all pass unchanged against current source."
+      ],
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M6_MEDIA_LOADER_DIAGNOSIS.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-diagnostic-e4737c44-m6-db223502\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M10_ACCEPTANCE.json"
+      ],
+      "authority": "Diagnostic only; original registered checks and current bound failures remain authoritative.",
+      "retained_final_test_debts": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\continuation-feedback\\veriarbor-33.json",
+      "upstream_unknowns": 6
+    },
+    "redecision": {
+      "strategy_revision": "b9d0d38c5c447cf4688b15b524aabc5e502b478ccfed83fad21f6f7eeba35d35",
+      "reason": "35 fixed approval call arguments but left incorrect module identity. M6-M10 current checks pass; M11 integration remains unverified. New precise loader diagnosis and coverage comparison support bounded dependency-owner repairs with one necessary validation sweep, avoiding repeated unconditional refresh and duplicate observers.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M6_MEDIA_LOADER_DIAGNOSIS.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-diagnostic-e4737c44-m6-db223502\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M10_ACCEPTANCE.json"
+      ]
+    },
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "milestones/milestone_dbb8341c8910593063a8/api.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-diagnostic-350e97b9\\receipt.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-generated-tests-350e97b9\\receipt.json"
+        ]
+      },
+      {
+        "scope_paths": [
+          "milestones/milestone_33270fed0c9054f5ae04/api.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m6-diagnostic-2fe4fa28\\receipt.json",
+          "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0087\\attempt-0006.json"
+        ]
+      }
+    ],
+    "gui_writer_policy": "86 owns approval loader;89 owns publish media guard;91 owns early_main.py media preview;117 current media API must be preserved. One writer per file, no host business patches. Keep previously working review/approve/publish workflow."
+  }
+}

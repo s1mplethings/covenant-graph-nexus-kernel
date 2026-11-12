@@ -1,0 +1,64 @@
+{
+  "kind": "ReadOnlyGUIBoundaryObservation",
+  "artifact_sha256": "a179cebca94896120f63cf3fd07be6f1e51c89dffe8d856edd688cace0507c8d",
+  "checker_sha256": "5201a3c5aa6c9e829890787e3a5d6b8f60d3de104b301fb9df5eeb28faeb1007",
+  "buttons": [
+    {
+      "id": "nav-review",
+      "text": "Review",
+      "visible": true,
+      "disabled": false,
+      "section": null,
+      "inNav": true
+    },
+    {
+      "id": "nav-publish",
+      "text": "Publish",
+      "visible": true,
+      "disabled": false,
+      "section": null,
+      "inNav": true
+    },
+    {
+      "id": "review-action",
+      "text": "Review",
+      "visible": false,
+      "disabled": false,
+      "section": "review-view",
+      "inNav": false
+    },
+    {
+      "id": "approve-action",
+      "text": "Approve",
+      "visible": false,
+      "disabled": true,
+      "section": "review-view",
+      "inNav": false
+    },
+    {
+      "id": "publish-action",
+      "text": "Publish",
+      "visible": false,
+      "disabled": true,
+      "section": "publish-view",
+      "inNav": false
+    }
+  ],
+  "page_state": {
+    "storage": {
+      "campaignId": "03feacdb4693483aaa9252731fc28e35",
+      "contentId": "cd088fc933664a0eb1162c62125e2590",
+      "projectId": "938f1c0b1d69450eb02b116a57e519e4"
+    },
+    "visibleSections": [
+      "content-view"
+    ],
+    "alerts": [
+      ""
+    ]
+  },
+  "action_bar_element_count": 0,
+  "test_boundary": "After Save content, before qualified Review click",
+  "acceptance_authority": false,
+  "host_business_patches": 0
+}

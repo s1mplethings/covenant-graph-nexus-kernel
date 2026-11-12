@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="4" time="6.173" timestamp="2026-11-04T00:56:06.208155+08:00" hostname="test"><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_approval_blocks_broken_media" time="0.289" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_approval_blocks_missing_media" time="0.353" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_publish_blocks_broken_media" time="2.625"><failure message="Failed: DID NOT RAISE &lt;class 'ValueError'&gt;">data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\media-local-edges-fa6720fa\\test_publish_blocks_broken_med0\\data'
+tmp_path = WindowsPath('F:/CGKN-LeanLoop-V1-20261101/migration/veriarbor/scratch/media-local-edges-fa6720fa/test_publish_blocks_broken_med0')
+
+    def test_publish_blocks_broken_media(data_dir, tmp_path):
+        src = _write_file(tmp_path, "pic.png", PNG_BYTES)
+        proj = _make_project(data_dir)
+        imported = _import_media(data_dir, proj["id"], src, "image")
+    
+        campaign = m4.handle(data_dir, {
+            "op": "campaign.create",
+            "project_id": proj["id"],
+            "name": "c",
+            "audience": "a",
+            "channels": ["email"],
+        })
+        content = m5.handle(data_dir, {
+            "op": "content.create",
+            "project_id": proj["id"],
+            "campaign_id": campaign["id"],
+            "channel": "email",
+            "text": "hello world",
+            "claim_ids": [],
+            "media_ids": [imported["id"]],
+        })
+    
+        # Approve while media is valid.
+        m6.handle(data_dir, {
+            "op": "approval.review",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+        m6.handle(data_dir, {
+            "op": "approval.approve",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+    
+        # Now corrupt the media bytes.
+        stored = os.path.join(data_dir, imported["path"])
+        with open(stored, "wb") as f:
+            f.write(b"corrupted")
+    
+&gt;       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE &lt;class 'ValueError'&gt;
+
+tests\test_milestone_dbb8341c8910593063a8.py:515: Failed</failure></testcase><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_publish_blocks_missing_media" time="2.648"><failure message="Failed: DID NOT RAISE &lt;class 'ValueError'&gt;">data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\media-local-edges-fa6720fa\\test_publish_blocks_missing_me0\\data'
+tmp_path = WindowsPath('F:/CGKN-LeanLoop-V1-20261101/migration/veriarbor/scratch/media-local-edges-fa6720fa/test_publish_blocks_missing_me0')
+
+    def test_publish_blocks_missing_media(data_dir, tmp_path):
+        src = _write_file(tmp_path, "pic.png", PNG_BYTES)
+        proj = _make_project(data_dir)
+        imported = _import_media(data_dir, proj["id"], src, "image")
+    
+        campaign = m4.handle(data_dir, {
+            "op": "campaign.create",
+            "project_id": proj["id"],
+            "name": "c",
+            "audience": "a",
+            "channels": ["email"],
+        })
+        content = m5.handle(data_dir, {
+            "op": "content.create",
+            "project_id": proj["id"],
+            "campaign_id": campaign["id"],
+            "channel": "email",
+            "text": "hello world",
+            "claim_ids": [],
+            "media_ids": [imported["id"]],
+        })
+    
+        m6.handle(data_dir, {
+            "op": "approval.review",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+        m6.handle(data_dir, {
+            "op": "approval.approve",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+    
+        stored = os.path.join(data_dir, imported["path"])
+        os.remove(stored)
+    
+&gt;       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE &lt;class 'ValueError'&gt;
+
+tests\test_milestone_dbb8341c8910593063a8.py:561: Failed</failure></testcase></testsuite></testsuites>

@@ -1,0 +1,11 @@
+{
+  "attempt": "attempt-0035",
+  "node": "sem-node-0143",
+  "verdict": "PATCH_SCOPE_EXCEEDED",
+  "source_sha256": "61bebcfedac3c0624cdb0bb1a65e208eeb05a95eb664488042b5b84ecb11bdd4",
+  "applied": false,
+  "source_unchanged": true,
+  "browser_executed": false,
+  "new_failure_evidence": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0143\\attempt-0035.json",
+  "reason": "Third patch targeted _serve_media outside authorized adapter region; entire batch rejected atomically. Existing _serve_media already calls handle; its implementation remains read-only."
+}

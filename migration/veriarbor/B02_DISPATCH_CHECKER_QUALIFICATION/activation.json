@@ -1,0 +1,30 @@
+{
+  "revision": {
+    "checker_hash": "1c6741f91fedd89971e28a14d1c2a79edcfd32c4236d9a0c7743f739aa5977aa",
+    "checker_key": "independent",
+    "checker_version": "qualified-revision-11",
+    "kind": "QualifiedCheckerRevision",
+    "previous_checker_hash": "b41ec83e317c3623f33be1ec58323e2baac66ae3b0f4849e1947078bcbace1cb",
+    "qualification_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/43bb84afc1a17f24710875600515e145f01eb3d2e5991b6ac366daca89829126.json",
+      "sha256": "790653316232a6f89248387d2be729259bd2d0b8b7eb38de05ef4e423fd0eb6d"
+    },
+    "reason": "B02 adapter must preserve original explicit dispatch and unrelated milestone concurrency; existing browser/concurrent preview observation retained; no full M12; independent positive, negative, mutation and object binding controls passed. No business implementation or full M12 verification granted.",
+    "sequence": 11,
+    "source_ref": {
+      "path": "iter132-promotion-studio/promotion-05/private_checker/1c6741f91fedd89971e28a14d1c2a79edcfd32c4236d9a0c7743f739aa5977aa.py",
+      "sha256": "1c6741f91fedd89971e28a14d1c2a79edcfd32c4236d9a0c7743f739aa5977aa"
+    },
+    "revision_ref": {
+      "path": "iter132-promotion-studio/promotion-05/checker_revisions/000011.json",
+      "sha256": "dcedb7963a0d3dcc4f32657162361f73bb31ec724d84dd155a7c0f55b90a948f"
+    }
+  },
+  "qualification": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/43bb84afc1a17f24710875600515e145f01eb3d2e5991b6ac366daca89829126.json",
+    "sha256": "790653316232a6f89248387d2be729259bd2d0b8b7eb38de05ef4e423fd0eb6d"
+  },
+  "source_qualification": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_DISPATCH_CHECKER_QUALIFICATION\\receipt.json",
+  "business_writes": 0,
+  "acceptance_granted": false
+}

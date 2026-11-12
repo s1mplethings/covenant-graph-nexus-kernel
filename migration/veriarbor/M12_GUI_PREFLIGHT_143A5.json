@@ -1,0 +1,10 @@
+{
+  "kind": "StaticGuiClosureDiagnostic",
+  "source_sha256": "09283ff67ccec8f78268362d44e66264a598728b19bd040b8ef1c5fcbd08e2f7",
+  "duplicate_ids": [],
+  "duplicate_testids": [],
+  "missing_literal_targets": [],
+  "limitations": "Dynamic DOM construction, media bytes, event execution and business readiness require browser verification.",
+  "acceptance_authority": false,
+  "host_business_patches": 0
+}

@@ -1,0 +1,29 @@
+{
+  "kind": "FullWriteActualContextQualification",
+  "status": "PASS",
+  "provider_calls": 0,
+  "candidate_modified": false,
+  "observed": {
+    "input_bytes": 251204,
+    "inline_hashes": {
+      "early_main.py": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+      "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+      "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+      "milestones/milestone_33270fed0c9054f5ae04/api.py": "fa6720fa72e5e955987349f999c1314360f448310c1fa52d2e63179df741f950",
+      "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+      "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+      "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+      "milestones/milestone_989800776c3d6229e431/api.py": "a613d313a070daefc416eb56ab9f7f0ea4b9ab6c11d6ad745a0d029f67e71b38",
+      "milestones/milestone_af427946c6dea418047a/api.py": "95c470c2bb2e3ad0fed836dfe705f1baa29648b8c954b572629f6eb9940672c3",
+      "milestones/milestone_c511a8ebd29978f5ba97/api.py": "544d890040f5e119f9bb26d797d2a3d2f8669fac93f581bc98811431db651558",
+      "milestones/milestone_dbb8341c8910593063a8/api.py": "4e3f4f9ec6ad0c30a04566a3c6a51e5d6d7bb55e23371bbae740831f3f866a08",
+      "promotion_publish.py": "c3d9f8917f484c7001a5bffe8c8a72bf330a783c3edf8233689a5291373c3592",
+      "main.py": "1aecfa567ec7dbc557e95e4c860ae95e42c005e69a7760c362a6dacbb16d5bd9"
+    },
+    "write_operations": [
+      2
+    ]
+  },
+  "executor_status": "BLOCKED",
+  "scope": "Current target plus all 12 declared verified dependencies are losslessly inline before the first model response. No generated implementation or product acceptance."
+}

@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "D:\\anaconda\\python.exe",
+    "-m",
+    "pytest",
+    "tests/test_veriarbor_test_encoding.py",
+    "-q",
+    "--tb=short"
+  ],
+  "exit_code": 1,
+  "status": "REPRODUCED_UTF8_MODE_ZERO",
+  "log_sha256": "8424cd1b73ede44086a6487deddbd042312a6c56ea24141b3b5dc740de49b0ec"
+}

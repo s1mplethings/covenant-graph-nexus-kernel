@@ -226,40 +226,10 @@ class CodexCliThreadAdapter:
         return protocol.build_result(checkpoint, resolved_thread, draft)
 
 
-def process_is_alive(pid: int) -> bool:
-    if int(pid or 0) <= 0:
-        return False
-    if os.name == "nt":
-        # os.kill(pid, 0) is not a reliable existence probe on Windows and can
-        # surface WinError 87 as a SystemError. Querying a process handle is
-        # read-only and works for detached CREATE_NEW_PROCESS_GROUP children.
-        import ctypes
-
-        process_query_limited_information = 0x1000
-        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-        open_process = kernel32.OpenProcess
-        open_process.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_uint32]
-        open_process.restype = ctypes.c_void_p
-        close_handle = kernel32.CloseHandle
-        close_handle.argtypes = [ctypes.c_void_p]
-        close_handle.restype = ctypes.c_int
-        handle = open_process(process_query_limited_information, 0, int(pid))
-        if handle:
-            get_exit_code = kernel32.GetExitCodeProcess
-            get_exit_code.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint32)]
-            get_exit_code.restype = ctypes.c_int
-            exit_code = ctypes.c_uint32()
-            queried = bool(get_exit_code(handle, ctypes.byref(exit_code)))
-            close_handle(handle)
-            return queried and exit_code.value == 259  # STILL_ACTIVE
-        return ctypes.get_last_error() == 5  # Access denied still means it exists.
-    try:
-        os.kill(int(pid), 0)
-        return True
-    except PermissionError:
-        return True
-    except (OSError, ProcessLookupError):
-        return False
+try:
+    from .process_identity import process_is_alive
+except ImportError:  # Existing standalone supervisor invocation.
+    from process_identity import process_is_alive
 
 
 def _service_command_hash(argv: list[str]) -> str:

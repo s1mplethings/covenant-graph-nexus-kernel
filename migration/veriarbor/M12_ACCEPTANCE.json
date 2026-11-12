@@ -1,0 +1,29 @@
+{
+  "kind": "DerivedM12AcceptanceView",
+  "milestone": "M12",
+  "verdict": "VERIFIED",
+  "timestamp": "2026-11-05T18:01:29.079003+00:00",
+  "source_sha256": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+  "authority": "B01-B10 block certificates plus B11 independent full vertical-slice acceptance; not a new GoalAcceptance authority",
+  "block_status": {
+    "B01": "VERIFIED_FROZEN_REUSABLE",
+    "B02": "VERIFIED_FROZEN_REUSABLE",
+    "B03": "VERIFIED_FROZEN_REUSABLE",
+    "B04": "VERIFIED_FROZEN_REUSABLE",
+    "B05": "VERIFIED_FROZEN_REUSABLE",
+    "B06": "VERIFIED_FROZEN_REUSABLE",
+    "B07": "VERIFIED_FROZEN_REUSABLE",
+    "B08": "VERIFIED_FROZEN_REUSABLE",
+    "B09": "VERIFIED_FROZEN_REUSABLE",
+    "B10": "VERIFIED_FROZEN_REUSABLE",
+    "B11": "PASS"
+  },
+  "b11_acceptance": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B11_FINAL_VERTICAL_SLICE_ACCEPTANCE.json",
+  "b11_certificate_ref": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/6a6c2a28a123a7505f8ad1377a1487ce6cd223d0ca8aafcb370e31257404aca2.json",
+    "sha256": "1bca7f7c2d45112ee4794b5b0d863aa402c3e67946aac5567b2d907194d2ecf5"
+  },
+  "is_new_acceptance_authority": false,
+  "final_product_complete": false,
+  "note": "M12 milestone is VERIFIED. DOGFOOD, packaging, GoalAcceptance and final delivery remain separate gates."
+}

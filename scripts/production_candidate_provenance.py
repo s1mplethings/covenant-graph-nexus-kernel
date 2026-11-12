@@ -579,7 +579,7 @@ def inspect(
 def _project_session_projection(store, project_id, run_id, candidate, *,
                                 release_trust_anchor=None, release_authorization=None):
     """Rebuild existing core facts; no legacy stage attribution is synthesized."""
-    from cgkn.state.acceptance import GoalAcceptance
+    from cgkn.runtime.acceptance import open_goal_acceptance as GoalAcceptance
     from cgkn.state.provenance import ProvenanceGate,reference
     root=store.run_dir(project_id,run_id)
     names=('project_profile.json','goal_acceptance.json','capability_tree.json',

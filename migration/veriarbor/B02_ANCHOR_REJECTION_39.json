@@ -1,0 +1,16 @@
+{
+  "attempt": "attempt-0039",
+  "model": "deepseek-flash",
+  "source_sha256": "f269c86e84826bcdb09e4422cb480e3cffe9fded7c2788ee2334aabdb9537ea1",
+  "anchor_lengths": [
+    390,
+    98
+  ],
+  "anchor_match_counts": [
+    0,
+    1
+  ],
+  "applied": false,
+  "browser_executed": false,
+  "new_strategy": "Each anchor <=120 characters, disallowing the repeated comment-spanning bad anchor; Qwen Flash alternate Worker within original routing mechanism. No same-model semantic review claim."
+}

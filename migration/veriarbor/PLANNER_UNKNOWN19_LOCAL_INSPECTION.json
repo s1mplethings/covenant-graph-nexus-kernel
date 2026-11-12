@@ -1,0 +1,17 @@
+{
+  "kind": "PlannerStreamLocalEffectInspection",
+  "timestamp": "2026-11-03T13:25:16.070628+00:00",
+  "source_error": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\provider_calls\\02a40f4c990849dc92ce991632982f9c\\error.json",
+  "source_error_sha256": "614505e50cd874b09b828c77ef3caf13efc66fd86028233796f8d07f4d20f9d4",
+  "canonical_tree_dag_run_acceptance_unchanged": {
+    "capability_tree.json": true,
+    "run_state.json": true,
+    "goal_acceptance.json": true,
+    "execution_dag.json": true
+  },
+  "comparison": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\FILESYSTEM_INTERRUPTION18.json",
+  "checkpoint_changed_reason": "Original continuation19 recorded its new continuation requirements; no new tree plan or execution was committed.",
+  "upstream_outcome": "UNKNOWN_RETAINED",
+  "ledger_request_identity": "sha256:65be20c3a1c02dac03fdd6098f1a9be1e6a016d784244cae33a23a6616c1806f",
+  "scope": "Planner selection request only; no execution identity, no candidate write. No upstream response or cost reconciliation claimed. Fresh decision and explicit alternate Flash route required; never replay this request."
+}

@@ -1,0 +1,27 @@
+{
+  "kind": "IsolatedFixtureQualification",
+  "original_diagnostic": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m6-restored-stale-7885a399\\receipt.json",
+  "scope": "Only diagnostic copied fixture changed; original product source/tests and assertions unchanged. Current-evidence text/support was always valid despite cached claim status parameter. Runtime recomputes support, so original two negative cases had invalid setup. Original Provider test owner87 must correct fixture.",
+  "argv": [
+    "D:/anaconda/python.exe",
+    "-I",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/test_milestone_33270fed0c9054f5ae04.py",
+    "-q",
+    "-k",
+    "invalid_claim",
+    "-c",
+    "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m6-fixture-qualification-7885a399\\pytest.ini",
+    "-o",
+    "pythonpath=F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m6-fixture-qualification-7885a399\\snapshot",
+    "--basetemp=F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m6-fixture-qualification-7885a399\\tmp"
+  ],
+  "exit_code": 0,
+  "original_test_sha256": "7885a399ad8eccd6dd1882c0ba4887019de44c928bcd2c14edd010091216030d",
+  "diagnostic_test_sha256": "1eef0c71926760bee755df9f2fa90d292cead34ce852a19fe6809e3bde90b2da",
+  "original_product_test_unchanged": true,
+  "acceptance_authority": false
+}

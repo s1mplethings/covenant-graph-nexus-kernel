@@ -1,0 +1,152 @@
+{
+  "kind": "M12FinalProvenance",
+  "created_at": "2026-11-06T00:32:23.166496+00:00",
+  "source": {
+    "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\main.py",
+    "sha256": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+    "candidate_tree_hash": "sha256:c27381f99f8ff71632ebd66720f59e5ff8f2b6d259600da412df31d468f2744b",
+    "commit_sha": "unknown"
+  },
+  "m12": {
+    "status": "VERIFIED",
+    "acceptance": {
+      "kind": "DerivedM12AcceptanceView",
+      "milestone": "M12",
+      "verdict": "VERIFIED",
+      "timestamp": "2026-11-05T18:01:29.079003+00:00",
+      "source_sha256": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+      "authority": "B01-B10 block certificates plus B11 independent full vertical-slice acceptance; not a new GoalAcceptance authority",
+      "block_status": {
+        "B01": "VERIFIED_FROZEN_REUSABLE",
+        "B02": "VERIFIED_FROZEN_REUSABLE",
+        "B03": "VERIFIED_FROZEN_REUSABLE",
+        "B04": "VERIFIED_FROZEN_REUSABLE",
+        "B05": "VERIFIED_FROZEN_REUSABLE",
+        "B06": "VERIFIED_FROZEN_REUSABLE",
+        "B07": "VERIFIED_FROZEN_REUSABLE",
+        "B08": "VERIFIED_FROZEN_REUSABLE",
+        "B09": "VERIFIED_FROZEN_REUSABLE",
+        "B10": "VERIFIED_FROZEN_REUSABLE",
+        "B11": "PASS"
+      },
+      "b11_acceptance": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B11_FINAL_VERTICAL_SLICE_ACCEPTANCE.json",
+      "b11_certificate_ref": {
+        "path": "iter132-promotion-studio/promotion-05/evidence/6a6c2a28a123a7505f8ad1377a1487ce6cd223d0ca8aafcb370e31257404aca2.json",
+        "sha256": "1bca7f7c2d45112ee4794b5b0d863aa402c3e67946aac5567b2d907194d2ecf5"
+      },
+      "is_new_acceptance_authority": false,
+      "final_product_complete": false,
+      "note": "M12 milestone is VERIFIED. DOGFOOD, packaging, GoalAcceptance and final delivery remain separate gates."
+    },
+    "block_certificates": {
+      "B01": {
+        "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B01_PROJECT_BOOTSTRAP_CERTIFICATE.json",
+        "sha256": "80485918d3bf2bb300dc02873ea63d51cdc920a3fa6f9b5f41b1af42d09fd78e"
+      },
+      "B02": {
+        "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_BROWSER_UPLOAD_ADAPTER_CERTIFICATE.json",
+        "sha256": "5b00a188bc72c261f5152a9d34c7f602b5967610bec1ff1867f5bff2a37ca270"
+      },
+      "B03": {
+        "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B03_SIGNALS_EVIDENCE_CERTIFICATE.json",
+        "sha256": "dc3331a58f405c11f951bb94f70ee2c46578383e9609a0f3604fd239b52e4639"
+      },
+      "B04": {
+        "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B04_CONTENT_REVISION_CERTIFICATE.json",
+        "sha256": "0a462222c72dd4beb876bcbb89a8bc1c65e350cbac893b520560bf5fab9ad612"
+      },
+      "B05": {
+        "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B05_CHANNEL_VARIANT_CERTIFICATE.json",
+        "sha256": "8e8e011527d64bae40b6f2a9ac2304dc43f7b2260d41735c4f426753e0da3083"
+      },
+      "B06": {
+        "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B06_APPROVAL_UI_CERTIFICATE.json",
+        "sha256": "167e209053f1d06b9141cf4642ea1df8a44adfdf35cf3a40547751b8655c5661"
+      },
+      "B07": {
+        "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B07_SCHEDULER_UI_CERTIFICATE.json",
+        "sha256": "0f9cfee73237623b8b9ae39f3b682703aa93656643bb7e7a39255a6b714b4f95"
+      },
+      "B08": {
+        "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B08_RECEIPT_UNKNOWN_RECONCILE_CERTIFICATE.json",
+        "sha256": "592c70d9d498c010f425557887a6a21bff1dba9cf4ee03b6df8040a16e7f886d"
+      },
+      "B09": {
+        "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B09_ANALYTICS_HISTORY_CERTIFICATE.json",
+        "sha256": "16389cc11c3204bb1e3c712b1217e5cd8286bdb81e7b09ab99aa1de3e0846a88"
+      },
+      "B10": {
+        "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B10_FINAL_NAV_DOCS_CERTIFICATE.json",
+        "sha256": "a89b6f440442408991a043e0a70379cb26ca4175011d46202648ccacf8cdeba4"
+      },
+      "B11": {
+        "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B11_FINAL_VERTICAL_SLICE_CERTIFICATE.json",
+        "sha256": "c2897c00d1ebba695235673957e52790bbec1b461942919245b30a1fbfa1b55f"
+      }
+    },
+    "b11_acceptance": {
+      "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B11_FINAL_VERTICAL_SLICE_ACCEPTANCE.json",
+      "sha256": "8eb09fd46b51426d5652d9f33484b383004d41bf0b9d42b0c19ee6f99d71356e"
+    }
+  },
+  "dogfood": {
+    "receipt": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_M12_20261106\\DOGFOOD_RECEIPT.json",
+    "receipt_sha256": "5c6f318c2fcac945c11132b1e5593be2707f12eb00b5f50c3f0cfc540a5c9e28",
+    "test_execution": {
+      "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_M12_20261106\\application\\test_execution.json",
+      "sha256": "665adf05e9f9b712201b28300863812081fb962b66732b9e11e93963d07aebd1"
+    },
+    "customer_runtime": {
+      "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_M12_20261106\\application\\customer_runtime.json",
+      "sha256": "cd7ba7c7d2b7ed5484705192dea581a1629c837a0439cb7689cf954a2a67a95f"
+    },
+    "visual_evidence": {
+      "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_M12_20261106\\application\\visual_evidence.json",
+      "sha256": "12cb4aa36ff13f856dfd10181ed5305b1c749998fed140834ccc4efcfdc09da7"
+    },
+    "screenshot": {
+      "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_M12_20261106\\application\\screenshots\\browser_visual_evidence.png",
+      "sha256": "5853306b8ec45304353d81c17151c7eac5a96ae75d9b4608f3b69ee12b8182b8"
+    }
+  },
+  "package": {
+    "manifest": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\PROMOTION_DELIVERY_M12_20261106\\delivery_manifest.json",
+    "manifest_sha256": "d6efc2c0d66448ea8a2282a2eff80631e2781b50e97f0dd4df1a2ec0d4496f0c",
+    "bundle": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\PROMOTION_DELIVERY_M12_20261106\\final_project_bundle.zip",
+    "bundle_sha256": "f3b39274212ba9ab01b9b844d25c7c1fedf78df09013fd5435a10f323d4c166c",
+    "manifest_status": "PASS"
+  },
+  "corpus": {
+    "kind": "M12CorpusArchiveReceipt",
+    "status": "PASS",
+    "corpus_root": "F:\\CGKN-ITER-060\\project-corpus",
+    "corpus_entry_id": "entry-iter132-m12-final-product-sanitized-01",
+    "manifest_status": "PASS",
+    "split": "VALIDATION",
+    "source_sha256": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+    "files": 68,
+    "verified_objects": 136,
+    "rebuild_identical": true,
+    "old_catalog_rows_preserved": true,
+    "redacted_file_count": 33,
+    "quarantined_attempt": "entry-iter132-m12-final-product",
+    "implementation_hashes": {
+      "contracts.py": "0b05c341dbe9b534d063a8993b27cc4cbd58b191f38c3d20121968104b9365ac",
+      "store.py": "ccf425647e874b495bb96bffb6b8fd7a6473c0364ae67a8fd9f7e74341a4fa21"
+    },
+    "created_at": "2026-11-06T00:31:55.310139+00:00",
+    "scope": "M12 evidence only; final delivery and GoalAcceptance remain separate."
+  },
+  "accounting": {
+    "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\ACCOUNTING.json",
+    "sha256": "0f9fc6e6bed906f19528c88f1d288805061738a99bd8f71e48b54da35cffadc9"
+  },
+  "caveats": [
+    "B03-B10 acceptance harnesses were authored in this delivery session; actual browser execution is recorded, but they are not an external Provider acceptance.",
+    "B03-B11 receipts do not embed browser version; B01/B02 record Edge 134.0.3124.51, Python 3.12.3.",
+    "Final GUI source was edited by the authorized agent, not by the original Provider/Worker; host_business_patches=0 fields must not be read as Provider-only provenance.",
+    "Canonical GoalAcceptance still contains historical M12 failures and has not yet been rewritten.",
+    "M12 is VERIFIED at block/derived scope; final delivery/GoalAcceptance are separate gates."
+  ],
+  "provider_calls_by_this_phase": 0
+}

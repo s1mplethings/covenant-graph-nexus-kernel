@@ -3,10 +3,32 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from types import MappingProxyType
+import math
+from cgkn.component.spec import _freeze, _thaw
 from typing import Any, Mapping
 
 from cgkn.artifacts.models import ArtifactRef
+
+
+@dataclass(frozen=True)
+class ExecutorDescriptor:
+    executor_ref: str
+    kind: str
+    supported_refs: tuple[str, ...]
+    effects: tuple[str, ...] = ()
+    supports_timeout: bool = True
+    supports_cost_reporting: bool = False
+    locality: str = "local"
+    enabled: bool = True
+    default_timeout_seconds: float = 30.0
+
+    def __post_init__(self):
+        value = self.default_timeout_seconds
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
+            raise ValueError("executor default timeout must be finite and positive")
+
+    def supports(self, component_ref: str) -> bool:
+        return "*" in self.supported_refs or component_ref in self.supported_refs
 
 
 SCHEMA_VERSION = "1.0"
@@ -14,22 +36,6 @@ SCHEMA_VERSION = "1.0"
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def _freeze(value: Any) -> Any:
-    if isinstance(value, Mapping):
-        return MappingProxyType({str(key): _freeze(item) for key, item in value.items()})
-    if isinstance(value, (list, tuple)):
-        return tuple(_freeze(item) for item in value)
-    return value
-
-
-def _thaw(value: Any) -> Any:
-    if isinstance(value, Mapping):
-        return {key: _thaw(item) for key, item in value.items()}
-    if isinstance(value, tuple):
-        return [_thaw(item) for item in value]
-    return value
 
 
 class BlockStatus(str, Enum):

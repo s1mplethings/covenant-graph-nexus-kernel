@@ -1,0 +1,894 @@
+{
+  "kind": "AuthenticatedAcceptanceCheckpoint",
+  "milestone": "M7",
+  "verdict": "VERIFIED",
+  "timestamp": "2026-11-03T16:45:54.594490+00:00",
+  "authority": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\goal_acceptance.json",
+  "authority_sha256": "80b55e1d419389f5072c6a7a835b8fbe1af5496ca2509e8cb0f68794d22bf022",
+  "obligation": {
+    "verdict": "VERIFIED",
+    "weight": 1,
+    "must": true
+  },
+  "authenticated_goals": [
+    {
+      "acceptance": "The independent suite covers every public behavior below, so no requirement is dropped: publish.send successfully posts to a local platform_url and returns a receipt with status PUBLISHED and remote_id; publish.send returns status RATE_LIMITED on HTTP 429; publish.send returns status UNKNOWN on timeout/connection loss; repeating a successful idempotency_key does not send a second POST; reusing a key with changed payload raises ValueError; publish.get retrieves a receipt by ID; publish.list returns all receipts for a project; publish.reconcile updates status to PUBLISHED on 200 GET or records absence on 404; publish.retry re-sends only failed branches; serve_platform provides working /publish, /publications, and /metrics routes; early_main.py serves a GUI at /health returning {status:'ok'}; the GUI allows creating projects, campaigns, content, reviewing, approving, and publishing via POST /api/action; the GUI displays receipts with remote IDs; the GUI preserves state on reload; invalid inputs, unknown IDs, cross-project access, and unsupported operations raise ValueError; persistence survives process restarts.",
+      "checker": "independent",
+      "id": "accept-d6e339ee9f02be6ab5e1",
+      "milestone_contract": {
+        "compilation": {
+          "artifact_layout": {
+            "source": "promotion_publish.py",
+            "support": [
+              {
+                "path": "early_main.py",
+                "purpose": "First working browser GUI through Projects, Campaign, Content, Approval, Local Publish and Receipts; implement the public GUI contract"
+              }
+            ],
+            "test": "tests/test_publish.py"
+          },
+          "business_implementation_generated": false,
+          "business_semantics_inferred": false,
+          "checker_ref": "project.acceptance@1",
+          "export_ids": [
+            "f318dbf546fd66b591283713cc20edf84340c8fdd87feb8c017c14479a1a5809",
+            "fc55dd7155bbcc6f9e8bc35d57ffaa669b62a00eb1be82252b197768a199651f",
+            "ab01636c0287e2b4bae3fe0fb6a042c4a84cdf937c957bc5961a4bd305988c96"
+          ],
+          "kind": "DeclarationCompilationReceipt",
+          "milestone_id": "milestone-465ac5c835dc4e9ad196",
+          "mode": "MILESTONE_MODE",
+          "operation_exception_mapping": {
+            "handle": [
+              "ValueError"
+            ],
+            "serve_platform": []
+          },
+          "projections": [
+            {
+              "after": {
+                "kind": "function",
+                "name": "handle",
+                "owner": "promotion_publish.py",
+                "source_declaration_hash": "7c3d236ed58d012436673c31f6dc04a7d520e58cf5ffb0d51c5ed1a1c3cef964",
+                "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:110"
+              },
+              "before": null,
+              "rule": "copy explicit public export name/kind/owner; infer no signature, inheritance or exception policy",
+              "semantics_changed": false,
+              "source_declaration": {
+                "kind": "function",
+                "name": "handle",
+                "owner": "promotion_publish.py",
+                "source_declaration_hash": "7c3d236ed58d012436673c31f6dc04a7d520e58cf5ffb0d51c5ed1a1c3cef964",
+                "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:110"
+              }
+            },
+            {
+              "after": {
+                "kind": "function",
+                "name": "serve_platform",
+                "owner": "promotion_publish.py",
+                "source_declaration_hash": "7c3d236ed58d012436673c31f6dc04a7d520e58cf5ffb0d51c5ed1a1c3cef964",
+                "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:110"
+              },
+              "before": null,
+              "rule": "copy explicit public export name/kind/owner; infer no signature, inheritance or exception policy",
+              "semantics_changed": false,
+              "source_declaration": {
+                "kind": "function",
+                "name": "serve_platform",
+                "owner": "promotion_publish.py",
+                "source_declaration_hash": "7c3d236ed58d012436673c31f6dc04a7d520e58cf5ffb0d51c5ed1a1c3cef964",
+                "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:110"
+              }
+            },
+            {
+              "after": {
+                "kind": "exception",
+                "name": "ValueError",
+                "owner": "promotion_publish.py",
+                "source_declaration_hash": "7c3d236ed58d012436673c31f6dc04a7d520e58cf5ffb0d51c5ed1a1c3cef964",
+                "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:110"
+              },
+              "before": null,
+              "rule": "copy explicit public export name/kind/owner; infer no signature, inheritance or exception policy",
+              "semantics_changed": false,
+              "source_declaration": {
+                "kind": "exception",
+                "name": "ValueError",
+                "owner": "promotion_publish.py",
+                "source_declaration_hash": "7c3d236ed58d012436673c31f6dc04a7d520e58cf5ffb0d51c5ed1a1c3cef964",
+                "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:110"
+              }
+            }
+          ],
+          "registry_hash": "a6ff9d6ca96d733d6f33d01978e76998214b0c14733ddc046866de6bc1f44f60",
+          "requirement_refs": [
+            "M7"
+          ],
+          "schema_version": "1.0",
+          "semantic_hash": "5dfffb4bda089fce6a85dd906b9cc85511b2aaac58c9f3899bc3467b1d8cbe5e",
+          "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:110",
+          "test_binding_skeleton": [
+            {
+              "acceptance_id": "accept-d6e339ee9f02be6ab5e1",
+              "checker_ref": "project.acceptance@1",
+              "contract_id": "milestone-465ac5c835dc4e9ad196",
+              "intent": "The independent suite covers every public behavior below, so no requirement is dropped: publish.send successfully posts to a local platform_url and returns a receipt with status PUBLISHED and remote_id; publish.send returns status RATE_LIMITED on HTTP 429; publish.send returns status UNKNOWN on timeout/connection loss; repeating a successful idempotency_key does not send a second POST; reusing a key with changed payload raises ValueError; publish.get retrieves a receipt by ID; publish.list returns all receipts for a project; publish.reconcile updates status to PUBLISHED on 200 GET or records absence on 404; publish.retry re-sends only failed branches; serve_platform provides working /publish, /publications, and /metrics routes; early_main.py serves a GUI at /health returning {status:'ok'}; the GUI allows creating projects, campaigns, content, reviewing, approving, and publishing via POST /api/action; the GUI displays receipts with remote IDs; the GUI preserves state on reload; invalid inputs, unknown IDs, cross-project access, and unsupported operations raise ValueError; persistence survives process restarts.",
+              "object_ref": "promotion_publish.py",
+              "requirement_refs": [
+                "M7"
+              ],
+              "status": "UNIMPLEMENTED_NOT_VERIFIED",
+              "subject_refs": [
+                "promotion_publish.py",
+                "early_main.py"
+              ],
+              "test_artifact": "tests/test_publish.py",
+              "version": 1
+            }
+          ]
+        },
+        "dependency_artifacts": [
+          "milestones/milestone_1369a82cde04a7e5887d/api.py",
+          "milestones/milestone_20f2614f6ae8403d4a4e/api.py",
+          "milestones/milestone_33270fed0c9054f5ae04/api.py",
+          "milestones/milestone_4e7c26281cf61a85851e/api.py",
+          "milestones/milestone_90b8868c7203e2958397/api.py",
+          "milestones/milestone_9165a990eed5b9c8801e/api.py"
+        ],
+        "dependency_goal_ids": [
+          "accept-c695c9993e0f11e44719",
+          "accept-a3f8bcc50143d8ae49b4",
+          "accept-ca86f3507652c4d39816",
+          "accept-9edb004aa0b6dd044101",
+          "accept-ca684d20740eafff7980",
+          "accept-fce1e8f657d881f7b835",
+          "accept-120d5fa5ea077b934689",
+          "accept-0a6060c95aa9bf1301da",
+          "accept-cb6cd62e5771d9c4533e",
+          "accept-2778e4e368049199cb74",
+          "accept-170da45696d31583f0f6",
+          "accept-e19cd5af7799a12e3604",
+          "accept-5469714437e1ef021107",
+          "accept-104c2f37f5954170f35a",
+          "accept-408a5fd627d63955231f",
+          "accept-5230e7202f8168f61e96",
+          "accept-18a2bc51a08e02a71d4e",
+          "accept-9d36c174f46b6d0a6526",
+          "accept-d40aa5fd80c994f85da7",
+          "accept-b46a41ffebba28173b95",
+          "accept-65fc2c2ef4105cd20569",
+          "accept-0e4e7ba1429d433f45a0",
+          "accept-c2ea56c15b5b1c0c5e1f",
+          "accept-55aaeab9c74620177908",
+          "accept-de9906155792c95c4163",
+          "accept-0796b15e54ad2b41cb1c",
+          "accept-4c1880b1b0efd135df7f",
+          "accept-5a87a8e5488d7e8ed31d",
+          "accept-3ac4d2fefcd0c4160365",
+          "accept-47f772c69b3a3f503239",
+          "accept-2e887a8c9d5e05ad790b",
+          "accept-8ce6a113720b09577d87",
+          "accept-2dba8ab3d742fb4c1749",
+          "accept-147c9bf02318f9dd984e",
+          "accept-57da32a0b7872bd3da56",
+          "accept-fa6045ca0129f27db118",
+          "accept-9bd0b9fcda705c2002f5",
+          "accept-edf8a971245f59c43703",
+          "accept-4df00a3b77461abde1be",
+          "accept-dc09e6d613e45c9da154",
+          "accept-2006d6ded74e3b4b0311",
+          "accept-1aec03eafd385693a8fc",
+          "accept-ee268f2ab80e04860b92",
+          "accept-a494cd221179472f7cae",
+          "accept-3a7336ad48983463b3a0",
+          "accept-a0b026ae0ade9fa71b98",
+          "accept-984d636e7f8185d72e5e",
+          "accept-b0d9fac18ea14a0e31c9",
+          "accept-143a6ad276a11d030a52",
+          "accept-cb8ad901b523b86e8df8",
+          "accept-b6e722913c56819a8909",
+          "accept-3016c1f48f2f2dabfbf2",
+          "accept-023b3f5f8992ede481bd",
+          "accept-d97fb859427c52aa3f0a",
+          "accept-8f91d7596f5c7cb0a2e4",
+          "accept-7c9da7c4efc892ced88b",
+          "accept-2c84e05b2d0bc7a45db9",
+          "accept-3f7c305af9e7ef8ab19a",
+          "accept-daee0bed9444c75e32c6",
+          "accept-050fc3eb06a25846c30f",
+          "accept-4281e42e579ad968cc2c",
+          "accept-164aefcfdb3f6ed17fb0",
+          "accept-4a3058cf70be8dfe5943",
+          "accept-794a4046c0eeb1f7a3b8",
+          "accept-f7a4d6e5012373797f38",
+          "accept-aebc6609f719c89a50b3",
+          "accept-ab010e0f893a522c3358",
+          "accept-58ec1e0cc9f9276116ec",
+          "accept-aecc303080c119f79d84",
+          "accept-6f006ed3f7b5060fe045",
+          "accept-1e67e6ada2945e0d89fb",
+          "accept-83814ff69bb325f2ee7a",
+          "accept-2891de53e7edd523b2db",
+          "accept-1ce26407c5e24134b880",
+          "accept-282a49e828cea36b6258",
+          "accept-ab650d2301f516496029",
+          "accept-8019168a277a2c078b03",
+          "accept-d0e7be9f47a5a22706af",
+          "accept-92b3edb6bc8fa619b773",
+          "accept-8c08aea6077e2396caef",
+          "accept-0dd9541b90ba29019877",
+          "accept-c02587bd57774ea11a0a",
+          "accept-ba9e0a7f3891ce033865"
+        ],
+        "design": {
+          "artifacts": [
+            {
+              "interfaces": {
+                "public_exports": [
+                  {
+                    "kind": "function",
+                    "name": "handle"
+                  },
+                  {
+                    "kind": "function",
+                    "name": "serve_platform"
+                  },
+                  {
+                    "kind": "exception",
+                    "name": "ValueError"
+                  }
+                ]
+              },
+              "path": "promotion_publish.py",
+              "purpose": "Implement M7: Local Publish and earliest usable GUI. Provide persistent, idempotent local publication operations (send, get, list, reconcile, retry) with a real threaded HTTP test platform, and a browser-based early_main.py GUI that connects to the backend via POST /api/action, supporting Projects -> Campaign -> Content -> Review/Approve -> Local Publish -> Receipts workflow."
+            },
+            {
+              "interfaces": {
+                "public_exports": [],
+                "test_for": [
+                  "ValueError"
+                ]
+              },
+              "path": "tests/test_publish.py",
+              "purpose": "Exercise the declared current milestone contract"
+            },
+            {
+              "interfaces": {
+                "public_exports": []
+              },
+              "path": "early_main.py",
+              "purpose": "First working browser GUI through Projects, Campaign, Content, Approval, Local Publish and Receipts; implement the public GUI contract"
+            }
+          ],
+          "public_interface": {
+            "acceptance_bindings": [
+              {
+                "acceptance_id": "accept-d6e339ee9f02be6ab5e1",
+                "checker_ref": "project.acceptance@1",
+                "contract_id": "milestone-465ac5c835dc4e9ad196",
+                "object_ref": "promotion_publish.py",
+                "requirement_refs": [
+                  "M7"
+                ],
+                "version": 1
+              }
+            ],
+            "concurrency": "Single-threaded assumption per data_dir for this milestone for the API module. File system operations should use atomic writes where possible to prevent corruption during simple sequential usage. The serve_platform function explicitly uses threading to support concurrent HTTP requests from the GUI or tests.",
+            "edge_behavior": "The source module publish_publish.py exposes MILESTONE_ID as 'M7' and handle(data_dir, request). It supports operations: publish.send(project_id, content_id, platform_url, idempotency_key), publish.get(project_id, receipt_id), publish.list(project_id), publish.reconcile(project_id, receipt_id, platform_url), publish.retry(project_id, receipt_id, platform_url).\n\npublish.send consults M6 approval status and current claims/media before sending. It performs a POST to platform_url+'/publish' with JSON {idempotency_key, project_id, content_id, revision, channel, text}. A 200 response yields PUBLISHED status with remote_id and url. An HTTP 429 yields RATE_LIMITED. Timeout or connection loss after request initiation yields UNKNOWN (no blind retry). Repeating a successful key must not send a second POST. Reusing a key with changed revision/payload is rejected.\n\npublish.reconcile performs a GET to '/publications?key='+URL-encoded key. A 200 response confirms PUBLISHED; a 404 proves absent and records that fact before retry can issue POST.\n\npublish.retry only retries the specified failed branch; successful siblings are untouched.\n\nReceipts include id, project_id, content_id, revision, channel, status (PUBLISHED, RATE_LIMITED, UNKNOWN, FAILED), remote_id (null until known), idempotency_key, request_ref, response_ref, attempts:[{operation,status,started_at,ended_at}], url.\n\nDifferent contents/channels can publish concurrently with safe persistent receipts and real interval overlap.\n\nserve_platform(host, port, data_dir) provides a real local threaded HTTP test platform with persistent idempotent /publish, /publications, and /metrics?remote_id= routes, no upstream publishing.\n\nearly_main.py provides a usable browser GUI. It starts with python early_main.py --serve --port PORT --data DIR; no args shows help and exits 0. GET /health returns JSON {status:'ok'}. The GUI communicates with the backend through POST /api/action {milestone:'M1'..'M7',...op request} and JSON response. It implements the workflow: Projects -> Campaign -> Content -> Review/Approve -> Local Publish -> Receipt. Forms expose accessible labels Project name, Campaign name, Audience, Channels (comma-separated text), Content text (textarea), Channel (select with actual campaign channels), Claims (select displaying current claim text), Platform URL. Buttons Create project, Create campaign, Save content, Review, Approve, Publish. With one project/campaign, selection may default to that real object. Successful creation shows the actual name; receipts visibly show remote IDs. Errors use role=alert and progress/result messages use role=status. A reload keeps selected persisted project data. Never proxy a static fake screen.",
+            "exceptions": {
+              "ValueError": {
+                "base": "",
+                "behavior": "Raised when input validation fails (e.g., missing/invalid project/content IDs, foreign reference, unapproved content, invalid op, idempotency conflict, network error mapped to failure state if applicable but primarily raised for logic errors)."
+              }
+            },
+            "field_contracts": [
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "op",
+                "owner": "$contract",
+                "required": true,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "project_id",
+                "owner": "$contract",
+                "required": true,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "content_id",
+                "owner": "$contract",
+                "required": false,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "platform_url",
+                "owner": "$contract",
+                "required": false,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "idempotency_key",
+                "owner": "$contract",
+                "required": false,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "receipt_id",
+                "owner": "$contract",
+                "required": false,
+                "type": "str"
+              }
+            ],
+            "fields": {
+              "content_id": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": false,
+                "type": "str"
+              },
+              "idempotency_key": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": false,
+                "type": "str"
+              },
+              "op": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": true,
+                "type": "str"
+              },
+              "platform_url": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": false,
+                "type": "str"
+              },
+              "project_id": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": true,
+                "type": "str"
+              },
+              "receipt_id": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": false,
+                "type": "str"
+              }
+            },
+            "idempotency": {
+              "handle": "Non-idempotent for send (unless key reused correctly), reconcile, and retry; idempotent for get and list.",
+              "serve_platform": "Server behavior is idempotent per route contract defined in public_behavior."
+            },
+            "interface": {
+              "handle": {
+                "behavior": "Dispatches based on request['op']. Validates inputs against M1-M6 dependencies (project existence, content existence/approval status, claim validity). Performs publication send, retrieval, listing, reconciliation, or retry. Ensures persistence across calls. Enforces idempotency rules for send and reconcile.",
+                "failures": [
+                  "ValueError"
+                ],
+                "idempotency": "Non-idempotent for send (unless key reused correctly), reconcile, and retry; idempotent for get and list.",
+                "kind": "function",
+                "name": "handle",
+                "ordering": "Sequential execution within a single call; file-level atomicity preferred.",
+                "parameters": "data_dir: str (filesystem path), request: dict (JSON-compatible with 'op' key)",
+                "returns": "dict (JSON-compatible result specific to the operation, e.g., receipt object for send/get/reconcile/retry, or items array for list)"
+              },
+              "serve_platform": {
+                "behavior": "Starts a real local threaded HTTP test platform. Implements persistent idempotent /publish, /publications, and /metrics?remote_id= routes. No upstream publishing occurs.",
+                "failures": [],
+                "idempotency": "Server behavior is idempotent per route contract defined in public_behavior.",
+                "kind": "function",
+                "name": "serve_platform",
+                "ordering": "Blocks until server stops; handles concurrent requests via threading.",
+                "parameters": "host: str, port: int, data_dir: str",
+                "returns": "None (starts a blocking threaded HTTP server)"
+              }
+            },
+            "ordering": {
+              "handle": "Sequential execution within a single call; file-level atomicity preferred.",
+              "serve_platform": "Blocks until server stops; handles concurrent requests via threading."
+            },
+            "persistence": "Filesystem-based storage within the provided data_dir. Format is agent-owned but must ensure durability across separate Python processes. Isolation between different data_dir paths is strict. Publication receipts, attempt histories, and idempotency keys are retained.",
+            "return_shapes": {
+              "$contract": [
+                "content_id",
+                "idempotency_key",
+                "op",
+                "platform_url",
+                "project_id",
+                "receipt_id"
+              ]
+            },
+            "types": {
+              "declared_fields": {
+                "content_id": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": false,
+                  "type": "str"
+                },
+                "idempotency_key": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": false,
+                  "type": "str"
+                },
+                "op": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": true,
+                  "type": "str"
+                },
+                "platform_url": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": false,
+                  "type": "str"
+                },
+                "project_id": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": true,
+                  "type": "str"
+                },
+                "receipt_id": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": false,
+                  "type": "str"
+                }
+              }
+            }
+          },
+          "reason_summary": "Implement M7: Local Publish and earliest usable GUI. Provide persistent, idempotent local publication operations (send, get, list, reconcile, retry) with a real threaded HTTP test platform, and a browser-based early_main.py GUI that connects to the backend via POST /api/action, supporting Projects -> Campaign -> Content -> Review/Approve -> Local Publish -> Receipts workflow.",
+          "test_command": [
+            "python",
+            "-m",
+            "pytest",
+            "-q",
+            "tests/test_publish.py"
+          ]
+        },
+        "registry": {
+          "entries": [
+            {
+              "artifact_declarations": [
+                {
+                  "interfaces": {
+                    "public_exports": [
+                      {
+                        "kind": "function",
+                        "name": "handle"
+                      },
+                      {
+                        "kind": "function",
+                        "name": "serve_platform"
+                      },
+                      {
+                        "kind": "exception",
+                        "name": "ValueError"
+                      }
+                    ]
+                  },
+                  "path": "promotion_publish.py",
+                  "purpose": "Implement M7: Local Publish and earliest usable GUI. Provide persistent, idempotent local publication operations (send, get, list, reconcile, retry) with a real threaded HTTP test platform, and a browser-based early_main.py GUI that connects to the backend via POST /api/action, supporting Projects -> Campaign -> Content -> Review/Approve -> Local Publish -> Receipts workflow."
+                },
+                {
+                  "interfaces": {
+                    "public_exports": [],
+                    "test_for": [
+                      "ValueError"
+                    ]
+                  },
+                  "path": "tests/test_publish.py",
+                  "purpose": "Exercise the declared current milestone contract"
+                },
+                {
+                  "interfaces": {
+                    "public_exports": []
+                  },
+                  "path": "early_main.py",
+                  "purpose": "First working browser GUI through Projects, Campaign, Content, Approval, Local Publish and Receipts; implement the public GUI contract"
+                }
+              ],
+              "artifact_paths": [
+                "promotion_publish.py",
+                "tests/test_publish.py",
+                "early_main.py",
+                "promotion_publish.py"
+              ],
+              "change_policy": "immutable during witness; implementation must conform",
+              "contract_id": "milestone-465ac5c835dc4e9ad196",
+              "definition": {
+                "acceptance_bindings": [
+                  {
+                    "acceptance_id": "accept-d6e339ee9f02be6ab5e1",
+                    "checker_ref": "project.acceptance@1",
+                    "contract_id": "milestone-465ac5c835dc4e9ad196",
+                    "object_ref": "promotion_publish.py",
+                    "requirement_refs": [
+                      "M7"
+                    ],
+                    "version": 1
+                  }
+                ],
+                "concurrency": "Single-threaded assumption per data_dir for this milestone for the API module. File system operations should use atomic writes where possible to prevent corruption during simple sequential usage. The serve_platform function explicitly uses threading to support concurrent HTTP requests from the GUI or tests.",
+                "edge_behavior": "The source module publish_publish.py exposes MILESTONE_ID as 'M7' and handle(data_dir, request). It supports operations: publish.send(project_id, content_id, platform_url, idempotency_key), publish.get(project_id, receipt_id), publish.list(project_id), publish.reconcile(project_id, receipt_id, platform_url), publish.retry(project_id, receipt_id, platform_url).\n\npublish.send consults M6 approval status and current claims/media before sending. It performs a POST to platform_url+'/publish' with JSON {idempotency_key, project_id, content_id, revision, channel, text}. A 200 response yields PUBLISHED status with remote_id and url. An HTTP 429 yields RATE_LIMITED. Timeout or connection loss after request initiation yields UNKNOWN (no blind retry). Repeating a successful key must not send a second POST. Reusing a key with changed revision/payload is rejected.\n\npublish.reconcile performs a GET to '/publications?key='+URL-encoded key. A 200 response confirms PUBLISHED; a 404 proves absent and records that fact before retry can issue POST.\n\npublish.retry only retries the specified failed branch; successful siblings are untouched.\n\nReceipts include id, project_id, content_id, revision, channel, status (PUBLISHED, RATE_LIMITED, UNKNOWN, FAILED), remote_id (null until known), idempotency_key, request_ref, response_ref, attempts:[{operation,status,started_at,ended_at}], url.\n\nDifferent contents/channels can publish concurrently with safe persistent receipts and real interval overlap.\n\nserve_platform(host, port, data_dir) provides a real local threaded HTTP test platform with persistent idempotent /publish, /publications, and /metrics?remote_id= routes, no upstream publishing.\n\nearly_main.py provides a usable browser GUI. It starts with python early_main.py --serve --port PORT --data DIR; no args shows help and exits 0. GET /health returns JSON {status:'ok'}. The GUI communicates with the backend through POST /api/action {milestone:'M1'..'M7',...op request} and JSON response. It implements the workflow: Projects -> Campaign -> Content -> Review/Approve -> Local Publish -> Receipt. Forms expose accessible labels Project name, Campaign name, Audience, Channels (comma-separated text), Content text (textarea), Channel (select with actual campaign channels), Claims (select displaying current claim text), Platform URL. Buttons Create project, Create campaign, Save content, Review, Approve, Publish. With one project/campaign, selection may default to that real object. Successful creation shows the actual name; receipts visibly show remote IDs. Errors use role=alert and progress/result messages use role=status. A reload keeps selected persisted project data. Never proxy a static fake screen.",
+                "exception_bindings": [
+                  {
+                    "acceptance_refs": [
+                      "accept-d6e339ee9f02be6ab5e1"
+                    ],
+                    "implementation_ref": "promotion_publish.py",
+                    "name": "ValueError",
+                    "policy": {
+                      "base": "",
+                      "behavior": "Raised when input validation fails (e.g., missing/invalid project/content IDs, foreign reference, unapproved content, invalid op, idempotency conflict, network error mapped to failure state if applicable but primarily raised for logic errors)."
+                    },
+                    "test_refs": [
+                      "tests/test_publish.py"
+                    ]
+                  }
+                ],
+                "exceptions": {
+                  "ValueError": {
+                    "base": "",
+                    "behavior": "Raised when input validation fails (e.g., missing/invalid project/content IDs, foreign reference, unapproved content, invalid op, idempotency conflict, network error mapped to failure state if applicable but primarily raised for logic errors)."
+                  }
+                },
+                "exports": [
+                  {
+                    "kind": "function",
+                    "name": "handle",
+                    "owner": "promotion_publish.py",
+                    "source_declaration_hash": "7c3d236ed58d012436673c31f6dc04a7d520e58cf5ffb0d51c5ed1a1c3cef964",
+                    "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:110"
+                  },
+                  {
+                    "kind": "function",
+                    "name": "serve_platform",
+                    "owner": "promotion_publish.py",
+                    "source_declaration_hash": "7c3d236ed58d012436673c31f6dc04a7d520e58cf5ffb0d51c5ed1a1c3cef964",
+                    "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:110"
+                  },
+                  {
+                    "kind": "exception",
+                    "name": "ValueError",
+                    "owner": "promotion_publish.py",
+                    "source_declaration_hash": "7c3d236ed58d012436673c31f6dc04a7d520e58cf5ffb0d51c5ed1a1c3cef964",
+                    "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:110"
+                  }
+                ],
+                "field_contracts": [
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "op",
+                    "owner": "$contract",
+                    "required": true,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "project_id",
+                    "owner": "$contract",
+                    "required": true,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "content_id",
+                    "owner": "$contract",
+                    "required": false,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "platform_url",
+                    "owner": "$contract",
+                    "required": false,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "idempotency_key",
+                    "owner": "$contract",
+                    "required": false,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "receipt_id",
+                    "owner": "$contract",
+                    "required": false,
+                    "type": "str"
+                  }
+                ],
+                "fields": {
+                  "content_id": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": false,
+                    "type": "str"
+                  },
+                  "idempotency_key": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": false,
+                    "type": "str"
+                  },
+                  "op": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": true,
+                    "type": "str"
+                  },
+                  "platform_url": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": false,
+                    "type": "str"
+                  },
+                  "project_id": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": true,
+                    "type": "str"
+                  },
+                  "receipt_id": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": false,
+                    "type": "str"
+                  }
+                },
+                "idempotency": {
+                  "handle": "Non-idempotent for send (unless key reused correctly), reconcile, and retry; idempotent for get and list.",
+                  "serve_platform": "Server behavior is idempotent per route contract defined in public_behavior."
+                },
+                "interface": {
+                  "handle": {
+                    "behavior": "Dispatches based on request['op']. Validates inputs against M1-M6 dependencies (project existence, content existence/approval status, claim validity). Performs publication send, retrieval, listing, reconciliation, or retry. Ensures persistence across calls. Enforces idempotency rules for send and reconcile.",
+                    "failures": [
+                      "ValueError"
+                    ],
+                    "idempotency": "Non-idempotent for send (unless key reused correctly), reconcile, and retry; idempotent for get and list.",
+                    "kind": "function",
+                    "name": "handle",
+                    "ordering": "Sequential execution within a single call; file-level atomicity preferred.",
+                    "parameters": "data_dir: str (filesystem path), request: dict (JSON-compatible with 'op' key)",
+                    "returns": "dict (JSON-compatible result specific to the operation, e.g., receipt object for send/get/reconcile/retry, or items array for list)"
+                  },
+                  "serve_platform": {
+                    "behavior": "Starts a real local threaded HTTP test platform. Implements persistent idempotent /publish, /publications, and /metrics?remote_id= routes. No upstream publishing occurs.",
+                    "failures": [],
+                    "idempotency": "Server behavior is idempotent per route contract defined in public_behavior.",
+                    "kind": "function",
+                    "name": "serve_platform",
+                    "ordering": "Blocks until server stops; handles concurrent requests via threading.",
+                    "parameters": "host: str, port: int, data_dir: str",
+                    "returns": "None (starts a blocking threaded HTTP server)"
+                  }
+                },
+                "ordering": {
+                  "handle": "Sequential execution within a single call; file-level atomicity preferred.",
+                  "serve_platform": "Blocks until server stops; handles concurrent requests via threading."
+                },
+                "persistence": "Filesystem-based storage within the provided data_dir. Format is agent-owned but must ensure durability across separate Python processes. Isolation between different data_dir paths is strict. Publication receipts, attempt histories, and idempotency keys are retained.",
+                "return_shapes": {
+                  "$contract": [
+                    "content_id",
+                    "idempotency_key",
+                    "op",
+                    "platform_url",
+                    "project_id",
+                    "receipt_id"
+                  ]
+                },
+                "types": {
+                  "declared_fields": {
+                    "content_id": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": false,
+                      "type": "str"
+                    },
+                    "idempotency_key": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": false,
+                      "type": "str"
+                    },
+                    "op": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": true,
+                      "type": "str"
+                    },
+                    "platform_url": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": false,
+                      "type": "str"
+                    },
+                    "project_id": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": true,
+                      "type": "str"
+                    },
+                    "receipt_id": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": false,
+                      "type": "str"
+                    }
+                  }
+                }
+              },
+              "evidence_refs": [
+                "iter132-promotion-studio:promotion-05:milestone-decision:110"
+              ],
+              "feature": "Implement M7: Local Publish and earliest usable GUI. Provide persistent, idempotent local publication operations (send, get, list, reconcile, retry) with a real threaded HTTP test platform, and a browser-based early_main.py GUI that connects to the backend via POST /api/action, supporting Projects -> Campaign -> Content -> Review/Approve -> Local Publish -> Receipts workflow.",
+              "integrity_version": 2,
+              "must_acceptance_ids": [
+                "accept-d6e339ee9f02be6ab5e1"
+              ],
+              "required_sections": [
+                "interface",
+                "fields",
+                "types",
+                "exceptions",
+                "idempotency",
+                "persistence",
+                "ordering",
+                "concurrency",
+                "edge_behavior"
+              ],
+              "source_decision": "iter132-promotion-studio:promotion-05:milestone-decision:110",
+              "status": "DECLARED",
+              "version": 1
+            }
+          ],
+          "kind": "PublicContractRegistry"
+        }
+      },
+      "phase_id": "milestone-465ac5c835dc4e9ad196",
+      "requirement_refs": [
+        "M7"
+      ],
+      "subject_refs": [
+        "promotion_publish.py",
+        "early_main.py",
+        "milestones/milestone_1369a82cde04a7e5887d/api.py",
+        "milestones/milestone_20f2614f6ae8403d4a4e/api.py",
+        "milestones/milestone_33270fed0c9054f5ae04/api.py",
+        "milestones/milestone_4e7c26281cf61a85851e/api.py",
+        "milestones/milestone_90b8868c7203e2958397/api.py",
+        "milestones/milestone_9165a990eed5b9c8801e/api.py"
+      ],
+      "task_refs": [],
+      "verdict": "VERIFIED",
+      "evidence": {
+        "attempt_id": "attempt-0001",
+        "condition_hash": "c4bb228c4d3fda3ad8aafe35ce6a2f0aca6d09b70022358a0951c78a32bc7dbe",
+        "goal_id": "accept-d6e339ee9f02be6ab5e1",
+        "node_id": "sem-node-0124",
+        "plan_revision": 8,
+        "provenance": {
+          "chain": {
+            "attempt_id": "attempt-0001",
+            "candidate": {
+              "path": "iter132-promotion-studio/promotion-05/evidence/6902cefb1d55045342341cbd1d28fcf993b2993e7b0bb7471b3fe2a7fecc87cd.json",
+              "sha256": "8010780a2eda5ad48903df26e4a60d3dd70255b0df1fd27439f81bf25c2011cc"
+            },
+            "checker": {
+              "hash": "5201a3c5aa6c9e829890787e3a5d6b8f60d3de104b301fb9df5eeb28faeb1007",
+              "ref": "project.acceptance@1",
+              "version": "qualified-revision-1"
+            },
+            "execution_receipt": {
+              "path": "iter132-promotion-studio/promotion-05/attempts/sem-node-0124/attempt-0001.json",
+              "sha256": "cb403dc707d76c8e39a9c783aa8d43269f1a6edc786a4fa087ff0b5551791b8c"
+            },
+            "logical_task_id": "iter132-promotion-studio/promotion-05",
+            "observation": {
+              "path": "iter132-promotion-studio/promotion-05/evidence/3ce8a8ad566818ead666ed248ed6805b9c1cb6ad4d3518b3a31b1b870ab501ca.json",
+              "sha256": "0883ec7a9270553e9b8333e4bf7889659dd39e210c3e49f88a17cb246fcfaa1c"
+            },
+            "requirements": {
+              "M7": "8b7e51bbf80b52d7be0326a449ea26e350cef5aa303aa3fcbaa1b92d1d9cc621"
+            },
+            "verdict": "VERIFIED",
+            "witness": {
+              "path": "iter132-promotion-studio/promotion-05/evidence/7f5ee0cbe1f1e5a3d62c575b165ecc696fde3bf008e298be0d02747f0b112dd8.json",
+              "sha256": "c0d152be4584fd4ee42aeb0934c6a202c9bf49a392c86093af64a22723b0fdd3"
+            }
+          },
+          "status": "TRUSTED"
+        },
+        "receipt_hash": "3f973c5657395efcd23283e1ec45b27d27d8097147fb3af8799817c8cf1602ef",
+        "run_id": "promotion-05",
+        "subjects": {
+          "early_main.py": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+          "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+          "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+          "milestones/milestone_33270fed0c9054f5ae04/api.py": "db223502ff57164389978d41cde5d9f850c756a714f9c8b5fd9085ffea27d511",
+          "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+          "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+          "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+          "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+        },
+        "supersedes_receipts": [],
+        "verdict": "VERIFIED",
+        "evidence_refs": [
+          {
+            "path": "iter132-promotion-studio/promotion-05/observations/typed/edabeedc24c3c59d8f55188e22d8215a216cfe03d3e4a614ab83b366a1f860d1.json",
+            "sha256": "a88c1b5815c153ede0169304f5c14f8b20f7e189111bc2737ca1d01d07567a50"
+          }
+        ],
+        "reason": "M7 actual business checks passed"
+      },
+      "must": true
+    }
+  ],
+  "is_new_acceptance_authority": false,
+  "final_product_complete": false
+}

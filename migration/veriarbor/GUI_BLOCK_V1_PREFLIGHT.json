@@ -1,0 +1,10 @@
+{
+  "kind": "StaticGUIBoundaryPreflight",
+  "source_sha256": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+  "duplicate_ids": [],
+  "duplicate_testids": [],
+  "missing_literal_getElementById_targets": [],
+  "media_elements": [],
+  "dynamic_selectors_and_business_enabled_state": "Require actual browser check; static scan cannot grant PASS.",
+  "host_business_patches": 0
+}

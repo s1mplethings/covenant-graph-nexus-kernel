@@ -1,0 +1,40 @@
+{
+  "actual_models": {
+    "agent": "",
+    "worker": ""
+  },
+  "binding_policy": {
+    "aliases": [],
+    "kind": "exact"
+  },
+  "bound_models": {
+    "agent": "qwen3.8-flash",
+    "worker": "deepseek-flash"
+  },
+  "contains_credentials": false,
+  "created_at": "2026-11-02T03:15:31.671046+00:00",
+  "fallback": "deny",
+  "gateway_protocol": "openai-compatible-local-v1",
+  "kind": "ModelRoutingSnapshot",
+  "limits": {
+    "agent": {
+      "max_output_tokens": 7000,
+      "timeout_seconds": 90
+    },
+    "worker": {
+      "max_output_tokens": 6000,
+      "timeout_seconds": 180
+    }
+  },
+  "requested_models": {
+    "agent": "qwen3.8-flash",
+    "worker": "deepseek-flash"
+  },
+  "roles": {
+    "agent": "qwen",
+    "worker": "deepseek"
+  },
+  "routing_config_hash": "sha256:a16a44e7c279934bbc4de21f6d63fbe4bf8f6f3e826fb9b8b7d263460d81caec",
+  "run_id": "promotion-05",
+  "schema_version": "1.0"
+}

@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 
 import pytest
+from tests.executor_authority_support import invoke_bound_executor
 
 from cgkn.execution import BlockExecutionRequest, BlockStatus, TaskContext
 from cgkn.executors import CommandExecutor, ExecutorFactoryRegistry, ExecutorRegistry, ExecutorResolutionError, FileExecutor, LocalActionExecutorAdapter, PythonTestExecutor
@@ -14,7 +15,7 @@ pytestmark = [pytest.mark.happy_path, pytest.mark.boundary]
 
 
 def req(executor_ref: str, config: dict, *, timeout: float = 5) -> BlockExecutionRequest:
-    return BlockExecutionRequest(project_id="p", run_id="r", attempt_id="a", node_id="n", component_ref="c@1", executor_ref=executor_ref, task_context=TaskContext("goal", config), timeout_seconds=timeout)
+    return BlockExecutionRequest(project_id="p", run_id="r", attempt_id="a", node_id="n", component_ref="c@1", executor_ref=executor_ref, task_context=TaskContext("goal", config), timeout_seconds=timeout, metadata={'execution_mode':'GOVERNED'})
 
 
 @pytest.mark.determinism
@@ -47,22 +48,22 @@ def test_registry_rejects_disabled_and_unsupported_executor() -> None:
 
 def test_file_executor_is_real_and_confined(tmp_path) -> None:
     executor = FileExecutor(tmp_path)
-    result = executor.execute(req("local.file@1", {"action": "write_file", "path": "hello.txt", "content": "hello"}))
+    result = invoke_bound_executor(executor, req("local.file@1", {"action": "write_file", "path": "hello.txt", "content": "hello"}))
     assert result.status is BlockStatus.SUCCEEDED
     assert (tmp_path / "hello.txt").read_text(encoding="utf-8") == "hello"
-    escaped = executor.execute(req("local.file@1", {"action": "write_file", "path": "../escape.txt", "content": "bad"}))
+    escaped = invoke_bound_executor(executor, req("local.file@1", {"action": "write_file", "path": "../escape.txt", "content": "bad"}))
     assert escaped.error.code.value == "POLICY_BLOCKED"
-    assert executor.execute(req("local.file@1", {"action": "read_file", "path": "hello.txt"})).outputs["content"] == "hello"
-    assert executor.execute(req("local.file@1", {"action": "list_files", "path": "."})).outputs["files"] == ("hello.txt",)
-    assert executor.execute(req("local.file@1", {"action": "bad"})).status is BlockStatus.FAILED
+    assert invoke_bound_executor(executor, req("local.file@1", {"action": "read_file", "path": "hello.txt"})).outputs["content"] == "hello"
+    assert invoke_bound_executor(executor, req("local.file@1", {"action": "list_files", "path": "."})).outputs["files"] == ("hello.txt",)
+    assert invoke_bound_executor(executor, req("local.file@1", {"action": "bad"})).status is BlockStatus.FAILED
 
 
 def test_command_executor_records_output_and_rejects_dangerous_commands(tmp_path) -> None:
     executor = CommandExecutor(tmp_path)
-    result = executor.execute(req("local.command@1", {"command": [sys.executable, "-c", "print('ok')"], "cwd": "."}))
+    result = invoke_bound_executor(executor, req("local.command@1", {"command": [sys.executable, "-c", "print('ok')"], "cwd": "."}))
     assert result.status is BlockStatus.SUCCEEDED
     assert result.outputs["stdout"].strip() == "ok"
-    rejected = executor.execute(req("local.command@1", {"command": ["git", "reset", "--hard"], "cwd": "."}))
+    rejected = invoke_bound_executor(executor, req("local.command@1", {"command": ["git", "reset", "--hard"], "cwd": "."}))
     assert rejected.error.code.value == "POLICY_BLOCKED"
 
 
@@ -70,30 +71,30 @@ def test_command_executor_records_output_and_rejects_dangerous_commands(tmp_path
 @pytest.mark.fault_injection
 def test_command_failure_timeout_contract_and_dependency_check(tmp_path, monkeypatch) -> None:
     executor = CommandExecutor(tmp_path)
-    failed = executor.execute(req("local.command@1", {"command": [sys.executable, "-c", "raise SystemExit(4)"]}))
+    failed = invoke_bound_executor(executor, req("local.command@1", {"command": [sys.executable, "-c", "raise SystemExit(4)"]}))
     assert failed.status is BlockStatus.FAILED and failed.retryable
-    invalid = executor.execute(req("local.command@1", {"command": "shell text"}))
+    invalid = invoke_bound_executor(executor, req("local.command@1", {"command": "shell text"}))
     assert invalid.error.code.value == "CONTRACT_ERROR"
     context = TaskContext("goal", {"assert_dependency_stdout_contains": "yes"}, dependency_results={"a": {"stdout": "no"}})
-    dependency_request = BlockExecutionRequest(project_id="p", run_id="r", attempt_id="a", node_id="n", component_ref="c@1", executor_ref="local.command@1", task_context=context)
-    assert executor.execute(dependency_request).status is BlockStatus.FAILED
+    dependency_request = BlockExecutionRequest(project_id="p", run_id="r", attempt_id="a", node_id="n", component_ref="c@1", executor_ref="local.command@1", task_context=context, metadata={'execution_mode':'GOVERNED'})
+    assert invoke_bound_executor(executor, dependency_request).status is BlockStatus.FAILED
     matching_context = TaskContext("goal", {"assert_dependency_stdout_contains": "yes"}, dependency_results={"a": {"stdout": "yes"}})
-    matching_request = BlockExecutionRequest(project_id="p", run_id="r", attempt_id="a2", node_id="n", component_ref="c@1", executor_ref="local.command@1", task_context=matching_context)
-    assert executor.execute(matching_request).status is BlockStatus.SUCCEEDED
+    matching_request = BlockExecutionRequest(project_id="p", run_id="r", attempt_id="a2", node_id="n", component_ref="c@1", executor_ref="local.command@1", task_context=matching_context, metadata={'execution_mode':'GOVERNED'})
+    assert invoke_bound_executor(executor, matching_request).status is BlockStatus.SUCCEEDED
     monkeypatch.setattr("cgkn.executors.local.subprocess.run", lambda *_a, **_k: (_ for _ in ()).throw(__import__("subprocess").TimeoutExpired("x", 1)))
-    assert executor.execute(req("local.command@1", {"command": ["x"]})).status is BlockStatus.TIMED_OUT
+    assert invoke_bound_executor(executor, req("local.command@1", {"command": ["x"]})).status is BlockStatus.TIMED_OUT
 
 
 @pytest.mark.local_functional
 def test_python_test_and_local_action_adapter(tmp_path) -> None:
     (tmp_path / "test_ok.py").write_text("def test_ok(): assert True\n", encoding="utf-8")
-    test_result = PythonTestExecutor(tmp_path).execute(req("local.python-test@1", {"pytest_args": ["-q", "test_ok.py"]}, timeout=20))
+    test_result = invoke_bound_executor(PythonTestExecutor(tmp_path), req("local.python-test@1", {"pytest_args": ["-q", "test_ok.py"]}, timeout=20))
     assert test_result.status is BlockStatus.SUCCEEDED
     adapter = LocalActionExecutorAdapter(tmp_path)
-    assert adapter.execute(req("local.action@1", {"action": "read_file", "path": "test_ok.py"})).status is BlockStatus.SUCCEEDED
+    assert invoke_bound_executor(adapter, req("local.action@1", {"action": "read_file", "path": "test_ok.py"})).status is BlockStatus.SUCCEEDED
     command = req("local.action@1", {"action": "run_command", "command": [sys.executable, "-c", "print('ok')"]})
-    assert adapter.execute(command).status is BlockStatus.SUCCEEDED
-    assert adapter.execute(req("local.action@1", {"action": "unknown"})).error.code.value == "CONTRACT_ERROR"
+    assert invoke_bound_executor(adapter, command).status is BlockStatus.SUCCEEDED
+    assert invoke_bound_executor(adapter, req("local.action@1", {"action": "unknown"})).error.code.value == "CONTRACT_ERROR"
 
 
 @pytest.mark.negative
@@ -112,3 +113,13 @@ def test_executor_factory_identity_resolution_and_mismatch(tmp_path) -> None:
     wrong = ExecutorFactoryRegistry(); wrong.register("file", lambda _descriptor: CommandExecutor(tmp_path))
     with pytest.raises(ValueError, match="mismatched"):
         wrong.create(descriptor)
+
+
+def test_command_child_does_not_inherit_provider_credentials(tmp_path,monkeypatch):
+    import sys
+    monkeypatch.setenv('PROVIDER_API_KEY','SYNTHETIC_SECRET_CANARY')
+    monkeypatch.setenv('CGKN_PROVIDER_GATEWAY_TOKEN','SYNTHETIC_GATEWAY_CANARY')
+    executor=CommandExecutor(tmp_path)
+    result=invoke_bound_executor(executor,req('local.command@1',{'command':[sys.executable,'-c',
+        "import os; print('clean' if not any(k in os.environ for k in ['PROVIDER_API_KEY','CGKN_PROVIDER_GATEWAY_TOKEN']) else 'leaked')"]}))
+    assert result.succeeded and result.outputs['stdout'].strip()=='clean'

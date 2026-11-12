@@ -1,0 +1,74 @@
+{
+  "revision": {
+    "checker_hash": "d05800394ccd73afbe141e347cf23b949518397cc1a71adbe82f4b0ff88c8469",
+    "checker_key": "independent",
+    "checker_version": "qualified-revision-5",
+    "kind": "QualifiedCheckerRevision",
+    "previous_checker_hash": "80e2d724dbc35e522ef4aca2b8f4e920b437a0a0f07173e877e80099e17d32e8",
+    "qualification_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/e51fc6bc106789833880a5f2cc7e46f4131b87a614ed29d0fd569a65822d0fd7.json",
+      "sha256": "4f0caf8a30f29e436c4c82e4a88d4ae7301f272e006a5b4c3554aa7875094351"
+    },
+    "reason": "Frozen M12 requires usable GUI, actual schedule/publish/receipt/restart and create/edit. Actual browser reached publish/analytics but restart receipt request timed out. Real idle-socket negative and independent threaded same-handler positive localize serial GUI server. Preserve every v6 assertion and add ordinary preconnection responsiveness plus actual schedule/receipt/restart/edit hydration/new content; only M12.",
+    "sequence": 5,
+    "source_ref": {
+      "path": "iter132-promotion-studio/promotion-05/private_checker/d05800394ccd73afbe141e347cf23b949518397cc1a71adbe82f4b0ff88c8469.py",
+      "sha256": "d05800394ccd73afbe141e347cf23b949518397cc1a71adbe82f4b0ff88c8469"
+    },
+    "revision_ref": {
+      "path": "iter132-promotion-studio/promotion-05/checker_revisions/000005.json",
+      "sha256": "d092ada50601cad584db6f9daa6e3139fcbeb3d316b32d142ea648a7758a2bcc"
+    }
+  },
+  "decision": {
+    "checker_key": "independent",
+    "previous_checker_hash": "80e2d724dbc35e522ef4aca2b8f4e920b437a0a0f07173e877e80099e17d32e8",
+    "source_path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\consumer-revisions\\final-gui-complete-v7.py",
+    "source_sha256": "d05800394ccd73afbe141e347cf23b949518397cc1a71adbe82f4b0ff88c8469",
+    "qualification_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/e51fc6bc106789833880a5f2cc7e46f4131b87a614ed29d0fd569a65822d0fd7.json",
+      "sha256": "4f0caf8a30f29e436c4c82e4a88d4ae7301f272e006a5b4c3554aa7875094351"
+    },
+    "reason": "Frozen M12 requires usable GUI, actual schedule/publish/receipt/restart and create/edit. Actual browser reached publish/analytics but restart receipt request timed out. Real idle-socket negative and independent threaded same-handler positive localize serial GUI server. Preserve every v6 assertion and add ordinary preconnection responsiveness plus actual schedule/receipt/restart/edit hydration/new content; only M12."
+  },
+  "scope": [
+    "M12"
+  ],
+  "actual_executor_fallback_chain": [
+    {
+      "version": "qualified-revision-5",
+      "scope": [
+        "M12"
+      ],
+      "hash": "d05800394ccd73afbe141e347cf23b949518397cc1a71adbe82f4b0ff88c8469"
+    },
+    {
+      "version": "qualified-revision-4",
+      "scope": [
+        "M12"
+      ],
+      "hash": "80e2d724dbc35e522ef4aca2b8f4e920b437a0a0f07173e877e80099e17d32e8"
+    },
+    {
+      "version": "qualified-revision-3",
+      "scope": [
+        "M11"
+      ],
+      "hash": "b43bb596503990c24e4fc9b5eb8df2dc7b784eb101514351d6e9617cfaccfaea"
+    },
+    {
+      "version": "qualified-revision-2",
+      "scope": [
+        "M11"
+      ],
+      "hash": "283bf80a6cd4fe3866f2c00a032d38bb4e3c7a6d58e07bcdc06e26978ccf3c11"
+    },
+    {
+      "version": "qualified-revision-1",
+      "scope": null,
+      "hash": "5201a3c5aa6c9e829890787e3a5d6b8f60d3de104b301fb9df5eeb28faeb1007"
+    }
+  ],
+  "acceptance_granted": false,
+  "provider_calls": 0
+}

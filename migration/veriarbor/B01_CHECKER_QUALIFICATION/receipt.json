@@ -1,0 +1,58 @@
+{
+  "kind": "IndependentCheckerQualification",
+  "status": "PASS",
+  "controls": [
+    {
+      "control": "positive",
+      "expected": "PASS",
+      "observed": "PASS",
+      "error": null
+    },
+    {
+      "control": "no_empty",
+      "expected": "FAIL",
+      "observed": "FAIL",
+      "error": "AssertionError: visible empty state"
+    },
+    {
+      "control": "create_error",
+      "expected": "FAIL",
+      "observed": "FAIL",
+      "error": "AssertionError: project.create HTTP200"
+    },
+    {
+      "control": "hidden_name",
+      "expected": "FAIL",
+      "observed": "FAIL",
+      "error": "AssertionError: visible empty state"
+    },
+    {
+      "control": "lost_selection",
+      "expected": "FAIL",
+      "observed": "FAIL",
+      "error": "TimeoutError: Page.wait_for_function: Timeout 8000ms exceeded."
+    },
+    {
+      "control": "state_without_id",
+      "expected": "FAIL",
+      "observed": "FAIL",
+      "error": "AssertionError: never requests state without identity"
+    },
+    {
+      "control": "js_error",
+      "expected": "FAIL",
+      "observed": "FAIL",
+      "error": "AssertionError: no JavaScript initialization errors"
+    },
+    {
+      "control": "duplicate_id",
+      "expected": "FAIL",
+      "observed": "FAIL",
+      "error": "AssertionError: duplicate DOM IDs: ['projects']"
+    }
+  ],
+  "checker_sha256": "b90a255391c9318600f9a544f1226f93a8e1e6f55cf666b9d6da73c23208642d",
+  "product_acceptance": "NOT_GRANTED",
+  "provider_calls": 0,
+  "host_business_patches": 0
+}

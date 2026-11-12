@@ -51,8 +51,9 @@ def check() -> dict:
     completeness = load_json("governance/kernel_completeness.json")
     if completeness.get("kernel_foundation") == "COMPLETE":
         try:
-            receipt = load_json("governance/kernel_test_receipt.json")
-            passed = set(receipt.get("test_node_ids", [])) if receipt.get("final_verdict") == "PASS" else set()
+            from receipt_freshness import check_worktree_receipt
+            receipt = check_worktree_receipt('kernel')
+            passed = set(receipt.get("test_node_ids", [])) if receipt.get("status") == "PASS" else set()
         except (OSError, ValueError, json.JSONDecodeError):
             passed = set()
         for source, entry in mappings.items():

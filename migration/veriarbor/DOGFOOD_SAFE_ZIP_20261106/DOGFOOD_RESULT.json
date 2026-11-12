@@ -1,0 +1,139 @@
+{
+  "kind": "VeriArborDogfoodResult",
+  "created_at": "2026-11-06T04:07:36.236397+00:00",
+  "task": "Safe ZIP entry name normalization (Zip Slip prevention), independent of M12",
+  "not_m12": true,
+  "source": "safe_zip_path.py",
+  "source_sha256": "07f1f451386596d83684edd52e800aef3593e86ebceb84701ee118ce653faa3f",
+  "checker_sha256": "9da15106ab159b1a039b9a2c667f5002ca4301dbe72b5f5f624988b24351cabd",
+  "test_command": "D:\\anaconda\\python.exe -X utf8 -m unittest discover -s tests -v",
+  "test_exit_code": 0,
+  "tests": {
+    "ran": 8,
+    "passed": 8,
+    "failed": 0
+  },
+  "certificate": {
+    "kind": "VeriArborDogfoodCertificate",
+    "task": "Safe ZIP entry name normalization",
+    "source_sha256": "07f1f451386596d83684edd52e800aef3593e86ebceb84701ee118ce653faa3f",
+    "checker_sha256": "sha256:9da15106ab159b1a039b9a2c667f5002ca4301dbe72b5f5f624988b24351cabd",
+    "certificate": {
+      "block_id": "SAFE_ZIP",
+      "variant_id": "safe-zip-v1",
+      "input_contract_hash": "b30baa99150b0eba343cf427b7626acae34517f6dc833ea7180ae88ffc16eae7",
+      "output_contract_hash": "52366fe695f132ff43ee324c92444e084b04be46eb2b84e890e0743a103697ae",
+      "effect_contract_hash": "45e18dd5716df699b345534fb72b15153eb6f9b48d6a186776a7edfd71209572",
+      "acceptance_ids": [
+        "SAFE_ZIP:normalization",
+        "SAFE_ZIP:traversal-rejection",
+        "SAFE_ZIP:absolute-rejection",
+        "SAFE_ZIP:nul-rejection",
+        "SAFE_ZIP:empty-segment-rejection"
+      ],
+      "artifact_hashes": [
+        [
+          "safe_zip_path.py",
+          "sha256:07f1f451386596d83684edd52e800aef3593e86ebceb84701ee118ce653faa3f"
+        ]
+      ],
+      "checker_hashes": [
+        [
+          "independent",
+          "sha256:9da15106ab159b1a039b9a2c667f5002ca4301dbe72b5f5f624988b24351cabd"
+        ]
+      ],
+      "known_limits": [
+        "Pure local normalization; no archive extraction is performed here."
+      ],
+      "evidence_refs": [
+        "C:\\Users\\sunom\\AppData\\Local\\Temp\\opencode\\dogfood_veriarbor_20261106\\TEST_REPORT.md"
+      ],
+      "created_at": "2026-11-06T04:07:26.294257+00:00",
+      "invalidated": false
+    },
+    "certificate_fingerprint": "2e610a9fc32f975d1cfd3bc10d7376f22af2105ed94256ff8ef9cf5466e13013",
+    "compatibility": {
+      "without_adapter": "BREAKING",
+      "with_adapter": "ADAPTABLE",
+      "blocks": "ADAPTABLE"
+    },
+    "acceptance_rollup": {
+      "obligations": {
+        "SAFE_ZIP": {
+          "verdict": "VERIFIED",
+          "weight": 1,
+          "must": true
+        }
+      },
+      "completion": 1.0,
+      "evidence_coverage": 1.0,
+      "hard_verdict": "VERIFIED"
+    },
+    "empty_rollup": {
+      "obligations": {
+        "SAFE_ZIP": {
+          "verdict": "INSUFFICIENT_EVIDENCE",
+          "weight": 1,
+          "must": true
+        }
+      },
+      "completion": 0.0,
+      "evidence_coverage": 0.0,
+      "hard_verdict": "INSUFFICIENT_EVIDENCE"
+    },
+    "certificate_matches": true,
+    "independent": true
+  },
+  "negative_control": {
+    "kind": "VeriArborDogfoodNegativeControl",
+    "status": "PASS",
+    "tampered_certificate_matches": false,
+    "tampered_can_substitute": false,
+    "expected": "both False"
+  },
+  "compatibility": {
+    "without_adapter": "BREAKING",
+    "with_adapter": "ADAPTABLE",
+    "blocks": "ADAPTABLE"
+  },
+  "rollup": {
+    "obligations": {
+      "SAFE_ZIP": {
+        "verdict": "VERIFIED",
+        "weight": 1,
+        "must": true
+      }
+    },
+    "completion": 1.0,
+    "evidence_coverage": 1.0,
+    "hard_verdict": "VERIFIED"
+  },
+  "empty_rollup": {
+    "obligations": {
+      "SAFE_ZIP": {
+        "verdict": "INSUFFICIENT_EVIDENCE",
+        "weight": 1,
+        "must": true
+      }
+    },
+    "completion": 0.0,
+    "evidence_coverage": 0.0,
+    "hard_verdict": "INSUFFICIENT_EVIDENCE"
+  },
+  "mechanisms_exercised": [
+    "Block/Port/Contract boundary modeling",
+    "explicit Adapter rename",
+    "directional Port compatibility (compatible/adaptable/breaking)",
+    "Certificate exact artifact/checker binding",
+    "can_substitute",
+    "reduce_obligations with missing evidence"
+  ],
+  "provider_calls": 0,
+  "paid_cost": 0,
+  "limitations": [
+    "Deterministic local execution; not a Provider/DAG end-to-end run.",
+    "The independent test harness was authored for this dogfood task in this session.",
+    "No external third-party acceptance was performed."
+  ]
+}

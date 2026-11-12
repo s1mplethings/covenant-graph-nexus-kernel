@@ -28,6 +28,7 @@ from cgkn.compiler import ArtifactFlowCompiler
 from cgkn.runtime import ArtifactInvalidator, ArtifactModuleRunner, ModuleExecutionError, build_context_pack, execution_fingerprint
 from cgkn.runtime.delivery import evaluate_delivery_readiness
 from cgkn.runtime.effects import EffectConstraintViolation, EffectCounter
+from tests.artifact_authority_support import artifact_runner as ArtifactModuleRunner
 
 
 FLOW = "flow.artifact_driven_project_refactor@1"
@@ -44,7 +45,7 @@ def seed(store: ArtifactStore, artifact_type: str, content: dict, port: str, *, 
             content=content,
             provenance=Provenance(source_refs=("test",)),
             supersedes=supersedes,
-        )
+        ), execution_mode='IMPORTED_UNMANAGED'
     )
 
 
@@ -81,7 +82,7 @@ def test_invalid_content_is_blocked_before_write(tmp_path: pathlib.Path) -> None
         producer=Producer("n", "module.test@1"), content={}, provenance=Provenance(),
     )
     with pytest.raises(ArtifactValidationError):
-        store.write_artifact(artifact)
+        store.write_artifact(artifact, execution_mode='IMPORTED_UNMANAGED')
     assert not (tmp_path / "artifacts" / "ai.invalid.001.json").exists()
 
 
@@ -94,7 +95,7 @@ def test_provenance_is_stored_and_hash_verified(tmp_path: pathlib.Path) -> None:
         content={"goal":"goal","explicitRequirements":[],"constraints":[],"nonGoals":[],"ambiguities":[],"assumptions":[]},
         provenance=Provenance(input_artifact_refs=(first,), provider="qwen", model="qwen-test", prompt_version="v1"),
     )
-    ref = store.write_artifact(artifact)
+    ref = store.write_artifact(artifact, execution_mode='IMPORTED_UNMANAGED')
     loaded = store.resolve_artifact_ref(ref)
     assert loaded.provenance.input_artifact_refs == (first,)
     assert loaded.provenance.model == "qwen-test"
@@ -199,7 +200,9 @@ def test_provider_output_gets_one_bounded_schema_repair(tmp_path: pathlib.Path) 
     module = copy.deepcopy(runner.compiler.modules["module.requirement.interpret@1"])
     module["implementation"] = {"kind":"provider","promptVersion":"v1","cacheable":False,"model":"test"}
     requirement = seed(runner.store, "artifact.raw_requirement@1", {"text":"g"}, "requirement")
-    output, _ = runner._execute(module, {"requirement": requirement}, {}, {"id":"n"})
+    from tests.providers.authority_fixtures import authorized_transport
+    with authorized_transport(tmp_path/'transport-authority',calls=2):
+        output, _ = runner._execute(module, {"requirement": requirement}, {}, {"id":"n"})
     assert output["interpretation"]["goal"] == "g"
     assert [item["repair"] for item in calls] == [False, True]
 
@@ -210,7 +213,8 @@ def test_provider_invalid_output_creates_diagnostic_and_no_artifact(tmp_path: pa
     module["implementation"] = {"kind":"provider","promptVersion":"v1","cacheable":False}
     requirement = seed(runner.store, "artifact.raw_requirement@1", {"text":"g"}, "requirement")
     before = len(runner.store.list_artifacts())
-    with pytest.raises(ModuleExecutionError) as error:
+    from tests.providers.authority_fixtures import authorized_transport
+    with authorized_transport(tmp_path/'transport-authority',calls=2), pytest.raises(ModuleExecutionError) as error:
         runner._execute(module, {"requirement": requirement}, {}, {"id":"n"})
     assert error.value.diagnostics[0]["code"] == "CGKN_PROVIDER_OUTPUT_INVALID"
     assert len(runner.store.list_artifacts()) == before
@@ -268,7 +272,7 @@ def test_upstream_change_invalidates_only_descendants_and_explains(tmp_path: pat
         id=store.allocate_id(old.artifact_type), artifact_type=old.artifact_type, run_id=store.run_dir.name,
         producer=old.producer, content=content, provenance=old.provenance, supersedes=old.id,
     )
-    changed_ref = store.write_artifact(changed)
+    changed_ref = store.write_artifact(changed,execution_mode='IMPORTED_UNMANAGED')
     report = ArtifactInvalidator(store, runner.graph).invalidate(changed_ref)
     assert "n_problem_analysis" in report["affectedNodes"]
     assert "n_project_snapshot" not in report["affectedNodes"]

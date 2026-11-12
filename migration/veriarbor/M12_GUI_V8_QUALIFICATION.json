@@ -1,0 +1,122 @@
+{
+  "kind": "GuiObserverLabelCompatibilityQualification",
+  "status": "PASS",
+  "controls": [
+    {
+      "name": "valid_uploaded_bytes",
+      "kind": "positive",
+      "expected": true,
+      "observed": true,
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "actual_upload_400",
+      "kind": "negative",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "GUI file upload must persist valid original bytes"
+    },
+    {
+      "name": "wrong_uploaded_identity",
+      "kind": "mutation",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "GUI file upload must persist valid original bytes"
+    },
+    {
+      "name": "same_content_revision_advanced",
+      "kind": "positive",
+      "expected": true,
+      "observed": true,
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "duplicate_content_save",
+      "kind": "negative",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "Saving selected content must edit rather than duplicate"
+    },
+    {
+      "name": "stale_approval",
+      "kind": "mutation",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "GUI semantic edit must invalidate current approval"
+    },
+    {
+      "name": "wrong_edited_identity",
+      "kind": "mutation",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "GUI semantic edit must preserve identity and advance revision"
+    },
+    {
+      "name": "actual_scoped_state",
+      "kind": "positive",
+      "expected": true,
+      "observed": true,
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "false_empty_state",
+      "kind": "negative",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "Project-scoped state does not match persisted campaigns"
+    },
+    {
+      "name": "cross_project_state",
+      "kind": "mutation",
+      "expected": false,
+      "observed": false,
+      "passed": true,
+      "error": "Project-scoped state does not match persisted campaigns"
+    },
+    {
+      "kind": "negative",
+      "name": "actual_serial_server_idle_connection",
+      "passed": true
+    },
+    {
+      "kind": "positive",
+      "name": "independent_threaded_server_same_handler",
+      "passed": true
+    },
+    {
+      "name": "actual_browser_label_When",
+      "kind": "positive",
+      "passed": true
+    },
+    {
+      "name": "actual_browser_label_When (ISO8601)",
+      "kind": "positive",
+      "passed": true
+    },
+    {
+      "name": "actual_browser_label_Unrelated field",
+      "kind": "negative",
+      "passed": true
+    }
+  ],
+  "checker_hash": "af46c7b59f05ff97ec89d9dc3a242218868a7d199ec578de25621707dab68647",
+  "previous_checker_hash": "d05800394ccd73afbe141e347cf23b949518397cc1a71adbe82f4b0ff88c8469",
+  "scope": [
+    "M12"
+  ],
+  "product_acceptance_granted": false,
+  "qualification_only": true,
+  "control_scope": "Prior12 controls retained plus3 actualbrowser selector controls. Accepts frozen When label and earlier When (ISO8601); rejects unrelated input. No business assertion weakened, no product acceptance granted.",
+  "actual_negative_evidence": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-idle-connection-5f467864\\receipt.json",
+  "actual_browser_evidence": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-final-product-143a2-selection-corrected\\receipt.json",
+  "preserved_assertions": "All v7 assertions retained. Only schedule time locator accepts both observed contract-compatible accessible labels."
+}

@@ -1,0 +1,35 @@
+{
+  "expected_gui_sha256": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+  "feedback": {
+    "cost_policy": "QwenFlash Agent and DeepSeekFlash Worker. Qwen test87 emitted prose/tool_call text instead ofJSON; choose alternatecheapWorkerfamily for new work, not replay. NoPro/Max andall6upstreamUNKNOWNspreserved.",
+    "milestone_completion_request": "Complete only remaining unfinished media publication/GUI and then M12/final delivery. M6 MODULE PATH IS ALREADY FIXED; do not repair86 again based on old instructions or generic M11failure. Current86=59cc8a5f has M11discovery plus correctfallback, and both missing/broken approval localtests PASS. Previousfa6720fa alreadypassed formalM6; unnecessarysecond86edit changedonlyloaderdiscovery, preserveitnow. If M6 currently lacks current-version acceptance, reuse existing independent observer129 via RETRY to bind59cc8a5f ONCE; no new observer or testregeneration needed. Once M6 has currentcertificate, this conditional is finished permanently unless a new M6-specific counterexample exists. M7-M10 surroundingchecks reuse certifieddependencyproofs, as actualfa6720fa witness already demonstrated. Publication89 remains unchanged985acf and both existing publicationnegative tests FAIL because DID NOT RAISE after validapproval (not approvalfailure). CurrentfailingcanonicalM11 reason ExpectedValueError is consumer line343 M7publish, while line342 secondapprovalalreadyrejectsAPPROVEDstatus. Use current bound failure only; obtain necessary fresh negative evidence only if requiredbyadmission, never remeasure an unchangedcurrentkey. Actualnextsourceowner is89 for before-publish media validation andreceiptbinding;91 for realpreview. Keep86,117 andunrelatedsources. One GUI writer implements attach/save/preview/review/approve/publish/receipt coherently. Restore87STALEcoverage later through its own boundedtestowner task, not a newwriter. M11fullfinalslice after localrepairs, thenM12completeGUI/startup/config/scheduler/analytics/restart/docs, canonicalfinaltests/packager/delivery/accounting/provenance/Corpus. NoPro/Max, noUNKNOWNreplay.",
+    "admission_correction": "Do not reinterpret a generic failedM11 aggregate as M6loaderfailure. That specificfailure was fixed and diagnosedPASS. Existing129canrefreshM6onlyifstale. Existing130canrefreshM11onlyifneededforcurrentfailureadmission; no newduplicates. For actualsourcechanges selectoriginal89(publication) or91(GUI) andprecisedeclaredscope, exactcurrentfailure refs, completehypothesis/strategy. fullfile-onlyconstraint remainsremoved; JSON-only Worker protocol. Do not re-run86 or117 just to refresh tests.",
+    "fresh_runtime_diagnosis": {
+      "artifact_bindings": {
+        "M6": "59cc8a5f99790064b8b6c70a84c1851cad44bdfe1ea203cb4de38423d80f4b5b",
+        "M7_publish": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024",
+        "M11": "e4737c448e03a9fd794b9cc86a34a0ab14a04add0ac24b6cbbe42bb7e85336af"
+      },
+      "resolved": "M6 module path andapprovalmissing/brokenmedia validation. Preserve86unlessnewM6-specificcounterexample. Source hashes bind diagnosis; neverapply oldresolvedpathinstruction aftersourcechanges.",
+      "remaining": "M7 publish guard DID NOT RAISE in two local cases; GUI has0image/videoelements.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-local-edges-fa6720fa\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-approval-edges-59cc8a5f\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\BLOCK_V1_REAL_SUBSTITUTION_FA6720FA.json"
+      ],
+      "prior_test_debts": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\continuation-feedback\\veriarbor-33.json",
+      "upstream_unknowns": 6
+    },
+    "redecision": {
+      "strategy_revision": "c31c9d516919e4cc8567112557f382f46976fb4ccb25156066e0e165d396dff1",
+      "reason": "38 fixed M6 path and proved four downstream certificates reused. Persistent stale instruction then unnecessarily reselected86 and addeddiscovery; preservebothattempts. Latestlocal2approvalcasesPASS; publication2cases fail realguard. Remove resolvedM6repairinstruction, use conditionalmeasurement only and remainingoriginal89/91 owners.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-local-edges-fa6720fa\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-approval-edges-59cc8a5f\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\BLOCK_V1_REAL_SUBSTITUTION_FA6720FA.json"
+      ]
+    },
+    "strategy_constraints": [],
+    "gui_writer_policy": "Only91 edits early_main.py.89 owns publication;86and117 resolved andread-only absentnewscopedcounterexample. PreserveDOMworkflow; implementrealimg/video+safeassetreadendpoint, nottextplaceholder."
+  }
+}

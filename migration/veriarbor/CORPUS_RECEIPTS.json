@@ -1,0 +1,21 @@
+{
+  "kind": "M12CorpusArchiveReceipt",
+  "status": "PASS",
+  "corpus_root": "F:\\CGKN-ITER-060\\project-corpus",
+  "corpus_entry_id": "entry-iter132-m12-final-product-sanitized-01",
+  "manifest_status": "PASS",
+  "split": "VALIDATION",
+  "source_sha256": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+  "files": 68,
+  "verified_objects": 136,
+  "rebuild_identical": true,
+  "old_catalog_rows_preserved": true,
+  "redacted_file_count": 33,
+  "quarantined_attempt": "entry-iter132-m12-final-product",
+  "implementation_hashes": {
+    "contracts.py": "0b05c341dbe9b534d063a8993b27cc4cbd58b191f38c3d20121968104b9365ac",
+    "store.py": "ccf425647e874b495bb96bffb6b8fd7a6473c0364ae67a8fd9f7e74341a4fa21"
+  },
+  "created_at": "2026-11-06T00:31:55.310139+00:00",
+  "scope": "M12 evidence only; final delivery and GoalAcceptance remain separate."
+}

@@ -76,3 +76,24 @@ def test_current_kernel_governance_passes_all_gates() -> None:
     assert architecture.check()["status"] == "PASS"
     assert coverage.check()["status"] == "PASS"
     assert completeness.check()["status"] == "PASS"
+
+
+def test_specific_module_owner_does_not_exempt_reverse_import(monkeypatch, tmp_path):
+    (tmp_path / 'compat.py').write_text('')
+    source = tmp_path / 'cgkn/runtime/authority.py'
+    source.parent.mkdir(parents=True)
+    source.write_text('from cgkn.runtime import dag_runner')
+    layers = {'layers': [{'id':'L1', 'packages':['cgkn.runtime.authority']},
+                         {'id':'L4', 'packages':['cgkn.runtime']}]}
+    monkeypatch.setattr(architecture, 'ROOT', tmp_path)
+    monkeypatch.setattr(architecture, 'source_files', lambda: {'cgkn/runtime/authority.py'})
+    monkeypatch.setattr(architecture, 'imported_modules', lambda path: {'cgkn.runtime.dag_runner'})
+    monkeypatch.setattr(architecture, 'load_json', lambda path: layers if 'layers' in path else
+        {'authorities':{},'compatibility_entrypoints':['compat.py']} if 'authorities' in path else
+        {'compatibility_rule':'not the MVP planning or composition authority'})
+    assert 'forbidden_reverse_import:cgkn/runtime/authority.py:cgkn.runtime' in architecture.check()['errors']
+
+
+def test_current_runtime_dependency_architecture():
+    result = architecture.check()
+    assert result['status'] == 'PASS', result

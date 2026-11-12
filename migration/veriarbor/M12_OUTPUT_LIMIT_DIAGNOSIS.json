@@ -1,0 +1,116 @@
+{
+  "kind": "RecordedGatewayOutputLimitDiagnosis",
+  "source": "F:\\CGKN-LeanLoop-V1-20261101\\.cgkn\\domestic-gateway\\generation-events.jsonl",
+  "last_progress": {
+    "2327705b29644985b36918eedb208464": {
+      "text_bytes": 50555,
+      "meaningful_events": 13319,
+      "at": 1793732340.374975
+    },
+    "d70782f128b642dcb674b36078e5dd28": {
+      "text_bytes": 44655,
+      "meaningful_events": 3289,
+      "at": 1793732726.2040334
+    }
+  },
+  "failures": [
+    {
+      "client_call_key": "2327705b29644985b36918eedb208464",
+      "provider": "deepseek",
+      "phase": "progress_final",
+      "error_type": null,
+      "outcome": null,
+      "stall_reason": null,
+      "submitted_age": 385.11175440001534,
+      "at": 1793732340.501763
+    },
+    {
+      "client_call_key": "2327705b29644985b36918eedb208464",
+      "provider": "deepseek",
+      "phase": "stream_failed",
+      "error_type": "ReadError",
+      "outcome": null,
+      "stall_reason": null,
+      "submitted_age": null,
+      "at": 1793732340.554453
+    },
+    {
+      "client_call_key": "2327705b29644985b36918eedb208464",
+      "provider": null,
+      "phase": "application_error",
+      "error_type": "provider_error",
+      "outcome": {
+        "network_entered": true,
+        "route_id": "deepseek_direct",
+        "fault_domain": "physical-WLAN",
+        "kind": "ReadError",
+        "retryable": false,
+        "submitted": true,
+        "partial": true
+      },
+      "stall_reason": null,
+      "submitted_age": null,
+      "at": 1793732340.574845
+    },
+    {
+      "client_call_key": "2327705b29644985b36918eedb208464",
+      "provider": null,
+      "phase": "gateway_error",
+      "error_type": "provider_outcome_unknown",
+      "outcome": null,
+      "stall_reason": null,
+      "submitted_age": null,
+      "at": 1793732340.6016965
+    },
+    {
+      "client_call_key": "d70782f128b642dcb674b36078e5dd28",
+      "provider": "qwen",
+      "phase": "progress_final",
+      "error_type": null,
+      "outcome": null,
+      "stall_reason": null,
+      "submitted_age": 155.88655260001542,
+      "at": 1793732726.31245
+    },
+    {
+      "client_call_key": "d70782f128b642dcb674b36078e5dd28",
+      "provider": "qwen",
+      "phase": "stream_failed",
+      "error_type": "stream_output_token_limit",
+      "outcome": null,
+      "stall_reason": null,
+      "submitted_age": null,
+      "at": 1793732726.365125
+    },
+    {
+      "client_call_key": "d70782f128b642dcb674b36078e5dd28",
+      "provider": null,
+      "phase": "application_error",
+      "error_type": "provider_error",
+      "outcome": {
+        "network_entered": true,
+        "route_id": "qwen_direct",
+        "fault_domain": "physical-WLAN",
+        "kind": "stream_output_token_limit",
+        "submitted": true,
+        "retryable": false
+      },
+      "stall_reason": null,
+      "submitted_age": null,
+      "at": 1793732726.387513
+    },
+    {
+      "client_call_key": "d70782f128b642dcb674b36078e5dd28",
+      "provider": null,
+      "phase": "gateway_error",
+      "error_type": "provider_outcome_unknown",
+      "outcome": null,
+      "stall_reason": null,
+      "submitted_age": null,
+      "at": 1793732726.4122217
+    }
+  ],
+  "provider_requests": 0,
+  "ledger_changed": false,
+  "old_unknown_retained": true
+}

@@ -1,0 +1,35 @@
+{
+  "kind": "B11FinalProductVerticalSliceAcceptance",
+  "block_id": "B11",
+  "status": "PASS",
+  "source_sha256": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+  "checker": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\consumer-revisions\\final-gui-complete-v10.py",
+  "checker_sha256": "836e4ab1737aaa20cfa2946cea529115c46f5c3b3183117c70848971a0229194",
+  "observed": {
+    "execution": "VALID",
+    "observed": {
+      "value": true,
+      "reason": "M12 actual business checks passed",
+      "passed_count": 2,
+      "total_count": 2
+    }
+  },
+  "checks": [
+    "full M12 vertical slice passed",
+    "projects/campaigns/content/claims/approval/media/schedule/publish/receipt/analytics",
+    "semantic edit invalidates approval",
+    "restart persistence",
+    "project isolation",
+    "no JavaScript errors"
+  ],
+  "startup": {
+    "command": [
+      "D:\\anaconda\\python.exe",
+      "-X",
+      "utf8",
+      "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\consumer-revisions\\final-gui-complete-v10.py"
+    ],
+    "cwd": "C:\\Users\\sunom\\AppData\\Local\\Temp\\m12-b11-6b6e14of"
+  },
+  "completed_at": "2026-11-05T18:00:43.337231+00:00"
+}

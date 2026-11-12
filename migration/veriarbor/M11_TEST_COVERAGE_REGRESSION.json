@@ -1,0 +1,25 @@
+{
+  "kind": "GeneratedTestCoverageRegressionDiagnostic",
+  "timestamp": "2026-11-03T14:03:10.664560+00:00",
+  "before": {
+    "ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-generated-tests-a40dff58-v2\\receipt.json",
+    "sha256": "02ac8bbb853b3eec07f6334f51df02afcfb486d7ea742fe6996fb03b92743a39",
+    "tests": 28,
+    "failed": 3
+  },
+  "after": {
+    "ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-generated-tests-14855411\\receipt.json",
+    "sha256": "626493563b34ec4a298f55997921692943d7bd4d49141d5fde4d9eb5fb0a24e1",
+    "tests": 18,
+    "failed": 1
+  },
+  "finding": "New test118 attempt3 reduced cases from28to18 and replaced explicit publication ValueError negative assertions with broad handling/network-ambiguous flow. This is not evidence of fixing the original three integration defects. Original assertions remain required; no failures waived.",
+  "missing_original_negative_tests": [
+    "test_m6_approval_blocks_broken_media",
+    "test_m7_publish_blocks_broken_media",
+    "test_m7_publish_blocks_missing_media"
+  ],
+  "acceptance_authority": false,
+  "host_business_patches": 0,
+  "specific_false_pass": "test_publish_blocks_broken_media calls self.fail(\"Publish should have failed due to broken media\") inside try; except Exception catches that AssertionError and treats any exception text containing media as success. Thus absence of required ValueError incorrectly passes this negative test."
+}

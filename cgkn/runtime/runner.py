@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from cgkn.telemetry.lean import ACTIVE, OFFLINE_TRIAL, observed, analysis_cost
+
 import importlib
 import json
 import pathlib
@@ -48,6 +50,7 @@ class ArtifactModuleRunner:
         *,
         provider_executor: Callable[[dict[str, Any]], Any] | None = None,
         local_functions: dict[str, Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]]] | None = None,
+        admission_policy=None,
     ):
         self.root = pathlib.Path(root).resolve()
         self.run_dir = pathlib.Path(run_dir).resolve()
@@ -65,6 +68,8 @@ class ArtifactModuleRunner:
         self.effects = EffectCounter(self.policy.get("effect_constraints", []))
         self.provider_executor = provider_executor
         self.local_functions = local_functions or {}
+        self.admission_policy = admission_policy
+        self._planned_artifacts = {}
         self.feed_rows: list[dict[str, Any]] = []
         self.component_executions: list[ComponentExecution] = []
         self._outputs: dict[tuple[str, str], ArtifactRef] = {}
@@ -77,6 +82,7 @@ class ArtifactModuleRunner:
                 if artifact:
                     self._outputs[(node_id, port)] = artifact.ref
 
+    @observed(lambda a: a["self"].flow_ref, lambda a: a["self"].run_dir, expose=True)
     def run(
         self,
         flow_inputs: dict[str, ArtifactRef],
@@ -84,6 +90,7 @@ class ArtifactModuleRunner:
         node_ids: set[str] | None = None,
         output_overrides: dict[tuple[str, str], ArtifactRef] | None = None,
         raw_source_chars: int = 0,
+        retry_node: str | None = None,
     ) -> dict[str, Any]:
         output_overrides = output_overrides or {}
         self._outputs.update(output_overrides)
@@ -91,16 +98,10 @@ class ArtifactModuleRunner:
         manifest["status"] = "running"
         manifest["inputArtifacts"] = [item.as_dict() for item in flow_inputs.values()]
         self._save_manifest(manifest)
-        nodes = {node["id"]: node for node in self.flow["nodes"]}
         try:
-            for node_id in self.bundle["topological_order"]:
-                if node_ids is not None and node_id not in node_ids:
-                    continue
-                if any(key[0] == node_id for key in output_overrides):
-                    self._record_bypass(node_id, output_overrides)
-                    continue
-                self._run_node(nodes[node_id], flow_inputs, raw_source_chars)
-        except (ModuleExecutionError, ArtifactValidationError, EffectConstraintViolation) as exc:
+            self._run_canonical(flow_inputs, node_ids, output_overrides,
+                                raw_source_chars, retry_node)
+        except Exception as exc:
             manifest = self._load_manifest()
             manifest["status"] = "failed"
             self._save_manifest(manifest)
@@ -112,6 +113,14 @@ class ArtifactModuleRunner:
             source, target = edge["from"], edge["to"]
             if "flow_output" in target:
                 outputs[target["flow_output"]] = self._outputs[(source["node"], source["port"])]
+        from cgkn.state import FileRunStore
+        from .node_authority import ExecutionAuthority
+        canonical=FileRunStore(self.run_dir/'execution')
+        authority=ExecutionAuthority(canonical,'artifact-flow','session')
+        for ref in outputs.values():
+            artifact=self.store.resolve_artifact_ref(ref)
+            saved=canonical.load_result('artifact-flow','session',artifact.producer.node_id)
+            self.store.resolve_governed(ref,authority=authority,receipt_id=saved.metadata.get('node_commit_receipt_id'))
         manifest = self._load_manifest()
         manifest["status"] = "completed"
         manifest["outputArtifacts"] = [item.as_dict() for item in outputs.values()]
@@ -123,6 +132,194 @@ class ArtifactModuleRunner:
             "feedForwardReport": report,
             "runManifest": manifest,
         }
+
+    def _run_canonical(self, flow_inputs, node_ids, overrides, raw_source_chars, retry_node):
+        """Translate typed modules; only DAGRunner schedules and commits state.
+
+        ArtifactStore remains the typed value/lineage store, not execution state.
+        Its mutable index is not concurrent-safe, so these legacy Components
+        explicitly serialize their shared write domain until that is qualified.
+        """
+        from cgkn.execution import BlockExecutionResult, BlockStatus, ExecutionError, ExecutionErrorCode
+        from cgkn.execution.deliverables import SubjectDeliverableChecker
+        from cgkn.executors import ExecutorRegistry
+        from cgkn.executors.protocol import ExecutorDescriptor
+        from cgkn.orchestration.capability_tree import CapabilityNode, CapabilityTree
+        from cgkn.orchestration.execution_dag import compile_tree
+        from cgkn.orchestration.leaf_contract import build_leaf_contract
+        from cgkn.state import FileRunStore
+        from .dag_runner import DAGRunner
+        from cgkn.artifacts.hash import content_hash, source_identity
+        import hashlib
+
+        owner = self
+        nodes = {n['id']: n for n in self.flow['nodes'] if not n.get('structural')}
+        selected = set(nodes) if node_ids is None else set(node_ids)
+        if not selected <= nodes.keys():
+            raise ModuleExecutionError('unknown selected artifact node')
+        store = FileRunStore(self.run_dir / 'execution')
+        project_id, run_id = 'artifact-flow', 'session'
+        leaves = []
+        for name in sorted(selected):
+            node = nodes[name]
+            implementation = self.compiler.modules[node['uses']]['implementation']
+            implementation_hash = None
+            if implementation['kind'] == 'local_function':
+                function = self.local_functions.get(implementation.get('entrypoint')) or self._import_callable(implementation['entrypoint'])
+                implementation_hash = source_identity(function)
+                if implementation_hash == 'UNKNOWN':
+                    raise ModuleExecutionError('local implementation identity unavailable: ' + name)
+            ports = self.graph.node_outputs[name]
+            if not ports:
+                raise ModuleExecutionError('typed module needs explicit deliverable ports: ' + name)
+            dependencies = tuple(d for d in self.graph.node_dependencies[name] if d in selected)
+            override = any(n == name for n, _ in overrides)
+            contract = build_leaf_contract(goal='Materialize declared typed outputs for ' + node['uses'],
+                kind='INSPECTION' if override else 'IMPLEMENTATION',
+                scope=[name + '/' + port for port in sorted(ports)],
+                acceptance=['typed-artifact-integrity'], checker='typed-artifacts',
+                output_identity='artifact-module/' + name, effect_domains=['filesystem'],
+                executor='artifact.module@1', dependencies=dependencies,
+                expected_delta='new typed artifact instances with valid input provenance',
+                subject='explicit artifact overrides', expected_observation='fresh schema-valid outputs',
+                pass_fail_rule='all declared ports bind current validated artifacts', node_id=name)
+            leaves.append(CapabilityNode(name, capability_ref=node['uses'], depends_on=dependencies,
+                config={'executor_ref':'artifact.module@1', 'leaf_contract':contract,
+                        'parallel_safe':False, 'resources':{'artifact-store':'write'},
+                        'module_hash':content_hash(self.compiler.modules[node['uses']]),
+                        'implementation_hash':implementation_hash,
+                        'input_paths':[str(self.store._path(ref.artifact_instance_id))
+                            for key,ref in flow_inputs.items() if any(e['from'].get('flow_input')==key
+                            and e['to'].get('node')==name for e in self.flow.get('edges',()))],
+                        'node_config':node.get('config', {}),
+                        'flow_inputs':{e['from']['flow_input']:flow_inputs[e['from']['flow_input']].as_dict()
+                            for e in self.flow.get('edges', ()) if e['to'].get('node') == name
+                            and e['from'].get('flow_input') in flow_inputs},
+                        'external_dependencies':{d:{p:self._outputs[(d,p)].as_dict()
+                            for p in self.graph.node_outputs.get(d,{}) if (d,p) in self._outputs}
+                            for d in self.graph.node_dependencies[name] if d not in selected},
+                        'overrides':{p:r.as_dict() for (n,p),r in overrides.items() if n == name}}))
+        tree = CapabilityTree(self.flow_ref, tuple(leaves))
+        # Admission applies additions sequentially; declare each producer before
+        # its consumers while retaining the same compiled dependency graph.
+        tree = CapabilityTree(tree.goal,tuple(tree.by_id[n] for n in compile_tree(tree).topological_order()))
+
+        def snapshot(contract):
+            result = {}
+            for subject in contract['target_scope']:
+                name, port = subject.split('/', 1)
+                ref = owner._outputs.get((name, port))
+                if not ref:
+                    result[subject] = None
+                    continue
+                artifact = owner.store.resolve_artifact_ref(ref)
+                input_states = [[r.as_dict(), owner.store.resolve_artifact_ref(r).status,
+                                 owner.store.verify_artifact_hash(r)]
+                                for r in artifact.provenance.input_artifact_refs]
+                result[subject] = content_hash([ref.as_dict(), artifact.status,
+                                               owner.store.verify_artifact_hash(ref), input_states])
+            return result
+
+        def check(request, contract):
+            evidence, observations = [], {}
+            passed = True
+            for subject in contract['target_scope']:
+                name, port = subject.split('/', 1)
+                ref = owner._outputs.get((name, port))
+                if not ref:
+                    passed = False; observations[subject] = 'MISSING'; continue
+                artifact = owner.store.resolve_artifact_ref(ref)
+                owner.store.validate_artifact(artifact)
+                valid = (artifact.status == 'fresh' and owner.store.verify_artifact_hash(ref)
+                         and artifact.artifact_type == owner.graph.node_outputs[name][port])
+                if (name, port) not in overrides:
+                    valid = valid and artifact.producer.node_id == name and artifact.producer.output_port == port
+                    expected = owner._resolve_inputs(name, flow_inputs)
+                    valid = valid and set(artifact.provenance.input_artifact_refs) == set(expected.values())
+                passed = passed and valid
+                observations[subject] = {'valid':valid, 'ref':ref.as_dict()}
+                path = owner.store.artifacts_dir / (artifact.id + '.json')
+                evidence.append({'path':str(path), 'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
+            # The raw execution receipt exists even when every output is absent.
+            if not evidence:
+                evidence.append(dict(request.input_values['execution_receipt_ref']))
+            return {'passed':passed, 'observed':observations, 'evidence_refs':evidence}
+
+        class ModuleExecutor:
+            descriptor = ExecutorDescriptor('artifact.module@1', 'typed_module', tuple(n['uses'] for n in nodes.values()))
+
+            def declared_output_paths(self, request):
+                paths=[]
+                for port in owner.graph.node_outputs[request.node_id]:
+                    artifact_id='ai.'+hashlib.sha256((request.node_id+'|'+request.attempt_id+'|'+port).encode()).hexdigest()
+                    owner._planned_artifacts[(request.node_id,port)]=artifact_id
+                    paths.append(owner.store._path(artifact_id))
+                return paths
+
+            def execute(self, request):
+                try:
+                    if any(n == request.node_id for n, _ in overrides):
+                        owner._record_bypass(request.node_id, overrides)
+                    else:
+                        owner._run_node(nodes[request.node_id], flow_inputs, raw_source_chars)
+                    return BlockExecutionResult(project_id=request.project_id, run_id=request.run_id,
+                        node_id=request.node_id, attempt_id=request.attempt_id, executor_ref=request.executor_ref,
+                        status=BlockStatus.SUCCEEDED,
+                        outputs={'artifacts':{p:r.as_dict() for (n,p),r in owner._outputs.items() if n == request.node_id}})
+                except ModuleExecutionError as exc:
+                    cause = exc
+                    unknown = False
+                    while cause is not None:
+                        unknown = unknown or bool(getattr(cause, 'outcome_unknown', False))
+                        cause = cause.__cause__
+                    return BlockExecutionResult(project_id=request.project_id, run_id=request.run_id,
+                        node_id=request.node_id, attempt_id=request.attempt_id, executor_ref=request.executor_ref,
+                        status=BlockStatus.FAILED, error=ExecutionError(ExecutionErrorCode.EXECUTION_ERROR,
+                            str(exc), {'diagnostics':exc.diagnostics, 'outcome_unknown':unknown}))
+
+        registry = ExecutorRegistry()
+        registry.register(ModuleExecutor())
+        registry.register(SubjectDeliverableChecker(snapshot, {'typed-artifact-integrity':check}))
+        runner = DAGRunner(registry, store, deliverable_checkers={'typed-artifacts':'deliverable.subjects@1'})
+        exists = (store.run_dir(project_id, run_id) / 'run_state.json').exists()
+        from .node_authority import ExecutionAuthority
+        from .governed import admit_declared_tree
+        authority=ExecutionAuthority(store,project_id,run_id)
+        if retry_node:
+            authority.validate_recovery_tree(tree,retry_nodes={retry_node})
+        if exists:
+            runner._bind_graph(store.load_run(project_id,run_id),compile_tree(tree),
+                accept_edits=bool(retry_node),retry_node=retry_node,validate_only=True)
+        if self.admission_policy is None:
+            if retry_node or not authority.committed_tree():raise ValueError('explicit artifact capability admission policy required')
+            authority.validate_tree(tree)
+        else:
+            admit_declared_tree(authority,tree,policy=self.admission_policy,
+                proposal_id='artifact-flow-'+str(len(authority.events())),reason='Explicit typed artifact execution policy',retry_node=retry_node)
+        summary = runner.run(project_id=project_id, run_id=run_id, tree=tree, dag=compile_tree(tree),
+                             resume=exists, retry_node=retry_node, accept_edits=bool(retry_node))
+        for name in summary.reused_nodes:
+            self._record_canonical_reuse(nodes[name], flow_inputs, raw_source_chars)
+        if summary.status != 'SUCCEEDED':
+            failed = [store.load_result(project_id, run_id, n) for n in summary.failed_nodes]
+            diagnostics = [d for r in failed if r.error for d in r.error.details.get('diagnostics', ())]
+            message = '; '.join(r.error.message for r in failed if r.error) or 'artifact DAG blocked; reconcile or explicitly retry affected node'
+            raise ModuleExecutionError(message, diagnostics or None)
+
+    def _record_canonical_reuse(self, node, flow_inputs, raw_source_chars):
+        """Compatibility views of a checked canonical reuse; never execute work."""
+        inputs = self._resolve_inputs(node['id'], flow_inputs)
+        outputs = [self._outputs[(node['id'], p)] for p in self.graph.node_outputs[node['id']]]
+        execution = ComponentExecution(node['uses'], node['id'], self.run_dir.name).start(inputs.values())
+        module = self.compiler.modules[node['uses']]
+        execution.execution_fingerprint = execution_fingerprint(node['uses'], node.get('config', {}), inputs.values(),
+            module['implementation'].get('promptVersion'), self.flow['policy_ref'])
+        execution.cached(outputs)
+        self.component_executions.append(execution)
+        self._record_checkpoint(execution.as_checkpoint())
+        self.feed_rows.append({'nodeId':node['id'], 'inputs':[r.as_dict() for r in inputs.values()],
+            'outputs':[r.as_dict() for r in outputs], 'cache':'hit', 'status':'cached',
+            'reuse_authority':'DAGRunner', 'executionId':execution.execution_id})
 
     def _run_node(self, node: dict[str, Any], flow_inputs: dict[str, ArtifactRef], raw_source_chars: int) -> None:
         node_id = node["id"]
@@ -137,6 +334,7 @@ class ArtifactModuleRunner:
         output_refs: list[ArtifactRef] = []
         cache_hit = False
         evidence_refs: tuple[str, ...] = ()
+        lean_observation = None
         try:
             inputs = self._resolve_inputs(node_id, flow_inputs)
             execution.start(inputs.values())
@@ -182,10 +380,33 @@ class ArtifactModuleRunner:
             implementation = module["implementation"]
             prompt_version = implementation.get("promptVersion")
             execution.execution_fingerprint = execution_fingerprint(spec.ref, node.get("config", {}), inputs.values(), prompt_version, self.flow["policy_ref"])
-            cached = self.cache.lookup(node_id, execution.execution_fingerprint, self.store) if implementation.get("cacheable", True) else None
+            function = None
+            lean_scope=ACTIVE.get()
+            if lean_scope and lean_scope.mode!='OFF' and not lean_scope.disabled and implementation.get('lean_input_only') and implementation['kind']=='local_function':
+                with analysis_cost():
+                    from cgkn.telemetry.lean import artifact_identity
+                    from cgkn.telemetry.lean import source_identity
+                    function=self.local_functions.get(implementation.get('entrypoint')) or self._import_callable(implementation['entrypoint'])
+                    lean_observation={'semantic_identity':artifact_identity(module,node,inputs,function,self.flow['policy_ref']),
+                        'pure_inputs':not any(module.get('effects',{}).values()),
+                        'implementation_hash':source_identity(function),
+                        'component_contract_hash':__import__('cgkn.artifacts.hash',fromlist=['content_hash']).content_hash(module),
+                        'protections':module.get('metadata',{}).get('lean_protections',[])}
+            # Only DAGRunner can reuse a committed execution. A cache index is
+            # not authority to adopt old bytes into a newly issued Permit.
+            cached = None
+            shared = None
+            if not cached and function and lean_observation and (lean_scope.mode == 'AUTO_QUALIFIED' or OFFLINE_TRIAL.get()):
+                from cgkn.telemetry.lean_policy import artifact_reuse
+                with analysis_cost():
+                    shared=artifact_reuse(self,module,node,inputs,lean_observation['semantic_identity'],function)
             if cached:
                 output_refs = cached
                 cache_hit = True
+            elif shared is not None:
+                output_refs=self._materialize_outputs(node,spec,module,inputs,ComponentResult(output_contents=shared))
+                self.cache.record(node_id,execution.execution_fingerprint,output_refs)
+                cache_hit=True
             else:
                 self.effects.consume_declared(dict(spec.effects), node_id=node_id, phase=str(node.get("config", {}).get("phase", "")), run=self.run_dir.name)
                 execution.effects_summary = dict(spec.effects)
@@ -211,9 +432,9 @@ class ArtifactModuleRunner:
             if execution.status.value == "pending":
                 execution.start(inputs.values())
             execution.fail(diagnostics)
-            self._record_checkpoint(execution.as_checkpoint())
+            self._record_checkpoint(execution.as_checkpoint(), lean_observation)
             raise ModuleExecutionError(str(exc), diagnostics) from exc
-        self._record_checkpoint(execution.as_checkpoint())
+        self._record_checkpoint(execution.as_checkpoint(), lean_observation)
         metrics = context_pack.get("metrics", {})
         self.feed_rows.append(
             {
@@ -263,12 +484,14 @@ class ArtifactModuleRunner:
         entrypoint = str(implementation.get("entrypoint", ""))
         if kind in {"local_function", "composite"}:
             function = self.local_functions.get(entrypoint) or self._import_callable(entrypoint)
-            return function(payload, {"contextPack": context_pack, "node": node, "module": module, "store": self.store}), {}
+            context = {} if implementation.get('lean_input_only') else {"contextPack": context_pack, "node": node, "module": module, "store": self.store}
+            return function(payload, context), {}
         if kind == "script":
+            from cgkn.execution.node_effects import perform_scoped_effect
             command = implementation.get("command")
             if not isinstance(command, list) or not command:
                 raise ModuleExecutionError("script implementation requires a fixed command array")
-            completed = subprocess.run(
+            completed = perform_scoped_effect('EXTERNAL_SUBPROCESS',lambda:subprocess.run(
                 [str(item) for item in command],
                 cwd=self.root,
                 input=json.dumps({"inputs": payload, "contextPack": context_pack}, ensure_ascii=False),
@@ -276,11 +499,12 @@ class ArtifactModuleRunner:
                 text=True,
                 timeout=int(implementation.get("timeoutSeconds", 60)),
                 check=False,
-            )
+            ))
             if completed.returncode != 0:
                 raise ModuleExecutionError(f"script module failed with exit code {completed.returncode}")
             return json.loads(completed.stdout), {}
         if kind == "provider":
+            from cgkn.execution.node_effects import perform_scoped_effect
             if self.provider_executor is None:
                 raise ModuleExecutionError("provider implementation has no configured executor")
             request = {
@@ -290,14 +514,14 @@ class ArtifactModuleRunner:
                 "inputs": payload,
                 "repair": False,
             }
-            response = self.provider_executor(request)
+            response = perform_scoped_effect('PROVIDER_CALL',lambda:self.provider_executor(request),resource_usage={'calls':1})
             try:
                 result = self._provider_payload(response)
                 self._validate_output_contents(module, result)
             except (ValueError, ArtifactValidationError) as first_error:
                 request["repair"] = True
                 request["validationError"] = str(first_error)
-                response = self.provider_executor(request)
+                response = perform_scoped_effect('PROVIDER_CALL',lambda:self.provider_executor(request),resource_usage={'calls':1})
                 try:
                     result = self._provider_payload(response)
                     self._validate_output_contents(module, result)
@@ -348,9 +572,9 @@ class ArtifactModuleRunner:
             prior = self.store.latest_produced_by_node(node["id"], port.name, fresh_only=False)
             pending.append(
                 ArtifactInstance(
-                    id=self.store.allocate_id(port.artifact_type),
+                    id=self._planned_artifacts[(node['id'],port.name)],
                     artifact_type=port.artifact_type,
-                    run_id=self.run_dir.name,
+                    run_id='session',
                     producer=Producer(node["id"], module_ref, port.name),
                     content=dict(contents[port.name]),
                     provenance=Provenance(
@@ -377,14 +601,26 @@ class ArtifactModuleRunner:
             raise ModuleExecutionError(f"local function entrypoint is not callable: {entrypoint}")
         return function
 
-    def _record_checkpoint(self, checkpoint: dict[str, Any]) -> None:
+    def _record_checkpoint(self, checkpoint: dict[str, Any], lean_observation=None) -> None:
         checkpoint["runId"] = self.run_dir.name
+        # Keep each original observation before updating the compatibility view.
+        history = self.run_dir / 'component_receipts' / (checkpoint['executionId'] + '.json')
+        history.parent.mkdir(parents=True, exist_ok=True)
+        with history.open('x', encoding='utf-8') as handle:
+            json.dump(checkpoint, handle, ensure_ascii=False, indent=2)
+            handle.write('\n')
         path = write_checkpoint(self.run_dir, checkpoint)
         manifest = self._load_manifest()
         row = {"nodeId": checkpoint["nodeId"], "path": path.relative_to(self.run_dir).as_posix(), "status": checkpoint["status"]}
         manifest["nodeCheckpoints"] = [item for item in manifest["nodeCheckpoints"] if item["nodeId"] != checkpoint["nodeId"]]
         manifest["nodeCheckpoints"].append(row)
         self._save_manifest(manifest)
+        try:
+            with analysis_cost():
+                from cgkn.telemetry.lean import observe_artifact
+                observe_artifact(self,checkpoint,lean_observation)
+        except Exception as exc:
+            __import__('logging').getLogger(__name__).error('LEAN_OBSERVATION_FAILED: %s',type(exc).__name__)
 
     def _record_bypass(self, node_id: str, overrides: dict[tuple[str, str], ArtifactRef]) -> None:
         refs = [ref for (owner, _), ref in overrides.items() if owner == node_id]

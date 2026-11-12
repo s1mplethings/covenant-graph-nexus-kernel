@@ -1,0 +1,24 @@
+{
+  "attempt": "attempt-0037",
+  "verdict": "PATCH_SCOPE_EXCEEDED",
+  "anchor_matches": 0,
+  "ambiguous_message_means": "zero exact matches in this case, not duplicate matches",
+  "source_sha256": "f269c86e84826bcdb09e4422cb480e3cffe9fded7c2788ee2334aabdb9537ea1",
+  "source_unchanged": true,
+  "applied": false,
+  "browser_executed": false,
+  "exact_read_only_source_fragment": "    if op == 'media.import':\n\n        # Browser payloads (base64 'data') go through the temp-file adapter;\n        # explicit server-path imports (no browser data) reach original M11 directly.\n\n        if isinstance(request.get('data'), str) and request.get('data'):\n\n            return _media_import_adapter(data_dir, request)\n\n        return _media_store_call(data_dir, handler, request)\n\n\n\n    try:\n\n        return _media_store_call(data_dir, handler, request)\n\n    except Exception as e:\n\n        # Wrap errors to ensure consistent JSON error response format if needed by caller\n\n        # But the contract says invalid requests return HTTP400 with {error:string}\n\n        # This function raises ValueError which RequestHandler catches.\n\n        if isinstance(e, ValueError):\n\n            raise\n\n        else:\n\n            raise ValueError(str(e))\n\n\n\n\n\n_MEDIA_STORE_LOCK = threading.RLock()\n\n\n\ndef _media_store_call(data_dir, handler, request):\n\n    \"\"\"Serialize GUI-adapter access to the shared M11 media store so concurrent\n\n    media.import/get/list calls do not collide on media.json.tmp.\"\"\"\n\n    with _MEDIA_STORE_LOCK:\n\n        return handler(data_dir, request)\n\n\n\ndef _media_import_adapter(data_dir, request):",
+  "anchor_only_diff": [
+    "--- rejected-find-anchor\n",
+    "+++ actual-read-only-source\n",
+    "@@ -1,7 +1,6 @@\n",
+    "     if op == 'media.import':\n",
+    " \n",
+    "         # Browser payloads (base64 'data') go through the temp-file adapter;\n",
+    "-\n",
+    "         # explicit server-path imports (no browser data) reach original M11 directly.\n",
+    " \n",
+    "         if isinstance(request.get('data'), str) and request.get('data'):\n"
+  ],
+  "reason": "Worker find anchor inserted an extra blank line between two adjacent browser-payload comment lines. Existing mixed line spacing is valid and must be matched exactly; no replacement business code supplied."
+}

@@ -1,0 +1,49 @@
+{
+  "kind": "ProvenanceSecurityReopen",
+  "created_at": "2026-11-06T04:09:10.740157+00:00",
+  "M12_SOURCE_INTEGRITY": "PASS",
+  "PACKAGE_INTEGRITY": "PASS",
+  "PROVENANCE_AUDIT": "FAIL",
+  "AUTHORIZATION_AUDIT": "FAIL",
+  "NEGATIVE_TESTS": "P01-P10 PASS; P11 FAIL (unexpected ACCEPT)",
+  "FINAL_DELIVERY": "DELIVER_WITH_WARNINGS_BUT_RECOGNITION_PAUSED",
+  "DOGFOOD_EXECUTION": "PASS",
+  "DOGFOOD_ACCEPTANCE": "PASS_LOCAL_HARNESS",
+  "NEW_PAID_PROVIDER_CALLS": 0,
+  "NEW_PROVIDER_COST": 0,
+  "OVERALL_RESULT": "BLOCKED_SECURITY_DEFECT",
+  "p11": {
+    "kind": "P11AuthorizedAgentSelfRegistration",
+    "expected": "REJECT",
+    "actual": "ACCEPT",
+    "error": null,
+    "new_readme_sha256": "edeb39cd594c5c219572b0e4cf3e86044e45abdd39f2df324195b768abb0ca72",
+    "note": "The test agent changed README, rewrote its authorization/review JSON with authorized_by=user, and updated the source registration.",
+    "temp": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11-self-auth-2emfukbl"
+  },
+  "root_cause": [
+    "AuthorizedAgentSourceAuthorization is an ordinary JSON file in the agent-writable run store.",
+    "authorized_by='user' is only a string; there is no signature, OS ACL proof, or external authority bound to the bytes.",
+    "The agent can rewrite the authorization and review JSON and update source_imports to match new bytes.",
+    "The B10 check only compares main.py source hash, not B10 relevant_section_hashes for README/TEST_PLAN/tests.",
+    "The B11 review file is also agent-writable, so an agent with store write access can self-review."
+  ],
+  "impact": "The AuthorizedAgentSource path can be self-authorized by a process with run-store write access; DELIVER_WITH_WARNINGS must not be treated as trustworthy independent acceptance until fixed.",
+  "minimal_fix_options": [
+    "Require a user-signed authorization (e.g., Ed25519) over artifact/path/hash/scope/timestamp, stored outside the agent-writable run store; verify signature and key identity in _authorized_agent_origin.",
+    "Make source_imports, agent_authorizations and agent_reviews controller-only or OS-ACL protected from agent writes.",
+    "Validate B10 relevant_section_hashes per artifact and require a fresh independent B11/B10 binding for every changed file; do not accept a review file the agent can rewrite.",
+    "Add P11 as a permanent regression test with expected REJECT; add P12 for main.py + B11/B10 self-review."
+  ],
+  "claims_not_allowed": [
+    "final delivery is independently accepted",
+    "AuthorizedAgentSource is secure against an agent with store write access",
+    "production-ready or real-world validated"
+  ],
+  "evidence": {
+    "p11": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\P11_SELF_AUTHORIZATION_RESULT.json",
+    "reverse_tests": "C:\\Users\\sunom\\AppData\\Local\\Temp\\opencode\\PROVENANCE_REVERSE_TEST_RESULTS.json",
+    "final_status": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\FINAL_DELIVERY_STATUS.json",
+    "dogfood": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\DOGFOOD_SAFE_ZIP_20261106\\DOGFOOD_RESULT.json"
+  }
+}

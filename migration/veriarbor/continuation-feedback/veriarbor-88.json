@@ -1,0 +1,176 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "Deterministic first. QwenFlash Agent, DeepSeekFlash boundedpatch Worker. NoPro/Max. Source-bound patch-only gate qualified24tests. All priorUNKNOWN preserved.",
+    "milestone_completion_request": "Execute only B01 ProjectBootstrapBlock. User-defined M12 rollup andB01-B11 alreadyimported intooriginalCapabilityTree; executableDAGunchanged. Original143 isB01writer. All otherblocks pending until B01verified. No fullM12check now. No media, publish,scheduler,analytics,backendedits. ChangeStrategy/Repair143 to B01only, exactpatch only. After oneWorkerattempt controllerholds forlocalB01browseracceptance; do notFINISH.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "main.py": "97fac580ddd0b04a91c35f26a91e3554abb82ad86e8e6159864d4e49f4dce478"
+        }
+      },
+      "current_block": "B01",
+      "current_failure_context": {
+        "kind": "M12CurrentFailureContext",
+        "target_block": "B01",
+        "target": "main.py",
+        "source_sha256": "97fac580ddd0b04a91c35f26a91e3554abb82ad86e8e6159864d4e49f4dce478",
+        "checker_identity": "qualified-revision-8",
+        "failure_evidence": [
+          {
+            "path": "attempts/sem-node-0155/attempt-0001.json",
+            "receipt_hash": "2bacd6f95001d31493aeffc1813e8de2bb54f94fb4b3c5e5b51832954d74dc1f"
+          }
+        ],
+        "observed_failure": {
+          "passed_count": 1,
+          "reason": "M12_independent_business_suite: TimeoutError: Locator.wait_for: Timeout 5000ms exceeded.\nCall log:\n  - waiting for get_by_text(\"Browser Created Project\").filter(visible=True).or_(get_by_role(\"combobox\").filter(has=get_by_role(\"option\", name=\"Browser Created Project\", exact=True, selected=True, include_hidden=True))).first to be visible\n",
+          "total_count": 2,
+          "value": false
+        },
+        "actual_cause": "loadProjects calls /api/state without project_id;400 aborts beforeproject.list. project.create200 butnameinvisible.",
+        "resolved_not_targets": [
+          "all11handleridentitiescorrect",
+          "project.createworks",
+          "ThreadingHTTPServerfixed"
+        ],
+        "historical_invalid_strategies": [
+          "10 wrong module bindings",
+          "M7.publish.send op example",
+          "whole-file rewrite",
+          "attempt28/29 unchanged output"
+        ],
+        "binding": "Original GoalAcceptance; this file is derived execution guidance, not acceptance authority",
+        "next": "B01 only, project.list first, state only after validselection; patchonly; no media/backendchanges"
+      },
+      "historical_invalidated": "10wrongbindings,wrongM7.publish.send op,concurrencybug andwhole-filewrite rationale are NOT currentfacts. attempt28/29 copiedoldfile and areNOTreusable implementations. Do notretain these innewstrategy/hypothesis.",
+      "observed": "CurrentHTML/JS parseandliteralDOMclosurePASS. Real cleanbrowser hasnoemptyprojectstate. Existing155currentfailure also creation200persistedbutnameinvisible. loadProjects awaits/api/state withoutproject_id->400 abortsbeforeproject.list. populateProjectSelects empty.",
+      "B01_contract": [
+        "Applicationstart calls actual M1 project.list first. Ifempty,visiblehumanempty state. Never GET/api/state untilnonemptyvalidselectedprojectID. List/state errors handledseparately.",
+        "Creation consumesactualresponse.id, refreshesrealproject.list, selectscreatedID, fetchescorrectstate andrendersactualname. Reload restoresvalidselection or deterministic actualdefault, namevisible andstateaccessible. NoJSerrors.",
+        "Only four current functions loadProjects/selectProject/createProject/populateProjectSelects andtheircontainedcomments maychange. Use exactpatch overthese contiguousfunctions ifneeded. No Pythonserverchanges, no otherGUIfunctions, no outsideglobals. Existing currentProjectId andDOMcontainers areavailable. Preserve restbyteforbyte."
+      ],
+      "patch_policy": {
+        "mode": "patch_only",
+        "block_id": "B01",
+        "writer_node_id": "sem-node-0143",
+        "hold_after_worker_attempt": true,
+        "files": {
+          "main.py": {
+            "source_sha256": "97fac580ddd0b04a91c35f26a91e3554abb82ad86e8e6159864d4e49f4dce478",
+            "ranges": [
+              [
+                23902,
+                26250
+              ]
+            ],
+            "max_changed_chars": 14000,
+            "allowed_sections": [
+              "loadProjects",
+              "selectProject",
+              "createProject",
+              "populateProjectSelects",
+              "Projects heading comment"
+            ]
+          }
+        },
+        "acceptance_requirements": [
+          "MUST implement ALL B01 transitions in this one patch: startup project.list; visibleempty; selectvalidpersistedIDoractualdeterministicdefault; fetch/api/state?project_id=selectedID onlyafterselection; createconsumesresponse.id; awaitrefreshlist; selectcreated; fetchstate; renderactualname; page reloadrestoresselectedprojectandfetchesstate; noJSerrors.",
+          "Keep actual global currentProjectId. Persist selectedID via browser storage inside these functions; revalidate against current realproject.list. Never fabricateIDs or assume selectedProjectId globalexists. State/listerrorsseparate.",
+          "Allowed exactpatch mayinclude heading // --- Projects --- through endofpopulateProjectSelects, but NOT loadProjectsForCampaigns or Pythonhandler. No need to change /api/state backend: it correctly requires project_id.",
+          "Literalop project.list with milestone:M1 (NOT M1.project.list). No wholefilewrite. Do not copy attempt30 partial patch: it omitted selectedstatefetch andpersistedreload."
+        ]
+      },
+      "qualification_evidence": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_CURRENT_FAILURE_CONTEXT.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B01_CHECKER_QUALIFICATION\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b01-baseline-97fac580\\receipt.json"
+      ],
+      "new_execution_failure": "attempt30 rejectedbeforewrite PATCH_SCOPE_EXCEEDED becausefindincludedProjectsheadingbeforebound. Sourceunchanged. Reviewofproposedpatchalsofoundmissingselectedstatefetch/reloadselection; no browserrun. Original155failurestillcurrent."
+    },
+    "gui_writer_policy": "One original143 authoritative writer, now boundedB01only; main.pyfullwrite forbidden. M1-M11/early_main read-only. Hostbusinesspatches0.",
+    "admission_correction": "Repair143 B01only with exact155receipt_hash2bacd6f95001d31493aeffc1813e8de2bb54f94fb4b3c5e5b51832954d74dc1f. full_file_write:false. NEW strategy explicitly must contain list_first:true, selected_state_fetch:true, persist_revalidate_selection:true; problem noIDstate400; bootstrap_mechanism must describe startup/create/selectedstate/reload. Workergoal/expectedinclude ALL B01 transitions. Pythonhandler isOUTOFSCOPE andmustnotchange; neverrequeststatewithoutID. Callerpolicy includesheadingcomment toavoidincidentalanchor rejection, butnootherfunction. OriginalfullM12notrun. Use patchonly semanticop3.",
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "main.py"
+        ],
+        "required_dimensions": [
+          "full_file_write",
+          "problem",
+          "bootstrap_mechanism",
+          "list_first",
+          "selected_state_fetch",
+          "persist_revalidate_selection"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean",
+          "problem": "string",
+          "bootstrap_mechanism": "string",
+          "list_first": "boolean",
+          "selected_state_fetch": "boolean",
+          "persist_revalidate_selection": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": true
+          },
+          {
+            "list_first": false
+          },
+          {
+            "selected_state_fetch": false
+          },
+          {
+            "persist_revalidate_selection": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_CURRENT_FAILURE_CONTEXT.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B01_CHECKER_QUALIFICATION\\receipt.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b01-baseline-97fac580\\receipt.json"
+        ]
+      }
+    ],
+    "bounded_patch_policy": {
+      "mode": "patch_only",
+      "block_id": "B01",
+      "writer_node_id": "sem-node-0143",
+      "hold_after_worker_attempt": true,
+      "files": {
+        "main.py": {
+          "source_sha256": "97fac580ddd0b04a91c35f26a91e3554abb82ad86e8e6159864d4e49f4dce478",
+          "ranges": [
+            [
+              23902,
+              26250
+            ]
+          ],
+          "max_changed_chars": 14000,
+          "allowed_sections": [
+            "loadProjects",
+            "selectProject",
+            "createProject",
+            "populateProjectSelects",
+            "Projects heading comment"
+          ]
+        }
+      },
+      "acceptance_requirements": [
+        "MUST implement ALL B01 transitions in this one patch: startup project.list; visibleempty; selectvalidpersistedIDoractualdeterministicdefault; fetch/api/state?project_id=selectedID onlyafterselection; createconsumesresponse.id; awaitrefreshlist; selectcreated; fetchstate; renderactualname; page reloadrestoresselectedprojectandfetchesstate; noJSerrors.",
+        "Keep actual global currentProjectId. Persist selectedID via browser storage inside these functions; revalidate against current realproject.list. Never fabricateIDs or assume selectedProjectId globalexists. State/listerrorsseparate.",
+        "Allowed exactpatch mayinclude heading // --- Projects --- through endofpopulateProjectSelects, but NOT loadProjectsForCampaigns or Pythonhandler. No need to change /api/state backend: it correctly requires project_id.",
+        "Literalop project.list with milestone:M1 (NOT M1.project.list). No wholefilewrite. Do not copy attempt30 partial patch: it omitted selectedstatefetch andpersistedreload."
+      ]
+    },
+    "redecision": {
+      "strategy_revision": "219a94c34392f280030d9c0b4b35a136dced21771756e335042fc2e0cb26ade2",
+      "reason": "Boundedattempt30failedbeforeapplication; explicitlyboundheadingandcompleteB01state/reloadcontract preventpartialpatch. Newactualpatchscopefailure andconcrete missingtransitiondiagnosis; no unchangedmeasurement.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_CURRENT_FAILURE_CONTEXT.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B01_CHECKER_QUALIFICATION\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b01-baseline-97fac580\\receipt.json"
+      ]
+    }
+  }
+}

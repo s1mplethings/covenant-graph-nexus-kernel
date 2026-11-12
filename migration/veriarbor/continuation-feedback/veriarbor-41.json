@@ -1,0 +1,38 @@
+{
+  "expected_gui_sha256": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+  "feedback": {
+    "cost_policy": "QwenFlash Agent and DeepSeekFlash Worker. Qwen test87 emitted prose/tool_call text instead ofJSON; choose alternatecheapWorkerfamily for new work, not replay. NoPro/Max andall6upstreamUNKNOWNspreserved.",
+    "milestone_completion_request": "Continue original M11/M12 and final delivery. RESOLVED: M6 source fa6720fa canonical media resolver restored; original88 check PASS; test87 restored STALE/CONFLICT/UNSUPPORTED. Do not repair86/87 again without a new defect in those files. REMAINING:89 publication guard at current bef8809a refers to undefined _MEDIA_FILENAME; two local M11 publication negative cases fail NameError. Merely defining a constant is insufficient: guard must freshly validate actual media bytes/existence against registered integrity via existing canonical M11 media.get behavior before any publish network effect. Reject missing/broken/stale/changed-after-approval media even without an intervening media.get; allow valid media. Maintain idempotency and receipt linkage. Preserve original89 dependency topology (117 is downstream; do not create cycle). After focused changed-block/edge validation, finish91 actual image/video preview, attachments and approval/publish receipt GUI. 91 sole GUI writer. Preserve117 media API. Then originalM11/M12 browser checks and finalization/test-owner debts. No repeated M1-M10 chain or duplicate fresh observers for unchanged keys. New native full89 check can certify its owner+dependency composition for unchanged M8-M10. Genuine current failures remain authoritative. Conditional instruction: once publish source differs and fresh guards pass, stop repairing89 and advance GUI/finalization.",
+    "admission_correction": "Bind repair hypothesis to current bef8809a source and local NameError counterexample, plus earlier fa publication guard failure. Preserve89 existing_dependency_targets; never117 dependency cycle. Strategy problem and two actual mechanisms, falsifying_evidence JSON array. Do not repeat stale M6 scanner repair. If canonical admission needs current independent evidence, reuse existing applicable M11 observer once for changed artifact key; never recreate already trusted current M7-M10 observers. No Pro/Max.",
+    "fresh_runtime_diagnosis": {
+      "applies_to_publish_sha256": "bef8809a307cf88ec69c378eaaea5e36821bdd6d95e28d4699b1aafd4037467e",
+      "failures": [
+        {
+          "id": "tests.test_milestone_dbb8341c8910593063a8::test_publish_blocks_broken_media",
+          "message": "NameError: name '_MEDIA_FILENAME' is not defined"
+        },
+        {
+          "id": "tests.test_milestone_dbb8341c8910593063a8::test_publish_blocks_missing_media",
+          "message": "NameError: name '_MEDIA_FILENAME' is not defined"
+        }
+      ],
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-publish-edges-bef8809a\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-local-edges-fa6720fa\\receipt.json"
+      ],
+      "source_specific_defect": "Undefined _MEDIA_FILENAME and cached-status-only validation. Must validate live bytes before side effects, using existing media.get semantics; current M6 valid-media positive prerequisite reaches publish.",
+      "scope": "Local diagnostic is not canonical acceptance. Do not change original independent checker or tests to mask failures.",
+      "prior_test_debts": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\continuation-feedback\\veriarbor-33.json"
+    },
+    "redecision": {
+      "strategy_revision": "ee85e270507df6e6f0f786dddc30a1d56aa08945cf0afc6c6d2f8b4da2adff85",
+      "reason": "Current two local publish cases expose undefined media constant; cached metadata also cannot detect file mutation/deletion after approval. M6 restored and successful, no stale repair instructions. V1 provider novelty/provenance regression74PASS, new native composition proof covers neighboring variants.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-publish-edges-bef8809a\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-local-edges-fa6720fa\\receipt.json"
+      ]
+    },
+    "strategy_constraints": [],
+    "gui_writer_policy": "91 sole GUI writer;89 only publication guard;86 restoredfa and87 newSTALEtests preserved;117 unchanged. No host business patches."
+  }
+}

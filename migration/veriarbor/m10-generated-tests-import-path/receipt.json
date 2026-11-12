@@ -1,0 +1,35 @@
+{
+  "kind": "FrozenGeneratedTestsDiagnostic",
+  "argv": [
+    "D:\\anaconda\\python.exe",
+    "-I",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/test_milestone_af427946c6dea418047a.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "-o",
+    "pythonpath=.",
+    "--rootdir=.",
+    "--basetemp=F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\m10-generated-tests-import-path",
+    "--junitxml=F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m10-generated-tests-import-path\\junit.xml"
+  ],
+  "cwd": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m10-generated-tests\\snapshot",
+  "seconds": 5.032000000006519,
+  "exit_code": 2,
+  "collected": 1,
+  "failures": [
+    {
+      "id": "::tests.test_milestone_af427946c6dea418047a",
+      "message": "collection failure"
+    }
+  ],
+  "prior_receipt_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m10-generated-tests\\receipt.json",
+  "prior_receipt_sha256": "524f79443fa1d8afd8fc863718813c0a5e0a40581d87c4b7781d48d3f6cdea43",
+  "environment_change": "Explicit pytest root and candidate pythonpath for isolated interpreter; no source changes",
+  "acceptance_authority": false,
+  "host_business_patches": 0
+}

@@ -1,0 +1,103 @@
+{
+  "checks": [
+    "visible empty state",
+    "project.create HTTP200",
+    "real nonempty project identity",
+    "created project name visible",
+    "created identity selected",
+    "selected state fetched by UI",
+    "selected state available",
+    "name remains visible after refresh",
+    "selection remains after refresh",
+    "refresh fetches selected state",
+    "never requests state without identity",
+    "no JavaScript initialization errors",
+    "no unexpected HTTP failures"
+  ],
+  "network": [
+    {
+      "url": "http://127.0.0.1:36783/",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:36783/api/action",
+      "method": "POST",
+      "status": 200,
+      "request_body": "{\"op\":\"project.list\",\"milestone\":\"M1\"}"
+    },
+    {
+      "url": "http://127.0.0.1:36783/api/action",
+      "method": "POST",
+      "status": 200,
+      "request_body": "{\"op\":\"project.create\",\"milestone\":\"M1\",\"name\":\"Browser Created Project\"}"
+    },
+    {
+      "url": "http://127.0.0.1:36783/api/action",
+      "method": "POST",
+      "status": 200,
+      "request_body": "{\"op\":\"project.list\",\"milestone\":\"M1\"}"
+    },
+    {
+      "url": "http://127.0.0.1:36783/api/state?project_id=8e5ebdf3ff694516bfb0fbed945c3743",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:36783/",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:36783/api/action",
+      "method": "POST",
+      "status": 200,
+      "request_body": "{\"op\":\"project.list\",\"milestone\":\"M1\"}"
+    },
+    {
+      "url": "http://127.0.0.1:36783/api/state?project_id=8e5ebdf3ff694516bfb0fbed945c3743",
+      "method": "GET",
+      "status": 200
+    }
+  ],
+  "javascript_errors": [],
+  "console": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    }
+  ],
+  "preflight": {
+    "html_parsed": true,
+    "js_parse": true,
+    "duplicate_ids": [],
+    "literal_dom_references_resolved": true
+  },
+  "status": "PASS",
+  "project_id": "8e5ebdf3ff694516bfb0fbed945c3743",
+  "kind": "B01ProjectBootstrapAcceptance",
+  "block_id": "B01",
+  "source_sha256": "9edfb2e6f74a325c9c6375bff9dcb91c52026d087e5fa4146dd886ee1e23c1a6",
+  "checker_sha256": "b90a255391c9318600f9a544f1226f93a8e1e6f55cf666b9d6da73c23208642d",
+  "browser": "134.0.3124.51",
+  "startup": {
+    "command": [
+      "D:/anaconda/python.exe",
+      "-X",
+      "utf8",
+      "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b01-current-9edfb2e6\\snapshot\\main.py",
+      "--serve",
+      "--port",
+      "36783",
+      "--data",
+      "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b01-current-9edfb2e6\\data"
+    ],
+    "url": "http://127.0.0.1:36783",
+    "data_dir": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b01-current-9edfb2e6\\data"
+  },
+  "cleanup": {
+    "server_stopped": true
+  },
+  "authority": "Independent local block evidence; not full M12 GoalAcceptance",
+  "host_business_patches": 0
+}

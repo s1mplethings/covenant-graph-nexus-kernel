@@ -1,0 +1,10 @@
+{
+  "kind": "RecordedWorkerProtocolFailure",
+  "response_ref": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\provider_calls\\8806d5d4191f4853af17160ac9d8a219\\response.json",
+  "response_sha256": "3a1728e3de6d84d4eb0d31265a57770f32ee4b02c0042300b586b7fd7b45d641",
+  "response_characters": 50185,
+  "observed": "Response begins with prose analysis instead of required raw JSON; original parser rejects INVALID_OR_INCOMPLETE_JSON. No candidate write.",
+  "source_sha256": "8da2b8839f19ab62297a5ea4df7b2b1b7cb875ee77cedf80185456ceddf6018f",
+  "historical_response_retained": true,
+  "acceptance_authority": false
+}

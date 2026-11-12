@@ -1,0 +1,32 @@
+{
+  "expected_gui_sha256": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+  "feedback": {
+    "cost_policy": "DeepSeek Flash Agent and Worker only; no Pro/Max for ordinary implementation, evaluator, schema or context issues. Preserve all previous UNKNOWN/cost/history.",
+    "milestone_completion_request": "M7 is now authentically VERIFIED (original independent node98 attempt52), and the required immediate runnable local DOGFOOD_MVP snapshot exists, startup script and local URL are working, original full M7 checker passed again on it. Continue the ORIGINAL ProjectSession to its next uncovered registered public milestone M8 Scheduler, then M9 Receipt Extension, M10 Analytics, M11 Media, M12 Final GUI/docs/final delivery. Preserve and reuse M1-M7 capabilities/certificates. Do not redo M7 GUI or backend just because historical internal tests have separate fixture defects. Local preview is NOT final delivery: canonical compatibility packager returned NEEDS_REWORK due54 additional test failures, preserved in full and explicitly required to resolve/qualify before final delivery. Do not claim final PASS or hide these. Work through M8-M12 now and include this test debt in final readiness work. Do not require the optional observer101 dependency change as a new gate: ADD_DEPENDENCY on succeeded101 was correctly rejected; normal explicit measurement retries remain available. No business source may be authored by host; use bounded original Worker execution.",
+    "fresh_runtime_diagnosis": {
+      "M7_acceptance_ref": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\M7_ACCEPTANCE.json",
+      "dogfood_receipt": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_MVP\\receipt.json",
+      "dogfood_status": "RUNNABLE_LOCAL_PREVIEW_WITH_LIMITS",
+      "canonical_packager_status": "NEEDS_REWORK",
+      "additional_test_failure_summary": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_MVP\\packaging-failure-summary.json",
+      "additional_test_counts": {
+        "collected": 118,
+        "passed": 64,
+        "failed": 54,
+        "skipped": 0
+      },
+      "known_test_diagnostics": "30 M5 tests call project.create/campaign.create on the M5-only handler, which correctly rejects them; several M2/M3 tests manufacture old project JSON layouts. These fixture observations must be qualified against public APIs before Provider fixes tests; do not weaken public business assertions. Also retain the M6 validation assertion and three M7 publish/reconcile/retry assertions as unresolved until investigated. Full JUnit diagnostics retained. A separate generic isolated-Python encoding bug was fixed with33 targeted testsPASS and source receipts13/14; this did not turn the54 product tests intoPASS."
+    },
+    "gui_writer_policy": "One writer per coupled product file. Preserve verified M7 early_main.py and promotion_publish.py while implementing later milestones; final M12 GUI must respect current public contracts and get independent verification. No conflicting concurrent writers.",
+    "redecision": {
+      "strategy_revision": "b958123b6b49190084edb1b6ab891bef41465fc18cd09b2eab7193c7aaa7ebc9",
+      "reason": "Original authenticated M7 VERIFIED, immediate runnable local checkpoint completed with honest formal packaging limitations. Resume after known predispatch dogfood hold to next registered uncovered milestone. Carry test debt forward rather than erasing it or claimingfinaldelivery.",
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\M7_ACCEPTANCE.json",
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_MVP\\receipt.json",
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_MVP\\packaging-failure-summary.json",
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\continuations\\veriarbor-15\\execution-error.json"
+      ]
+    }
+  }
+}

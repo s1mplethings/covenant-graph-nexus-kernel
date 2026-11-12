@@ -1,0 +1,107 @@
+{
+  "kind": "WorkspaceIdentityReport",
+  "created_at": "2026-11-06T05:05:00+00:00",
+  "scope": "read-only identity and migration preflight; no formal source modified",
+  "current_workspace": {
+    "path": "D:\\VeriArbor_",
+    "git": false,
+    "role": "current OpenCode isolated working copy",
+    "relationship": "copy of D:\\VeriArbor; 386 files compared, 0 differing, missing 9 M12 acceptance tools present in D:\\VeriArbor"
+  },
+  "formal_library_repository": {
+    "path": "D:\\VeriArbor",
+    "git": true,
+    "branch": "main",
+    "head": "4d2f45f4499fd272e7b7f4db1f69eabdc06bb04a",
+    "head_subject": "Initial commit",
+    "remote": "https://github.com/s1mplethings/VeriArbor.git",
+    "tracked_modified": [
+      "README.md"
+    ],
+    "untracked_count": 389,
+    "role": "new VeriArbor library repository, not the P11 host provenance repository",
+    "caution": "source/docs/tests/tools are almost entirely untracked; do not treat HEAD as a clean baseline",
+    "migration_receipt": {
+      "status": "CORE_MIGRATION_CHECKPOINT",
+      "product_status": "PRODUCT_NOT_READY",
+      "M12": "FAILED",
+      "host_switches": 55,
+      "note": "This is a separate in-progress VeriArbor library migration checkpoint, not the host M12 VERIFIED delivery."
+    }
+  },
+  "formal_host_repository": {
+    "path": "F:\\CGKN-LeanLoop-V1-20261101",
+    "git": true,
+    "branch": "codex/leanloop-v1-20261101",
+    "head": "0bd7134ade87cb6ece13f8f7868860cd2c3ba67c",
+    "remote": "https://github.com/s1mplethings/covenant-graph-nexus-kernel.git",
+    "tracked_modified_count": 525,
+    "untracked_count": 3308,
+    "stashes": 0,
+    "role": "formal host repository for the P11 provenance fix",
+    "p11_target_status": {
+      "cgkn/state/provenance.py": "untracked (??), not in git history",
+      "scripts/final_delivery_truth.py": "tracked modified (M)",
+      "scripts/production_candidate_provenance.py": "tracked modified (M)",
+      "cgkn/state/release_authorization.py": "absent before patch",
+      "tools/sign_release_authorization.py": "absent before patch"
+    },
+    "caution": "do not use git reset/checkout/clean; provenance.py is untracked, so git cannot restore it"
+  },
+  "frozen_product_candidate": {
+    "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05",
+    "git": false,
+    "candidate_main_sha256": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+    "bundle_sha256": "f6eb10fb8283b250c28796e0ac95308bb6135e8434f6eef742acc58fbb469f8f",
+    "manifest_entries": 38,
+    "zip_entries": 38,
+    "entries_match": true,
+    "delivery_status": "DELIVER_WITH_WARNINGS",
+    "security_hold": "PAUSED_PENDING_SECURITY_FIX"
+  },
+  "evidence_directories": {
+    "p11_fix": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\P11_FIX_20261106",
+    "migration_evidence": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor",
+    "delivery_evidence": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\PROMOTION_DELIVERY_M12_FINAL_20261106\\DELIVERY_EVIDENCE"
+  },
+  "patch_preflight": {
+    "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\P11_FIX_20261106\\P11_FIX_MINIMAL.patch",
+    "sha256": "3f7caed58227d25685ccd0f1792955f2420260e28020e55f10559b41696f237c",
+    "previous_sha256": "87f5c845e9ce37eca7b7f64338723ebf16d2964e1843ebf27b8023ad7abfca70",
+    "previous_issue": "LF-normalized patch under core.autocrlf=true produced CRLF files, not byte-identical to the tested files",
+    "legacy_patch": "P11_FIX_MINIMAL_LEGACY_87f5.patch",
+    "apply_mode": "git -c core.autocrlf=false apply -p1",
+    "git_apply_check_exit": 0,
+    "byte_identical_to_tested": true,
+    "reverse_restores_base": true,
+    "affected_files": [
+      "cgkn/state/provenance.py",
+      "scripts/final_delivery_truth.py",
+      "scripts/production_candidate_provenance.py",
+      "cgkn/state/release_authorization.py",
+      "tools/sign_release_authorization.py"
+    ],
+    "frozen_source_touched": false,
+    "historical_certificates_touched": false,
+    "worker_provenance_downgraded": false,
+    "final_gate_bypassed": false,
+    "secret_material_in_patch": false
+  },
+  "m12_evidence_check": {
+    "M12": "VERIFIED",
+    "final_delivery": "DELIVER_WITH_WARNINGS",
+    "delivery_allowed_historical": true,
+    "final_delivery_truth": "pass",
+    "canonical_evidence_gate": "PASS",
+    "goal_acceptance_sha256": "c3d55cfd3cb335948728f1153c7dbb675204760574e46c3ad3fdaf83dbd635aa",
+    "goal_acceptance_modified": false,
+    "status_files_consistent": true
+  },
+  "recommendation": {
+    "p11_integration_target": "F:\\CGKN-LeanLoop-V1-20261101",
+    "integration_method": "file-level transactional patch with byte backups; not a new worktree, because the relevant implementation is untracked",
+    "switch_normal_development_to": "D:\\VeriArbor only after the user snapshots/commits its untracked source; until then F:\\CGKN-LeanLoop-V1-20261101 remains the P11 formal target",
+    "keep_copy": "D:\\VeriArbor_ should be retained as an isolated experiment copy until the library repo has a controlled baseline"
+  },
+  "identity_conflict": "D:\\VeriArbor\\MIGRATION_RECEIPT.json reports M12=FAILED / PRODUCT_NOT_READY, while F:\\CGKN-LeanLoop-V1-20261101 and the frozen delivery report M12=VERIFIED. Do not switch formal development to D:\\VeriArbor until this status and its untracked baseline are reconciled by the user."
+}

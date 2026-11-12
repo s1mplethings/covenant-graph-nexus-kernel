@@ -1,0 +1,79 @@
+{
+  "kind": "P11FixIsolatedDelivery",
+  "created_at": "2026-11-06T04:42:42.635009+00:00",
+  "status": "IMPLEMENTED_NOT_TRUSTED",
+  "formal_delivery_recognition": "PAUSED_PENDING_TRUST_ANCHOR",
+  "formal_source_modified": false,
+  "frozen_candidate_hash": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+  "frozen_bundle_hash": "f6eb10fb8283b250c28796e0ac95308bb6135e8434f6eef742acc58fbb469f8f",
+  "patched_files": {
+    "cgkn/state/provenance.py": "55f5ee9c917d451663021d3c9ef5ad18142e9ca91c4b307272b2e459767ba837",
+    "scripts/final_delivery_truth.py": "02e1cfd39ec262d806669ba7519f047bd84c35c0262924bcb535024d5a1fafd7",
+    "scripts/production_candidate_provenance.py": "ac31aad7430f28a5dbcede167f952100f41a21048f04b8b79115b0bec385d5aa",
+    "cgkn/state/release_authorization.py": "d839298f8c0cab161327377cb757e10b9bffec7af3332ffe11dde80847e6bc44",
+    "tools/sign_release_authorization.py": "3f8ff161cc9fa7282d3134c40bc9a93879f4522ffa1fc005632f76eb4c67979c"
+  },
+  "patch_sha256": "3f7caed58227d25685ccd0f1792955f2420260e28020e55f10559b41696f237c",
+  "security_tests": {
+    "command": "python security_tests/p11_p19_security_tests.py",
+    "passed": 24,
+    "total": 24,
+    "exit_code": 0,
+    "evidence": "P11_P19_RESULTS.json"
+  },
+  "p11_old_harness": {
+    "before_fix": {
+      "actual": "ACCEPT",
+      "error": null
+    },
+    "after_fix": {
+      "actual": "REJECT",
+      "error": "ProvenanceError: INSUFFICIENT_EVIDENCE: PENDING_TRUST_ANCHOR: no protected release trust anchor is configured"
+    },
+    "expectation": "ACCEPT before fix, REJECT after fix"
+  },
+  "existing_regression_tests": {
+    "command": "python -m pytest -q -p no:pytest-qt tests/state/test_worker_source_import.py tests/state/test_provenance_v5.py tests/state/test_provenance_read_snapshot.py tests/state/test_negative_business_provenance.py tests/state/test_current_scoped_coverage.py tests/state/test_checker_revision.py tests/test_veriarbor_substitution_provenance.py",
+    "result": "112 passed"
+  },
+  "new_paid_provider_calls": 0,
+  "new_provider_cost": 0,
+  "trust_boundary": {
+    "implemented": "Ed25519 signature verification plus batch manifest/hash binding",
+    "not_deployed": "No real external signer/OS-isolated key or protected public-key ACL in this Windows session",
+    "limitation": "If agent and controller share the same Windows user and file access, this is not a strong trust boundary."
+  },
+  "patch_sha256_previous": "87f5c845e9ce37eca7b7f64338723ebf16d2964e1843ebf27b8023ad7abfca70",
+  "patch_apply_mode": "git -c core.autocrlf=false apply -p1",
+  "patch_byte_identical_to_tested": true,
+  "patch_reverse_restores_base": true,
+  "patch_line_ending_note": "The previous LF-normalized patch (87f5...) applied under core.autocrlf=true rewrote provenance.py and the new files as CRLF, so the applied bytes did not match the tested files. The current patch preserves each file's original line endings and applies byte-identically with core.autocrlf=false.",
+  "legacy_patch_file": "P11_FIX_MINIMAL_LEGACY_87f5.patch",
+  "legacy_patch_sha256": "87f5c845e9ce37eca7b7f64338723ebf16d2964e1843ebf27b8023ad7abfca70",
+  "formal_integration": {
+    "status": "APPLIED_AND_VERIFIED",
+    "repo": "F:\\CGKN-LeanLoop-V1-20261101",
+    "git_head": "0bd7134ade87cb6ece13f8f7868860cd2c3ba67c",
+    "git_branch": "codex/leanloop-v1-20261101",
+    "file_hashes_match_tested": true,
+    "security_tests": {
+      "passed": 24,
+      "total": 24,
+      "exit_code": 0,
+      "evidence": "P11_P19_RESULTS_FORMAL.json"
+    },
+    "regression": {
+      "result": "112 passed",
+      "evidence": "REGRESSION_FORMAL.txt"
+    },
+    "formal_delivery_recognition": "PAUSED_PENDING_TRUST_ANCHOR",
+    "trust_anchor": "PENDING_TRUST_ANCHOR",
+    "authorization": "NOT_SIGNED",
+    "commit_created": false,
+    "push_executed": false
+  },
+  "git_commit": "cf5c754b5e2ed3991010fb1dc91b8f3e19adb3d2",
+  "git_commit_parent": "0bd7134ade87cb6ece13f8f7868860cd2c3ba67c",
+  "git_commit_scope": "single commit; includes previously untracked M12 provenance baseline and P11 hardening; not P11-only",
+  "git_push_executed": false
+}

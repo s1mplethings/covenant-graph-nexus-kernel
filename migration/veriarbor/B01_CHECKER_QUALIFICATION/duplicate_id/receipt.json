@@ -1,0 +1,25 @@
+{
+  "checks": [],
+  "network": [
+    {
+      "url": "http://127.0.0.1:20536/",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:20536/api/action",
+      "method": "POST",
+      "status": 200,
+      "request_body": "{\"op\":\"project.list\"}"
+    }
+  ],
+  "javascript_errors": [],
+  "console": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    }
+  ],
+  "status": "FAIL",
+  "error": "AssertionError: duplicate DOM IDs: ['projects']"
+}

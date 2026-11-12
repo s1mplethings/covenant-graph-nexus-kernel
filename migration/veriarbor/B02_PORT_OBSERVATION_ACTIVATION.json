@@ -1,0 +1,47 @@
+{
+  "revision": {
+    "checker_hash": "0e9d2b4f6071d51af8ed390e4fca14061e8a2dff524ba2b9879946067dc0226c",
+    "checker_key": "independent",
+    "checker_version": "qualified-revision-9",
+    "kind": "QualifiedCheckerRevision",
+    "previous_checker_hash": "836e4ab1737aaa20cfa2946cea529115c46f5c3b3183117c70848971a0229194",
+    "qualification_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/4bda03804fb4f19c994c90041ee393edb77e722ddce2de1fba87b2c0fc754f1d.json",
+      "sha256": "57918e472390f15be5c3542c4b7fcf4febedbac3388f1274ec269df4a8602e4f"
+    },
+    "reason": "Add user-requested B02 upload-port observation only. Actual working historical browser positive control, current negative control, wrong-hash mutation and exact object binding controls pass. Original complete M12 consumer unchanged and hash-locked fallback. Port PASS cannot certify full B02 or M12.",
+    "sequence": 9,
+    "source_ref": {
+      "path": "iter132-promotion-studio/promotion-05/private_checker/0e9d2b4f6071d51af8ed390e4fca14061e8a2dff524ba2b9879946067dc0226c.py",
+      "sha256": "0e9d2b4f6071d51af8ed390e4fca14061e8a2dff524ba2b9879946067dc0226c"
+    },
+    "revision_ref": {
+      "path": "iter132-promotion-studio/promotion-05/checker_revisions/000009.json",
+      "sha256": "f8edc618e4cc91eb312fa97bc7e986c293d63746f8c821616cecde7515084624"
+    }
+  },
+  "goal": {
+    "id": "block-observation-B02-upload-port",
+    "phase_id": "milestone-a55ac6a28cab4c1e4301",
+    "requirement_refs": [
+      "M12"
+    ],
+    "checker": "independent",
+    "task_refs": [],
+    "subject_refs": [
+      "main.py",
+      "milestones/milestone_20f2614f6ae8403d4a4e/api.py",
+      "milestones/milestone_dbb8341c8910593063a8/api.py"
+    ],
+    "acceptance": "B02 upload-port observation only: actual browser file input uploads a real PNG under the selected project; HTTP200 returns nonempty media identity, exact file SHA256 and correct project; GET preview returns exact owned bytes; malformed base64 rejected with HTTP400. This is a repair-admission observation, NOT the full B02 certificate. Full B02 requires video, preview, cleanup, negatives, isolation and restart; original complete M12 goal remains required unchanged.",
+    "milestone_contract": {
+      "block_id": "B02",
+      "scope": "BrowserFilePort -> ServerPathPort -> Existing M11; existing verified M11 contract retained",
+      "user_instruction": "M12-BLOCK-CLOSURE-AND-DELIVERY-V1 sections13,22,32",
+      "full_m12_goal": "accept-c094cd66fb2ff494ecdf"
+    }
+  },
+  "original_m12_unchanged": true,
+  "full_b02_verified": false,
+  "business_writes": 0
+}

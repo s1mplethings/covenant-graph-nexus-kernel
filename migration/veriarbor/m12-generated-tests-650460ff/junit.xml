@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="6" time="30.670" timestamp="2026-11-04T03:20:31.748625+08:00" hostname="test"><testcase classname="tests.test_promotion_gui.TestPromotionGUI" name="test_full_workflow_project_campaign_content" time="15.253"><failure message="AssertionError: 'FAILED' != 'PUBLISHED'&#10;- FAILED&#10;+ PUBLISHED">self = &lt;test_promotion_gui.TestPromotionGUI testMethod=test_full_workflow_project_campaign_content&gt;
+
+    def test_full_workflow_project_campaign_content(self):
+        """Exercise creating project, campaign, content, review, approve, publish."""
+        # 1. Create Project
+        status, proj_data = self._make_request('POST', '/api/action', {
+            'milestone': 'M1',
+            'op': 'project.create',
+            'name': 'Test Project'
+        })
+        self.assertEqual(status, 200)
+        project_id = proj_data['id']
+        self.assertTrue(project_id)
+    
+        # 2. Create Campaign
+        status, camp_data = self._make_request('POST', '/api/action', {
+            'milestone': 'M4',
+            'op': 'campaign.create',
+            'project_id': project_id,
+            'name': 'Test Campaign',
+            'audience': 'Test Audience',
+            'channels': ['web', 'social']
+        })
+        self.assertEqual(status, 200)
+        campaign_id = camp_data['id']
+        self.assertTrue(campaign_id)
+    
+        # 3. Create Content
+        status, cont_data = self._make_request('POST', '/api/action', {
+            'milestone': 'M5',
+            'op': 'content.create',
+            'project_id': project_id,
+            'campaign_id': campaign_id,
+            'channel': 'web',
+            'text': 'Hello World',
+            'claim_ids': [],
+            'media_ids': []
+        })
+        self.assertEqual(status, 200)
+        content_id = cont_data['id']
+        self.assertEqual(cont_data['status'], 'DRAFT')
+    
+        # 4. Review Content
+        status, rev_data = self._make_request('POST', '/api/action', {
+            'milestone': 'M6',
+            'op': 'approval.review',
+            'project_id': project_id,
+            'content_id': content_id
+        })
+        self.assertEqual(status, 200)
+        self.assertEqual(rev_data['status'], 'REVIEW')
+    
+        # 5. Approve Content
+        status, appr_data = self._make_request('POST', '/api/action', {
+            'milestone': 'M6',
+            'op': 'approval.approve',
+            'project_id': project_id,
+            'content_id': content_id
+        })
+        self.assertEqual(status, 200)
+        self.assertEqual(appr_data['status'], 'APPROVED')
+    
+        # 6. Publish Content
+        idem_key = f"test-idem-{int(time.time())}"
+        status, pub_data = self._make_request('POST', '/api/action', {
+            'milestone': 'M7',
+            'op': 'publish.send',
+            'project_id': project_id,
+            'content_id': content_id,
+            'platform_url': self.platform_url,
+            'idempotency_key': idem_key
+        })
+        self.assertEqual(status, 200)
+&gt;       self.assertEqual(pub_data['status'], 'PUBLISHED')
+E       AssertionError: 'FAILED' != 'PUBLISHED'
+E       - FAILED
+E       + PUBLISHED
+
+tests\test_promotion_gui.py:261: AssertionError</failure></testcase><testcase classname="tests.test_promotion_gui.TestPromotionGUI" name="test_gui_html_structure" time="2.030" /><testcase classname="tests.test_promotion_gui.TestPromotionGUI" name="test_health_check" time="2.038" /><testcase classname="tests.test_promotion_gui.TestPromotionGUI" name="test_invalid_requests" time="4.093" /><testcase classname="tests.test_promotion_gui.TestPromotionGUI" name="test_media_serving_and_validation" time="4.127"><failure message="AssertionError: 400 != 200">self = &lt;test_promotion_gui.TestPromotionGUI testMethod=test_media_serving_and_validation&gt;
+
+    def test_media_serving_and_validation(self):
+        """Test importing media and serving it via /media/ID."""
+        # Create Project first
+        status, proj_data = self._make_request('POST', '/api/action', {
+            'milestone': 'M1',
+            'op': 'project.create',
+            'name': 'Media Project'
+        })
+        project_id = proj_data['id']
+    
+        # Create a dummy valid PNG file (minimal header)
+        png_bytes = b'\x89PNG\r\n\x1a\n' + b'\x00' * 100
+        import base64
+        b64_data = base64.b64encode(png_bytes).decode('utf-8')
+    
+        # Import Media
+        status, media_data = self._make_request('POST', '/api/action', {
+            'milestone': 'M11',
+            'op': 'media.import',
+            'project_id': project_id,
+            'kind': 'image',
+            'filename': 'test.png',
+            'data': b64_data
+        })
+&gt;       self.assertEqual(status, 200)
+E       AssertionError: 400 != 200
+
+tests\test_promotion_gui.py:310: AssertionError</failure></testcase><testcase classname="tests.test_promotion_gui.TestPromotionGUI" name="test_product_status" time="2.868" /></testsuite></testsuites>

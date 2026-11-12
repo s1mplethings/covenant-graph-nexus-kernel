@@ -1,0 +1,8 @@
+{
+  "kind": "DiagnosticAssumptionCorrection",
+  "prior_receipt": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-final-product-143a2\\receipt.json",
+  "source_sha256": "5f4678644367eb19460fdc6ddcca68bba2a43f347dee19be141547d312181ed1",
+  "finding": "GUI media select is a single-select; Playwright select_option([image,video]) selected first without error. Frozen M12 does not explicitly require simultaneous multiple GUI selection. Prior assertion required two despite only one selected, so it is not sufficient evidence of a contract violation.",
+  "correction": "Explicitly choose video for remaining workflow and assert that chosen identity. Retain separate actual image/video upload+decode evidence. Test loss of existing multi-media content on semantic edit separately if present.",
+  "product_acceptance_granted": false
+}

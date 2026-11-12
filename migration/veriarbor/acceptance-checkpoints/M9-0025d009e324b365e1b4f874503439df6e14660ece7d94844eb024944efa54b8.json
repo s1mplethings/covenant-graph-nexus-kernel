@@ -1,0 +1,774 @@
+{
+  "kind": "AuthenticatedAcceptanceCheckpoint",
+  "milestone": "M9",
+  "verdict": "VERIFIED",
+  "timestamp": "2026-11-03T16:45:54.677942+00:00",
+  "authority": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\goal_acceptance.json",
+  "authority_sha256": "80b55e1d419389f5072c6a7a835b8fbe1af5496ca2509e8cb0f68794d22bf022",
+  "obligation": {
+    "verdict": "VERIFIED",
+    "weight": 1,
+    "must": true
+  },
+  "authenticated_goals": [
+    {
+      "acceptance": "The independent suite covers every public behavior below, so no requirement is dropped: the module exposes MILESTONE_ID as the literal 'M9' and handle(data_dir, request); receipt.list(project_id, channel optional, status optional) returns {items: [M7 receipts]} for that project with optional channel and status filtering; receipt.get(project_id, receipt_id) returns the single authoritative M7 receipt; receipt.export(project_id) returns {receipts: [...], exported_at: ISO8601}; all queries read the authoritative M7 receipts and never create a second conflicting receipt database; returned receipts carry exact revision, channel, local and remote IDs, status and error if any, idempotency key, request/response refs, timings and retry/reconciliation lineage; foreign IDs are rejected; partial and UNKNOWN outcomes are preserved without inventing usage or success; invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError with no success-shaped error objects; persistence survives another Python process.",
+      "checker": "independent",
+      "id": "accept-f5c7d005f6ae37dd5411",
+      "milestone_contract": {
+        "compilation": {
+          "artifact_layout": {
+            "source": "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+            "support": [],
+            "test": "tests/test_milestone_c511a8ebd29978f5ba97.py"
+          },
+          "business_implementation_generated": false,
+          "business_semantics_inferred": false,
+          "checker_ref": "project.acceptance@1",
+          "export_ids": [
+            "c78cc2d4c5dd19461a0f812d41207cdba8a874a14c178d15fdff7c9488e85b17",
+            "5878de3fccdf35283cb1d655aad0464a7c81c15f33bd8f71521e92019e3e0038"
+          ],
+          "kind": "DeclarationCompilationReceipt",
+          "milestone_id": "milestone-c511a8ebd29978f5ba97",
+          "mode": "MILESTONE_MODE",
+          "operation_exception_mapping": {
+            "handle": [
+              "ValueError"
+            ]
+          },
+          "projections": [
+            {
+              "after": {
+                "kind": "function",
+                "name": "handle",
+                "owner": "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+                "source_declaration_hash": "1169f2a9914a40e995390c90c322e7b5c4f7890d93c0f9a464412bad8e1e26a6",
+                "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:314"
+              },
+              "before": null,
+              "rule": "copy explicit public export name/kind/owner; infer no signature, inheritance or exception policy",
+              "semantics_changed": false,
+              "source_declaration": {
+                "kind": "function",
+                "name": "handle",
+                "owner": "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+                "source_declaration_hash": "1169f2a9914a40e995390c90c322e7b5c4f7890d93c0f9a464412bad8e1e26a6",
+                "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:314"
+              }
+            },
+            {
+              "after": {
+                "kind": "exception",
+                "name": "ValueError",
+                "owner": "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+                "source_declaration_hash": "1169f2a9914a40e995390c90c322e7b5c4f7890d93c0f9a464412bad8e1e26a6",
+                "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:314"
+              },
+              "before": null,
+              "rule": "copy explicit public export name/kind/owner; infer no signature, inheritance or exception policy",
+              "semantics_changed": false,
+              "source_declaration": {
+                "kind": "exception",
+                "name": "ValueError",
+                "owner": "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+                "source_declaration_hash": "1169f2a9914a40e995390c90c322e7b5c4f7890d93c0f9a464412bad8e1e26a6",
+                "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:314"
+              }
+            }
+          ],
+          "registry_hash": "176de79852acd1155329d1b8c15df5c76f66041748251ea22a5f1647840e200a",
+          "requirement_refs": [
+            "M9"
+          ],
+          "schema_version": "1.0",
+          "semantic_hash": "cb48983e42c7c566e5653b3534eb1a3a107aaff881521b701e6356af97b1ca0b",
+          "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:314",
+          "test_binding_skeleton": [
+            {
+              "acceptance_id": "accept-f5c7d005f6ae37dd5411",
+              "checker_ref": "project.acceptance@1",
+              "contract_id": "milestone-c511a8ebd29978f5ba97",
+              "intent": "The independent suite covers every public behavior below, so no requirement is dropped: the module exposes MILESTONE_ID as the literal 'M9' and handle(data_dir, request); receipt.list(project_id, channel optional, status optional) returns {items: [M7 receipts]} for that project with optional channel and status filtering; receipt.get(project_id, receipt_id) returns the single authoritative M7 receipt; receipt.export(project_id) returns {receipts: [...], exported_at: ISO8601}; all queries read the authoritative M7 receipts and never create a second conflicting receipt database; returned receipts carry exact revision, channel, local and remote IDs, status and error if any, idempotency key, request/response refs, timings and retry/reconciliation lineage; foreign IDs are rejected; partial and UNKNOWN outcomes are preserved without inventing usage or success; invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError with no success-shaped error objects; persistence survives another Python process.",
+              "object_ref": "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+              "requirement_refs": [
+                "M9"
+              ],
+              "status": "UNIMPLEMENTED_NOT_VERIFIED",
+              "subject_refs": [
+                "milestones/milestone_c511a8ebd29978f5ba97/api.py"
+              ],
+              "test_artifact": "tests/test_milestone_c511a8ebd29978f5ba97.py",
+              "version": 1
+            }
+          ]
+        },
+        "dependency_artifacts": [
+          "early_main.py",
+          "milestones/milestone_1369a82cde04a7e5887d/api.py",
+          "milestones/milestone_20f2614f6ae8403d4a4e/api.py",
+          "milestones/milestone_33270fed0c9054f5ae04/api.py",
+          "milestones/milestone_4e7c26281cf61a85851e/api.py",
+          "milestones/milestone_90b8868c7203e2958397/api.py",
+          "milestones/milestone_9165a990eed5b9c8801e/api.py",
+          "milestones/milestone_989800776c3d6229e431/api.py",
+          "promotion_publish.py"
+        ],
+        "dependency_goal_ids": [
+          "accept-c695c9993e0f11e44719",
+          "accept-a3f8bcc50143d8ae49b4",
+          "accept-ca86f3507652c4d39816",
+          "accept-9edb004aa0b6dd044101",
+          "accept-ca684d20740eafff7980",
+          "accept-fce1e8f657d881f7b835",
+          "accept-120d5fa5ea077b934689",
+          "accept-0a6060c95aa9bf1301da",
+          "accept-cb6cd62e5771d9c4533e",
+          "accept-2778e4e368049199cb74",
+          "accept-170da45696d31583f0f6",
+          "accept-e19cd5af7799a12e3604",
+          "accept-5469714437e1ef021107",
+          "accept-104c2f37f5954170f35a",
+          "accept-408a5fd627d63955231f",
+          "accept-5230e7202f8168f61e96",
+          "accept-18a2bc51a08e02a71d4e",
+          "accept-9d36c174f46b6d0a6526",
+          "accept-d40aa5fd80c994f85da7",
+          "accept-b46a41ffebba28173b95",
+          "accept-65fc2c2ef4105cd20569",
+          "accept-0e4e7ba1429d433f45a0",
+          "accept-c2ea56c15b5b1c0c5e1f",
+          "accept-55aaeab9c74620177908",
+          "accept-de9906155792c95c4163",
+          "accept-0796b15e54ad2b41cb1c",
+          "accept-4c1880b1b0efd135df7f",
+          "accept-5a87a8e5488d7e8ed31d",
+          "accept-3ac4d2fefcd0c4160365",
+          "accept-47f772c69b3a3f503239",
+          "accept-2e887a8c9d5e05ad790b",
+          "accept-8ce6a113720b09577d87",
+          "accept-2dba8ab3d742fb4c1749",
+          "accept-147c9bf02318f9dd984e",
+          "accept-57da32a0b7872bd3da56",
+          "accept-fa6045ca0129f27db118",
+          "accept-9bd0b9fcda705c2002f5",
+          "accept-edf8a971245f59c43703",
+          "accept-4df00a3b77461abde1be",
+          "accept-dc09e6d613e45c9da154",
+          "accept-2006d6ded74e3b4b0311",
+          "accept-1aec03eafd385693a8fc",
+          "accept-ee268f2ab80e04860b92",
+          "accept-a494cd221179472f7cae",
+          "accept-3a7336ad48983463b3a0",
+          "accept-a0b026ae0ade9fa71b98",
+          "accept-984d636e7f8185d72e5e",
+          "accept-b0d9fac18ea14a0e31c9",
+          "accept-143a6ad276a11d030a52",
+          "accept-cb8ad901b523b86e8df8",
+          "accept-b6e722913c56819a8909",
+          "accept-3016c1f48f2f2dabfbf2",
+          "accept-023b3f5f8992ede481bd",
+          "accept-d97fb859427c52aa3f0a",
+          "accept-8f91d7596f5c7cb0a2e4",
+          "accept-7c9da7c4efc892ced88b",
+          "accept-2c84e05b2d0bc7a45db9",
+          "accept-3f7c305af9e7ef8ab19a",
+          "accept-daee0bed9444c75e32c6",
+          "accept-050fc3eb06a25846c30f",
+          "accept-4281e42e579ad968cc2c",
+          "accept-164aefcfdb3f6ed17fb0",
+          "accept-4a3058cf70be8dfe5943",
+          "accept-794a4046c0eeb1f7a3b8",
+          "accept-f7a4d6e5012373797f38",
+          "accept-aebc6609f719c89a50b3",
+          "accept-ab010e0f893a522c3358",
+          "accept-58ec1e0cc9f9276116ec",
+          "accept-aecc303080c119f79d84",
+          "accept-6f006ed3f7b5060fe045",
+          "accept-1e67e6ada2945e0d89fb",
+          "accept-83814ff69bb325f2ee7a",
+          "accept-2891de53e7edd523b2db",
+          "accept-1ce26407c5e24134b880",
+          "accept-282a49e828cea36b6258",
+          "accept-ab650d2301f516496029",
+          "accept-8019168a277a2c078b03",
+          "accept-d0e7be9f47a5a22706af",
+          "accept-92b3edb6bc8fa619b773",
+          "accept-8c08aea6077e2396caef",
+          "accept-0dd9541b90ba29019877",
+          "accept-c02587bd57774ea11a0a",
+          "accept-ba9e0a7f3891ce033865",
+          "accept-d6e339ee9f02be6ab5e1",
+          "accept-e812ecc43e67c1b1f70a"
+        ],
+        "design": {
+          "artifacts": [
+            {
+              "interfaces": {
+                "public_exports": [
+                  {
+                    "kind": "function",
+                    "name": "handle"
+                  },
+                  {
+                    "kind": "exception",
+                    "name": "ValueError"
+                  }
+                ]
+              },
+              "path": "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+              "purpose": "M9 Receipt Queries: expose read-only receipt query operations (receipt.list, receipt.get, receipt.export) over the authoritative M7 publication receipts, returning exact revision/channel/local and remote IDs, status/error, idempotency key, request/response refs, timings and retry/reconciliation lineage, while rejecting foreign IDs and preserving partial and UNKNOWN outcomes without inventing usage or success."
+            },
+            {
+              "interfaces": {
+                "public_exports": [],
+                "test_for": [
+                  "ValueError"
+                ]
+              },
+              "path": "tests/test_milestone_c511a8ebd29978f5ba97.py",
+              "purpose": "Exercise the declared current milestone contract"
+            }
+          ],
+          "public_interface": {
+            "acceptance_bindings": [
+              {
+                "acceptance_id": "accept-f5c7d005f6ae37dd5411",
+                "checker_ref": "project.acceptance@1",
+                "contract_id": "milestone-c511a8ebd29978f5ba97",
+                "object_ref": "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+                "requirement_refs": [
+                  "M9"
+                ],
+                "version": 1
+              }
+            ],
+            "concurrency": "Single-threaded assumption per data_dir for this milestone. Read-only queries over M7 receipts; file-level atomicity preferred and no mutation of M7 artifacts.",
+            "edge_behavior": "The source module exposes MILESTONE_ID as the literal milestone identifier 'M9' and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string; the return value is a JSON-compatible dict. Supported operations: receipt.list(project_id, channel optional, status optional), receipt.get(project_id, receipt_id), receipt.export(project_id). receipt.list(project_id, channel optional, status optional) returns {items: [M7 receipts]} for that project, optionally filtered by channel and/or status; each item is the authoritative M7 receipt record including exact revision, channel, local and remote IDs, status and error if any, idempotency key, request/response refs, timings, and retry/reconciliation lineage. receipt.get(project_id, receipt_id) returns the single authoritative M7 receipt for that project. receipt.export(project_id) returns {receipts: [...], exported_at: ISO8601} containing that project's authoritative M7 receipts and an ISO8601 export timestamp. All queries read the authoritative M7 receipts and never create a second conflicting receipt database. Foreign IDs (receipts belonging to another project) are rejected. Partial and UNKNOWN outcomes are preserved exactly as recorded, without inventing usage or success. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError; no success-shaped error objects are returned. Persistence survives another Python process; storage format and internal design are Agent-owned. Existing modules may be discovered by their literal MILESTONE_ID, not guessed hash filenames; dependencies may be imported normally or via importlib. Standard library only for the application; public tests may use pytest. No public network publication or dependency installation.",
+            "exceptions": {
+              "ValueError": {
+                "base": "",
+                "behavior": "Raised when input validation fails (missing or invalid project_id, unknown or foreign receipt_id, cross-project access, malformed channel or status filter, unsupported op)."
+              }
+            },
+            "field_contracts": [
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "op",
+                "owner": "$contract",
+                "required": true,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "project_id",
+                "owner": "$contract",
+                "required": true,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "channel",
+                "owner": "$contract",
+                "required": false,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "status",
+                "owner": "$contract",
+                "required": false,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "receipt_id",
+                "owner": "$contract",
+                "required": false,
+                "type": "str"
+              }
+            ],
+            "fields": {
+              "channel": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": false,
+                "type": "str"
+              },
+              "op": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": true,
+                "type": "str"
+              },
+              "project_id": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": true,
+                "type": "str"
+              },
+              "receipt_id": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": false,
+                "type": "str"
+              },
+              "status": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": false,
+                "type": "str"
+              }
+            },
+            "idempotency": {
+              "handle": "Idempotent for receipt.list, receipt.get and receipt.export; all operations are read-only queries over authoritative M7 receipts."
+            },
+            "interface": {
+              "handle": {
+                "behavior": "Dispatches on request['op'] to receipt.list, receipt.get or receipt.export. Validates inputs against M1 project existence and M7 receipt ownership. Reads the authoritative M7 receipts without creating a second conflicting receipt database. Returns exact revision/channel/local and remote IDs, status/error if any, idempotency key, request/response refs, timings and retry/reconciliation lineage. Rejects foreign IDs. Preserves partial and UNKNOWN outcomes without inventing usage or success. Ensures persistence across calls.",
+                "failures": [
+                  "ValueError"
+                ],
+                "idempotency": "Idempotent for receipt.list, receipt.get and receipt.export; all operations are read-only queries over authoritative M7 receipts.",
+                "kind": "function",
+                "name": "handle",
+                "ordering": "Sequential execution within a single call; file-level atomicity preferred; receipt.list and receipt.export return receipts in a deterministic order.",
+                "parameters": "data_dir: str (filesystem path), request: dict (JSON-compatible with an 'op' key)",
+                "returns": "dict (JSON-compatible result specific to the operation: {items: [M7 receipts]} for receipt.list, a single M7 receipt for receipt.get, {receipts: [...], exported_at: ISO8601} for receipt.export)"
+              }
+            },
+            "ordering": {
+              "handle": "Sequential execution within a single call; file-level atomicity preferred; receipt.list and receipt.export return receipts in a deterministic order."
+            },
+            "persistence": "Read-only over the authoritative M7 receipt storage within the provided data_dir; no second conflicting receipt database is created. Queries reflect receipts durably persisted by M7 and survive separate Python processes. Isolation between different data_dir paths is strict.",
+            "return_shapes": {
+              "$contract": [
+                "channel",
+                "op",
+                "project_id",
+                "receipt_id",
+                "status"
+              ]
+            },
+            "types": {
+              "declared_fields": {
+                "channel": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": false,
+                  "type": "str"
+                },
+                "op": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": true,
+                  "type": "str"
+                },
+                "project_id": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": true,
+                  "type": "str"
+                },
+                "receipt_id": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": false,
+                  "type": "str"
+                },
+                "status": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": false,
+                  "type": "str"
+                }
+              }
+            }
+          },
+          "reason_summary": "M9 Receipt Queries: expose read-only receipt query operations (receipt.list, receipt.get, receipt.export) over the authoritative M7 publication receipts, returning exact revision/channel/local and remote IDs, status/error, idempotency key, request/response refs, timings and retry/reconciliation lineage, while rejecting foreign IDs and preserving partial and UNKNOWN outcomes without inventing usage or success.",
+          "test_command": [
+            "python",
+            "-m",
+            "pytest",
+            "-q",
+            "tests/test_milestone_c511a8ebd29978f5ba97.py"
+          ]
+        },
+        "registry": {
+          "entries": [
+            {
+              "artifact_declarations": [
+                {
+                  "interfaces": {
+                    "public_exports": [
+                      {
+                        "kind": "function",
+                        "name": "handle"
+                      },
+                      {
+                        "kind": "exception",
+                        "name": "ValueError"
+                      }
+                    ]
+                  },
+                  "path": "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+                  "purpose": "M9 Receipt Queries: expose read-only receipt query operations (receipt.list, receipt.get, receipt.export) over the authoritative M7 publication receipts, returning exact revision/channel/local and remote IDs, status/error, idempotency key, request/response refs, timings and retry/reconciliation lineage, while rejecting foreign IDs and preserving partial and UNKNOWN outcomes without inventing usage or success."
+                },
+                {
+                  "interfaces": {
+                    "public_exports": [],
+                    "test_for": [
+                      "ValueError"
+                    ]
+                  },
+                  "path": "tests/test_milestone_c511a8ebd29978f5ba97.py",
+                  "purpose": "Exercise the declared current milestone contract"
+                }
+              ],
+              "artifact_paths": [
+                "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+                "tests/test_milestone_c511a8ebd29978f5ba97.py",
+                "milestones/milestone_c511a8ebd29978f5ba97/api.py"
+              ],
+              "change_policy": "immutable during witness; implementation must conform",
+              "contract_id": "milestone-c511a8ebd29978f5ba97",
+              "definition": {
+                "acceptance_bindings": [
+                  {
+                    "acceptance_id": "accept-f5c7d005f6ae37dd5411",
+                    "checker_ref": "project.acceptance@1",
+                    "contract_id": "milestone-c511a8ebd29978f5ba97",
+                    "object_ref": "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+                    "requirement_refs": [
+                      "M9"
+                    ],
+                    "version": 1
+                  }
+                ],
+                "concurrency": "Single-threaded assumption per data_dir for this milestone. Read-only queries over M7 receipts; file-level atomicity preferred and no mutation of M7 artifacts.",
+                "edge_behavior": "The source module exposes MILESTONE_ID as the literal milestone identifier 'M9' and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string; the return value is a JSON-compatible dict. Supported operations: receipt.list(project_id, channel optional, status optional), receipt.get(project_id, receipt_id), receipt.export(project_id). receipt.list(project_id, channel optional, status optional) returns {items: [M7 receipts]} for that project, optionally filtered by channel and/or status; each item is the authoritative M7 receipt record including exact revision, channel, local and remote IDs, status and error if any, idempotency key, request/response refs, timings, and retry/reconciliation lineage. receipt.get(project_id, receipt_id) returns the single authoritative M7 receipt for that project. receipt.export(project_id) returns {receipts: [...], exported_at: ISO8601} containing that project's authoritative M7 receipts and an ISO8601 export timestamp. All queries read the authoritative M7 receipts and never create a second conflicting receipt database. Foreign IDs (receipts belonging to another project) are rejected. Partial and UNKNOWN outcomes are preserved exactly as recorded, without inventing usage or success. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError; no success-shaped error objects are returned. Persistence survives another Python process; storage format and internal design are Agent-owned. Existing modules may be discovered by their literal MILESTONE_ID, not guessed hash filenames; dependencies may be imported normally or via importlib. Standard library only for the application; public tests may use pytest. No public network publication or dependency installation.",
+                "exception_bindings": [
+                  {
+                    "acceptance_refs": [
+                      "accept-f5c7d005f6ae37dd5411"
+                    ],
+                    "implementation_ref": "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+                    "name": "ValueError",
+                    "policy": {
+                      "base": "",
+                      "behavior": "Raised when input validation fails (missing or invalid project_id, unknown or foreign receipt_id, cross-project access, malformed channel or status filter, unsupported op)."
+                    },
+                    "test_refs": [
+                      "tests/test_milestone_c511a8ebd29978f5ba97.py"
+                    ]
+                  }
+                ],
+                "exceptions": {
+                  "ValueError": {
+                    "base": "",
+                    "behavior": "Raised when input validation fails (missing or invalid project_id, unknown or foreign receipt_id, cross-project access, malformed channel or status filter, unsupported op)."
+                  }
+                },
+                "exports": [
+                  {
+                    "kind": "function",
+                    "name": "handle",
+                    "owner": "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+                    "source_declaration_hash": "1169f2a9914a40e995390c90c322e7b5c4f7890d93c0f9a464412bad8e1e26a6",
+                    "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:314"
+                  },
+                  {
+                    "kind": "exception",
+                    "name": "ValueError",
+                    "owner": "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+                    "source_declaration_hash": "1169f2a9914a40e995390c90c322e7b5c4f7890d93c0f9a464412bad8e1e26a6",
+                    "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:314"
+                  }
+                ],
+                "field_contracts": [
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "op",
+                    "owner": "$contract",
+                    "required": true,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "project_id",
+                    "owner": "$contract",
+                    "required": true,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "channel",
+                    "owner": "$contract",
+                    "required": false,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "status",
+                    "owner": "$contract",
+                    "required": false,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "receipt_id",
+                    "owner": "$contract",
+                    "required": false,
+                    "type": "str"
+                  }
+                ],
+                "fields": {
+                  "channel": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": false,
+                    "type": "str"
+                  },
+                  "op": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": true,
+                    "type": "str"
+                  },
+                  "project_id": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": true,
+                    "type": "str"
+                  },
+                  "receipt_id": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": false,
+                    "type": "str"
+                  },
+                  "status": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": false,
+                    "type": "str"
+                  }
+                },
+                "idempotency": {
+                  "handle": "Idempotent for receipt.list, receipt.get and receipt.export; all operations are read-only queries over authoritative M7 receipts."
+                },
+                "interface": {
+                  "handle": {
+                    "behavior": "Dispatches on request['op'] to receipt.list, receipt.get or receipt.export. Validates inputs against M1 project existence and M7 receipt ownership. Reads the authoritative M7 receipts without creating a second conflicting receipt database. Returns exact revision/channel/local and remote IDs, status/error if any, idempotency key, request/response refs, timings and retry/reconciliation lineage. Rejects foreign IDs. Preserves partial and UNKNOWN outcomes without inventing usage or success. Ensures persistence across calls.",
+                    "failures": [
+                      "ValueError"
+                    ],
+                    "idempotency": "Idempotent for receipt.list, receipt.get and receipt.export; all operations are read-only queries over authoritative M7 receipts.",
+                    "kind": "function",
+                    "name": "handle",
+                    "ordering": "Sequential execution within a single call; file-level atomicity preferred; receipt.list and receipt.export return receipts in a deterministic order.",
+                    "parameters": "data_dir: str (filesystem path), request: dict (JSON-compatible with an 'op' key)",
+                    "returns": "dict (JSON-compatible result specific to the operation: {items: [M7 receipts]} for receipt.list, a single M7 receipt for receipt.get, {receipts: [...], exported_at: ISO8601} for receipt.export)"
+                  }
+                },
+                "ordering": {
+                  "handle": "Sequential execution within a single call; file-level atomicity preferred; receipt.list and receipt.export return receipts in a deterministic order."
+                },
+                "persistence": "Read-only over the authoritative M7 receipt storage within the provided data_dir; no second conflicting receipt database is created. Queries reflect receipts durably persisted by M7 and survive separate Python processes. Isolation between different data_dir paths is strict.",
+                "return_shapes": {
+                  "$contract": [
+                    "channel",
+                    "op",
+                    "project_id",
+                    "receipt_id",
+                    "status"
+                  ]
+                },
+                "types": {
+                  "declared_fields": {
+                    "channel": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": false,
+                      "type": "str"
+                    },
+                    "op": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": true,
+                      "type": "str"
+                    },
+                    "project_id": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": true,
+                      "type": "str"
+                    },
+                    "receipt_id": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": false,
+                      "type": "str"
+                    },
+                    "status": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": false,
+                      "type": "str"
+                    }
+                  }
+                }
+              },
+              "evidence_refs": [
+                "iter132-promotion-studio:promotion-05:milestone-decision:314"
+              ],
+              "feature": "M9 Receipt Queries: expose read-only receipt query operations (receipt.list, receipt.get, receipt.export) over the authoritative M7 publication receipts, returning exact revision/channel/local and remote IDs, status/error, idempotency key, request/response refs, timings and retry/reconciliation lineage, while rejecting foreign IDs and preserving partial and UNKNOWN outcomes without inventing usage or success.",
+              "integrity_version": 2,
+              "must_acceptance_ids": [
+                "accept-f5c7d005f6ae37dd5411"
+              ],
+              "required_sections": [
+                "interface",
+                "fields",
+                "types",
+                "exceptions",
+                "idempotency",
+                "persistence",
+                "ordering",
+                "concurrency",
+                "edge_behavior"
+              ],
+              "source_decision": "iter132-promotion-studio:promotion-05:milestone-decision:314",
+              "status": "DECLARED",
+              "version": 1
+            }
+          ],
+          "kind": "PublicContractRegistry"
+        }
+      },
+      "phase_id": "milestone-c511a8ebd29978f5ba97",
+      "requirement_refs": [
+        "M9"
+      ],
+      "subject_refs": [
+        "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+        "early_main.py",
+        "milestones/milestone_1369a82cde04a7e5887d/api.py",
+        "milestones/milestone_20f2614f6ae8403d4a4e/api.py",
+        "milestones/milestone_33270fed0c9054f5ae04/api.py",
+        "milestones/milestone_4e7c26281cf61a85851e/api.py",
+        "milestones/milestone_90b8868c7203e2958397/api.py",
+        "milestones/milestone_9165a990eed5b9c8801e/api.py",
+        "milestones/milestone_989800776c3d6229e431/api.py",
+        "promotion_publish.py"
+      ],
+      "task_refs": [],
+      "verdict": "VERIFIED",
+      "evidence": {
+        "attempt_id": "attempt-0001",
+        "condition_hash": "5dd701897087ed907b6f5ef87675d8948d65124daaedb423dcb591df1403db98",
+        "goal_id": "accept-f5c7d005f6ae37dd5411",
+        "node_id": "sem-node-0126",
+        "plan_revision": 8,
+        "provenance": {
+          "chain": {
+            "attempt_id": "attempt-0001",
+            "candidate": {
+              "path": "iter132-promotion-studio/promotion-05/evidence/02387d624bd9be7d0b01000ac2a1fdb1cd2b8bc327efcb2ff0ab4d4cc3bb48cc.json",
+              "sha256": "13b67ed866411b4beea58be5af675a214279a6739a9a9a4191e80665e48321b4"
+            },
+            "checker": {
+              "hash": "5201a3c5aa6c9e829890787e3a5d6b8f60d3de104b301fb9df5eeb28faeb1007",
+              "ref": "project.acceptance@1",
+              "version": "qualified-revision-1"
+            },
+            "execution_receipt": {
+              "path": "iter132-promotion-studio/promotion-05/attempts/sem-node-0126/attempt-0001.json",
+              "sha256": "95e6d3678dc5cc82cdb29ed135f2e5369c74663302db08d6dd466213326cbe96"
+            },
+            "logical_task_id": "iter132-promotion-studio/promotion-05",
+            "observation": {
+              "path": "iter132-promotion-studio/promotion-05/evidence/e83ec16e492f8729086814850d5910a49cf262c7fd21c6f6db5bce75f22e021b.json",
+              "sha256": "a1c5794478527490e9f7d4da61632b9a384ce2f28d9f2f977b74987490f8bc05"
+            },
+            "requirements": {
+              "M9": "8a49c3a1d912d3c5aeda1623177c11c642218998c57f1c26366b7920123a0f56"
+            },
+            "verdict": "VERIFIED",
+            "witness": {
+              "path": "iter132-promotion-studio/promotion-05/evidence/077160dec74a18500ebc0136d485435747b18210325c78ad1670eace4c5017ae.json",
+              "sha256": "29b18af672a4dad825ce0739e17c91fa184c61c62f57843d10af4388e7a7c1af"
+            }
+          },
+          "status": "TRUSTED"
+        },
+        "receipt_hash": "58ee6f0168bbceeb48b8f5d37b86d350c39df5f53e3ed919713635dc00df018c",
+        "run_id": "promotion-05",
+        "subjects": {
+          "early_main.py": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+          "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+          "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+          "milestones/milestone_33270fed0c9054f5ae04/api.py": "db223502ff57164389978d41cde5d9f850c756a714f9c8b5fd9085ffea27d511",
+          "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+          "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+          "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+          "milestones/milestone_989800776c3d6229e431/api.py": "a613d313a070daefc416eb56ab9f7f0ea4b9ab6c11d6ad745a0d029f67e71b38",
+          "milestones/milestone_c511a8ebd29978f5ba97/api.py": "544d890040f5e119f9bb26d797d2a3d2f8669fac93f581bc98811431db651558",
+          "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+        },
+        "supersedes_receipts": [],
+        "verdict": "VERIFIED",
+        "evidence_refs": [
+          {
+            "path": "iter132-promotion-studio/promotion-05/observations/typed/f8d0760aba8a2d110ec586bfd5b79726d07d762e7879f97b4ad95380fa99db90.json",
+            "sha256": "93dc4207bc1f0353e2cd68477419eaf51134d69ddc676b37e277da3a9acc925b"
+          }
+        ],
+        "reason": "M9 actual business checks passed"
+      },
+      "must": true
+    }
+  ],
+  "is_new_acceptance_authority": false,
+  "final_product_complete": false
+}

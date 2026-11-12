@@ -1,0 +1,42 @@
+{
+  "kind": "FrozenMilestoneDiagnostic",
+  "milestone": "M11",
+  "argv": [
+    "D:\\anaconda\\python.exe",
+    "-X",
+    "utf8",
+    "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\consumer-revisions\\gui-locators-v3.py",
+    "--request",
+    "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-diagnostic-1317f2d3\\request.json"
+  ],
+  "exit_code": 0,
+  "seconds": 1.1410000000032596,
+  "source_identities": {
+    "early_main.py": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+    "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024",
+    "tests/test_milestone_1369a82cde04a7e5887d.py": "b58b1d68cd3c30952b9423b1af77b2b01b7dee1b92f8f6935b872e09ced8094a",
+    "tests/test_milestone_20f2614f6ae8403d4a4e.py": "9875257ec758364ee22b6b7d8385f4d84f55ea52cbd9d7db370cda09cc7f58d5",
+    "tests/test_milestone_33270fed0c9054f5ae04.py": "20df669dcf4fbf7b30cbd249f991f75d9889321e427818ce2f86649abfd0d311",
+    "tests/test_milestone_4e7c26281cf61a85851e.py": "12f5c08baefe86adbe67054affc114d219f3b3f4c6240a0e30cd05efc0674d23",
+    "tests/test_milestone_90b8868c7203e2958397.py": "204ac15825cee40c0a85b1c454a5b90d2e13ef816be890a4adb7ac9820031c61",
+    "tests/test_milestone_9165a990eed5b9c8801e.py": "fde4c6a18670b17fbeef65d2e0dfaaab575e84399350f1ffcf72994e63f0fcd7",
+    "tests/test_milestone_989800776c3d6229e431.py": "c4624029d91897e236dfa1787d7f8d338e3d8f8c90a20aefbcc650cff22c4090",
+    "tests/test_milestone_af427946c6dea418047a.py": "a103419c30c7170d6dd1ce79e905f64221d4241b5577b26a8f15452cd78fdde1",
+    "tests/test_milestone_c511a8ebd29978f5ba97.py": "b17d3c9d847fbd6f5bc01783ecabe068dd642c189408c5c3dc47085b8c131e32",
+    "tests/test_publish.py": "a8ef44b1bee2d089cb76dadb16da1088686855cedda967830915c478fcec4816",
+    "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+    "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+    "milestones/milestone_33270fed0c9054f5ae04/api.py": "78dd17fe6722f4fa573580b6a59d33374e925ccf309641d9241081a53e755cbc",
+    "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+    "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+    "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+    "milestones/milestone_989800776c3d6229e431/api.py": "a613d313a070daefc416eb56ab9f7f0ea4b9ab6c11d6ad745a0d029f67e71b38",
+    "milestones/milestone_af427946c6dea418047a/api.py": "95c470c2bb2e3ad0fed836dfe705f1baa29648b8c954b572629f6eb9940672c3",
+    "milestones/milestone_c511a8ebd29978f5ba97/api.py": "544d890040f5e119f9bb26d797d2a3d2f8669fac93f581bc98811431db651558",
+    "milestones/milestone_dbb8341c8910593063a8/api.py": "1317f2d3b966c667a84410070721b4e36ca89b14eeaa28dcbc1e342c38979c82"
+  },
+  "excluded_active_writer_scope": "tests/test_milestone_dbb8341c8910593063a8.py",
+  "acceptance_authority": false,
+  "host_business_patches": 0,
+  "output_sha256": "bc1127426cf5f8bd6f7524a9985ad45c792f41e7c4f8891a49e02d80659837f0"
+}

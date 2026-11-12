@@ -1,0 +1,74 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "Qwen Flash Agent and DeepSeek Flash bounded Worker20000; no Pro/Max. New Qwen143a3 regressed10of11 public module routes and removed working upload assumptions; use alternate cheap family for genuinely new source failure, not replay. Eight old UNKNOWN outcomes retained; same-model critique is never independent acceptance.",
+    "milestone_completion_request": "Complete original M12 and final delivery without restarting M1-M11 or redefining the declared M12 milestone. main.py now exists, writer143 succeeded; retain it and repair only demonstrated gaps. Finish README.md, TEST_PLAN.md, tests/test_promotion_gui.py via bounded original Provider tasks. M12 final GUI must implement actual reachable file upload with server-side adaptation to unchanged path-based M11 API, same-content edit/approval invalidation, correct project-scoped /api/state, all navigation/config/review/publish/receipt/scheduler/analytics/restart/error behaviors in frozen public contract. Original independent measurement and generated meaningful tests must pass. Preserve previous test debts and fix their original test-owner fixtures against qualified evidence, no assertion deletion/waiver. Finish canonical packaging/delivery/accounting/provenance/Corpus and reports. Existing M1-M11 certificates remain reusable except real boundary impact. Known test144 platform fixture qualification: migration/veriarbor/m12-platform-fixture-qualification/receipt.json proves nonexistent server.port caused500; original test owner corrects server_port, retains PUBLISHED assertion, and uses explicit project_id for scoped /api/state checks. Preserve meaningful valid image bytes and assertions; no M7 source repair for this fixture defect.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "main.py": "cca17c7e0e76210ac183a59965e2a064b5bd6f28d9e395615b24a3d924261584"
+        }
+      },
+      "current_owner": 143,
+      "attempt": 3,
+      "actual_diagnostic": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-cca17c7e\\receipt.json",
+      "actual_source_identity_map": {
+        "M12": "main.py",
+        "M7": "promotion_publish.py",
+        "M3": "milestones/milestone_1369a82cde04a7e5887d/api.py",
+        "M1": "milestones/milestone_20f2614f6ae8403d4a4e/api.py",
+        "M6": "milestones/milestone_33270fed0c9054f5ae04/api.py",
+        "M2": "milestones/milestone_4e7c26281cf61a85851e/api.py",
+        "M4": "milestones/milestone_90b8868c7203e2958397/api.py",
+        "M5": "milestones/milestone_9165a990eed5b9c8801e/api.py",
+        "M8": "milestones/milestone_989800776c3d6229e431/api.py",
+        "M10": "milestones/milestone_af427946c6dea418047a/api.py",
+        "M9": "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+        "M11": "milestones/milestone_dbb8341c8910593063a8/api.py"
+      },
+      "known_regression": "143a3 replaced working5f source with a rewrite that guessed module identities from lexicographic filenames.10of11 HANDLERS point to wrong literal MILESTONE_ID; actual project.create raises unknown operation. GUI op payloads also use wrong milestones (content.compare M3 rather than actualM5; publish.reconcile M11 rather than M7) and omit required project/receipt/platform identities. Generic product.status merely checks non-null functions and falsely returns ready despite wrong identities.",
+      "repair_requirement": "FIRST READ existing main.py and actual relevant module contracts with bounded artifact tools; do not infer module identity from filename order, and do not fabricate schemas/parameters. Preserve valid threaded server. Correct both server HANDLERS and every GUI op milestone/requiredidentity binding using actual frozen contracts. Restore working real file-input upload bridge base64->owned boundedtemp->actualM11pathAPI; genuine scopedstate/ownedmedia bytes; coherent human-readable selections; hydrate/edit/newcontent/review/approval/publishreceipt/schedule/analytics/restart. Reconcile must select actual UNKNOWN receipt and pass project_id/receipt_id/platform_url to M7, compare usesM5/project/content/from/to; variants must use actualM5contract. UI placeholders and genericAPIdispatch alone cannot meet capabilities. No backend edits or source-origin waiver. Use single143 atomic coherent change informed by read current artifact, no blind replacement from guessed filenames.",
+      "last_partial_working_source": "5f4678644367eb19460fdc6ddcca68bba2a43f347dee19be141547d312181ed1 (143a2 original Worker artifact; working upload/video/schedule/publish/analytics but serialserver and incompleteGUI). Its source remains preserved in original candidates/sem-node-0143/attempt-0002 and independent snapshot; do not claim it fullPASS.",
+      "canonical_sequence": "Current148 new source measurement first; only after current failure may143repair. Newsource invalidates this diagnosis. Do not continue claiming oldserialfailure against newsource.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-cca17c7e\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_PREFLIGHT_143A3.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-final-product-143a2-selection-corrected\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_CAPABILITY_CLOSURE_5F467864.json"
+      ]
+    },
+    "admission_correction": "Select phase by CURRENT artifact and checker receipt. Currentmaincca17c7e has no native current observation: reuse dependency-ready148 with action3 target148 only first. Do NOT repair143 from old5f serialfailure; source has changed. Once148 records currentcca failure, repair existing143 with deps:[] and full strategy/hypothesis bound to NEW exact allowed receipt object. After each new source, measure current148 once before any further repair. No duplicate checker or unchanged-key replay. Tests144/docs145 require updated actual repair contract/evidence, not identical retry blockedNO_NOVEL_DELTA.",
+    "gui_writer_policy": "Final main.py writer143 is the sole current GUI owner. Only143 may repair that file; inspections/tests read completed snapshot. Original early_main91 and backend sources unchanged unless independent new failure proves actual boundary need.",
+    "redecision": {
+      "strategy_revision": "5941a565f7131334e0c67023e3e0191937d8e7bf45d73222ce696bdece75e486",
+      "reason": "New143a3 source has actual project.create failure and10wrongmodulebindings; not oldserialfailure. Native148 must measure newartifact first, then original143 repairs using real source/contracts with alternate cheap Worker. No Pro/Max or replay; current concreteevidence/variantdelta.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-cca17c7e\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_PREFLIGHT_143A3.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-final-product-143a2-selection-corrected\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_CAPABILITY_CLOSURE_5F467864.json"
+      ]
+    },
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "early_main.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\GUI_COUPLED_PREFLIGHT_24125.json"
+        ]
+      }
+    ]
+  }
+}

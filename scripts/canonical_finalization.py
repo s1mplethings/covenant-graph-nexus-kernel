@@ -100,6 +100,7 @@ def transition(
     candidate_hash: str,
     evidence_refs: list[dict[str, str]] | None = None,
     detail: dict[str, Any] | None = None,
+    verification_revision: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     if state not in STATES:
         raise ValueError(f"unsupported canonical finalization state: {state}")
@@ -113,7 +114,29 @@ def transition(
     )
     if not same_identity:
         raise ValueError("canonical finalization identity changed")
-    if state != prior_state and state not in _ALLOWED.get(prior_state, set()):
+    reopen = False
+    if verification_revision is not None:
+        revision = verification_revision
+        if (prior_state != 'PROMOTION_REJECTED' or state != 'CANDIDATE_MATERIALIZED'
+                or set(revision) != {'revision_id','reason','evidence_ref','evidence_sha256'}
+                or not revision['reason'] or len(revision['revision_id']) != 64
+                or any(c not in '0123456789abcdef' for c in revision['revision_id'])):
+            raise ValueError('invalid explicit verification revision')
+        evidence = pathlib.Path(revision['evidence_ref'])
+        if not evidence.is_file() or canonical_evidence_hash.sha256_file(evidence) != revision['evidence_sha256']:
+            raise ValueError('verification revision evidence changed')
+        if any(h.get('detail',{}).get('verification_revision',{}).get('revision_id') == revision['revision_id']
+               for h in prior.get('history',[])):
+            raise ValueError('verification revision already consumed')
+        archive = root / 'verification_history' / revision['revision_id']
+        archive.mkdir(parents=True, exist_ok=False)
+        for name in (STATE_FILE,VERIFICATION_FILE,GOVERNANCE_FILE,ACCEPTANCE_FILE,PROMOTION_FILE):
+            source = root / name
+            if source.is_file():
+                with (archive/name).open('xb') as target: target.write(source.read_bytes())
+        detail = {**(detail or {}),'verification_revision':revision,'prior_evidence_archive':str(archive)}
+        reopen = True
+    if state != prior_state and state not in _ALLOWED.get(prior_state, set()) and not reopen:
         raise ValueError(f"invalid canonical finalization transition: {prior_state or '<start>'}->{state}")
     history = list(prior.get("history", [])) if isinstance(prior.get("history"), list) else []
     if not history or history[-1].get("state") != state:
@@ -249,6 +272,8 @@ def canonical_governance_evaluate(
     maturity = reports.get("product_maturity_report", {}) if isinstance(reports.get("product_maturity_report"), dict) else {}
     proxy = reports.get("proxy_solution_report", {}) if isinstance(reports.get("proxy_solution_report"), dict) else {}
     policy = reports.get("public_claim_policy_report", {}) if isinstance(reports.get("public_claim_policy_report"), dict) else {}
+    from cgkn.protocol.claim_consistency import claim_errors
+    failures.extend(claim_errors(maturity))
     document = {
         "kind": "CGKNCanonicalGovernanceReport",
         "schema_version": SCHEMA_VERSION,

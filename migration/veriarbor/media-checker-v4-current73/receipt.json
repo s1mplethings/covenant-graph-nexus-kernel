@@ -1,0 +1,26 @@
+{
+  "kind": "StrengthenedCheckerCurrentCandidateDiagnostic",
+  "argv": [
+    "D:/anaconda/python.exe",
+    "-I",
+    "-X",
+    "utf8",
+    "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\consumer-revisions\\media-integrity-v4.py",
+    "--request",
+    "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-checker-v4-current73\\request.json"
+  ],
+  "exit_code": 0,
+  "checker_sha256": "283bf80a6cd4fe3866f2c00a032d38bb4e3c7a6d58e07bcdc06e26978ccf3c11",
+  "snapshot_source_identity_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-publish-edges-73c47a74\\receipt.json",
+  "observed": {
+    "execution": "VALID",
+    "observed": {
+      "value": false,
+      "reason": "M11_independent_business_suite: AssertionError: Expected ValueError for invalid or foreign input",
+      "passed_count": 1,
+      "total_count": 2
+    }
+  },
+  "acceptance_authority": false,
+  "product_modified": false
+}

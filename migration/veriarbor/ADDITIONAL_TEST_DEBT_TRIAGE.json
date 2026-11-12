@@ -1,0 +1,51 @@
+{
+  "kind": "AdditionalTestDebtTriage",
+  "authority": "Diagnostic only. Must use original ProjectSession Provider-owned repairs and rerun original assertions. No failure waived.",
+  "baseline": {
+    "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_MVP\\packaging-failure-summary.json",
+    "sha256": "f862489b0b98d66f0678ec969a4e3bf4accba49c67ee067ce2b3a3affbbf1bf8"
+  },
+  "observations": [
+    {
+      "scope": "M1 tests",
+      "failed": 2,
+      "finding": "Tests expect project.list.projects; qualify against declared public contract and actual result before correcting test assertions."
+    },
+    {
+      "scope": "M2/M3 tests",
+      "failed": 18,
+      "finding": "Fixture writes a legacy project storage layout directly; replace fixture setup through existing public M1 API. Preserve behavior assertions."
+    },
+    {
+      "scope": "M5 tests",
+      "failed": 30,
+      "finding": "Setup calls project.create/campaign.create/claim.create against M5-only handler; dispatch fixture setup through actual dependency APIs, retain negative and integration assertions."
+    },
+    {
+      "scope": "M7 publish tests",
+      "failed": 3,
+      "finding": "All three existing test assertion bodies PASS when only fixture storage paths are corrected; no product code change. Two use separate client/remote stores; GUI fixture must not use http:\\platform_data as filesystem path.",
+      "evidence": [
+        {
+          "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\publish-fixture-diagnostic\\receipt.json",
+          "sha256": "56f84664c679714ce253255454bb968f05bf237fe06f9976bfe10c2d6ef176ae"
+        },
+        {
+          "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\publish-fixture-diagnostic\\gui-receipt.json",
+          "sha256": "0ee038a17f52d88cb61b98b3aec0849250961c74eff316c282bac7290d3a32d1"
+        }
+      ]
+    },
+    {
+      "scope": "M6 missing media",
+      "failed": 1,
+      "finding": "Current _validate_media_present only validates string/list shape. Missing referenced media test still needs actual product validation; do not weaken or delete it. M11 public requirement explicitly requires broken media to block M6 approval and M7 publication.",
+      "source": {
+        "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_MVP\\application\\milestones\\milestone_33270fed0c9054f5ae04\\api.py",
+        "sha256": "78dd17fe6722f4fa573580b6a59d33374e925ccf309641d9241081a53e755cbc"
+      }
+    }
+  ],
+  "host_business_patches": 0,
+  "tests_excluded": 0
+}

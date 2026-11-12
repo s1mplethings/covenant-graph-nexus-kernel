@@ -1,0 +1,22 @@
+{
+  "kind": "FrozenBlockReuse",
+  "block_id": "B02",
+  "status": "FROZEN_CERTIFICATE_CURRENT",
+  "current_full_source_sha256": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+  "certificate_ref": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/0b80f38a5482e311f690e8905656b12b5b00768700683ab7e8d99ab9bb99d956.json",
+    "sha256": "f74eac2a18d25d8f50d4b467cd272c14175fdd0b373c64578736447bb6b837ef"
+  },
+  "current_sections": {
+    "main.py#adapter": "742b8b69d2146569c2f6618ffc8da3b2aa2a492b570d6912bfda78cc000cd743",
+    "main.py#media-serving": "d7fe1e1e9370bb2d58d0d936d82d67e34aa3c48046f9da99a9e901f7ffae4b28",
+    "main.py#media-dom": "8378ca77eeff8293ed1fcabd82d8bd379e5560f291a650ede5af7d892e09f212",
+    "main.py#media-browser": "301d8321494b834313cdb85a6d073252c4e6a33f3474a5c1d727b5fb98043f08"
+  },
+  "certificate_source_sha256": "814bf49eb22b005678aad9ea5ddb580dff06208605279f6eca1efd41065307e5",
+  "reuse_reason": "B02 certified adapter/media sections and M11 neighbor are byte-identical; only unrelated GUI sections changed.",
+  "browser_reruns": 1,
+  "receipt_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\b02-final-20261106-015847\\receipt.json",
+  "receipt_sha256": "69ba88283a363471fdd53a176ef862d569672b9c9b5c38a42417e956c155bb83",
+  "provider_calls": 0
+}

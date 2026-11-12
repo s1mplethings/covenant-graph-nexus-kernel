@@ -1,0 +1,125 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "Qwen Flash Agent, DeepSeek Flash Worker only. This step is deterministic measurement; no Worker source write. Pro0 Max0.",
+    "milestone_completion_request": "Read-only B02 current observation FIRST. Source has changed to60d5e9d3 by bounded143a32, only _serve_media changed; upload adapter andfrontend still missing. Run original registered independent goal block-observation-B02-upload-port on CURRENT source through original DAG, retry existing156 or create scopedTEST as supported. Do not run fullM12. Old156a1failure bound9edfb is stale; a new current receipt is required before repair. No business writes, no FINISH. Controller holds after current goal check.",
+    "fresh_runtime_diagnosis": {
+      "current_block": "B02",
+      "source_sha256": "60d5e9d3fcdf45f7134576b77aedc42fb4ec6bbd0cdfbb5a5e12f17fdb7eb97d",
+      "local_observation": {
+        "kind": "B02BrowserUploadAcceptance",
+        "block_id": "B02",
+        "source_sha256": "60d5e9d3fcdf45f7134576b77aedc42fb4ec6bbd0cdfbb5a5e12f17fdb7eb97d",
+        "checker_sha256": "cebe0c448f95f2a84e7dbbb828b290e45b4f3daa5fc6507f9ae767846da0eac2",
+        "checks": [
+          "missing browser file visibly rejected"
+        ],
+        "network": [
+          {
+            "url": "http://127.0.0.1:13209/",
+            "status": 200,
+            "method": "GET"
+          },
+          {
+            "url": "http://127.0.0.1:13209/api/action",
+            "status": 200,
+            "method": "POST"
+          },
+          {
+            "url": "http://127.0.0.1:13209/api/action",
+            "status": 200,
+            "method": "POST"
+          },
+          {
+            "url": "http://127.0.0.1:13209/api/action",
+            "status": 200,
+            "method": "POST"
+          },
+          {
+            "url": "http://127.0.0.1:13209/api/state?project_id=ab32953950244a00af2abe886c9b9897",
+            "status": 200,
+            "method": "GET"
+          },
+          {
+            "url": "http://127.0.0.1:13209/api/action",
+            "status": 400,
+            "method": "POST"
+          }
+        ],
+        "console": [
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+          },
+          {
+            "type": "error",
+            "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+          },
+          {
+            "type": "error",
+            "text": "Error: path must be a non-empty string\n    at apiCall (http://127.0.0.1:13209/:403:36)\n    at async reader.onload (http://127.0.0.1:13209/:1323:33)"
+          }
+        ],
+        "javascript_errors": [],
+        "host_business_patches": 0,
+        "browser": "134.0.3124.51",
+        "preflight": {
+          "html_parsed": true,
+          "js_parse": true,
+          "duplicate_ids": [],
+          "literal_dom_references_resolved": true
+        },
+        "image_response": {
+          "status": 400,
+          "body": {
+            "error": "path must be a non-empty string"
+          }
+        },
+        "status": "FAIL",
+        "error": "AssertionError: image browser import HTTP200",
+        "startup": {
+          "command": [
+            "D:\\anaconda\\python.exe",
+            "-X",
+            "utf8",
+            "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b02-partial-60d5e9d3\\snapshot\\main.py",
+            "--serve",
+            "--port",
+            "13209",
+            "--data",
+            "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b02-partial-60d5e9d3\\data"
+          ],
+          "url": "http://127.0.0.1:13209",
+          "data_dir": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b02-partial-60d5e9d3\\data"
+        },
+        "cleanup": {
+          "server_stopped": true
+        },
+        "fixture_hashes": {
+          "png": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e",
+          "video": "378731f8c5fd006ebf842d00c05038d5a6cfb93a16361d979ca45dd156919a47"
+        }
+      },
+      "B01_certificate": {
+        "path": "iter132-promotion-studio/promotion-05/evidence/0ac692555556442774b54feec4cce55f37b920076d5312296e1200a8a50d7934.json",
+        "sha256": "09b0f9b8b5e2c64fd1b4cc4cce4a250195692f2d8c667ce93429672fe034e026"
+      },
+      "native_goal": "block-observation-B02-upload-port",
+      "authority": "Local diagnostic not formal repair evidence; native scoped measurement must run first"
+    },
+    "gui_writer_policy": "Read-only current measurement. All M1-M11 and B01 frozen. No business writes, no whole M12 measurement. Full B02 certification still requires image/video/preview/negative/cleanup/restart/isolation beyond this admission observation.",
+    "bounded_patch_policy": {
+      "mode": "patch_only",
+      "allowed_files": {},
+      "hold_after_goal_check": "block-observation-B02-upload-port"
+    },
+    "redecision": {
+      "strategy_revision": "fd4dc3724bc492b773ed904542d75015bfafbf695b94c1d717251b4d111bbc84",
+      "reason": "Real partialsource delta60d5 requires current scoped native observation; old failure no longer current. Generic atomic multi-range patch protocol qualified for next repair, not invoked in this measurement step.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b02-partial-60d5e9d3\\receipt.json",
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0143\\attempt-0032.json"
+      ]
+    }
+  }
+}

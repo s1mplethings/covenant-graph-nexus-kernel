@@ -1,0 +1,85 @@
+{
+  "kind": "ReadOnlyGUIBoundaryObservation",
+  "artifact_sha256": "8fa127c1739c3f052374d88082cfd32002e7246f6621eb055ba669a6e9c4261d",
+  "checker_sha256": "5201a3c5aa6c9e829890787e3a5d6b8f60d3de104b301fb9df5eeb28faeb1007",
+  "buttons": [
+    {
+      "id": "nav-review",
+      "text": "Review",
+      "visible": true,
+      "disabled": false,
+      "section": null,
+      "inNav": true
+    },
+    {
+      "id": "nav-publish",
+      "text": "Publish",
+      "visible": true,
+      "disabled": false,
+      "section": null,
+      "inNav": true
+    },
+    {
+      "id": "review-action",
+      "text": "Review",
+      "visible": true,
+      "disabled": true,
+      "section": "review-view",
+      "inNav": false
+    },
+    {
+      "id": "approve-action",
+      "text": "Approve",
+      "visible": true,
+      "disabled": true,
+      "section": "review-view",
+      "inNav": false
+    },
+    {
+      "id": "publish-action",
+      "text": "Publish",
+      "visible": false,
+      "disabled": true,
+      "section": "publish-view",
+      "inNav": false
+    }
+  ],
+  "page_state": {
+    "storage": {
+      "campaignId": "52ca98ed589248948d8635c8e1e12f6d",
+      "contentId": "4bc308d4f4d943329c8746114948120d",
+      "projectId": "073ae73abbf648fdbd4bda819d77c025"
+    },
+    "visibleSections": [
+      "content-view",
+      "review-view"
+    ],
+    "alerts": [
+      ""
+    ]
+  },
+  "api_observations": {
+    "content.get": {
+      "id": "4bc308d4f4d943329c8746114948120d",
+      "project_id": "073ae73abbf648fdbd4bda819d77c025",
+      "campaign_id": "52ca98ed589248948d8635c8e1e12f6d",
+      "channel": "alpha",
+      "text": "Offline workflows are supported.",
+      "claim_ids": [
+        "399d1dc113104cfb93534cbcfc22caab"
+      ],
+      "media_ids": [],
+      "revision": 1,
+      "status": "REVIEW"
+    },
+    "approval.status": {
+      "content_id": "4bc308d4f4d943329c8746114948120d",
+      "revision": 1,
+      "status": "REVIEW"
+    }
+  },
+  "action_bar_element_count": 0,
+  "test_boundary": "Immediately before qualified Approve click, after preceding original workflow steps",
+  "acceptance_authority": false,
+  "host_business_patches": 0
+}

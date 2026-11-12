@@ -17,10 +17,12 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 try:
-    from . import codex_conversation, repair_evidence_contract
+    from . import repair_evidence_contract
 except ImportError:  # pragma: no cover
-    import codex_conversation
     import repair_evidence_contract
+
+# Compatibility attribute name; this is the lightweight canonical application entry.
+from cgkn.application.software_project import service as codex_conversation
 
 
 def materialize_generated_project(result: dict, out_dir: str) -> tuple[str, bool]:
@@ -126,11 +128,16 @@ def main() -> int:
             if temp_path.exists():
                 temp_path.unlink()
 
+    # Correlation metadata only: never part of the deduplication identity.
+    os.environ["CGKN_MODEL_JOB_ID"] = str(args.generation_job_id or "")
+    os.environ["CGKN_MODEL_ATTEMPT_ID"] = str(args.generation_attempt_id or "")
+
     def started(generation: dict) -> None:
+        os.environ["CGKN_BENCHMARK_RUN_ID"] = str(generation.get("run_id", ""))
         write_job({
             "state": "RUNNING",
             "run_id": str(generation.get("run_id", "")),
-            "run_dir": str(generation.get("provider_run_dir", "")),
+            "run_dir": str(generation.get("run_dir") or generation.get("provider_run_dir", "")),
             "source_commit_sha": str(generation.get("commit_sha", "")),
             "started_at": str(generation.get("started_at", "")),
             "terminal_reason": "",
@@ -178,6 +185,10 @@ def main() -> int:
         raise
     status = str(result.get("status", "FAILED") or "FAILED").upper()
     terminal_state = "COMPLETE" if status in {"PASS", "PASS_WITH_LIMITS", "DELIVERED", "DELIVERED_WITH_WARNINGS"} else status
+    # ProjectSession outcomes are not background-job lifecycle states. Preserve
+    # the outcome as terminal_reason and use the existing job terminal enum.
+    if terminal_state not in {'COMPLETE','REWORK_BLOCKED','FAILED','CANCELLED'}:
+        terminal_state='REWORK_BLOCKED'
     write_job({
         "state": terminal_state,
         "run_id": str(result.get("run_id", "")),

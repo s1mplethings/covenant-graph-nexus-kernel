@@ -1,0 +1,18 @@
+{
+  "kind": "FrozenM8Diagnostic",
+  "argv": [
+    "D:\\anaconda\\python.exe",
+    "-X",
+    "utf8",
+    "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\consumer-revisions\\gui-locators-v3.py",
+    "--request",
+    "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m8-diagnostic-a613d313\\request.json"
+  ],
+  "exit_code": 0,
+  "seconds": 2.452999999979511,
+  "M8_source_sha256": "a613d313a070daefc416eb56ab9f7f0ea4b9ab6c11d6ad745a0d029f67e71b38",
+  "excluded_active_writer_scope": "tests/test_milestone_989800776c3d6229e431.py",
+  "acceptance_authority": false,
+  "host_business_patches": 0,
+  "output_sha256": "6813ab591a27ff92fb1c155709ce6e80f07696b77bda64df50e8af51949620c8"
+}

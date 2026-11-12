@@ -15,9 +15,8 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from cgkn.agent import AgentComposer, AgentProjectLoop
-from cgkn.execution import BlockExecutionRequest, TaskContext
 from cgkn.executors import ExecutorRegistry, FileExecutor, LLMExecutor, PythonTestExecutor
-from cgkn.providers import CGKNModelRouting, CompletionClient, GatewayCompletionClient, ModelRoleConfig, completion_client_from_environment
+from cgkn.providers import CGKNModelRouting, GatewayCompletionClient, ModelRoleConfig, completion_client_from_environment
 from cgkn.runtime import DAGRunner
 from cgkn.state import FileRunStore
 
@@ -40,19 +39,6 @@ def run_initial_test(project: pathlib.Path) -> dict:
     return {"returncode": completed.returncode, "stdout": completed.stdout[-4000:], "stderr": completed.stderr[-4000:]}
 
 
-def run_direct_baseline(root: pathlib.Path, client: CompletionClient, high_model: ModelRoleConfig) -> dict:
-    project = root / "baseline-project"
-    shutil.copytree(ROOT / "examples" / "agent_mvp_bugfix", project)
-    before = run_initial_test(project)
-    request = BlockExecutionRequest(
-        project_id="agent-mvp-baseline", run_id="direct", attempt_id="attempt-0001", node_id="fix",
-        component_ref="code.modify@1", executor_ref="llm.cheap@1",
-        task_context=TaskContext(node_goal="Correct add so it returns the sum", node_config={}, dependency_results={"inspect": {"path": "math_utils.py", "content": (project / "math_utils.py").read_text(encoding="utf-8")}}, acceptance=("pytest passes",)),
-    )
-    direct_config = ModelRoleConfig("worker", high_model.model, high_model.timeout_seconds, high_model.max_output_tokens, high_model.temperature, high_model.reasoning_effort, high_model.model_id)
-    result = LLMExecutor(project, client, direct_config).execute(request)
-    after = run_initial_test(project)
-    return {"name": "high_agent_direct_file_task", "model": high_model.model, "provider_calls": 1, "initial_test_returncode": before["returncode"], "final_test_returncode": after["returncode"], "execution": result.as_dict(), "status": "PASS" if result.succeeded and after["returncode"] == 0 else "FAIL"}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -61,12 +47,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--config", type=pathlib.Path, default=ROOT / "config" / "agent_mvp.json")
     parser.add_argument("--project-root", type=pathlib.Path)
     parser.add_argument("--json", action="store_true")
-    parser.add_argument("--benchmark", action="store_true", help="Also run a direct high-model baseline on a separate fixture copy")
+    parser.add_argument("--execution-authorization", required=True, type=pathlib.Path,
+                        help="Explicit project Admission and bounded planning authorization JSON")
     parser.add_argument("--routing-config", type=pathlib.Path, default=ROOT / "config" / "provider_profiles" / "gateway_model_routing.json")
     parser.add_argument("--agent-max-output-tokens", type=int)
     parser.add_argument("--worker-max-output-tokens", type=int)
     args = parser.parse_args(argv)
     config = load_config(args.config)
+    run_id = f"agent-mvp-{uuid.uuid4().hex[:10]}"
+    store = FileRunStore(args.run_root / "runs")
+    from cgkn.agent.planning_scope import assemble_execution_authorities
+    policy,planning=assemble_execution_authorities('agent-mvp',run_id,store,
+        json.loads(args.execution_authorization.read_text(encoding='utf-8')))
     project = args.project_root.resolve() if args.project_root else (args.run_root / "project").resolve()
     if not args.project_root:
         if project.exists():
@@ -74,8 +66,6 @@ def main(argv: list[str] | None = None) -> int:
         shutil.copytree(ROOT / "examples" / "agent_mvp_bugfix", project)
     args.run_root.mkdir(parents=True, exist_ok=True)
     initial_test = run_initial_test(project)
-    run_id = f"agent-mvp-{uuid.uuid4().hex[:10]}"
-    store = FileRunStore(args.run_root / "runs")
     client = completion_client_from_environment()
     from cgkn.providers.application_network import routing_path
     selected_routing=routing_path(args.routing_config)
@@ -119,9 +109,9 @@ def main(argv: list[str] | None = None) -> int:
             "object (for example {\"reason\": \"goal_composition\"}), never a bare string. "
             "Use the canonical edit envelope: edit_id, operation, node_id, payload, provenance."
         )
-        result = AgentProjectLoop(composer, DAGRunner(registry, store,deliverable_checkers=checkers), store,acceptance=acceptance, known_capabilities=set(catalog), worker_model=worker_config.model, capability_catalog=catalog, max_decisions=int(config.get("max_agent_decisions", 4))).run(project_id="agent-mvp", run_id=run_id, goal=goal, constraints=("worker actions are read/list/write/patch only", "do not modify project goal"))
+        result = AgentProjectLoop(composer, DAGRunner(registry, store,deliverable_checkers=checkers), store,acceptance=acceptance, known_capabilities=set(catalog), worker_model=worker_config.model, capability_catalog=catalog, admission_policy=policy,max_decisions=int(config.get("max_agent_decisions", 4))).run(project_id="agent-mvp", run_id=run_id, goal=goal, planning=planning,constraints=("worker actions are read/list/write/patch only", "do not modify project goal"))
         status = "PASS" if initial_test["returncode"] != 0 and result.status == "GOALS_VERIFIED" and result.worker_calls >= 1 else "FAIL"
-        benchmark = run_direct_baseline(args.run_root, client, agent_config) if args.benchmark else None
+        benchmark = None  # Ungoverned direct-executor baseline retired.
         report = {"kind": "CGKNAgentMVPResult", "schema_version": "1.0", "status": status, "functional_readiness_candidate": "LEVEL_4" if status == "PASS" else "LEVEL_3", "provider_validation": "REAL", "agent_model": agent_config.model, "worker_model": worker_config.model, "initial_test": initial_test, "project_root": str(project), "run_root": str(args.run_root), "run_id": run_id, "result": result.as_dict(), "benchmark": benchmark, "decision_efficiency": {"baseline_high_model_calls": benchmark["provider_calls"] if benchmark else None, "cgkn_high_agent_calls": result.agent_calls, "cgkn_cheap_worker_calls": result.worker_calls, "note": "The baseline is reported as observed; it is not throttled or degraded."}}
     except Exception as exc:
         report = {"kind": "CGKNAgentMVPResult", "schema_version": "1.0", "status": "BLOCKED_PROVIDER", "functional_readiness_candidate": "LEVEL_3", "provider_validation": "BLOCKED_PROVIDER", "agent_model": agent_config.model, "worker_model": worker_config.model, "initial_test": initial_test, "project_root": str(project), "run_root": str(args.run_root), "run_id": run_id, "error": str(exc)}

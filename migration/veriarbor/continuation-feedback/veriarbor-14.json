@@ -1,0 +1,104 @@
+{
+  "expected_gui_sha256": "3f950d7c75d1528d5c0fbbb4f8c004c343a552575aae05ac7699c78a2b05ef44",
+  "feedback": {
+    "cost_policy": "DeepSeek Flash Agent and Worker only. No Pro/Max. Ordinary event-path implementation defect, no model tier escalation.",
+    "milestone_completion_request": "Current source3f950d still fails Review visibility. Before the next source repair, consider explicit ADD_DEPENDENCY action7 to make existing measurement101 depend on the actual current GUI writer91 (currently it depends only on89/92), preserving all other dependencies; this prevents stale observer bindings after subsequent91 changes. Do not add a duplicate checker and do not rewrite its semantics. If the host requires an explicit current measurement retry, perform that first. Then repair only91: the bounded leaf is visibility refresh in updateReadiness, the function actually invoked after Save/loadContents. Last patch connected revealWorkflowSections only to showView, which is NOT called after Save. Do NOT modify showView again for this leaf. Keep full M7 acceptance unchanged and readiness semantics intact for the next independent handoff diagnosis. Continue full original M7 -> immediate DOGFOOD -> M8-M12.",
+    "fresh_runtime_diagnosis": {
+      "evidence_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\gui-visibility-3f950d\\observation.json",
+      "observed": {
+        "kind": "ReadOnlyGUIBoundaryObservation",
+        "artifact_sha256": "3f950d7c75d1528d5c0fbbb4f8c004c343a552575aae05ac7699c78a2b05ef44",
+        "checker_sha256": "5201a3c5aa6c9e829890787e3a5d6b8f60d3de104b301fb9df5eeb28faeb1007",
+        "buttons": [
+          {
+            "id": "nav-review",
+            "text": "Review",
+            "visible": true,
+            "disabled": false,
+            "section": null,
+            "inNav": true
+          },
+          {
+            "id": "nav-publish",
+            "text": "Publish",
+            "visible": true,
+            "disabled": false,
+            "section": null,
+            "inNav": true
+          },
+          {
+            "id": "review-action",
+            "text": "Review",
+            "visible": false,
+            "disabled": false,
+            "section": "review-view",
+            "inNav": false
+          },
+          {
+            "id": "approve-action",
+            "text": "Approve",
+            "visible": false,
+            "disabled": true,
+            "section": "review-view",
+            "inNav": false
+          },
+          {
+            "id": "publish-action",
+            "text": "Publish",
+            "visible": false,
+            "disabled": true,
+            "section": "publish-view",
+            "inNav": false
+          }
+        ],
+        "page_state": {
+          "storage": {
+            "campaignId": "f5fc925e7f954f08bc8ac503832df0d2",
+            "contentId": "f853e20b73074bf2b1ee4be73874a369",
+            "projectId": "0dffc38540a54107b9788fa733f029f4"
+          },
+          "visibleSections": [
+            "content-view"
+          ],
+          "alerts": [
+            ""
+          ]
+        },
+        "api_observations": {
+          "content.get": {
+            "id": "f853e20b73074bf2b1ee4be73874a369",
+            "project_id": "0dffc38540a54107b9788fa733f029f4",
+            "campaign_id": "f5fc925e7f954f08bc8ac503832df0d2",
+            "channel": "alpha",
+            "text": "Offline workflows are supported.",
+            "claim_ids": [
+              "c1207a32e7f2413bad10d935cd53e3be"
+            ],
+            "media_ids": [],
+            "revision": 1,
+            "status": "DRAFT"
+          },
+          "approval.status": {
+            "content_id": "f853e20b73074bf2b1ee4be73874a369",
+            "revision": 1,
+            "status": "DRAFT"
+          }
+        },
+        "action_bar_element_count": 0,
+        "test_boundary": "Immediately before qualified Review click, after preceding original workflow steps",
+        "acceptance_authority": false,
+        "host_business_patches": 0
+      },
+      "source_facts": "Save handler persists content then invokes loadContents; loadContents sets state.contentId and calls updateReadiness. showView is invoked by navigation, before Save when contentId is empty. The new helper call only in showView therefore runs too early. The qualified workflow deliberately clicks Review directly after Save without navigation. Current updateReadiness still uses missing action-bar and never invokes the existing real-section helper. The missing event-path edge is specifically after contentId becomes available through loadContents/updateReadiness.",
+      "falsified_strategy": "Navigation-only invocation does not run after Save, so it cannot reveal Review at the required boundary."
+    },
+    "gui_writer_policy": "Only91 writes early_main.py; preserve successful89/92. Current observations are diagnostics, not substitute GoalAcceptance. Use exact current formal failure refs. Do not replay any prior UNKNOWN request.",
+    "redecision": {
+      "strategy_revision": "fcc723f6b524691d382a28352982e2caa1bdf6d897dc14c61554104585829bd3",
+      "reason": "Fresh DOM and API probe confirms contentId exists and M5/M6 DRAFT but Review remains hidden. Navigation-only helper call is now falsified; actual postSave readiness path must apply visibility. Bind observer101 to writer91 through normal graph action to avoid repeated stale-checker refresh.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\gui-visibility-3f950d\\observation.json"
+      ]
+    }
+  }
+}

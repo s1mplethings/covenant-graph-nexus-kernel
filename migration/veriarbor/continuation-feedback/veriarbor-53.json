@@ -1,0 +1,138 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "Qwen Flash Agent/Worker only, Worker bounded24000 after observed12000 output truncation; no Pro/Max. Eight old upstreamUNKNOWNs remain; no replay or ledger reset. Independent checkers, not same-model critique, grant acceptance.",
+    "milestone_completion_request": "Complete original M12 and final delivery without restarting M1-M11 or redefining the declared M12 milestone. main.py now exists, writer143 succeeded; retain it and repair only demonstrated gaps. Finish README.md, TEST_PLAN.md, tests/test_promotion_gui.py via bounded original Provider tasks. M12 final GUI must implement actual reachable file upload with server-side adaptation to unchanged path-based M11 API, same-content edit/approval invalidation, correct project-scoped /api/state, all navigation/config/review/publish/receipt/scheduler/analytics/restart/error behaviors in frozen public contract. Original independent measurement and generated meaningful tests must pass. Preserve previous test debts and fix their original test-owner fixtures against qualified evidence, no assertion deletion/waiver. Finish canonical packaging/delivery/accounting/provenance/Corpus and reports. Existing M1-M11 certificates remain reusable except real boundary impact. Known test144 platform fixture qualification: migration/veriarbor/m12-platform-fixture-qualification/receipt.json proves nonexistent server.port caused500; original test owner corrects server_port, retains PUBLISHED assertion, and uses explicit project_id for scoped /api/state checks. Preserve meaningful valid image bytes and assertions; no M7 source repair for this fixture defect.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "main.py": "650460ffd2f7de9b13154a1b4bfa3221d72417ed24cfb0a463a34db8b8cfdc5f"
+        }
+      },
+      "current_final_gui_owner": 143,
+      "current_source_exists": true,
+      "native_source_receipt": "attempts/sem-node-0143/attempt-0001.json",
+      "observed": {
+        "kind": "ActualM12GuiDiagnostic",
+        "source_sha256": "650460ffd2f7de9b13154a1b4bfa3221d72417ed24cfb0a463a34db8b8cfdc5f",
+        "acceptance_authority": false,
+        "host_business_patches": 0,
+        "actual_file_input_upload": {
+          "status": 400,
+          "body": {
+            "error": "path must be a non-empty string"
+          },
+          "alert": "path must be a non-empty string"
+        },
+        "initial_review_approval": {
+          "review": 200,
+          "approve": 200
+        },
+        "save_existing_content": {
+          "http_status": 200,
+          "before_count": 1,
+          "after_count": 2,
+          "original_id": "18ef917605da43ffb206b4bfb23d6b25",
+          "ids": [
+            "18ef917605da43ffb206b4bfb23d6b25",
+            "61972b57282047448128a2f66535e62d"
+          ],
+          "original_approval": {
+            "content_id": "18ef917605da43ffb206b4bfb23d6b25",
+            "revision": 1,
+            "status": "APPROVED"
+          }
+        },
+        "project_scoped_state": {
+          "http_status": 200,
+          "body": {
+            "projects": [
+              {
+                "id": "cdc2a423a563469498442a0f41c77d58",
+                "name": "Final GUI diagnostic"
+              }
+            ],
+            "campaigns": [],
+            "contents": [],
+            "receipts": [],
+            "schedules": []
+          },
+          "actual_campaign_count": 1,
+          "actual_content_count": 2
+        },
+        "javascript_errors": []
+      },
+      "repair_scope": "main.py only for three real GUI integration defects: actual file input sends base64 to path-only API, so GUI server must bridge bounded validated upload to owned local temp and canonical media.import (no backend API edits). Save selected existing content must use content.edit/preserve identity, populate edit controls, and refresh current revision/approval/receipt binding; explicit new-content action creates. GET /api/state?project_id returns actual scoped campaigns/contents/receipts/schedules and rejects invalid project. Preserve working initial project/campaign/content/review/approve and preview routing. Existing source comments knowingly assume mocks or label media secondary are not acceptable implementation. Remove such fallback assumptions by real integration.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-gui-650460ff\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_PREFLIGHT_650460ff.json"
+      ],
+      "scope": "Diagnosis expires when main.py changes. No absent-file or UNKNOWN recovery instruction remains applicable; old records retained.",
+      "new_independent_observer": {
+        "activation": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_V6_ACTIVATION.json",
+        "version": "qualified-revision-4",
+        "scope": [
+          "M12"
+        ],
+        "reason": "Existing native147 v1 PASS does not cover independently observed upload400/duplicate edit/false empty state. New v6 preserves old checks and adds actual file input/attachment/edit/approval invalidation/scopedstate/foreignmedia/processrestart."
+      },
+      "generated_tests": {
+        "receipt": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-generated-tests-650460ff\\receipt.json",
+        "collected": 6,
+        "passed": 4,
+        "failed": 2,
+        "failure_owners": "media upload400 is main.py143; publish FAILED needs test144 localplatformfixture attribution before changing verifiedM7."
+      },
+      "host_current_coverage_correction": {
+        "kind": "CurrentScopedCheckerCoverageCorrection",
+        "observed_failure": "52 Agent incorrectly completed from147 legacyPASS even after scopedv6 activation; direct GUI counterexamples remained. Delivery then stopped at source-origin projection before packaging.",
+        "host_switches": [
+          39,
+          40,
+          41
+        ],
+        "qualification_scope": "Only requirements with explicit scoped observer revisions require current applicable version; unscoped historical compatibility unchanged. Old raw receipts remain trusted history; old counterexamples are not discarded.",
+        "tests": "D:\\VeriArbor\\governance\\checks\\current-scoped-checker-coverage-v2\\receipt.json",
+        "test_receipt_sha256": "dcb6294d1279c4e0bb2bdb1f4b8f5566108a60db29c0f275c63d8a3220980a95",
+        "passed": 23,
+        "current_effect": "M1-M11 VERIFIED retained, M12 INSUFFICIENT_EVIDENCE until qualifiedrevision4 observation",
+        "origin_recovery": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\HISTORICAL_WORKER_ORIGIN_RECOVERY.json",
+        "candidate_modified": false,
+        "provider_calls": 0
+      },
+      "test144_fixture_qualification": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-platform-fixture-qualification\\receipt.json"
+    },
+    "admission_correction": "Current canonical state now correctly marks M12 INSUFFICIENT_EVIDENCE for required qualified-revision4; M1-M11 remain VERIFIED. The earlier52 claim upload/edit/state already passed is falsified by actual browser evidence and was based on legacy147 coverage. Reuse147 once for new scoped checkerkey, then repair current143 from actual failure. Original144 owns test fixture changes. No duplicatecurrentkey; aftersource/checker deltas follownewfacts. Preserve old147PASS as history, never use it as proof of newly added checks.",
+    "gui_writer_policy": "Final main.py writer143 is the sole current GUI owner. Only143 may repair that file; inspections/tests read completed snapshot. Original early_main91 and backend sources unchanged unless independent new failure proves actual boundary need.",
+    "redecision": {
+      "strategy_revision": "85a650df08b20f4136292ae97393da95ad39b7e6253204d638c59acf48524209",
+      "reason": "Generic current-view/dedup now distinguishes historical trustedPASS from required scoped checker coverage.23testsPASS; oldfailures/history retained and M1-M11 unchanged. Four exact historicalWorker origins registered via existing original gate API, no source/ledgerwrites. Continue M12 native newkey, repair143, and qualifiedtest144fixture.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\CURRENT_SCOPED_COVERAGE_CORRECTION.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_V6_ACTIVATION.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-platform-fixture-qualification\\receipt.json"
+      ]
+    },
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "early_main.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\GUI_COUPLED_PREFLIGHT_24125.json"
+        ]
+      }
+    ]
+  }
+}

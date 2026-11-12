@@ -1,0 +1,76 @@
+{
+  "expected_gui_sha256": "24125c21ba61f04cb07b2bf10bb1b7631508f5063e9e48da6c645eaac8a6c1f4",
+  "feedback": {
+    "cost_policy": "Qwen Flash Agent, DeepSeek Flash Worker only; no Pro/Max. Reuse current trusted measurement keys and preserve UNKNOWN/cost history.",
+    "milestone_completion_request": "Complete the original M11/M12 and final delivery. Required M11 GUI functionality is actual M11 API dispatch, safe media serving, attachment/save/load preview with visible imported image/video controls and visible failure messages, continuing review/approval/local publish/receipt. Original91 is the authoritative GUI writer. Native M11 qualified-revision-3 now checks actual GUI media dispatch and preview after backend integrity/positive publication/idempotency. Use each current independent failure to identify its actual file owner; an HTTP failure at early_main.py M11 dispatch is not automatically a media API117 module-path failure. Once M11 passes, finish M12 GUI navigation, startup/config, full local workflow, scheduler, analytics, restart, invalidation, documentation, final packaging and all retained test-owner debts. Do not weaken assertions or declare library tests/product node success as final product PASS. Original acceptance/delivery/ledger/Corpus remain sole authorities.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "early_main.py": "24125c21ba61f04cb07b2bf10bb1b7631508f5063e9e48da6c645eaac8a6c1f4"
+        }
+      },
+      "actual_failure_owner": 91,
+      "actual_failure_path": "early_main.py",
+      "observed": {
+        "kind": "CoupledGuiPreflight",
+        "source_sha256": "24125c21ba61f04cb07b2bf10bb1b7631508f5063e9e48da6c645eaac8a6c1f4",
+        "img_tags": 0,
+        "video_tags": 0,
+        "new_control_occurrences": {
+          "media-view": 1,
+          "import-media": 1,
+          "refresh-media": 1,
+          "media-file": 2,
+          "media-kind": 2
+        },
+        "actual_media_dispatch_now_registered": true,
+        "media_get_call_count": 0,
+        "diagnosis": "Only static hidden media section added. No actual img/video rendering, no event handlers for new controls, no media-serving endpoint. MIME values are not canonical API kind=image/video. A complete coupled GUI implementation is required, not another disconnected control/helper.",
+        "required_atomic_outcome": [
+          "Reachable Content/media attachment controls with actual file/path handling",
+          "M11 API kind normalization and persistent content.media_ids save/edit",
+          "Reachable render on selection/save/reload; actual img/video controls with HTTP media bytes",
+          "Safe project/media-ID asset GET endpoint, visible invalid-media errors",
+          "Preserve existing queued Review/Approve/Publish and real receipt bindings; avoid duplicate DOM IDs"
+        ],
+        "acceptance_authority": false,
+        "host_business_patches": 0
+      },
+      "canonical_failure": "sem-node-0138: M11_independent_business_suite: AssertionError: Actual image and video preview elements required",
+      "required_repair": "One coherent full-file GUI implementation by original writer91. Current static hidden controls have no wiring/render/asset endpoint. Implement reachable media attachment using real local path or uploaded bytes, normalize API kind image/video, persist content.media_ids through content.create/edit, render selected saved content on save/selection/reload with actual HTTP-backed img/video controls, safe project/media-ID asset endpoint and visible missing/broken errors. Preserve the queued review/approval/local-publish/receipt flow and all existing controls. No placeholder preview, no disconnected helper or hidden unused section. Read canonical M11 API and M5 content edit contracts. Preserve current working backend sources.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\GUI_COUPLED_PREFLIGHT_24125.json"
+      ]
+    },
+    "admission_correction": "Current native138 already supplies a current GUI preview failure; do not remeasure the unchanged key. Repair original writer91 with matching writer scope and bounded read access to canonical M11/M5 contracts. Supply strategy.full_file_write=true and at least two concrete mechanism fields, plus current exact bound falsifying_evidence refs. Existing dependencies and acceptance predicates stay intact. After actual source change use original independent checks; never replay UNKNOWN.",
+    "gui_writer_policy": "Original91 is sole GUI writer. Cover attachment/save/edit/render/reload/HTTP asset serving/errors and preserve review/approval/publish/receipt in ONE coherent full-file write. Other backend owners remain unchanged unless a new file-specific failure proves otherwise.",
+    "redecision": {
+      "strategy_revision": "eb79de51b403fbac80342991a9bf4352c220162ba68566fc888451eb430535d5",
+      "reason": "Current independent GUI failure plus source preflight prove isolated static HTML insufficient. Bound coherent full-file writing to original GUI owner with adequate cheap Worker output budget, preserving backend certificates.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\GUI_COUPLED_PREFLIGHT_24125.json"
+      ]
+    },
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "early_main.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\GUI_COUPLED_PREFLIGHT_24125.json"
+        ]
+      }
+    ]
+  }
+}

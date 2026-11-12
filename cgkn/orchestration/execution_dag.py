@@ -1,26 +1,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from types import MappingProxyType
+from cgkn.component.spec import _freeze, _thaw
 from typing import Any, Mapping
 
 from .capability_tree import CapabilityTree
-
-
-def _freeze(value: Any) -> Any:
-    if isinstance(value, Mapping):
-        return MappingProxyType({str(key): _freeze(item) for key, item in value.items()})
-    if isinstance(value, (list, tuple)):
-        return tuple(_freeze(item) for item in value)
-    return value
-
-
-def _thaw(value: Any) -> Any:
-    if isinstance(value, Mapping):
-        return {key: _thaw(item) for key, item in value.items()}
-    if isinstance(value, tuple):
-        return [_thaw(item) for item in value]
-    return value
 
 
 @dataclass(frozen=True)
@@ -118,7 +102,10 @@ class ExecutionDAG:
         return dag
 
 
-def compile_tree(tree: CapabilityTree) -> ExecutionDAG:
+def compile_tree(tree: CapabilityTree, *, historical_read_only=False) -> ExecutionDAG:
+    if not historical_read_only:
+        from .leaf_contract import validate_tree_leaves
+        validate_tree_leaves(tree)
     executable = {node.id: node for node in tree.nodes if node.executable}
     nodes: list[ExecutionNode] = []
     for node in tree.nodes:

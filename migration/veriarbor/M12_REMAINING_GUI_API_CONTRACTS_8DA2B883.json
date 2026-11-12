@@ -1,0 +1,40 @@
+{
+  "kind": "CurrentGuiApiContractDiagnostic",
+  "acceptance_authority": false,
+  "source_sha256": "8da2b8839f19ab62297a5ea4df7b2b1b7cb875ee77cedf80185456ceddf6018f",
+  "method": "Read actual GUI handlers and unchanged backend operation validation; static diagnosis, not browser PASS.",
+  "remaining": [
+    {
+      "path": "Signals create-signal",
+      "observed": "signal.create sends onlyproject_id/text, no evidence_id. No evidence import/select or claim create UI in thissource.",
+      "actual_contract": "M2 signal.create requires existingproject-ownedevidence_id; M3claim.create requires actualevidence_ids. Provide humanreadable evidence/claimworkflow, no rawIDs."
+    },
+    {
+      "path": "Schedule handlers",
+      "observed": "schedule.create/cancel/reschedule/list routedtoM11. Createalsoomitsplatform_url/idempotency_key.",
+      "actual_contract": "M8 schedule.*; create(project_id,content_id,platform_url,idempotency_key,when); cancel/reschedule actualselectedschedule_id. Keepstablekeyforretryofsameintent."
+    },
+    {
+      "path": "Analytics handlers",
+      "observed": "analytics.fetch routedtoM11 withcontent_idonly; actualAPIrequiresreceipt_id andplatform_url.",
+      "actual_contract": "M10 analytics.fetch(project_id,receipt_id,platform_url), analytics.history(project_id,receipt_id), realPUBLISHEDreceiptselected; persist/displayhistory."
+    },
+    {
+      "path": "Content edit/new",
+      "observed": "Savealwayscontent.create; hydrateContentForm alreadyexistsandiscalled.",
+      "actual_contract": "Currentselection editwithM5content.edit andcurrentcontent_id, approvalDRAFT onsemanticchange; explicitNewcontentclearsselection andcreatesdistinctrecord/channelvariant. Preserveactualhydration."
+    },
+    {
+      "path": "Scoped state",
+      "observed": "_serve_state ignoresqueryandcallsproject-boundlistswithoutproject_id, blanketcatcheserrors; schedulelistwrongM11.",
+      "actual_contract": "Projectexplicit; validateunknownproject; currentcampaigns/contents/receipts/schedules viaactualboundAPI; nofalseemptydata oninvalidscope."
+    },
+    {
+      "path": "Compare/reconcile",
+      "observed": "Noexisting reachablecontent.compare/publish.reconcile controls.",
+      "actual_contract": "M5content.revisions andcontent.compare(project_id,content_id,from_revision,to_revision); M7publish.reconcile(project_id,receipt_id,platform_url). Useactualselectedidentities, showUNKNOWNoutcome/remoteID."
+    }
+  ],
+  "variant_correction_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_CHANNEL_VARIANT_INTERPRETATION_CORRECTION.json",
+  "host_business_patches": 0
+}

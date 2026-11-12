@@ -1,0 +1,9 @@
+{
+  "kind": "P11AuthorizedAgentSelfRegistration",
+  "expected": "REJECT",
+  "actual": "REJECT",
+  "error": "ProvenanceError: INSUFFICIENT_EVIDENCE: PENDING_TRUST_ANCHOR: no protected release trust anchor is configured",
+  "new_readme_sha256": "edeb39cd594c5c219572b0e4cf3e86044e45abdd39f2df324195b768abb0ca72",
+  "note": "The test agent changed README, rewrote its authorization/review JSON with authorized_by=user, and updated the source registration.",
+  "temp": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11-self-auth-neskf6kq"
+}

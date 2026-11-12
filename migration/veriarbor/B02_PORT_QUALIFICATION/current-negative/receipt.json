@@ -1,0 +1,33 @@
+{
+  "source_sha256": "9edfb2e6f74a325c9c6375bff9dcb91c52026d087e5fa4146dd886ee1e23c1a6",
+  "checks": [
+    "source unchanged"
+  ],
+  "scope": "Browser image upload port only; not B02/M12 completion",
+  "browser": "134.0.3124.51",
+  "upload": {
+    "status": 400,
+    "body": {
+      "error": "path must be a non-empty string"
+    }
+  },
+  "status": "FAIL",
+  "error": "AssertionError: browser image upload HTTP200",
+  "startup": {
+    "command": [
+      "D:\\anaconda\\python.exe",
+      "-X",
+      "utf8",
+      "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\main.py",
+      "--serve",
+      "--port",
+      "20855",
+      "--data",
+      "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_PORT_QUALIFICATION\\current-negative\\data"
+    ],
+    "url": "http://127.0.0.1:20855"
+  },
+  "cleanup": {
+    "server_stopped": true
+  }
+}

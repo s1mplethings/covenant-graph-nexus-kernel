@@ -1,0 +1,204 @@
+{
+  "kind": "FinalDeliveryFreezeAudit",
+  "created_at": "2026-11-06T04:04:52.066946+00:00",
+  "hashes": {
+    "candidate_main": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+    "dogfood_main": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+    "bundle": "f6eb10fb8283b250c28796e0ac95308bb6135e8434f6eef742acc58fbb469f8f",
+    "manifest": "532268d612728bdbaeabc08afa3b9931cdc676b3d2eeab037f685c3c343c7c1b",
+    "goal_acceptance": "c3d55cfd3cb335948728f1153c7dbb675204760574e46c3ad3fdaf83dbd635aa"
+  },
+  "package": {
+    "manifest_status": "PASS",
+    "zip_status": "PASS",
+    "zip_entries": 38,
+    "manifest_entries": 38,
+    "entries_match": true,
+    "candidate_hash": "sha256:c27381f99f8ff71632ebd66720f59e5ff8f2b6d259600da412df31d468f2744b",
+    "source_tree_hash": "sha256:c27381f99f8ff71632ebd66720f59e5ff8f2b6d259600da412df31d468f2744b",
+    "package_sha256": "sha256:f6eb10fb8283b250c28796e0ac95308bb6135e8434f6eef742acc58fbb469f8f"
+  },
+  "origins": {
+    "total": 30,
+    "worker_files": 23,
+    "agent_files": 7,
+    "worker_list": [
+      "early_main.py",
+      "milestones/milestone_1369a82cde04a7e5887d/api.py",
+      "milestones/milestone_20f2614f6ae8403d4a4e/api.py",
+      "milestones/milestone_33270fed0c9054f5ae04/api.py",
+      "milestones/milestone_4e7c26281cf61a85851e/api.py",
+      "milestones/milestone_90b8868c7203e2958397/api.py",
+      "milestones/milestone_9165a990eed5b9c8801e/api.py",
+      "milestones/milestone_989800776c3d6229e431/api.py",
+      "milestones/milestone_af427946c6dea418047a/api.py",
+      "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+      "milestones/milestone_dbb8341c8910593063a8/api.py",
+      "promotion_publish.py",
+      "tests/test_milestone_1369a82cde04a7e5887d.py",
+      "tests/test_milestone_20f2614f6ae8403d4a4e.py",
+      "tests/test_milestone_33270fed0c9054f5ae04.py",
+      "tests/test_milestone_4e7c26281cf61a85851e.py",
+      "tests/test_milestone_90b8868c7203e2958397.py",
+      "tests/test_milestone_9165a990eed5b9c8801e.py",
+      "tests/test_milestone_989800776c3d6229e431.py",
+      "tests/test_milestone_af427946c6dea418047a.py",
+      "tests/test_milestone_c511a8ebd29978f5ba97.py",
+      "tests/test_milestone_dbb8341c8910593063a8.py",
+      "tests/test_publish.py"
+    ],
+    "agent_list": [
+      "KNOWN_LIMITS.md",
+      "README.md",
+      "TEST_PLAN.md",
+      "main.py",
+      "pyproject.toml",
+      "start.ps1",
+      "tests/test_promotion_gui.py"
+    ],
+    "agent_docs": [
+      {
+        "artifact": "main.py",
+        "sha256": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+        "authorized_by": "user",
+        "authorization_text": "都批准你按怎么方便怎么快来",
+        "scope": "final delivery source provenance for agent-authored files; not Worker authorship",
+        "review": "Independent B11/M12 and B10 evidence reviewed; preserves agent authorship, not Worker authorship.",
+        "b11_ref": {
+          "path": "iter132-promotion-studio/final-validation-01/agent_reviews/B11_ACCEPTANCE.json",
+          "sha256": "88ff19ecff8ac9c4417baa883c5cb91103ca73a4e57dcc3a82f179db2b5728a4"
+        },
+        "b10_ref": {
+          "path": "iter132-promotion-studio/final-validation-01/agent_reviews/B10_CERTIFICATE.json",
+          "sha256": "8a62c4e5374ae1ed492d0b8f492c7db195bf97414e6ab447aa252a07a31bf4b8"
+        }
+      },
+      {
+        "artifact": "TEST_PLAN.md",
+        "sha256": "97e922ee07d1b61c4476ff143300566fb2d6ecd56c7f06d4e8519b9262fe1c34",
+        "authorized_by": "user",
+        "authorization_text": "都批准你按怎么方便怎么快来",
+        "scope": "final delivery source provenance for agent-authored files; not Worker authorship",
+        "review": "Independent B11/M12 and B10 evidence reviewed; preserves agent authorship, not Worker authorship.",
+        "b11_ref": {
+          "path": "iter132-promotion-studio/final-validation-01/agent_reviews/B11_ACCEPTANCE.json",
+          "sha256": "88ff19ecff8ac9c4417baa883c5cb91103ca73a4e57dcc3a82f179db2b5728a4"
+        },
+        "b10_ref": {
+          "path": "iter132-promotion-studio/final-validation-01/agent_reviews/B10_CERTIFICATE.json",
+          "sha256": "8a62c4e5374ae1ed492d0b8f492c7db195bf97414e6ab447aa252a07a31bf4b8"
+        }
+      },
+      {
+        "artifact": "pyproject.toml",
+        "sha256": "17ebab64e72330760bbac5d9f48028add20db6fdb0dd2b7f30c15ed36559e60d",
+        "authorized_by": "user",
+        "authorization_text": "都批准你按怎么方便怎么快来",
+        "scope": "final delivery source provenance for agent-authored files; not Worker authorship",
+        "review": "Independent B11/M12 and B10 evidence reviewed; preserves agent authorship, not Worker authorship.",
+        "b11_ref": {
+          "path": "iter132-promotion-studio/final-validation-01/agent_reviews/B11_ACCEPTANCE.json",
+          "sha256": "88ff19ecff8ac9c4417baa883c5cb91103ca73a4e57dcc3a82f179db2b5728a4"
+        },
+        "b10_ref": {
+          "path": "iter132-promotion-studio/final-validation-01/agent_reviews/B10_CERTIFICATE.json",
+          "sha256": "8a62c4e5374ae1ed492d0b8f492c7db195bf97414e6ab447aa252a07a31bf4b8"
+        }
+      },
+      {
+        "artifact": "KNOWN_LIMITS.md",
+        "sha256": "893930af7e818411b25964e12b3540eddf484c72db1659468e3f30e6ec11ba87",
+        "authorized_by": "user",
+        "authorization_text": "都批准你按怎么方便怎么快来",
+        "scope": "final delivery source provenance for agent-authored files; not Worker authorship",
+        "review": "Independent B11/M12 and B10 evidence reviewed; preserves agent authorship, not Worker authorship.",
+        "b11_ref": {
+          "path": "iter132-promotion-studio/final-validation-01/agent_reviews/B11_ACCEPTANCE.json",
+          "sha256": "88ff19ecff8ac9c4417baa883c5cb91103ca73a4e57dcc3a82f179db2b5728a4"
+        },
+        "b10_ref": {
+          "path": "iter132-promotion-studio/final-validation-01/agent_reviews/B10_CERTIFICATE.json",
+          "sha256": "8a62c4e5374ae1ed492d0b8f492c7db195bf97414e6ab447aa252a07a31bf4b8"
+        }
+      },
+      {
+        "artifact": "README.md",
+        "sha256": "ace221c8e4bb11bf92106d83e00f5b9cadc92e816e44fe22cf91971a1a44b930",
+        "authorized_by": "user",
+        "authorization_text": "都批准你按怎么方便怎么快来",
+        "scope": "final delivery source provenance for agent-authored files; not Worker authorship",
+        "review": "Independent B11/M12 and B10 evidence reviewed; preserves agent authorship, not Worker authorship.",
+        "b11_ref": {
+          "path": "iter132-promotion-studio/final-validation-01/agent_reviews/B11_ACCEPTANCE.json",
+          "sha256": "88ff19ecff8ac9c4417baa883c5cb91103ca73a4e57dcc3a82f179db2b5728a4"
+        },
+        "b10_ref": {
+          "path": "iter132-promotion-studio/final-validation-01/agent_reviews/B10_CERTIFICATE.json",
+          "sha256": "8a62c4e5374ae1ed492d0b8f492c7db195bf97414e6ab447aa252a07a31bf4b8"
+        }
+      },
+      {
+        "artifact": "start.ps1",
+        "sha256": "88478d7ef0c9ae1a859222c7b50a472abd40e68c0de9cf8c98e70afc17ed11cc",
+        "authorized_by": "user",
+        "authorization_text": "都批准你按怎么方便怎么快来",
+        "scope": "final delivery source provenance for agent-authored files; not Worker authorship",
+        "review": "Independent B11/M12 and B10 evidence reviewed; preserves agent authorship, not Worker authorship.",
+        "b11_ref": {
+          "path": "iter132-promotion-studio/final-validation-01/agent_reviews/B11_ACCEPTANCE.json",
+          "sha256": "88ff19ecff8ac9c4417baa883c5cb91103ca73a4e57dcc3a82f179db2b5728a4"
+        },
+        "b10_ref": {
+          "path": "iter132-promotion-studio/final-validation-01/agent_reviews/B10_CERTIFICATE.json",
+          "sha256": "8a62c4e5374ae1ed492d0b8f492c7db195bf97414e6ab447aa252a07a31bf4b8"
+        }
+      },
+      {
+        "artifact": "tests/test_promotion_gui.py",
+        "sha256": "d01c4609a5ad4b898b3996f3b693d05c3eb98dc4ed36158003d635b256d4c23b",
+        "authorized_by": "user",
+        "authorization_text": "都批准你按怎么方便怎么快来",
+        "scope": "final delivery source provenance for agent-authored files; not Worker authorship",
+        "review": "Independent B11/M12 and B10 evidence reviewed; preserves agent authorship, not Worker authorship.",
+        "b11_ref": {
+          "path": "iter132-promotion-studio/final-validation-01/agent_reviews/B11_ACCEPTANCE.json",
+          "sha256": "88ff19ecff8ac9c4417baa883c5cb91103ca73a4e57dcc3a82f179db2b5728a4"
+        },
+        "b10_ref": {
+          "path": "iter132-promotion-studio/final-validation-01/agent_reviews/B10_CERTIFICATE.json",
+          "sha256": "8a62c4e5374ae1ed492d0b8f492c7db195bf97414e6ab447aa252a07a31bf4b8"
+        }
+      }
+    ],
+    "source_manifest_files": 30,
+    "exact_manifest_match": true
+  },
+  "status_consistency": {
+    "FINAL_DELIVERY_STATUS": {
+      "M12": "VERIFIED",
+      "final_delivery": "DELIVER_WITH_WARNINGS",
+      "delivery_allowed": true,
+      "final_delivery_truth": "pass",
+      "canonical_evidence_gate": "PASS",
+      "goal_acceptance_modified": false
+    },
+    "FINAL_DELIVERY_RESULT_FINAL": {
+      "status": "DELIVER_WITH_WARNINGS",
+      "delivery_allowed": true,
+      "verdict": "DELIVER_WITH_WARNINGS"
+    },
+    "FINAL_DELIVERY_GATE_VIEW_RESULT": {
+      "status": "DELIVER_WITH_WARNINGS",
+      "delivery_allowed": true,
+      "verdict": "DELIVER_WITH_WARNINGS"
+    },
+    "PROMOTION_ACCEPTANCE": {
+      "status": "DELIVER_WITH_WARNINGS",
+      "delivery_allowed": true,
+      "verdict": "DELIVER_WITH_WARNINGS",
+      "goal_acceptance_modified": false
+    },
+    "M12": "VERIFIED"
+  },
+  "goal_acceptance_mtime": "2026-11-04T19:10:51.794005"
+}

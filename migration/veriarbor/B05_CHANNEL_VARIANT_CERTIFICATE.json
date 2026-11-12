@@ -1,0 +1,152 @@
+{
+  "kind": "AuthenticatedLocalBlockCertificate",
+  "block_id": "B05",
+  "status": "VERIFIED",
+  "reuse_status": "FROZEN_REUSABLE",
+  "certificate": {
+    "block_id": "B05",
+    "variant_id": "B05-711c0519",
+    "input_contract_hash": "92bd297d9fc404fccb4c835eaa23f4b49f1391b405ff28d12261d6ca0366f375",
+    "output_contract_hash": "882f093cd2e48ce2b9a7218e114b65a9880283b2145b6e2350d5317367891021",
+    "effect_contract_hash": "726512e078c13b8e5fa7b5790c25f6f83c1bdb1c5f014867b4efd8d4dbd24793",
+    "acceptance_ids": [
+      "B05:alpha variant created",
+      "B05:beta variant created with distinct identity",
+      "B05:channel binding correct",
+      "B05:revisions independent",
+      "B05:editing beta does not overwrite alpha",
+      "B05:both variants persist after restart",
+      "B05:no JavaScript errors"
+    ],
+    "artifact_hashes": [
+      [
+        "main.py#content-dom",
+        "fe236e162827f1479772b4ffb50f2cdd140559789c194eeb219308e0bc6a3470"
+      ],
+      [
+        "main.py#variant-js",
+        "0f981089aaf690060ef3c00e0bfcf5e5e601f892fefe53a34b1a96a1db422803"
+      ]
+    ],
+    "checker_hashes": [
+      [
+        "B05.browser",
+        "152330011f7802036b5f70e5c8198e6dbe0381b2952eb9729dcc1ffe3d460e91"
+      ]
+    ],
+    "known_limits": [
+      "Block scope only; full M12 rollup requires B01-B11."
+    ],
+    "evidence_refs": [
+      "iter132-promotion-studio/promotion-05/evidence/4f92ace6ccf164d917ccd11af33186bc333fb961de19a2ef8eb795fc79c7f5f6.json"
+    ],
+    "created_at": "2026-11-05T18:01:29.079003+00:00",
+    "invalidated": false
+  },
+  "certificate_fingerprint": "23c6c450bbd368bbb061e891ffb217465a5fafbe62e5a9ac4c4aa033a979c41c",
+  "block": {
+    "block_id": "B05",
+    "capability": "ChannelVariantBlock",
+    "input_ports": [
+      {
+        "port_id": "ChannelVariantBlockInput",
+        "version": "1",
+        "direction": "input",
+        "contract": {
+          "schema_json": "{\"additionalProperties\":false,\"properties\":{\"channel\":{\"type\":\"string\"},\"content_id\":{\"type\":\"string\"},\"project_id\":{\"type\":\"string\"}},\"required\":[\"project_id\",\"content_id\",\"channel\"],\"type\":\"object\"}",
+          "semantic": "Independent browser acceptance for ChannelVariantBlock."
+        },
+        "required": true,
+        "default_json": "null",
+        "compatibility_policy": "structural-v1"
+      }
+    ],
+    "output_ports": [
+      {
+        "port_id": "ChannelVariantBlockOutput",
+        "version": "1",
+        "direction": "output",
+        "contract": {
+          "schema_json": "{\"additionalProperties\":false,\"properties\":{\"channel\":{\"type\":\"string\"},\"revision\":{\"type\":\"string\"},\"variant_id\":{\"type\":\"string\"}},\"required\":[\"variant_id\",\"channel\",\"revision\"],\"type\":\"object\"}",
+          "semantic": "Independent browser acceptance for ChannelVariantBlock."
+        },
+        "required": true,
+        "default_json": "null",
+        "compatibility_policy": "structural-v1"
+      }
+    ],
+    "effect_contract": {
+      "reads": [
+        "persisted milestone state",
+        "selected project identity"
+      ],
+      "writes": [
+        "browser UI state",
+        "project-scoped persistence"
+      ],
+      "external_effects": [
+        "loopback HTTP only"
+      ],
+      "persistence": "restart persistence verified",
+      "idempotency": "duplicate idempotency keys preserve one receipt and one platform post",
+      "concurrency": "threaded server; M11 store lock only at media boundary",
+      "ordering": "UI action -> milestone handler -> persistence -> browser refresh",
+      "rollback": "bounded source patches; isolated acceptance data"
+    },
+    "variants": [
+      {
+        "variant_id": "B05-711c0519",
+        "artifacts": [
+          [
+            "main.py#content-dom",
+            "fe236e162827f1479772b4ffb50f2cdd140559789c194eeb219308e0bc6a3470"
+          ],
+          [
+            "main.py#variant-js",
+            "0f981089aaf690060ef3c00e0bfcf5e5e601f892fefe53a34b1a96a1db422803"
+          ]
+        ],
+        "status": "VERIFIED"
+      }
+    ],
+    "active_variant": "B05-711c0519",
+    "certificate_ref": null
+  },
+  "source_sha256_at_verification": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+  "relevant_section_hashes": {
+    "main.py#content-dom": "fe236e162827f1479772b4ffb50f2cdd140559789c194eeb219308e0bc6a3470",
+    "main.py#variant-js": "0f981089aaf690060ef3c00e0bfcf5e5e601f892fefe53a34b1a96a1db422803"
+  },
+  "neighbor_contract_hashes": {
+    "M1_project_api_source": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+    "M11_media_api_source": "4e3f4f9ec6ad0c30a04566a3c6a51e5d6d7bb55e23371bbae740831f3f866a08"
+  },
+  "evidence_refs": [
+    {
+      "path": "iter132-promotion-studio/promotion-05/evidence/4f92ace6ccf164d917ccd11af33186bc333fb961de19a2ef8eb795fc79c7f5f6.json",
+      "sha256": "03c47979b3ea1bf1c57484eaf867d5cadbe781e1a60f0e0947cccced6e58962a"
+    }
+  ],
+  "acceptance_checks": [
+    "alpha variant created",
+    "beta variant created with distinct identity",
+    "channel binding correct",
+    "revisions independent",
+    "editing beta does not overwrite alpha",
+    "both variants persist after restart",
+    "no JavaScript errors"
+  ],
+  "checker": "D:\\VeriArbor\\tools\\m12_b05_acceptance.py",
+  "checker_sha256": "152330011f7802036b5f70e5c8198e6dbe0381b2952eb9729dcc1ffe3d460e91",
+  "invalidation_triggers": [
+    "certified section changes",
+    "checker identity changes",
+    "neighbor contract changes"
+  ],
+  "authority": "Original FileRunStore evidence plus VeriArbor Certificate",
+  "host_business_patches": 0,
+  "canonical_evidence_ref": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/8f0b430dd4519a75e5a16deb73d3226d9d61a70d15ef4963845d6f9ef86b4e27.json",
+    "sha256": "144dccaf33fe15ea267154333ccd99e9ac178b9a524a8f447d9af0efc377140f"
+  }
+}

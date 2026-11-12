@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="2" time="0.828" timestamp="2026-11-04T01:17:41.167699+08:00" hostname="test"><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_publish_blocks_broken_media" time="0.298"><failure message="NameError: name '_MEDIA_FILENAME' is not defined">data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\media-publish-edges-bef8809a\\test_publish_blocks_broken_med0\\data'
+tmp_path = WindowsPath('F:/CGKN-LeanLoop-V1-20261101/migration/veriarbor/scratch/media-publish-edges-bef8809a/test_publish_blocks_broken_med0')
+
+    def test_publish_blocks_broken_media(data_dir, tmp_path):
+        src = _write_file(tmp_path, "pic.png", PNG_BYTES)
+        proj = _make_project(data_dir)
+        imported = _import_media(data_dir, proj["id"], src, "image")
+    
+        campaign = m4.handle(data_dir, {
+            "op": "campaign.create",
+            "project_id": proj["id"],
+            "name": "c",
+            "audience": "a",
+            "channels": ["email"],
+        })
+        content = m5.handle(data_dir, {
+            "op": "content.create",
+            "project_id": proj["id"],
+            "campaign_id": campaign["id"],
+            "channel": "email",
+            "text": "hello world",
+            "claim_ids": [],
+            "media_ids": [imported["id"]],
+        })
+    
+        # Approve while media is valid.
+        m6.handle(data_dir, {
+            "op": "approval.review",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+        m6.handle(data_dir, {
+            "op": "approval.approve",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+    
+        # Now corrupt the media bytes.
+        stored = os.path.join(data_dir, imported["path"])
+        with open(stored, "wb") as f:
+            f.write(b"corrupted")
+    
+        with pytest.raises(ValueError):
+&gt;           m7.handle(data_dir, {
+                "op": "publish.send",
+                "project_id": proj["id"],
+                "content_id": content["id"],
+                "platform_url": "http://127.0.0.1:1",
+                "idempotency_key": "k1",
+            })
+
+tests\test_milestone_dbb8341c8910593063a8.py:516: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+promotion_publish.py:330: in handle
+    return _do_send(data_dir, project_id, content_id, platform_url, idempotency_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\media-publish-edges-bef8809a\\test_publish_blocks_broken_med0\\data'
+project_id = '898e5ea035a94de588d41a5988f8a2a6'
+content_id = 'f640357ae9f34d35ba7699bd1dbc630d'
+platform_url = 'http://127.0.0.1:1', idempotency_key = 'k1'
+
+    def _do_send(data_dir, project_id, content_id, platform_url, idempotency_key):
+        """Perform a publish.send. Caller must hold the data_dir lock."""
+        if not isinstance(platform_url, str) or not platform_url:
+            raise ValueError("platform_url must be a non-empty string")
+        if not isinstance(idempotency_key, str) or not idempotency_key:
+            raise ValueError("idempotency_key must be a non-empty string")
+    
+        # Validate content and approval
+        content_record = _validate_approval_status(data_dir, project_id, content_id)
+    
+        # M11 media validation: every referenced media_id must exist and be VALID.
+        # Missing or BROKEN media blocks publication with ValueError.
+        media_ids = content_record.get("media_ids") or []
+        if media_ids:
+&gt;           media_items = _load_list(data_dir, _MEDIA_FILENAME)
+                                               ^^^^^^^^^^^^^^^
+E           NameError: name '_MEDIA_FILENAME' is not defined
+
+promotion_publish.py:182: NameError</failure></testcase><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_publish_blocks_missing_media" time="0.289"><failure message="NameError: name '_MEDIA_FILENAME' is not defined">data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\media-publish-edges-bef8809a\\test_publish_blocks_missing_me0\\data'
+tmp_path = WindowsPath('F:/CGKN-LeanLoop-V1-20261101/migration/veriarbor/scratch/media-publish-edges-bef8809a/test_publish_blocks_missing_me0')
+
+    def test_publish_blocks_missing_media(data_dir, tmp_path):
+        src = _write_file(tmp_path, "pic.png", PNG_BYTES)
+        proj = _make_project(data_dir)
+        imported = _import_media(data_dir, proj["id"], src, "image")
+    
+        campaign = m4.handle(data_dir, {
+            "op": "campaign.create",
+            "project_id": proj["id"],
+            "name": "c",
+            "audience": "a",
+            "channels": ["email"],
+        })
+        content = m5.handle(data_dir, {
+            "op": "content.create",
+            "project_id": proj["id"],
+            "campaign_id": campaign["id"],
+            "channel": "email",
+            "text": "hello world",
+            "claim_ids": [],
+            "media_ids": [imported["id"]],
+        })
+    
+        m6.handle(data_dir, {
+            "op": "approval.review",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+        m6.handle(data_dir, {
+            "op": "approval.approve",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+    
+        stored = os.path.join(data_dir, imported["path"])
+        os.remove(stored)
+    
+        with pytest.raises(ValueError):
+&gt;           m7.handle(data_dir, {
+                "op": "publish.send",
+                "project_id": proj["id"],
+                "content_id": content["id"],
+                "platform_url": "http://127.0.0.1:1",
+                "idempotency_key": "k2",
+            })
+
+tests\test_milestone_dbb8341c8910593063a8.py:562: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+promotion_publish.py:330: in handle
+    return _do_send(data_dir, project_id, content_id, platform_url, idempotency_key)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\media-publish-edges-bef8809a\\test_publish_blocks_missing_me0\\data'
+project_id = 'c4fcfd2a191f48beaeccf4d68450961d'
+content_id = 'ca7790c46aef40acb505c35134c35e69'
+platform_url = 'http://127.0.0.1:1', idempotency_key = 'k2'
+
+    def _do_send(data_dir, project_id, content_id, platform_url, idempotency_key):
+        """Perform a publish.send. Caller must hold the data_dir lock."""
+        if not isinstance(platform_url, str) or not platform_url:
+            raise ValueError("platform_url must be a non-empty string")
+        if not isinstance(idempotency_key, str) or not idempotency_key:
+            raise ValueError("idempotency_key must be a non-empty string")
+    
+        # Validate content and approval
+        content_record = _validate_approval_status(data_dir, project_id, content_id)
+    
+        # M11 media validation: every referenced media_id must exist and be VALID.
+        # Missing or BROKEN media blocks publication with ValueError.
+        media_ids = content_record.get("media_ids") or []
+        if media_ids:
+&gt;           media_items = _load_list(data_dir, _MEDIA_FILENAME)
+                                               ^^^^^^^^^^^^^^^
+E           NameError: name '_MEDIA_FILENAME' is not defined
+
+promotion_publish.py:182: NameError</failure></testcase></testsuite></testsuites>

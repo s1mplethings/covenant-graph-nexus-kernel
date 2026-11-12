@@ -1,0 +1,102 @@
+{
+  "kind": "AuthenticatedAcceptanceCheckpoint",
+  "milestone": "M7",
+  "verdict": "VERIFIED",
+  "timestamp": "2026-11-03T11:55:03.489419+00:00",
+  "authority": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\goal_acceptance.json",
+  "authority_sha256": "2d008fe9a29f6694b2d7e66534f316881b262d4438ac3ab2910096183940d3ea",
+  "obligation": {
+    "verdict": "VERIFIED",
+    "weight": 1,
+    "must": true
+  },
+  "current_check": {
+    "attempt_id": "attempt-0052",
+    "condition_hash": "c4bb228c4d3fda3ad8aafe35ce6a2f0aca6d09b70022358a0951c78a32bc7dbe",
+    "goal_id": "accept-d6e339ee9f02be6ab5e1",
+    "node_id": "sem-node-0098",
+    "observation": {
+      "checker_version": "qualified-revision-1",
+      "condition_hash": "c4bb228c4d3fda3ad8aafe35ce6a2f0aca6d09b70022358a0951c78a32bc7dbe",
+      "evidence_refs": [
+        {
+          "path": "iter132-promotion-studio/promotion-05/observations/typed/d9f03729137785848edf3cd677a2c9bb6ca93c105c0b607748ee4b8329ec8345.json",
+          "sha256": "b8028d8477669a32c0e448db4e19d40fb391dec3e373e16a76a1bf5b32d2ff6d"
+        }
+      ],
+      "execution": "VALID",
+      "goal_id": "accept-d6e339ee9f02be6ab5e1",
+      "observed": {
+        "passed_count": 2,
+        "reason": "M7 actual business checks passed",
+        "total_count": 2,
+        "value": true
+      },
+      "provenance_ref": {
+        "path": "iter132-promotion-studio/promotion-05/evidence/d0d7d7744443c794405f8b333b8d0abf108d22b337ebec3ade3bcfce0d56ee58.json",
+        "sha256": "3eff04f97fa7a6e90221010323077b7e91b849e2b0bd353b9d07b7b9b6ade672"
+      },
+      "subjects": {
+        "early_main.py": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+        "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+        "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": "78dd17fe6722f4fa573580b6a59d33374e925ccf309641d9241081a53e755cbc",
+        "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+        "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+        "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+        "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+      },
+      "verdict": "VERIFIED"
+    },
+    "plan_revision": 4,
+    "provenance": {
+      "chain": {
+        "attempt_id": "attempt-0052",
+        "candidate": {
+          "path": "iter132-promotion-studio/promotion-05/evidence/b40cdd7c8b0be52b811a14e804d16fa10a143375611c47cc5480411f7a84eb59.json",
+          "sha256": "54e795c69b1e1f2abbfcbead21c6a236a314b29386249d1ef6c57d3afc1186e9"
+        },
+        "checker": {
+          "hash": "5201a3c5aa6c9e829890787e3a5d6b8f60d3de104b301fb9df5eeb28faeb1007",
+          "ref": "project.acceptance@1",
+          "version": "qualified-revision-1"
+        },
+        "execution_receipt": {
+          "path": "iter132-promotion-studio/promotion-05/attempts/sem-node-0098/attempt-0052.json",
+          "sha256": "4be9aa312a62efdc055afd2ce706337c23492dc4254d2324bfb7421f11ff8180"
+        },
+        "logical_task_id": "iter132-promotion-studio/promotion-05",
+        "observation": {
+          "path": "iter132-promotion-studio/promotion-05/evidence/8116ed5e5c505ee6ea0c658c7ebd6e5094da4eec9603dd49965c86b2ab499bc2.json",
+          "sha256": "5070bfb3ed2d1a8bcde6eaa2f679da94002d9dbd1f14fa0b5f5e197a64965368"
+        },
+        "requirements": {
+          "M7": "8b7e51bbf80b52d7be0326a449ea26e350cef5aa303aa3fcbaa1b92d1d9cc621"
+        },
+        "verdict": "VERIFIED",
+        "witness": {
+          "path": "iter132-promotion-studio/promotion-05/evidence/d0d7d7744443c794405f8b333b8d0abf108d22b337ebec3ade3bcfce0d56ee58.json",
+          "sha256": "3eff04f97fa7a6e90221010323077b7e91b849e2b0bd353b9d07b7b9b6ade672"
+        }
+      },
+      "status": "TRUSTED"
+    },
+    "receipt_hash": "67f12243804ca6e168e473e133614a6f657c9c4147cc5b9100c89017ed85f9be",
+    "run_id": "promotion-05",
+    "subjects": {
+      "early_main.py": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+      "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+      "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+      "milestones/milestone_33270fed0c9054f5ae04/api.py": "78dd17fe6722f4fa573580b6a59d33374e925ccf309641d9241081a53e755cbc",
+      "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+      "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+      "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+      "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+    },
+    "supersedes_receipts": [],
+    "verdict": "VERIFIED"
+  },
+  "is_new_acceptance_authority": false,
+  "final_product_complete": false,
+  "M8_M12": "PENDING"
+}

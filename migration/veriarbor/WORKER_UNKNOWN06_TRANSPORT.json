@@ -1,0 +1,62 @@
+{
+  "request": "aed9fdcaba9b4c4f81ba25c7c69cd38a",
+  "counts": {
+    "gateway_request_start": 1,
+    "provider_slot_acquired": 1,
+    "transport_begin": 1,
+    "direct_interface_validation_started": 1,
+    "direct_interface_validated": 1,
+    "direct_dns_started": 1,
+    "direct_dns": 1,
+    "connection.connect_tcp.started": 1,
+    "direct_socket": 1,
+    "connection.connect_tcp.complete": 1,
+    "connection.start_tls.started": 1,
+    "connection.start_tls.complete": 1,
+    "provider_submitted": 1,
+    "http11.send_request_headers.started": 1,
+    "http11.send_request_headers.complete": 1,
+    "http11.send_request_body.started": 1,
+    "http11.send_request_body.complete": 1,
+    "http11.receive_response_headers.started": 1,
+    "http11.receive_response_headers.complete": 1,
+    "upstream_headers": 1,
+    "http11.receive_response_body.started": 1,
+    "first_response_content": 1,
+    "http11.receive_response_body.complete": 1,
+    "http11.response_closed.started": 1,
+    "http11.response_closed.complete": 1,
+    "response_body_complete": 1,
+    "progress_final": 1,
+    "attempt_end": 1,
+    "provider_http_error": 1,
+    "stream_failed": 1,
+    "application_error": 1,
+    "gateway_error": 1,
+    "gateway_request_end": 1
+  },
+  "identities": [
+    "sha256:09d0cb485bbcc01289da9e26b7519219ba85281d21d54eaa6b2c1509289c267b"
+  ],
+  "events": [
+    {
+      "client_request_identity": "sha256:09d0cb485bbcc01289da9e26b7519219ba85281d21d54eaa6b2c1509289c267b",
+      "phase": "provider_http_error",
+      "status": 503,
+      "body_sha256": "3b0e1827b444d3d3859822bcd5a7f902b89f207955ceb1c9b6e2740e26f63af8",
+      "captured_bytes": 258,
+      "raw_ref": "F:\\CGKN-LeanLoop-V1-20261101\\.cgkn\\domestic-gateway\\recovery-responses\\http-errors\\e1e4676d3e4c46c292967a6f03d14b94.json"
+    },
+    {
+      "client_request_identity": "sha256:09d0cb485bbcc01289da9e26b7519219ba85281d21d54eaa6b2c1509289c267b",
+      "phase": "stream_failed",
+      "error_type": "HTTP_503",
+      "submitted": true,
+      "exception_type": "HTTPError"
+    },
+    {
+      "client_request_identity": "sha256:09d0cb485bbcc01289da9e26b7519219ba85281d21d54eaa6b2c1509289c267b",
+      "phase": "gateway_request_end"
+    }
+  ]
+}

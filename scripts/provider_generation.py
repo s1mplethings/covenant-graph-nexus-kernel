@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import importlib
-import sys
 from typing import Any
 
 try:
@@ -13,27 +11,10 @@ except ModuleNotFoundError:  # pragma: no cover - package import path
     from scripts.pipeline_contracts import base_result
 
 
-def _legacy() -> Any:
-    main = sys.modules.get("__main__")
-    if main is not None and hasattr(main, "run_provider_semantic_review_with_repair"):
-        return main
-    packaged = sys.modules.get("scripts.run_local_pipeline")
-    if packaged is not None and hasattr(packaged, "run_provider_semantic_review_with_repair"):
-        return packaged
-    try:
-        return importlib.import_module("run_local_pipeline")
-    except ModuleNotFoundError:
-        return importlib.import_module("scripts.run_local_pipeline")
 
 
-def run(**kwargs: Any) -> dict[str, Any]:
-    legacy = _legacy()
-    return legacy.run_provider_semantic_review_with_repair(**kwargs)
 
 
-def choose_model(*args: Any, **kwargs: Any) -> dict[str, Any]:
-    legacy = _legacy()
-    return legacy.choose_provider_model(*args, **kwargs)
 
 
 def provider_quota_blocked(error: BaseException | str) -> bool:
@@ -49,15 +30,9 @@ def should_skip_repeated_live_generation(previous_status: dict[str, Any] | None)
 def contract() -> dict[str, Any]:
     return base_result(
         status="pass",
-        verdict="replaceable_module",
+        verdict="read_only_failure_classification",
         metadata={
-            "responsibilities": [
-                "provider model routing",
-                "split component generation",
-                "file-level generation",
-                "provider transport classification",
-                "provider non-JSON handling",
-            ],
+            "responsibilities": ["read existing Provider quota and failure state"],
             "forbidden": ["final zip", "delivery manifest", "Codex conversation delivered state"],
         },
     )

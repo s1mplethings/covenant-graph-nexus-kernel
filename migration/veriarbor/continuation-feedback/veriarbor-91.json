@@ -1,0 +1,64 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "Qwen Flash Agent, DeepSeek Flash Worker only. This step is deterministic measurement; no Worker source write. Pro0 Max0.",
+    "milestone_completion_request": "B01 independently VERIFIED and frozen. Next B02 only. FIRST run a scoped original registered independent observation for newly appended goal block-observation-B02-upload-port using project.acceptance.external@1 and executor project.acceptance@1 through original DAG. Select that exact goal, not original complete M12 goal. No whole M12 browser execution before B11. No source changes now. Current qualified-revision-9 routes the additive goal to actual browser upload port checks and leaves original complete M12 unchanged. Current source9edfb2e6 expected to fail uploadHTTP400; after formal failure controller stops for exact evidence binding. Do not FINISH or edit/retry143 yet.",
+    "fresh_runtime_diagnosis": {
+      "current_block": "B02",
+      "source_sha256": "9edfb2e6f74a325c9c6375bff9dcb91c52026d087e5fa4146dd886ee1e23c1a6",
+      "local_observation": {
+        "source_sha256": "9edfb2e6f74a325c9c6375bff9dcb91c52026d087e5fa4146dd886ee1e23c1a6",
+        "checks": [
+          "source unchanged"
+        ],
+        "scope": "Browser image upload port only; not B02/M12 completion",
+        "browser": "134.0.3124.51",
+        "upload": {
+          "status": 400,
+          "body": {
+            "error": "path must be a non-empty string"
+          }
+        },
+        "status": "FAIL",
+        "error": "AssertionError: browser image upload HTTP200",
+        "startup": {
+          "command": [
+            "D:\\anaconda\\python.exe",
+            "-X",
+            "utf8",
+            "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\main.py",
+            "--serve",
+            "--port",
+            "20855",
+            "--data",
+            "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_PORT_QUALIFICATION\\current-negative\\data"
+          ],
+          "url": "http://127.0.0.1:20855"
+        },
+        "cleanup": {
+          "server_stopped": true
+        }
+      },
+      "B01_certificate": {
+        "path": "iter132-promotion-studio/promotion-05/evidence/0ac692555556442774b54feec4cce55f37b920076d5312296e1200a8a50d7934.json",
+        "sha256": "09b0f9b8b5e2c64fd1b4cc4cce4a250195692f2d8c667ce93429672fe034e026"
+      },
+      "native_goal": "block-observation-B02-upload-port",
+      "authority": "Local diagnostic not formal repair evidence; native scoped measurement must run first"
+    },
+    "gui_writer_policy": "Read-only current measurement. All M1-M11 and B01 frozen. No business writes, no whole M12 measurement. Full B02 certification still requires image/video/preview/negative/cleanup/restart/isolation beyond this admission observation.",
+    "bounded_patch_policy": {
+      "mode": "patch_only",
+      "allowed_files": {},
+      "hold_after_goal_check": "block-observation-B02-upload-port"
+    },
+    "redecision": {
+      "strategy_revision": "e602cbabb4453b1850ee8ea58b909db52b701c887be592c67f071c70c2393e5a",
+      "reason": "New qualified scoped checker and additive user-requested B02 upload-port observation permit current failure measurement without forbidden complete M12 rerun. B01 passed and frozen; old155 receipt is stale for current9edfb source. Prior89 stopped locally before Provider: incomplete observation declaration metadata. Now append-only completed from existing original owner; all predicates and historical revisions retained; generic regressions passed.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_PORT_OBSERVATION_ACTIVATION.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_PORT_QUALIFICATION\\receipt.json"
+      ]
+    }
+  }
+}

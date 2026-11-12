@@ -1,0 +1,53 @@
+{
+  "kind": "M12CurrentFailureContext",
+  "updated_at": "2026-11-04T11:08:30.479835+00:00",
+  "target_block": "B02",
+  "B01": "VERIFIED_FROZEN_REUSABLE",
+  "M1_M11": "FROZEN_REUSABLE",
+  "full_veriarbor_v1": "PARTIAL_DEFERRED",
+  "formal_current_failure": {
+    "path": "attempts/sem-node-0159/attempt-0001.json",
+    "receipt_hash": "d44cbc7f1a942a909b49d24c6968f346dd7b00db5a1f3885e2a3a7f14f62c80d"
+  },
+  "bound_source_sha256": "f269c86e84826bcdb09e4422cb480e3cffe9fded7c2788ee2334aabdb9537ea1",
+  "actual_current_failure": {
+    "reason": "Adapter boundary: {\"status\": \"FAIL\", \"explicit_milestone_preserved\": false, \"nonmedia_concurrency_preserved\": false, \"dispatch_calls\": [\"M11\"], \"dispatch_error\": null, \"concurrency\": [{\"milestone\": \"M1\", \"error\": \"ValueError: \"}, {\"milestone\": \"M4\", \"error\": \"ValueError: \"}], \"probe_scope\": \"Current adapter boundary with injected handlers; original backend source unchanged\"}",
+    "value": false
+  },
+  "latest_execution_failure": {
+    "attempt": "attempt-0040",
+    "status": "FAILED",
+    "error": {
+      "code": "INVALID_OUTPUT",
+      "details": {},
+      "message": "PATCH_SCOPE_EXCEEDED: anchor length budget exceeded"
+    },
+    "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0143\\attempt-0040.json",
+    "no_source_delta": true
+  },
+  "next_action": "Continue current Block under exact supplied feedback; require actual source delta before browser and all local checks before certificate.",
+  "invalidated_historical_strategies": [
+    "B01 bootstrap complete and frozen",
+    "Old handler identity problems resolved",
+    "Threaded HTTP dispatch works; new distinct M11 shared temporary-file concurrency failure remains",
+    "Full-file rewrite forbidden",
+    "Attempt28/29 output without delta is not implementation",
+    "Media-serving-only implementation is not complete B02",
+    "Attempt35 out-of-region serving patch rejected; no product change"
+  ],
+  "previous_context_retained": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\context-history\\M12_CURRENT_FAILURE_CONTEXT-d6cefe4bb865.json",
+  "active_continuation": "veriarbor-104",
+  "source_writer_may_be_in_flight": false,
+  "checker_identity": "qualified-revision-11",
+  "latest_native_observation": {
+    "node": "sem-node-0159",
+    "receipt_hash": "d44cbc7f1a942a909b49d24c6968f346dd7b00db5a1f3885e2a3a7f14f62c80d",
+    "checker": "qualified-revision-11",
+    "verdict": "FAILED",
+    "source_current": true,
+    "observed": {
+      "reason": "Adapter boundary: {\"status\": \"FAIL\", \"explicit_milestone_preserved\": false, \"nonmedia_concurrency_preserved\": false, \"dispatch_calls\": [\"M11\"], \"dispatch_error\": null, \"concurrency\": [{\"milestone\": \"M1\", \"error\": \"ValueError: \"}, {\"milestone\": \"M4\", \"error\": \"ValueError: \"}], \"probe_scope\": \"Current adapter boundary with injected handlers; original backend source unchanged\"}",
+      "value": false
+    }
+  }
+}

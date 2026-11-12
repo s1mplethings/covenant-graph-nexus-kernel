@@ -1,0 +1,237 @@
+{
+  "expected_gui_sha256": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+  "feedback": {
+    "cost_policy": "Qwen3.8Flash Agent; DeepSeekFlash Worker. Both cheap-tier concrete models, fallback deny. DeepSeek planner25 repeatedly selected cyclic deps118 for target117 despite current existing_dependency_targets=[]; switch planner family, keep WorkerDeepSeek to avoid Qwen previous unused-variable edits. No Pro/Max; preserve5upstreamUNKNOWNs, noexactreplay. Cross-family identity alone is not independent business acceptance.",
+    "milestone_completion_request": "Current M1-M10 VERIFIED; M11 fails genuine missing/broken media rejection. Source117 now350e97b9 fixed import path but media.get/list still omit data_dir. First close those remaining two real callsites in original writer117, deps=[] and current M11 API scope, preserving complete file. The explicit full_file_write boolean must be TRUE in strategy and leaf must use op2, now mechanically enforced. Then address actual failed integration through ORIGINAL dependency owners: M6 owner86 must reject missing/broken referenced media at approval; M7 owner89 must reject it at publication, without relying on a prior media.get call. Current owner scope expansion exposes these original dependency artifacts; choose each matching owner, scope and contract separately, not M11-owned rewrites of M6/M7 and not monkeypatching. Use current evidence refs, preserve all public predicates. Original early GUI owner91 also lacks actual image/video previews: implement real preview interaction at its authorized original owner, never merely insert the word media to satisfy a weak selftest. Existing original observers119-122: refresh stale122 explicitly with retry action3, do not create more duplicates. Re-measure affected old milestones after dependency changes. Preserve meaningful34-case M11 tests, including all4 missing/broken approval/publication negatives and GUI requirement; improve weak preview assertion through real browser verification, never waive it. Continue M12 and all retained test debts through original Provider-owned source/test tasks and canonical finalization, delivery, accounting/provenance and Corpus. No host-authored business implementation.",
+    "admission_correction": "Use exact current table IDs. Repair117 has existing_dependency_targets=[];118 is downstream and creates a cycle. Keep source and test ownership separate. hypothesis.falsifying_evidence is an ARRAY of exact current allowed evidence-ref objects. Three named strategy dimensions must describe real mechanism, not prompt padding. If graphadmission rejects, correct that specific field, never repeatedly resend it.",
+    "fresh_runtime_diagnosis": {
+      "additional_test_facts": {
+        "kind": "AdditionalTestDebtTriage",
+        "authority": "Diagnostic only. Must use original ProjectSession Provider-owned repairs and rerun original assertions. No failure waived.",
+        "baseline": {
+          "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_MVP\\packaging-failure-summary.json",
+          "sha256": "f862489b0b98d66f0678ec969a4e3bf4accba49c67ee067ce2b3a3affbbf1bf8"
+        },
+        "observations": [
+          {
+            "scope": "M1 tests",
+            "failed": 2,
+            "finding": "Tests expect project.list.projects; qualify against declared public contract and actual result before correcting test assertions."
+          },
+          {
+            "scope": "M2/M3 tests",
+            "failed": 18,
+            "finding": "Fixture writes a legacy project storage layout directly; replace fixture setup through existing public M1 API. Preserve behavior assertions."
+          },
+          {
+            "scope": "M5 tests",
+            "failed": 30,
+            "finding": "Setup calls project.create/campaign.create/claim.create against M5-only handler; dispatch fixture setup through actual dependency APIs, retain negative and integration assertions."
+          },
+          {
+            "scope": "M7 publish tests",
+            "failed": 3,
+            "finding": "All three existing test assertion bodies PASS when only fixture storage paths are corrected; no product code change. Two use separate client/remote stores; GUI fixture must not use http:\\platform_data as filesystem path.",
+            "evidence": [
+              {
+                "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\publish-fixture-diagnostic\\receipt.json",
+                "sha256": "56f84664c679714ce253255454bb968f05bf237fe06f9976bfe10c2d6ef176ae"
+              },
+              {
+                "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\publish-fixture-diagnostic\\gui-receipt.json",
+                "sha256": "0ee038a17f52d88cb61b98b3aec0849250961c74eff316c282bac7290d3a32d1"
+              }
+            ]
+          },
+          {
+            "scope": "M6 missing media",
+            "failed": 1,
+            "finding": "Current _validate_media_present only validates string/list shape. Missing referenced media test still needs actual product validation; do not weaken or delete it. M11 public requirement explicitly requires broken media to block M6 approval and M7 publication.",
+            "source": {
+              "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_MVP\\application\\milestones\\milestone_33270fed0c9054f5ae04\\api.py",
+              "sha256": "78dd17fe6722f4fa573580b6a59d33374e925ccf309641d9241081a53e755cbc"
+            }
+          }
+        ],
+        "host_business_patches": 0,
+        "tests_excluded": 0
+      },
+      "contract_qualification": {
+        "kind": "ContractBoundTestDebtQualification",
+        "profile_ref": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\profile.json",
+        "profile_sha256": "3cfb8fd56ba8e8e37160bf43593c1cbbbc92ee702874781a21512a1b1431e86b",
+        "M1": {
+          "contract": "Implement only this milestone, reusing verified dependencies without overwriting their artifacts.\nThe source module exposes MILESTONE_ID as the literal milestone identifier (M1 etc.) and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string. Return a JSON-compatible dict. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError. Do not return success-shaped error objects. Persistence must survive another Python process; storage format and internal design are Agent-owned. Read all needed dependency source contracts before integration. Existing modules may be discovered by their literal MILESTONE_ID, not guessed hash filenames. Dependencies may be imported normally or via importlib. Standard library only for the application; public tests may use pytest. No public network publication or dependency installation. Return one aggregate acceptance intent for this milestone: its independent suite covers every public behavior below, so no requirement is dropped. Worker-authored tests must exercise actual behavior.\n\nCurrent milestone M1:\nProject Workspace. handle ops: project.create(name) -> {id,name}; project.get(project_id) -> same record; project.list() -> {items:[records]}. IDs are nonempty opaque strings, stable across reopening, different for different projects even with identical names. Reject empty/whitespace-only names and missing IDs. A new store lists no projects. Names preserve Unicode. Two distinct data_dir stores are isolated. Create/open/list survive a fresh process. Do not impose a database schema on subsequent milestones.",
+          "finding": "project.list returns items. Tests expecting projects contradict frozen public contract; correcting their key preserves the specified behavior."
+        },
+        "M6": {
+          "contract": "Implement only this milestone, reusing verified dependencies without overwriting their artifacts.\nThe source module exposes MILESTONE_ID as the literal milestone identifier (M1 etc.) and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string. Return a JSON-compatible dict. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError. Do not return success-shaped error objects. Persistence must survive another Python process; storage format and internal design are Agent-owned. Read all needed dependency source contracts before integration. Existing modules may be discovered by their literal MILESTONE_ID, not guessed hash filenames. Dependencies may be imported normally or via importlib. Standard library only for the application; public tests may use pytest. No public network publication or dependency installation. Return one aggregate acceptance intent for this milestone: its independent suite covers every public behavior below, so no requirement is dropped. Worker-authored tests must exercise actual behavior.\n\nCurrent milestone M6:\nApproval. approval.review(project_id,content_id)->{content_id,revision,status:REVIEW}; approval.approve(project_id,content_id)->{content_id,revision,status:APPROVED}; approval.status(project_id,content_id)->{content_id,revision,status}. Approve only after review of the same current revision, with every claim currently SUPPORTED and every referenced media asset present/valid (media can be empty before M11). A semantic content.edit makes the current approval status DRAFT; old approval remains historical and cannot authorize new content. Reject unsupported/stale/conflicting claims, missing media, foreign content, and approve-before-review. Persist decisions and exact revision bindings. Downstream publication/scheduling must consult current validity, not a stale approved boolean.",
+          "finding": "Missing media must be rejected even though media may be empty before M11. Do not weaken the existing missing-media negative test."
+        },
+        "authority": "Contract/diagnostic only; does not alter tests or grant acceptance"
+      },
+      "M10_M11_diagnostics": {
+        "kind": "AdditionalM10M11DiagnosticTriage",
+        "timestamp": "2026-11-03T21:47:59.031398+08:00",
+        "acceptance_authority": false,
+        "evidence": [
+          {
+            "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m10-generated-tests\\receipt.json",
+            "sha256": "524f79443fa1d8afd8fc863718813c0a5e0a40581d87c4b7781d48d3f6cdea43"
+          },
+          {
+            "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m10-generated-tests-import-path\\receipt.json",
+            "sha256": "b5d4af52aed6740605cb3ea6d307dd0a2ffbe28d83a69b1a5605cb871ffca650"
+          },
+          {
+            "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m10-generated-tests-absolute-import-path\\receipt.json",
+            "sha256": "40dd9f8d0b27d77860a39d26355d192d25b146919113200fdbbbd070b15e0aba"
+          },
+          {
+            "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-diagnostic-a40dff58\\receipt.json",
+            "sha256": "c8d24400071dde9e72982b04f83796332c72902feadc23f251fe995557d4a425"
+          }
+        ],
+        "M10": {
+          "canonical": "VERIFIED",
+          "selftests": {
+            "collected": 7,
+            "passed": 3,
+            "failed": 4
+          },
+          "finding": "MockPlatformHandler defines GET but no POST. Setup calls real M7 publish.send against that handler, which cannot return PUBLISHED; four tests then fail receipt not published. Some remaining tests contain incomplete placeholder coverage. Provider must repair meaningful tests without weakening assertions.",
+          "environment": "First two diagnostic runs failed collection because isolated Python lacks candidate root and relative pytest pythonpath resolved under inherited host config. Absolute candidate pythonpath executes tests. Canonical host runner already sets absolute candidate roots."
+        },
+        "M11": {
+          "diagnostic": "1/2; Media copy not real",
+          "finding": "Implementation writes actual bytes but exposes path relative to data_dir. Independent consumer uses the returned public path directly. Need usable public path while retaining portable internal storage. Broken-media approval/publication integration also remains unimplemented in current source.",
+          "source_sha256": "a40dff5841955c7cd5cbc0b620da488bf51c6ec516aeb8bde920715ed9a52b5a"
+        },
+        "host_business_patches": 0
+      },
+      "M11_latest_incomplete_patch": {
+        "ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-diagnostic-14855411\\receipt.json",
+        "source_sha256": "148554111b200d929072c6f4e52eef78d48a819dc583a2e9b81e068813356655",
+        "result": "1/2 same Media copy not real",
+        "actual_edit": "Only added absolute_dest = os.path.abspath(dest_path); the variable is unused; unchanged _public_media(record) returns record.path relative todata_dir. Every return call remains unchanged. This is not an atomic completion of requested public path behavior."
+      },
+      "M11_test_coverage_regression": {
+        "kind": "GeneratedTestCoverageRegressionDiagnostic",
+        "timestamp": "2026-11-03T22:03:10.66456+08:00",
+        "before": {
+          "ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-generated-tests-a40dff58-v2\\receipt.json",
+          "sha256": "02ac8bbb853b3eec07f6334f51df02afcfb486d7ea742fe6996fb03b92743a39",
+          "tests": 28,
+          "failed": 3
+        },
+        "after": {
+          "ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-generated-tests-14855411\\receipt.json",
+          "sha256": "626493563b34ec4a298f55997921692943d7bd4d49141d5fde4d9eb5fb0a24e1",
+          "tests": 18,
+          "failed": 1
+        },
+        "finding": "New test118 attempt3 reduced cases from28to18 and replaced explicit publication ValueError negative assertions with broad handling/network-ambiguous flow. This is not evidence of fixing the original three integration defects. Original assertions remain required; no failures waived.",
+        "missing_original_negative_tests": [
+          "test_m6_approval_blocks_broken_media",
+          "test_m7_publish_blocks_broken_media",
+          "test_m7_publish_blocks_missing_media"
+        ],
+        "acceptance_authority": false,
+        "host_business_patches": 0,
+        "specific_false_pass": "test_publish_blocks_broken_media calls self.fail(\"Publish should have failed due to broken media\") inside try; except Exception catches that AssertionError and treats any exception text containing media as success. Thus absence of required ValueError incorrectly passes this negative test."
+      },
+      "dependency_owner_scope_repair": {
+        "projection_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\DEPENDENCY_OWNER_REPAIR_PROJECTION.json",
+        "projection_sha256": "553895713d01451ef5395763bf5f74c62a7da719f59fba9a8b0d47429d985625",
+        "mechanism": "Original AgentComposer now derives repair scope from provenance-authenticated current FAILED integration subject identities and admitted dependency owner declarations. Original owning public contract retained; no runtime/state/acceptance authority added. Existing canonical writer must be repaired explicitly; imported owner without writer requires explicit REPAIR and failure binding. No source changes by host.",
+        "regression": "10 targeted PASS;850 protocol/agent/acceptance/dependency tests PASS; product_direction_gate PASS",
+        "usage": "Use freshly bound numeric scope and target rows. M6/M7 source scopes now available only while the current failed integration evidence qualifies. If M6 repair needs M11 source context, select the existing successful M11 source producer117 as a bounded read dependency where graph-admissible. Avoid adding acceptance-goal dependency cycles or rewriting owner contracts. Qualify further actual failures via original measurements."
+      },
+      "scoped_contract_identity_fix": {
+        "ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\SCOPED_CONTRACT_IDENTITY_QUALIFICATION.json",
+        "sha256": "7f0508e7b08867a763dbda025900863c33056b6160fb418bf049d91d0c5a6f13",
+        "finding": "Original M11 selected contract entries are byte-valued equal. Only parent registry hash changed when authenticated dependency owner scopes were added. Generic comparison now preserves registry provenance separately; exact entry equality permits implementation repair. Definition/version/evidence changes remain rejected. 5 targeted and855protocolregressionPASS. No public contract, goal, source or checker changed."
+      },
+      "latest_M11_callsite_diagnostic": {
+        "kind": "IncompleteRepairCallsiteDiagnostic",
+        "timestamp": "2026-11-03T22:35:49.640168+08:00",
+        "source_sha256": "1317f2d3b966c667a84410070721b4e36ca89b14eeaa28dcbc1e342c38979c82",
+        "diagnostic_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-diagnostic-1317f2d3\\receipt.json",
+        "diagnostic_sha256": "fa760e9d2a106b0508aa96ea23f40395494689ac8b36bfa4de3bb5c4f404209e",
+        "result": "M11same1/2MediaCopyNotReal",
+        "actual_change": "117attempt4 changed _public_media(record,data_dir=None) so it projects an absolute path only when data_dir is provided. All3callers still omit data_dir: import returns _public_media(record); get returns _public_media(target_record); list appends _public_media(r). Therefore new branch is never used.",
+        "required_behavior": "Existing real input data_dir must reach the helper from import,get,list. All3caller paths must be completed atomically, not merely another helper definition. Preserve relative persisted metadata and original exception/isolation/integrity semantics.",
+        "implementation_authorship": "Provider owns next concrete source edit; diagnostic is not a patch or acceptance",
+        "host_business_patches": 0
+      },
+      "latest_M11_test_recovery": {
+        "ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-generated-tests-1317f2d3\\receipt.json",
+        "sha256": "39ae1aca7b98390ab38ad02ee32ffd8061119655e23a71b4a850eb6e5151f0c3",
+        "collected": 32,
+        "failed": 4,
+        "skipped": 0,
+        "failures": [
+          {
+            "id": "tests.test_milestone_dbb8341c8910593063a8.TestMediaApprovalIntegration::test_approve_blocked_when_media_broken",
+            "message": "AssertionError: ValueError not raised"
+          },
+          {
+            "id": "tests.test_milestone_dbb8341c8910593063a8.TestMediaApprovalIntegration::test_approve_blocked_when_media_missing",
+            "message": "AssertionError: ValueError not raised"
+          },
+          {
+            "id": "tests.test_milestone_dbb8341c8910593063a8.TestMediaPublishIntegration::test_publish_blocked_when_media_broken_after_approval",
+            "message": "AssertionError: ValueError not raised"
+          },
+          {
+            "id": "tests.test_milestone_dbb8341c8910593063a8.TestMediaPublishIntegration::test_publish_blocked_when_media_missing_after_approval",
+            "message": "AssertionError: ValueError not raised"
+          }
+        ],
+        "meaning": "118attempt4 DeepSeek regenerated meaningful explicit ValueError negative assertions; former catch-own-AssertionError falsepass removed. Preserve this32case suite and all4realintegrationfailures; no need torestoreolder28fileliterally. These failuntilM6/M7ownerproductvalidationfixed."
+      },
+      "current_M11_350e97b9": {
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-diagnostic-350e97b9\\receipt.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-generated-tests-350e97b9\\receipt.json"
+        ],
+        "import_path": "fixed and frozen checker progressed",
+        "get_list_paths": "both still omit data_dir in _public_media call",
+        "frozen_checker": "Expected ValueError for invalid or foreign input",
+        "additional_tests": "34 cases, 5 failed: missing/broken media approval+publication and early GUI media controls; no skipped failures",
+        "diagnostic_only": true
+      },
+      "native_exit29": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\continuations\\veriarbor-29\\recovery-observation.json"
+    },
+    "redecision": {
+      "strategy_revision": "ba13f34c31b5e08689e974badc305e6f64d58dbeff2f40c7bb07a1a885c837ec",
+      "reason": "Original revision29 was consumed before native Python crash. Recovery observation proves settled single planner call, unchanged candidate and no running/UNKNOWN effects. Resume original checkpoint after removing new native stack instrumentation; do not replay old request or reset prior business failure evidence. Continuation30 correctly refused reused revision before any new call.",
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\continuations\\veriarbor-29\\recovery-observation.json",
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\continuations\\veriarbor-29\\windows-crash-observation.json"
+      ]
+    },
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "milestones/milestone_dbb8341c8910593063a8/api.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-diagnostic-350e97b9\\receipt.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-generated-tests-350e97b9\\receipt.json"
+        ]
+      }
+    ]
+  }
+}

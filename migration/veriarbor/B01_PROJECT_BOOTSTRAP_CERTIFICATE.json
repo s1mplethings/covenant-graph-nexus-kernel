@@ -1,0 +1,187 @@
+{
+  "kind": "AuthenticatedLocalBlockCertificate",
+  "block_id": "B01",
+  "status": "VERIFIED",
+  "reuse_status": "FROZEN_REUSABLE",
+  "certificate": {
+    "block_id": "B01",
+    "variant_id": "B01-9edfb2e6",
+    "input_contract_hash": "69f8cc58b49a02f490c4cde1f1778172a89dc21ba5af96b18dbf3bde5ee8dbd1",
+    "output_contract_hash": "bf271c4f67c69b5f21aadd9cfa8641227575522f7ef17d500089658f1449b997",
+    "effect_contract_hash": "48d6fa6afabcb99446d02b7a8e8ac121ca82fad67b18eaecb77e0b3659982303",
+    "acceptance_ids": [
+      "B01:visible empty state",
+      "B01:project.create HTTP200",
+      "B01:real nonempty project identity",
+      "B01:created project name visible",
+      "B01:created identity selected",
+      "B01:selected state fetched by UI",
+      "B01:selected state available",
+      "B01:name remains visible after refresh",
+      "B01:selection remains after refresh",
+      "B01:refresh fetches selected state",
+      "B01:never requests state without identity",
+      "B01:no JavaScript initialization errors",
+      "B01:no unexpected HTTP failures"
+    ],
+    "artifact_hashes": [
+      [
+        "main.py#project-bootstrap",
+        "deff9456978cd2f543e9293a7d25544a5d13eb83a5a91d78661511be46cb097a"
+      ],
+      [
+        "main.py#project-dom",
+        "858db31a47eb6b00e4bb17010101b2b5a9613606a1814e25fa734535df28a24e"
+      ],
+      [
+        "main.py#shared-browser-runtime",
+        "2f49e529cd52c18784cddf622c6970b87bd78fb1567ee9181ecddf095e73300d"
+      ],
+      [
+        "main.py#shared-render-helpers",
+        "bc3bc0b42da3e58f1477d16fb0fb28d644e9e0219b65928213be267216a7fd63"
+      ],
+      [
+        "main.py#startup",
+        "9019c71160b426d8c008d243ee9115f0504996b69ac9ece16a855a9738dbfa1a"
+      ],
+      [
+        "main.py#state-endpoint",
+        "da2028244ecacd5b6bab72df36b4b458d8e6d0fbc627ff931b30c3449a169ec9"
+      ]
+    ],
+    "checker_hashes": [
+      [
+        "B01.browser",
+        "b90a255391c9318600f9a544f1226f93a8e1e6f55cf666b9d6da73c23208642d"
+      ]
+    ],
+    "known_limits": [
+      "Only B01 is certified; M12/B02-B11 not verified.",
+      "Browser refresh tested; full product restart is a later block."
+    ],
+    "evidence_refs": [
+      "iter132-promotion-studio/promotion-05/evidence/fd24a3848844dc6f44b5e1855dab23e7f209b3d5ae223badacae61bb359eab98.json"
+    ],
+    "created_at": "2026-11-04T09:04:21.085882+00:00",
+    "invalidated": false
+  },
+  "certificate_fingerprint": "6ae36bfd54f945889e4d5764d9b6e32934861c845e55539d3ab3e5f69fd919da",
+  "block": {
+    "block_id": "B01",
+    "capability": "ProjectBootstrapBlock",
+    "input_ports": [
+      {
+        "port_id": "BrowserProjectAction",
+        "version": "1",
+        "direction": "input",
+        "contract": {
+          "schema_json": "{\"properties\":{\"action\":{\"enum\":[\"start\",\"create\",\"select\",\"refresh\"],\"type\":\"string\"}},\"required\":[\"action\"],\"type\":\"object\"}",
+          "semantic": "Browser project lifecycle; project.list first, real project.create identity, valid selected project_id before state request."
+        },
+        "required": true,
+        "default_json": "null",
+        "compatibility_policy": "structural-v1"
+      }
+    ],
+    "output_ports": [
+      {
+        "port_id": "SelectedProjectView",
+        "version": "1",
+        "direction": "output",
+        "contract": {
+          "schema_json": "{\"properties\":{\"project_id\":{\"type\":[\"string\",\"null\"]},\"visible_name\":{\"type\":\"string\"}},\"required\":[\"project_id\",\"visible_name\"],\"type\":\"object\"}",
+          "semantic": "Real empty/list UI; created name visible and selected; refresh restores validated selection and fetches matching project state; no initialization errors."
+        },
+        "required": true,
+        "default_json": "null",
+        "compatibility_policy": "structural-v1"
+      }
+    ],
+    "effect_contract": {
+      "reads": [
+        "M1.project.get",
+        "M1.project.list",
+        "selected-project browser storage"
+      ],
+      "writes": [
+        "M1.project.create",
+        "project DOM",
+        "selected-project browser storage"
+      ],
+      "external_effects": [
+        "loopback HTTP only"
+      ],
+      "persistence": "existing M1 store and browser selection; refresh tested",
+      "idempotency": "project creation not promised idempotent",
+      "concurrency": "existing ThreadingHTTPServer unchanged; GUI sequential awaited requests",
+      "ordering": "list before selection before state",
+      "rollback": "source bounded patch journal; isolated acceptance data"
+    },
+    "variants": [
+      {
+        "variant_id": "B01-9edfb2e6",
+        "artifacts": [
+          [
+            "main.py#project-bootstrap",
+            "deff9456978cd2f543e9293a7d25544a5d13eb83a5a91d78661511be46cb097a"
+          ],
+          [
+            "main.py#project-dom",
+            "858db31a47eb6b00e4bb17010101b2b5a9613606a1814e25fa734535df28a24e"
+          ],
+          [
+            "main.py#shared-browser-runtime",
+            "2f49e529cd52c18784cddf622c6970b87bd78fb1567ee9181ecddf095e73300d"
+          ],
+          [
+            "main.py#shared-render-helpers",
+            "bc3bc0b42da3e58f1477d16fb0fb28d644e9e0219b65928213be267216a7fd63"
+          ],
+          [
+            "main.py#startup",
+            "9019c71160b426d8c008d243ee9115f0504996b69ac9ece16a855a9738dbfa1a"
+          ],
+          [
+            "main.py#state-endpoint",
+            "da2028244ecacd5b6bab72df36b4b458d8e6d0fbc627ff931b30c3449a169ec9"
+          ]
+        ],
+        "status": "VERIFIED"
+      }
+    ],
+    "active_variant": "B01-9edfb2e6",
+    "certificate_ref": null
+  },
+  "source_sha256_at_verification": "9edfb2e6f74a325c9c6375bff9dcb91c52026d087e5fa4146dd886ee1e23c1a6",
+  "relevant_section_hashes": {
+    "main.py#project-bootstrap": "deff9456978cd2f543e9293a7d25544a5d13eb83a5a91d78661511be46cb097a",
+    "main.py#project-dom": "858db31a47eb6b00e4bb17010101b2b5a9613606a1814e25fa734535df28a24e",
+    "main.py#startup": "9019c71160b426d8c008d243ee9115f0504996b69ac9ece16a855a9738dbfa1a",
+    "main.py#shared-browser-runtime": "2f49e529cd52c18784cddf622c6970b87bd78fb1567ee9181ecddf095e73300d",
+    "main.py#shared-render-helpers": "bc3bc0b42da3e58f1477d16fb0fb28d644e9e0219b65928213be267216a7fd63",
+    "main.py#state-endpoint": "da2028244ecacd5b6bab72df36b4b458d8e6d0fbc627ff931b30c3449a169ec9"
+  },
+  "neighbor_contract_hashes": {
+    "M1_project_api_source": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+    "selected_state_endpoint": "da2028244ecacd5b6bab72df36b4b458d8e6d0fbc627ff931b30c3449a169ec9"
+  },
+  "evidence_refs": [
+    {
+      "path": "iter132-promotion-studio/promotion-05/evidence/fd24a3848844dc6f44b5e1855dab23e7f209b3d5ae223badacae61bb359eab98.json",
+      "sha256": "7880170d974aad77b282eea38766376270932edae446c3aa65ccda15e570c85f"
+    }
+  ],
+  "invalidation_triggers": [
+    "Any certified section changes",
+    "M1 boundary/implementation changes",
+    "checker identity/qualification changes",
+    "browser/runtime identity becomes incompatible"
+  ],
+  "authority": "Original FileRunStore evidence; VeriArbor Certificate verifies bound block identity; full GoalAcceptance unchanged",
+  "host_business_patches": 0,
+  "canonical_evidence_ref": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/0ac692555556442774b54feec4cce55f37b920076d5312296e1200a8a50d7934.json",
+    "sha256": "09b0f9b8b5e2c64fd1b4cc4cce4a250195692f2d8c667ce93429672fe034e026"
+  }
+}

@@ -1,0 +1,2391 @@
+{
+  "status": "PASS_FOR_RECORDED_SCOPE",
+  "checks": {
+    "backtracking-switch": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "tests/protocol",
+        "tests/test_veriarbor_integration.py",
+        "-q",
+        "--disable-warnings",
+        "--maxfail=2"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T09:35:46.695751+00:00",
+      "seconds": 18.280999999959022,
+      "log_sha256": "f05419302cf6e913bfbd18e3022faa836d000826e62787189a52d6a55b7fdc8e"
+    },
+    "block-port-core-substitution": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_*.py",
+        "-q"
+      ],
+      "cwd": "D:\\VeriArbor",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T16:46:14.142851+00:00",
+      "seconds": 0.5,
+      "log_sha256": "259d48f8466e216391e45032de75c237746d9fe6c4b23f8a28f0f4d55d174700"
+    },
+    "block-port-core-v1": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-p",
+        "test_*.py",
+        "-v"
+      ],
+      "cwd": "D:\\VeriArbor",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T16:37:29.353503+00:00",
+      "seconds": 0.5320000000065193,
+      "log_sha256": "3d93d59d0b8844682206a631d2c7eb33364ac95935142d1993fb96468807f1ea"
+    },
+    "block-port-dedup-smoke": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_block_adapter.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T16:43:00.427212+00:00",
+      "seconds": 1.0,
+      "log_sha256": "59a98bac772ea432c64e42a38b68bb2d4a26595bebb177d7b28c8a8e0f1bf98a"
+    },
+    "block-port-direction-gate": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/product_direction_gate.py"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T16:50:46.772837+00:00",
+      "seconds": 9.311999999976251,
+      "log_sha256": "0adf4b9dcb9ec18efd6555a7085c498243309e832d7fc36aa3b285f52ae57ee1"
+    },
+    "block-port-direction-v2": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/product_direction_gate.py"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T17:30:13.476246+00:00",
+      "seconds": 9.297000000020489,
+      "log_sha256": "0adf4b9dcb9ec18efd6555a7085c498243309e832d7fc36aa3b285f52ae57ee1"
+    },
+    "block-port-host-regression": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/protocol",
+        "tests/agent",
+        "tests/test_veriarbor_block_adapter.py",
+        "tests/telemetry/test_acv4_independent.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 1,
+      "status": "FAIL",
+      "timestamp": "2026-11-03T16:47:10.410452+00:00",
+      "seconds": 66.98399999999674,
+      "log_sha256": "6dfb29a2f7ee34201fb3515e26e6c0e2466d17e8538fc4bc14be19d945078a0f"
+    },
+    "block-port-host-regression-v2": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/protocol",
+        "tests/agent",
+        "tests/test_veriarbor_block_adapter.py",
+        "tests/telemetry/test_acv4_independent.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T16:49:07.006639+00:00",
+      "seconds": 106.31300000002375,
+      "log_sha256": "b7c3e076247d8f87c22b85ace3b52230ad5f442c5b328fc910f8434d4b36150e"
+    },
+    "block-port-host-smoke": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_block_adapter.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T16:41:58.772074+00:00",
+      "seconds": 1.0,
+      "log_sha256": "e6aeb355a594bb13bb226cfc8a7f772aeb6e4a5eb3169796e5256594abd44044"
+    },
+    "block-port-novelty-focused": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_provider_novelty.py",
+        "tests/providers/test_effect_reconciled_request.py",
+        "tests/providers/test_max_escalation.py",
+        "tests/test_veriarbor_substitution_provenance.py",
+        "tests/agent/test_acceptance_projection_recovery.py",
+        "tests/telemetry/test_acv4_independent.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 1,
+      "status": "FAIL",
+      "timestamp": "2026-11-03T17:22:06.821120+00:00",
+      "seconds": 14.061999999976251,
+      "log_sha256": "bca7914cbc2ad20579bb7d074bbeb40515b0ae890e2f8cad24fe5163e1076117"
+    },
+    "block-port-novelty-focused-v2": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_provider_novelty.py",
+        "tests/providers/test_effect_reconciled_request.py",
+        "tests/providers/test_max_escalation.py",
+        "tests/test_veriarbor_substitution_provenance.py",
+        "tests/agent/test_acceptance_projection_recovery.py",
+        "tests/telemetry/test_acv4_independent.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T17:29:09.067675+00:00",
+      "seconds": 14.952999999979511,
+      "log_sha256": "301242006323f8d502db02bfd10963c93f1b608edb8a9ec94bc2099a11045a89"
+    },
+    "block-port-projection-regression": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_block_adapter.py",
+        "tests/agent/test_acceptance_projection_recovery.py",
+        "tests/agent/test_metadata_refresh_without_verdict.py",
+        "tests/telemetry/test_acv4_independent.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T17:02:50.966684+00:00",
+      "seconds": 11.48399999999674,
+      "log_sha256": "e0916e071554c7f67eb53d4c332c8c238325c9682953679cb28e99e77e4fd9f4"
+    },
+    "block-port-provider-provenance": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_provider_novelty.py",
+        "tests/providers",
+        "tests/agent/test_acceptance_projection_recovery.py",
+        "tests/telemetry/test_acv4_independent.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 1,
+      "status": "FAIL",
+      "timestamp": "2026-11-03T17:22:23.516786+00:00",
+      "seconds": 196.48500000004424,
+      "log_sha256": "566fb8ef969691067eabaf99b24aa80916bb5e35805ac8c9f07523b78e6137b9"
+    },
+    "block-port-runtime-regression": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/runtime",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T16:51:23.223544+00:00",
+      "seconds": 103.04700000002049,
+      "log_sha256": "b3c7373b11708426e7964a96c5a6f9c77dac3fd58d187745c77b8d20beb8570f"
+    },
+    "bounded-continuation-guidance": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_guidance.py",
+        "tests/protocol/test_context_pack.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 4,
+      "status": "FAIL",
+      "timestamp": "2026-11-03T18:03:39.816461+00:00",
+      "seconds": 0.7189999999827705,
+      "log_sha256": "e2f71ad0e19a8f3c55bd8bc99cea1f0019217505a1a10d75a8a0bb97d1f1a094"
+    },
+    "bounded-continuation-guidance-v2": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_guidance.py",
+        "tests/test_agent_context_pack.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T18:04:27.306606+00:00",
+      "seconds": 1.1570000000065193,
+      "log_sha256": "59c6885b71fc957e52731cca01755647de237c63e3f3448654a65c826b45d940"
+    },
+    "bounded-guidance-direction": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/product_direction_gate.py"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T18:05:22.719966+00:00",
+      "seconds": 9.813000000023749,
+      "log_sha256": "0adf4b9dcb9ec18efd6555a7085c498243309e832d7fc36aa3b285f52ae57ee1"
+    },
+    "bounded-patch-batch54": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/executors/test_bounded_patch_policy.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-04T09:44:19.204210+00:00",
+      "seconds": 1.827999999979511,
+      "log_sha256": "c59ca7838ef20c6e6cf8a1806418dcc65bf086586012a522ce3fbb4f6d0b3a97"
+    },
+    "bounded-patch-batch54-existing": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/protocol/test_semantic_ir.py",
+        "tests/protocol/test_semantic_integration.py",
+        "tests/protocol/test_worker_unchanged_write.py",
+        "tests/executors/test_verified_dependency_inputs.py",
+        "tests/protocol/test_worker_repair_dependency_projection.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 1,
+      "status": "FAIL",
+      "timestamp": "2026-11-04T09:45:04.358994+00:00",
+      "seconds": 2.8290000000270084,
+      "log_sha256": "ab771b1a1a6ecefd353d9f0f34d7a7f5986bc40ef833717836fd071c4aac305b"
+    },
+    "bounded-patch-batch54-existing-fixed": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/protocol/test_semantic_ir.py",
+        "tests/protocol/test_semantic_integration.py",
+        "tests/protocol/test_worker_unchanged_write.py",
+        "tests/executors/test_verified_dependency_inputs.py",
+        "tests/protocol/test_worker_repair_dependency_projection.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-04T09:47:05.400182+00:00",
+      "seconds": 3.047000000020489,
+      "log_sha256": "2e1189fb02bd66a9e8145a9090377e724ec34b20dfb1b530ae73e6bdc2590ea0"
+    },
+    "bounded-patch-batch54-fixture": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/protocol/test_worker_repair_dependency_projection.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-04T09:45:20.937595+00:00",
+      "seconds": 1.6410000000032596,
+      "log_sha256": "3ee1f66d07622e79e9eb91bd22a2ae8561f6899c6da2d2b3a3f45ad1baac3894"
+    },
+    "bounded-patch-gate49": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/executors/test_bounded_patch_policy.py",
+        "tests/executors/test_verified_dependency_inputs.py",
+        "tests/protocol/test_worker_repair_dependency_projection.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-04T08:41:49.821330+00:00",
+      "seconds": 5.14000000001397,
+      "log_sha256": "ec9b473c3b79f93197985d0fd6492f0b508749dcac915876f953e14fc2ba9d2f"
+    },
+    "bounded-patch-gate50": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/executors/test_bounded_patch_policy.py",
+        "tests/executors/test_verified_dependency_inputs.py",
+        "tests/protocol/test_worker_repair_dependency_projection.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-04T08:42:55.846386+00:00",
+      "seconds": 2.9540000000270084,
+      "log_sha256": "48b1c85adc1275d750ed03c990822c6c65f35feeed52c199c5225204fbb5aa1a"
+    },
+    "certificate-adapter": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_integration.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T09:33:26.750522+00:00",
+      "seconds": 1.0150000000139698,
+      "log_sha256": "eda0ac36c6d475a096ea78d369212bc5f540f4f77d5f9f784811c030aad88fc7"
+    },
+    "certificate-context": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "tests/protocol",
+        "tests/test_veriarbor_integration.py",
+        "-q",
+        "--disable-warnings",
+        "--maxfail=2"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T09:34:27.314377+00:00",
+      "seconds": 20.18800000002375,
+      "log_sha256": "cc5af0c1a041a32bc6bd4c50f9c0963040c37f6b3d7b174f995a24a35c37b327"
+    },
+    "core-delivery-regression": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_provider_post_build_finalize.py",
+        "tests/test_canonical_finalization_mainline.py",
+        "tests/test_production_candidate_provenance.py",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T13:15:07.319112+00:00",
+      "seconds": 27.98399999999674,
+      "log_sha256": "7b3ac5e6cc0dc9ae3c179fa28c2734d86058cff1864fb68e9628324d40705134"
+    },
+    "core-no-implicit-install": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_no_implicit_dependency_install.py",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 1,
+      "status": "FAIL",
+      "timestamp": "2026-11-03T13:11:53.057437+00:00",
+      "seconds": 5.078000000037719,
+      "log_sha256": "aa3fc2322390c7c70cfe1840f58ca9b2b875120bd94b34190e5e2cd4829e000c"
+    },
+    "core-no-implicit-install-v2": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_no_implicit_dependency_install.py",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T13:14:23.678307+00:00",
+      "seconds": 4.438000000023749,
+      "log_sha256": "23da6e844c9a89bdc7a8f8491c197fc64cf6a2030589548f43dd8578081df848"
+    },
+    "current-scoped-checker-coverage": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/state/test_current_scoped_coverage.py",
+        "tests/state/test_scoped_checker_revision.py",
+        "tests/state/test_checker_revision.py",
+        "tests/test_veriarbor_verification.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 4,
+      "status": "FAIL",
+      "timestamp": "2026-11-03T19:28:37.742836+00:00",
+      "seconds": 0.7810000000172295,
+      "log_sha256": "cdb852c69b1a0514a9856fefb5ef195b9ce60e15f2581c12cf899d53596eae1d"
+    },
+    "current-scoped-checker-coverage-v2": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/state/test_current_scoped_coverage.py",
+        "tests/state/test_scoped_checker_revision.py",
+        "tests/state/test_checker_revision.py",
+        "tests/test_veriarbor_block_adapter.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T19:29:03.983137+00:00",
+      "seconds": 10.89100000000326,
+      "log_sha256": "27fa36d817ad280f2090f6c00d1ae42ab5c38f4a3eccd0e7281b6ca934df6017"
+    },
+    "declared-handoff-gate": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "cwd": "D:\\VeriArbor",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T10:00:56.932070+00:00",
+      "seconds": 0.3440000000409782,
+      "log_sha256": "b73fd8e339882923f349d7066a5e3a007b666bc5a23033ac0db9aa7bebf3649f"
+    },
+    "dependency-owner-direction-gate": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/product_direction_gate.py"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T14:15:54.706202+00:00",
+      "seconds": 30.68800000002375,
+      "log_sha256": "0adf4b9dcb9ec18efd6555a7085c498243309e832d7fc36aa3b285f52ae57ee1"
+    },
+    "dependency-owner-protocol-regression": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/protocol",
+        "tests/agent/test_milestone_dependency_reads.py",
+        "tests/agent/test_dependency_ready_admission.py",
+        "tests/agent/test_milestone_session.py",
+        "tests/agent/test_goal_acceptance_integration.py",
+        "tests/agent/test_acceptance_projection_recovery.py",
+        "tests/executors/test_verified_dependency_inputs.py",
+        "tests/test_veriarbor_dependency_owner_repair.py",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--disable-warnings"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T14:15:46.876533+00:00",
+      "seconds": 22.79699999996228,
+      "log_sha256": "b0ba9281bf2ccce0e97a380305bfd8362dcb2c69f973a002852d5fed4e76f2b6"
+    },
+    "dependency-owner-repair": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_dependency_owner_repair.py",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 1,
+      "status": "FAIL",
+      "timestamp": "2026-11-03T14:13:49.840732+00:00",
+      "seconds": 2.0310000000172295,
+      "log_sha256": "b8433c1af7f2dd4620d70876d99c45657718771dcd8f1ebfdd519772d95ec20c"
+    },
+    "dependency-owner-repair-v2": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_dependency_owner_repair.py",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T14:14:41.380101+00:00",
+      "seconds": 1.8439999999827705,
+      "log_sha256": "fe170b50efc1935dffe25331ed847a1083a8cbf0904a1e07186869eaade3f255"
+    },
+    "direction-gate": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "scripts/product_direction_gate.py"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T09:41:38.501346+00:00",
+      "seconds": 17.31199999997625,
+      "log_sha256": "0adf4b9dcb9ec18efd6555a7085c498243309e832d7fc36aa3b285f52ae57ee1"
+    },
+    "direction-gate43": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-X",
+        "utf8",
+        "scripts/product_direction_gate.py"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-04T06:08:04.783081+00:00",
+      "seconds": 42.15600000001723,
+      "log_sha256": "0adf4b9dcb9ec18efd6555a7085c498243309e832d7fc36aa3b285f52ae57ee1"
+    },
+    "direction-gate45": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-X",
+        "utf8",
+        "scripts/product_direction_gate.py"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-04T06:26:56.599156+00:00",
+      "seconds": 17.01600000000326,
+      "log_sha256": "0adf4b9dcb9ec18efd6555a7085c498243309e832d7fc36aa3b285f52ae57ee1"
+    },
+    "direction-gate50": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/product_direction_gate.py"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-04T08:44:02.640668+00:00",
+      "seconds": 30.530999999959022,
+      "log_sha256": "0adf4b9dcb9ec18efd6555a7085c498243309e832d7fc36aa3b285f52ae57ee1"
+    },
+    "evidence-array-diagnostic": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "tests/protocol/test_hypothesis_field_correction.py",
+        "tests/protocol/test_semantic_progress.py",
+        "tests/protocol/test_strategy_field_correction.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T09:39:07.880681+00:00",
+      "seconds": 1.2339999999967404,
+      "log_sha256": "c63da91720ee418cc1b8639cee6635e3d1ebb31f7a297e39dd393f3e967e3096"
+    },
+    "explicit-write-operation": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_write_operation_policy.py",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 1,
+      "status": "FAIL",
+      "timestamp": "2026-11-03T14:53:00.392800+00:00",
+      "seconds": 2.9839999999967404,
+      "log_sha256": "28d3e6ef018161815c23170d8b0008cc8b1e99c07039e07516408c1a0111a505"
+    },
+    "explicit-write-operation-v2": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_write_operation_policy.py",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T15:02:45.143848+00:00",
+      "seconds": 1.25,
+      "log_sha256": "cc3748ddd64c25121333402d0cdb7c9733f3f0f33f6353f70f65bbf92942eb00"
+    },
+    "explicit-write-protocol-regression": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/protocol",
+        "tests/agent/test_milestone_dependency_reads.py",
+        "tests/agent/test_dependency_ready_admission.py",
+        "tests/agent/test_milestone_session.py",
+        "tests/agent/test_goal_acceptance_integration.py",
+        "tests/agent/test_acceptance_projection_recovery.py",
+        "tests/executors/test_verified_dependency_inputs.py",
+        "tests/test_veriarbor_dependency_owner_repair.py",
+        "tests/test_veriarbor_scoped_contract_identity.py",
+        "tests/test_veriarbor_write_operation_policy.py",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--disable-warnings"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T15:03:21.635453+00:00",
+      "seconds": 26.42099999997299,
+      "log_sha256": "3f705d1b95fd60ab6e729bc3a6346bae8bbec9ba428510e89cfdf592e2cb3237"
+    },
+    "full-write-inputs45": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "pytest",
+        "tests/executors/test_verified_dependency_inputs.py",
+        "tests/protocol/test_worker_repair_dependency_projection.py",
+        "tests/protocol/test_worker_redundant_read.py",
+        "tests/protocol/test_worker_unchanged_write.py",
+        "tests/protocol/test_strategy_constraint_correction.py",
+        "tests/protocol/test_semantic_integration.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 1,
+      "status": "FAIL",
+      "timestamp": "2026-11-04T06:24:49.435493+00:00",
+      "seconds": 2.625,
+      "log_sha256": "c5c9ce85c03f97e649594eaf0c2a77ab369b47fc2d011ce367eab3ee37ea29f2"
+    },
+    "full-write-inputs45-v2": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "pytest",
+        "tests/executors/test_verified_dependency_inputs.py",
+        "tests/protocol/test_worker_repair_dependency_projection.py",
+        "tests/protocol/test_worker_redundant_read.py",
+        "tests/protocol/test_worker_unchanged_write.py",
+        "tests/protocol/test_strategy_constraint_correction.py",
+        "tests/protocol/test_semantic_integration.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 1,
+      "status": "FAIL",
+      "timestamp": "2026-11-04T06:25:10.811280+00:00",
+      "seconds": 2.2040000000270084,
+      "log_sha256": "8489d9695f78859b488e14f08a705b23b6a722912319c0c4a214695df88da6e3"
+    },
+    "full-write-inputs45-v3": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "pytest",
+        "tests/executors/test_verified_dependency_inputs.py",
+        "tests/protocol/test_worker_repair_dependency_projection.py",
+        "tests/protocol/test_worker_redundant_read.py",
+        "tests/protocol/test_worker_unchanged_write.py",
+        "tests/protocol/test_strategy_constraint_correction.py",
+        "tests/protocol/test_semantic_integration.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-04T06:25:24.358623+00:00",
+      "seconds": 2.25,
+      "log_sha256": "bbfd484422da32bb46635859538b84ebcef8b91d78aeee5be6bb2aca8053eebc"
+    },
+    "host-first-three": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "tests/agent/test_goal_acceptance_integration.py",
+        "tests/agent/test_acceptance_projection_recovery.py",
+        "tests/protocol",
+        "-q",
+        "--disable-warnings",
+        "--maxfail=3"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T09:32:37.848791+00:00",
+      "seconds": 27.29699999996228,
+      "log_sha256": "16c194748b5bbe5f21b0184fe6f730adc46c78ceb8293cb9bf89768b292ec1b6"
+    },
+    "host-original-interpreter": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/agent",
+        "tests/state",
+        "tests/runtime",
+        "tests/protocol",
+        "tests/test_veriarbor_integration.py",
+        "-q",
+        "--disable-warnings",
+        "--maxfail=4"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 4294967295,
+      "status": "FAIL",
+      "timestamp": "2026-11-03T09:56:35.720918+00:00",
+      "seconds": 268.39100000000326,
+      "log_sha256": "f0f028e6fc75114fcf57d8cc5127ec17c02abb167ec62e4ee1c3d7c63ba94330"
+    },
+    "host-original-interpreter-targeted": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/agent/test_goal_acceptance_integration.py",
+        "tests/runtime/test_parallel_qualification.py",
+        "tests/test_veriarbor_integration.py",
+        "-q",
+        "--disable-warnings",
+        "--maxfail=3"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T09:57:07.761642+00:00",
+      "seconds": 31.76600000000326,
+      "log_sha256": "e04258aa8694a06eef2c032e1a2172021d28e0195766f5b262246980bff29ba3"
+    },
+    "isolated-utf8": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_test_encoding.py",
+        "tests/test_real_test_execution.py",
+        "-q",
+        "--tb=short"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 1,
+      "status": "FAIL",
+      "timestamp": "2026-11-03T12:00:05.938777+00:00",
+      "seconds": 25.110000000044238,
+      "log_sha256": "6ce520e3803e84dbd7bb4b32a928be01c2073e5c819d7f8667ad98b0362d53ae"
+    },
+    "isolated-utf8-v2": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_test_encoding.py",
+        "tests/test_real_test_execution.py",
+        "-q",
+        "--tb=short"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T12:01:45.159001+00:00",
+      "seconds": 25.06300000002375,
+      "log_sha256": "b7f540b3ea0887f6d4cf4759178a1ec2b8c645440d411abf0bfe3032ac982000"
+    },
+    "library-core": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "cwd": "D:\\VeriArbor",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T09:41:39.189629+00:00",
+      "seconds": 0.3130000000237487,
+      "log_sha256": "b08aa2f0cebd619f770e9fa7f9cea3ff1d4c0d6ba74b381eb2d7d1173b284c57"
+    },
+    "library-graph-properties": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "cwd": "D:\\VeriArbor",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T09:47:46.867614+00:00",
+      "seconds": 0.4529999999795109,
+      "log_sha256": "551ece3594b63d21fb63123946170b9ed973b551f89b1dd931b37c139c338759"
+    },
+    "m9-generated-tests": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-I",
+        "-X",
+        "utf8",
+        "-m",
+        "pytest",
+        "tests/test_milestone_c511a8ebd29978f5ba97.py",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp=F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\m9-generated-tests"
+      ],
+      "cwd": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate",
+      "exit_code": 1,
+      "status": "FAIL",
+      "timestamp": "2026-11-03T12:59:41.052119+00:00",
+      "seconds": 1.3910000000032596,
+      "log_sha256": "9d058a4d10d72353267165e7974fa2c15513ba1196cb30604087de7c43c685f7"
+    },
+    "m9-generated-tests-v2": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-I",
+        "-X",
+        "utf8",
+        "-m",
+        "pytest",
+        "tests/test_milestone_c511a8ebd29978f5ba97.py",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--basetemp=F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\m9-generated-tests"
+      ],
+      "cwd": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T12:59:53.695655+00:00",
+      "seconds": 2.9689999999827705,
+      "log_sha256": "ec186ffac9f31c3578e13b7e97a0f65112862c7eb992fdd79e22e4a139a1a2ce"
+    },
+    "metadata-only-refresh": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/agent/test_metadata_refresh_without_verdict.py",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 1,
+      "status": "FAIL",
+      "timestamp": "2026-11-03T15:41:57.601716+00:00",
+      "seconds": 2.5160000000032596,
+      "log_sha256": "9997eb75c40aead7cf574004c287a6ab7e2eddfa0b6e312b76573af5740546cc"
+    },
+    "metadata-only-refresh-v2": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/agent/test_metadata_refresh_without_verdict.py",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 1,
+      "status": "FAIL",
+      "timestamp": "2026-11-03T15:42:22.208956+00:00",
+      "seconds": 2.5,
+      "log_sha256": "dc77ea59fba572ac442c6c982835f3beede1ec649aa72cbc9345c723cbcb731a"
+    },
+    "metadata-only-refresh-v3": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/agent/test_metadata_refresh_without_verdict.py",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T15:43:08.957257+00:00",
+      "seconds": 2.4380000000237487,
+      "log_sha256": "8c92c5dabf5c73f78532eaa0d427e47f7e16635a215b40e446a1500db7eb452e"
+    },
+    "metadata-refresh-direction-gate": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/product_direction_gate.py"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T15:46:29.606695+00:00",
+      "seconds": 21.0,
+      "log_sha256": "0adf4b9dcb9ec18efd6555a7085c498243309e832d7fc36aa3b285f52ae57ee1"
+    },
+    "metadata-refresh-integration-regression": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/protocol",
+        "tests/agent",
+        "tests/executors/test_verified_dependency_inputs.py",
+        "tests/test_veriarbor_dependency_owner_repair.py",
+        "tests/test_veriarbor_scoped_contract_identity.py",
+        "tests/test_veriarbor_write_operation_policy.py",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--disable-warnings"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T15:46:07.897020+00:00",
+      "seconds": 178.09299999999348,
+      "log_sha256": "e091189102b58aecc1cfe9806aeadfb305252d6fedc121ae8392c5126a60d56a"
+    },
+    "milestone-contract-novelty": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_milestone_novelty.py",
+        "tests/test_veriarbor_provider_novelty.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T18:48:43.319671+00:00",
+      "seconds": 1.5320000000065193,
+      "log_sha256": "ccaa2abe227dd841667010a9bdaffd58a98845ac98754a199e857fd3f7db79a3"
+    },
+    "parallel-switch": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "tests/runtime/test_dag_runner.py",
+        "tests/runtime/test_parallel_qualification.py",
+        "tests/runtime/test_parallel_processes.py",
+        "tests/test_veriarbor_integration.py",
+        "-q",
+        "--disable-warnings",
+        "--maxfail=3"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T09:36:51.993894+00:00",
+      "seconds": 34.78100000001723,
+      "log_sha256": "78988b5db85ed5819b5bfc36f73fddb9b6c6804cc277fff4b580068a18d5b465"
+    },
+    "policies-integrated": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_integration.py",
+        "tests/runtime/test_parallel_qualification.py",
+        "tests/protocol",
+        "-q",
+        "--disable-warnings",
+        "--maxfail=2"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T09:38:40.629627+00:00",
+      "seconds": 41.40600000001723,
+      "log_sha256": "2cdb2ff142e67fcf08d40a4369113f194130f22c26769a94d40c8f34611d451e"
+    },
+    "review-switch": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-m",
+        "pytest",
+        "tests/protocol",
+        "tests/runtime/test_feedback_acceptance_statistics.py",
+        "-q",
+        "--disable-warnings",
+        "--maxfail=2"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T09:37:41.708130+00:00",
+      "seconds": 18.06199999997625,
+      "log_sha256": "5d11254659ee369835b604943f977dfa9a8676e0abca9dfe13459ac09597d76a"
+    },
+    "scoped-checker-direction": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "scripts/product_direction_gate.py"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T17:44:17.350190+00:00",
+      "seconds": 10.10899999999674,
+      "log_sha256": "0adf4b9dcb9ec18efd6555a7085c498243309e832d7fc36aa3b285f52ae57ee1"
+    },
+    "scoped-checker-revision": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/state/test_scoped_checker_revision.py",
+        "tests/state/test_checker_revision.py",
+        "tests/application/software_project/test_milestone_consumer.py",
+        "tests/test_veriarbor_substitution_provenance.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 1,
+      "status": "FAIL",
+      "timestamp": "2026-11-03T17:41:57.617314+00:00",
+      "seconds": 10.03100000001723,
+      "log_sha256": "5c2adb5e8e233581130d0dc2019d5700e85d1c5e13376708612efe7622342004"
+    },
+    "scoped-checker-revision-v2": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/state/test_scoped_checker_revision.py",
+        "tests/state/test_checker_revision.py",
+        "tests/application/software_project/test_milestone_consumer.py",
+        "tests/test_veriarbor_substitution_provenance.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T17:43:18.702411+00:00",
+      "seconds": 10.577999999979511,
+      "log_sha256": "a0e223435fa4fb8f68050b3a9985ab9301482f6bf554ba4afc60d190c4599981"
+    },
+    "scoped-contract-identity": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_scoped_contract_identity.py",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 1,
+      "status": "FAIL",
+      "timestamp": "2026-11-03T14:28:04.061573+00:00",
+      "seconds": 1.5,
+      "log_sha256": "a36ffbf99bccd8afafa38b2854866663ea2f4fce9ea83e42808d8ffe76280457"
+    },
+    "scoped-contract-identity-v2": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_veriarbor_scoped_contract_identity.py",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T14:28:27.982012+00:00",
+      "seconds": 1.375,
+      "log_sha256": "6fd199362623d2521feb1274661a67487e710bceb3c8344c5491fe4a8b05b053"
+    },
+    "scoped-contract-protocol-regression": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/protocol",
+        "tests/agent/test_milestone_dependency_reads.py",
+        "tests/agent/test_dependency_ready_admission.py",
+        "tests/agent/test_milestone_session.py",
+        "tests/agent/test_goal_acceptance_integration.py",
+        "tests/agent/test_acceptance_projection_recovery.py",
+        "tests/executors/test_verified_dependency_inputs.py",
+        "tests/test_veriarbor_dependency_owner_repair.py",
+        "tests/test_veriarbor_scoped_contract_identity.py",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--disable-warnings"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T14:29:17.647429+00:00",
+      "seconds": 21.71899999998277,
+      "log_sha256": "c1501f420fb2931f61024e6da1d9355a2c15617fec8ba3e670355f36888393bd"
+    },
+    "scoped-observation51": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/agent/test_scoped_observation_subjects.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-04T09:26:43.498070+00:00",
+      "seconds": 1.0940000000409782,
+      "log_sha256": "9ba081880e51bdfef80694dbd655cd5b4e5753da3eebefbbe9fc562ba50a56f4"
+    },
+    "scoped-observation52": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/agent/test_scoped_observation_subjects.py",
+        "tests/state/test_observation_declaration_completion.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-04T09:29:19.376715+00:00",
+      "seconds": 1.1560000000172295,
+      "log_sha256": "ee935de5eac3a29b5d67fef670e10a2144ce414b32adf67f4e6c5ffc8db0cd28"
+    },
+    "scoped-observation52-existing": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/test_goal_acceptance.py",
+        "tests/agent/test_milestone_session.py",
+        "tests/agent/test_acceptance_projection_recovery.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-04T09:30:25.849222+00:00",
+      "seconds": 16.67200000002049,
+      "log_sha256": "a26a5e6e6abc5d61449a7a26dc03a1baacf637a5c57e66bac067352b87102929"
+    },
+    "semantic-anchor": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/protocol",
+        "-q",
+        "--disable-warnings"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T10:27:39.087727+00:00",
+      "seconds": 19.625,
+      "log_sha256": "a8daec1124bd07a414869245790272534a19e5906c9f38bc1114a73f3e9e72ce"
+    },
+    "semantic-json-envelope43": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "pytest",
+        "tests/providers/test_gateway_client.py",
+        "tests/protocol/test_semantic_ir.py",
+        "tests/protocol/test_semantic_integration.py",
+        "tests/protocol/test_semantic_progress.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-04T06:05:36.737556+00:00",
+      "seconds": 14.936999999976251,
+      "log_sha256": "1ec76a99bbaadc6eb5b358255bf700878afc3bbc3ab2239576a11440ce1dcaa6"
+    },
+    "semantic-json-envelope43-venv": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "pytest",
+        "tests/providers/test_gateway_client.py",
+        "tests/protocol/test_semantic_ir.py",
+        "tests/protocol/test_semantic_integration.py",
+        "tests/protocol/test_semantic_progress.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 1,
+      "status": "FAIL",
+      "timestamp": "2026-11-04T06:07:16.170168+00:00",
+      "seconds": 14.48399999999674,
+      "log_sha256": "1df56ef525afa8d240febb756e69f6465b7085ed955de262e82e007013459fd3"
+    },
+    "semantic-json-envelope43-venv-complete": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "pytest",
+        "tests/providers/test_gateway_client.py",
+        "tests/protocol/test_semantic_ir.py",
+        "tests/protocol/test_semantic_integration.py",
+        "tests/protocol/test_semantic_progress.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-04T06:08:47.147129+00:00",
+      "seconds": 14.46799999999348,
+      "log_sha256": "82b7c22fb159b9b42ce02db9b703d823dac2d0f648462b9b59a91e0933edad40"
+    },
+    "semantic-json-transport42": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-X",
+        "utf8",
+        "-m",
+        "pytest",
+        "tests/providers/test_gateway_client.py",
+        "tests/protocol/test_semantic_ir.py",
+        "tests/protocol/test_semantic_integration.py",
+        "tests/protocol/test_semantic_progress.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 1,
+      "status": "FAIL",
+      "timestamp": "2026-11-04T06:03:43.153597+00:00",
+      "seconds": 21.54700000002049,
+      "log_sha256": "2ce7681a31b7a5a33f50bff903b0ddd13108fca5c24a257335bb8725c1fd5512"
+    },
+    "short-anchor-gate55": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/executors/test_bounded_patch_policy.py",
+        "-q"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-04T10:58:20.792080+00:00",
+      "seconds": 18.235000000044238,
+      "log_sha256": "b0a0fba58ae4bd5bb65da791d8fcf857959b6bc05193a424610acbb6a1c1ea09"
+    },
+    "standalone-distribution": {
+      "argv": [
+        "D:\\VeriArbor\\.venv\\Scripts\\python.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "cwd": "D:\\VeriArbor",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T10:06:47.987771+00:00",
+      "seconds": 0.5470000000204891,
+      "log_sha256": "9d157b1bddf4b5bc328a7e0509a737e84af6eedca9148bac4b99103dfb7bb426"
+    },
+    "strategy-constraint-feedback": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/protocol/test_strategy_constraint_correction.py",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 1,
+      "status": "FAIL",
+      "timestamp": "2026-11-03T15:10:43.012421+00:00",
+      "seconds": 1.0619999999762513,
+      "log_sha256": "959d0be796e87e363314ab50da7e10e06aaf40b2babe98fd382d44c0dd427a29"
+    },
+    "strategy-constraint-feedback-v2": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/protocol/test_strategy_constraint_correction.py",
+        "-q",
+        "-p",
+        "no:cacheprovider"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T15:11:00.454346+00:00",
+      "seconds": 0.9380000000237487,
+      "log_sha256": "f2f6334897174b6d7610c7b1de425e41034bc23e9a67766d61ab8a3bf4869ad4"
+    },
+    "strategy-feedback-protocol-regression": {
+      "argv": [
+        "D:\\anaconda\\python.exe",
+        "-m",
+        "pytest",
+        "tests/protocol",
+        "tests/agent/test_milestone_dependency_reads.py",
+        "tests/agent/test_dependency_ready_admission.py",
+        "tests/agent/test_milestone_session.py",
+        "tests/agent/test_goal_acceptance_integration.py",
+        "tests/agent/test_acceptance_projection_recovery.py",
+        "tests/executors/test_verified_dependency_inputs.py",
+        "tests/test_veriarbor_dependency_owner_repair.py",
+        "tests/test_veriarbor_scoped_contract_identity.py",
+        "tests/test_veriarbor_write_operation_policy.py",
+        "-q",
+        "-p",
+        "no:cacheprovider",
+        "--disable-warnings"
+      ],
+      "cwd": "F:\\CGKN-LeanLoop-V1-20261101",
+      "exit_code": 0,
+      "status": "PASS",
+      "timestamp": "2026-11-03T15:11:55.603969+00:00",
+      "seconds": 23.10899999999674,
+      "log_sha256": "bf751def487fe9ea29439d04d9f3e98a092c548d5211d01299f4c9b68861181b"
+    }
+  },
+  "current_replay_identical": true,
+  "legacy_shadow_identical": false,
+  "qualified_v1_shadow_differences": [
+    {
+      "goal_id": "accept-e812ecc43e67c1b1f70a",
+      "old": "INSUFFICIENT_EVIDENCE",
+      "new": "VERIFIED",
+      "substitutions": {
+        "early_main.py": {
+          "old_certificate": "b484e22e8ba9ad811ce7aa2c288f3bd0187b993222d2e2698ee5519736347d4d",
+          "new_certificate": "237c36444071b127a0617bd6adf8f0ab066eb79604ecc854914a9e4b0ca50242",
+          "old_hash": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+          "new_hash": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+          "evidence_refs": [
+            "sha256:f82f5959b346db98c4b668247e27bce860c762b1053b6548dd52a25d914a6ca3"
+          ]
+        },
+        "promotion_publish.py": {
+          "old_certificate": "d0821ad6ca6afcf7a651e051d1d3abe0812439ae0caf624accb1cd7c6c952352",
+          "new_certificate": "237c36444071b127a0617bd6adf8f0ab066eb79604ecc854914a9e4b0ca50242",
+          "old_hash": "bef8809a307cf88ec69c378eaaea5e36821bdd6d95e28d4699b1aafd4037467e",
+          "new_hash": "c3d9f8917f484c7001a5bffe8c8a72bf330a783c3edf8233689a5291373c3592",
+          "evidence_refs": [
+            "sha256:f82f5959b346db98c4b668247e27bce860c762b1053b6548dd52a25d914a6ca3"
+          ]
+        }
+      }
+    },
+    {
+      "goal_id": "accept-f5c7d005f6ae37dd5411",
+      "old": "INSUFFICIENT_EVIDENCE",
+      "new": "VERIFIED",
+      "substitutions": {
+        "early_main.py": {
+          "old_certificate": "b484e22e8ba9ad811ce7aa2c288f3bd0187b993222d2e2698ee5519736347d4d",
+          "new_certificate": "237c36444071b127a0617bd6adf8f0ab066eb79604ecc854914a9e4b0ca50242",
+          "old_hash": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+          "new_hash": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+          "evidence_refs": [
+            "sha256:f82f5959b346db98c4b668247e27bce860c762b1053b6548dd52a25d914a6ca3"
+          ]
+        },
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": {
+          "old_certificate": "0ec308f10c2f7d926323cb846bf14ac7ab4cd628c2d5d6e7eb65759c78ac98b5",
+          "new_certificate": "2673bc1ba9be0fdf21fe3d0a182857a1a9822a328005bea2edbf558de803bdc7",
+          "old_hash": "db223502ff57164389978d41cde5d9f850c756a714f9c8b5fd9085ffea27d511",
+          "new_hash": "fa6720fa72e5e955987349f999c1314360f448310c1fa52d2e63179df741f950",
+          "evidence_refs": [
+            "sha256:56accd41eb3846b972e0b63aa576d653bffc56e5e7548420a44b8793bc36051d"
+          ]
+        },
+        "promotion_publish.py": {
+          "old_certificate": "b484e22e8ba9ad811ce7aa2c288f3bd0187b993222d2e2698ee5519736347d4d",
+          "new_certificate": "237c36444071b127a0617bd6adf8f0ab066eb79604ecc854914a9e4b0ca50242",
+          "old_hash": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024",
+          "new_hash": "c3d9f8917f484c7001a5bffe8c8a72bf330a783c3edf8233689a5291373c3592",
+          "evidence_refs": [
+            "sha256:f82f5959b346db98c4b668247e27bce860c762b1053b6548dd52a25d914a6ca3"
+          ]
+        }
+      }
+    },
+    {
+      "goal_id": "accept-50facb9f04482acba162",
+      "old": "INSUFFICIENT_EVIDENCE",
+      "new": "VERIFIED",
+      "substitutions": {
+        "early_main.py": {
+          "old_certificate": "b484e22e8ba9ad811ce7aa2c288f3bd0187b993222d2e2698ee5519736347d4d",
+          "new_certificate": "237c36444071b127a0617bd6adf8f0ab066eb79604ecc854914a9e4b0ca50242",
+          "old_hash": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+          "new_hash": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+          "evidence_refs": [
+            "sha256:f82f5959b346db98c4b668247e27bce860c762b1053b6548dd52a25d914a6ca3"
+          ]
+        },
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": {
+          "old_certificate": "0ec308f10c2f7d926323cb846bf14ac7ab4cd628c2d5d6e7eb65759c78ac98b5",
+          "new_certificate": "2673bc1ba9be0fdf21fe3d0a182857a1a9822a328005bea2edbf558de803bdc7",
+          "old_hash": "db223502ff57164389978d41cde5d9f850c756a714f9c8b5fd9085ffea27d511",
+          "new_hash": "fa6720fa72e5e955987349f999c1314360f448310c1fa52d2e63179df741f950",
+          "evidence_refs": [
+            "sha256:56accd41eb3846b972e0b63aa576d653bffc56e5e7548420a44b8793bc36051d"
+          ]
+        },
+        "promotion_publish.py": {
+          "old_certificate": "b484e22e8ba9ad811ce7aa2c288f3bd0187b993222d2e2698ee5519736347d4d",
+          "new_certificate": "237c36444071b127a0617bd6adf8f0ab066eb79604ecc854914a9e4b0ca50242",
+          "old_hash": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024",
+          "new_hash": "c3d9f8917f484c7001a5bffe8c8a72bf330a783c3edf8233689a5291373c3592",
+          "evidence_refs": [
+            "sha256:f82f5959b346db98c4b668247e27bce860c762b1053b6548dd52a25d914a6ca3"
+          ]
+        }
+      }
+    }
+  ],
+  "rollback_hash_chain_verified": true,
+  "library_sources": {
+    "src/veriarbor/adapter.py": "9f8827c995d3ab0c2f3343d80afa196e1eb5da803c80790a5cc725efe591370f",
+    "src/veriarbor/block.py": "6288e202779ccd362b4b75a6b99c40d0ab9718dfdbc33759d94fe3a3a18c54f8",
+    "src/veriarbor/certificate.py": "beca03ae571301cafaede916b7fc401b3872c531d2ba28e91b8b17bc0efcbab0",
+    "src/veriarbor/compatibility.py": "f559f534d929d930e4dbb52b9e1d88832213471f74b759f98fd793b41978183b",
+    "src/veriarbor/contract.py": "080f4ea55c761fa1d47ad72838b7ace44f98b85a4a2c38180e0cced10c20b751",
+    "src/veriarbor/dedup.py": "6891c6d55e5ae40299133494887c76f27aeaa26bca8015244756b62814a4e370",
+    "src/veriarbor/effects.py": "a74f2caa74c2551e748e140e10e7ce4b699d8e8a8e93107c7c34daceae893d7b",
+    "src/veriarbor/expansion.py": "360180e0b54ee91e97d4d0c44dee5a59ceadad3d007408b140c6801305d3ae69",
+    "src/veriarbor/graph.py": "ddd7ba5453c84088ec81c1723f91be60ec99bd87264b11dff46d95d58a8d1892",
+    "src/veriarbor/learning.py": "5d6813cf1637912acadafc0dcd98f0a3419467bb505879fe093d180b4c19a9fd",
+    "src/veriarbor/lifecycle.py": "8be71423962e8a9cd17585f87d26f0594ee2049cacf8ce5a74ab1fd6f733793e",
+    "src/veriarbor/model.py": "381a7ae6994c0485d5ab956ea944581f4aafb800b0a8788f0fc80e499f3f4c54",
+    "src/veriarbor/port.py": "5b15a9054a9008e46b3155a20bce1546915569c1f78ee074800597e8126e46ba",
+    "src/veriarbor/protocols.py": "f7c36914bc7618481d7511781d0ed742aef62a0c2726608e351c77508e24c12b",
+    "src/veriarbor/review.py": "815a421971172461c71a109369cc731380bb85badd30bbac8ebbf47d9b73008d",
+    "src/veriarbor/scheduling.py": "aa1fb48e9c3c6723fb1e207e7857de20cb6ea1568257f635379c72d8e09077d6",
+    "src/veriarbor/search.py": "64970f9d54f110bdfb61b69d4e80ce6a1af81596de4becb35495c93e2f680e93",
+    "src/veriarbor/substitution.py": "1b3a0d3485f3f16c996c1501fdc55f4d69ae00e7f6517de8942afed64eacb9fd",
+    "src/veriarbor/variant.py": "cf3ea3181b630ea50ed9944085448a69f07810a9fe43846c52f7ae44f0c0dbe2",
+    "src/veriarbor/verification.py": "9ec7aab26f47acc6ccd8748fbc5f01c0a81538c0c3cac0f956156ef1ceb420d2",
+    "src/veriarbor/__init__.py": "1fe570f3e810edbd0811f800657d7e9c7630905b848ffa8a7a9ca01e425c9490"
+  },
+  "host_sources": {
+    "cgkn/state/acceptance.py": "e865fd6cf36c7c7d4c8872903586335adeac8872add1f2fe8adc668e09fa7332",
+    "cgkn/protocol/context_pack.py": "a8d07c1bbf81df815d65809694b04bc05a27ebf7d3e993e7751254b3507c6b05",
+    "cgkn/protocol/progress.py": "6f7c4e6f80ca78be41083de7df194592547006528e8b6e96bc28f2845aaead8d",
+    "cgkn/protocol/repair.py": "efdf1006e39df1c185dd35ff4067a10564c0ae9b4056cb19327b0901ca994fb8",
+    "cgkn/runtime/dag_runner.py": "5476b1ff8135f2a78e259acc984a44611cd6e22d5e6689c23b70f0f39dea836a",
+    "cgkn/protocol/review_policy.py": "1aae596482ece6e847c4df85b0dbe1648f4bc1305eaeeb44d99c6ae1fba4c25d",
+    "cgkn/protocol/exchange.py": "64a63fc64400ac7e55454d2cf2f97d9cb49d1683cd6703c10fd2a54db9d99db4",
+    "scripts/real_test_execution.py": "e187564223c41462d00c72e3dbb2a891f7929e650d2a921f74ed286418baab7b",
+    "scripts/codex_conversation.py": "4d1830e921acb3caca02a36c0a66e76a84897c1b207477c972520bc329d3ed56",
+    "cgkn/agent/composer.py": "b8b47008eeaa4ae6776c1c5beb693e54206ad074f85b07300d5171980dd8d188",
+    "cgkn/protocol/adapters.py": "883c4305fc2206c26740a5bcdc3f350bb96e602241c34af7ce5d1c6428c41f9b",
+    "cgkn/protocol/compiler.py": "7f4cda8526183c7d0f2e61d3fc41a3ffe7cec8ccf3e04ae129a3ecef62c0f8e9",
+    "cgkn/agent/project_loop.py": "bc6247e035eacd322ea087dcfd53f6a76fa1fdd7895c3cd8f8931e1836d121a5",
+    "cgkn/adapters/veriarbor/allocation_adapter.py": "a55d675fd2bdd3a6633447b656b6f3d01608fe53ad909817b12ecafb291a67ce",
+    "cgkn/adapters/veriarbor/verification_adapter.py": "954f3b8bf452f23e530c2f7035020be860ac13c8ddc6beb5cb4ebd99d30743f9",
+    "cgkn/adapters/veriarbor/certificate_adapter.py": "b08cbff0100279d721af787b58441b6cc542c850909938133ed8d05fa66b36c8",
+    "cgkn/providers/recording.py": "5f280da9fb0f3432f294296507ba1d4b09d7edde3e10139119991eacd7fdc391",
+    "cgkn/state/provenance.py": "4b88022fc28b38bc63c1779cbbb92a3e8ec864987859f1505813f3ff519b84fc",
+    "cgkn/adapters/veriarbor/substitution_adapter.py": "10b5729ca4ce9a8d791ce2c2566ff0c7439c62d02ec54028c2799642e7426536",
+    "cgkn/state/checker_revision.py": "d30341ab40be833470c4407ec5a70ce5dc6ab1c360a8559ab2c653c22104b867",
+    "cgkn/application/software_project/acceptance.py": "6d87f20b99c9abef4eae793e28d2eee9f2151f635b6d51e5b28343f569fe9e1e",
+    "cgkn/adapters/veriarbor/provider_novelty_adapter.py": "cd60721938fc3f24b5f69c92a08529b56c0fb026cc59cd352655fe6d576c3d7e",
+    "cgkn/providers/gateway_client.py": "ae920108e69a933fc401143bcfc3d9cbfc9a9d32076067a558d243c6bbabe193",
+    "cgkn/executors/llm.py": "51a711f68e56783cdd2fe4ab1ccc2629ba0930fe7b02aa9c9920064e62bb9490",
+    "cgkn/application/software_project/service.py": "df7e15bd4ab87feb0de964d6e508c7d15ba37d5c110ea7db4a47ef66a1bbe99b",
+    "cgkn/adapters/__init__.py": "bf4929c128f8b4290b0bdd31a6875760a1c2570c9a02975554652201be8de557",
+    "cgkn/adapters/veriarbor/acceptance_adapter.py": "c2236b12ee420a070ca90d14aa394668be79470fbd49edb39a90d92aa1ec87f9",
+    "cgkn/adapters/veriarbor/accounting_adapter.py": "c28ba80831133d492a85fd52080a6af5200f67adf0ec773b1e4bb890201e24b1",
+    "cgkn/adapters/veriarbor/backtracking_adapter.py": "6a6d2452530d567239948dd5cfff3dc938cd588b8b9a6831659783306e4444de",
+    "cgkn/adapters/veriarbor/block_adapter.py": "5cdacaa8977e57f568fff78360d9929dd1fd28e05161667ce6dd2cbbe70edb95",
+    "cgkn/adapters/veriarbor/corpus_adapter.py": "f028dc475ce589a29649e9e90b24422da1cc20057a1583fcac8d5f9eed72483e",
+    "cgkn/adapters/veriarbor/dag_adapter.py": "e5df8678f62cc377c40a355be8f660ca7c6392bfcb2f203ceb978886f80e33f5",
+    "cgkn/adapters/veriarbor/event_adapter.py": "04cd70a5376f05680068c8dc447c79c2b8218cfbbf1f08cf2467bf8bdc502035",
+    "cgkn/adapters/veriarbor/guidance_adapter.py": "8a6c7770a97cbf3cf03e65a8eeb8f7c24e5d724ebabd7fb212b9ac7cef2e4eaa",
+    "cgkn/adapters/veriarbor/run_store_adapter.py": "9259bf03e52ba7c91aa67f5693b47a02013ec95eabff3c75b7c58231a42a933b",
+    "cgkn/adapters/veriarbor/tree_adapter.py": "bdef1ca7ff86fdcad608ff711cb261f6021cf888d4870a472cc7a2d69b313f03",
+    "cgkn/adapters/veriarbor/__init__.py": "bfa56547efcf48fca21a692afa20b616c1546b3f8a785135595def7115680a2d",
+    "cgkn/specs.py": "146af13fc9ac94c034bdcc44610ddec29618be4034c8f0779a047562102fb406",
+    "cgkn/__init__.py": "acc8e841dbfc6232a35afabcdb51dc505fc941bb6fb8cd037d3807aa48ad6503",
+    "cgkn/agent/action_composer.py": "f841afa01f32fe7f14115b0a5da6f3c42773f3dee2e0ea4eafb9372af89fb9ed",
+    "cgkn/agent/composer_contract.py": "fbbba10653ae80aa7b8983ffb7a8372229fe3ebf5b3a2d9f2f6f19d93169d5a9",
+    "cgkn/agent/__init__.py": "eed1ab1fa9d85b06cf67f259ac5f1a6d46e652c6a9effd2d7b93b50e4b0a700b",
+    "cgkn/application/materialization.py": "c449e022d5982111ed8a24a45c445522bd888fb72f710cf5ecd9856d38211eeb",
+    "cgkn/application/mvp_qualification.py": "03bdcd32e0248d4b5db7ea78759c58b43a1d7276a0bb8ce80b1b4843467cbe7a",
+    "cgkn/application/__init__.py": "c349cc400f7338c82441b65687c497c5ff51367e093152f126df9bde7822d067",
+    "cgkn/artifacts/diff.py": "363e4fadb7df99d57378e76dc33e8156cdcfb4f5aaafc70f4efd24ac72961bc8",
+    "cgkn/artifacts/hash.py": "39d5d3587334c67fc28cb78b8fc45f1841e2b25f90b9890932a0d72572cee544",
+    "cgkn/artifacts/lineage.py": "b0544881c9e948bfef486b3f7b961b43c78b477938ea0b65e13bf9d02da56c4e",
+    "cgkn/artifacts/models.py": "3d2cbbf1de578c32fe8680cf64e63acae61c5ca80073057683939b259dd9ffd6",
+    "cgkn/artifacts/store.py": "34c498ea06b4e4ae311885d49c7fe8837f2785f31d5164ddd4085470563a3281",
+    "cgkn/artifacts/types.py": "4bc7ef965baea81a9b97c9143a32d05c48ddc5b499ad359312a5130280602a74",
+    "cgkn/artifacts/__init__.py": "e94fce8c511e9c90d669d2e86c178706b0a663ec3a1b57d63ff9d7801e4be0ec",
+    "cgkn/capabilities/registry.py": "48405d767b8bd6f6809a3869c4ba71e304de55a3b25122be4db350240bef2a89",
+    "cgkn/capabilities/versioning.py": "6a6371bac2e296540831e3eef641a0f8b3197e211753f23cac917e1f286059b8",
+    "cgkn/capabilities/__init__.py": "22671fbbae2ed552f11d9676b5e1b25d4f7c0f26e8b2f8ed92da9dce4a08aff7",
+    "cgkn/compiler/artifact_graph.py": "b3332b7cd0ebc8d7f11bd91c8bc97e4c92a675a79c420feb01c735855a2153bd",
+    "cgkn/compiler/__init__.py": "3c27603ce5d7734c2ec2e9d803f136c9192c0dff8da53cbf83abfe16ea5b5940",
+    "cgkn/component/adapter.py": "a9650e1ce9da394c39b6cb5a50e365d865d54b00a13a43418c743a79ec03248a",
+    "cgkn/component/execution.py": "e0005a89ecd57ace685a7011217593df9b4bf215af43149babf7e22ca6a0ac58",
+    "cgkn/component/ports.py": "ce8540d3275d25cad9d877035fd36e523079dd013066d4ab9aff70d17a634757",
+    "cgkn/component/protocol.py": "96e0c24488797a0793bf011990d8e681777e1705cedfcb393843cd4e67e2d13d",
+    "cgkn/component/result.py": "2abbc2068915e32af2f1466380f44357d0c498d6f5a86f26c80b1149cf1c2c53",
+    "cgkn/component/spec.py": "33e8288b8e6780da608f6998b76cb299013fd6f50409f0d734c5ec59ae0f4696",
+    "cgkn/component/__init__.py": "2b629315d9d31faf10c11052ca2ccea6ffe9295df04eec9a80d49e9396c8775c",
+    "cgkn/execution/checker_bindings.py": "c388fc3bc03149795c5ae8428bf5bd22f1d4d7f01722565e1dbce745d49b7b56",
+    "cgkn/execution/check_evidence.py": "9814ad7c2314782eb3f48f952e19c8ce159d9d79175bc09fde2a515536dd14a6",
+    "cgkn/execution/contracts.py": "36ce22ec31586c86a9c0f998c35f1538bcfecb731433987152d5a6943ccd95b6",
+    "cgkn/execution/deliverables.py": "e2ea662eabcf7a7134b40085977d13c6ae4b71325386f38d26867538cf5526ff",
+    "cgkn/execution/materialization.py": "3d560fd66bf7bbc437c320a00d0c4e2f6c758735fbc03b01e0ef5b829923f424",
+    "cgkn/execution/observations.py": "d62aff383bd953f27293d693bdc65fc5d3ef61f56200a286c4392f66bce81f2a",
+    "cgkn/execution/python_exports.py": "2b09a26d3e408435f6eb1d1f80fc0d23ea9d5f8789374b81801261338cee51b5",
+    "cgkn/execution/resource_identity.py": "734a649893199134f3917cd359392ffcc3a1f540d1d756cf354eac72bfe99e10",
+    "cgkn/execution/test_results.py": "bdabf6c51525a15e12b4f75fa37a98e07bd010912097d39c27d1baf48501e8df",
+    "cgkn/execution/__init__.py": "2bc58a96506ebeea7c7253bca0e1911bed53262a16f8f3b2c188d9748d2e3fe5",
+    "cgkn/executors/factory.py": "10d683ce13100536ef53ff50349a862ef2c20d2cdb63d57cc0e0ae8941c853b0",
+    "cgkn/executors/local.py": "9ffd65edd6f00c1b276b2b7d81925f2e2314562330c5410b17561735809468d6",
+    "cgkn/executors/measurement.py": "ffc1c56abef093c9e323c54738029f7bf9f0daa71c743cac540a7aa7447aca1a",
+    "cgkn/executors/network_health.py": "3f4d004741d4b17ad79297f357696e788740f2281c075acf0effebaed87d0995",
+    "cgkn/executors/observation.py": "1fc2a621ed0f47dd25668966d2d5a7878b59892829bf7dfbd9d59a31ff34d629",
+    "cgkn/executors/protocol.py": "5992d5675068e7cfceac8674de5bcd25288027f6858f8e874e1e7a0db1dd369b",
+    "cgkn/executors/registry.py": "800983a2f5991a97fad0ef4bbbbbd6c6ad13d8e8b280a3e848da5502bd6d05d4",
+    "cgkn/executors/task_evaluation.py": "445c6db0c633df3f574a15ce7cf1396331cbea669c552c7fcaa0c3f172a9ae55",
+    "cgkn/executors/__init__.py": "d1d4f17355da63d3c1b32e5390ddfb4358debc4ac4ce89b8ff302303326a88f2",
+    "cgkn/governance/consumer.py": "475df150393d39da2ef8198b7a0d9e73492160bebcee883fe3a9e37139e500ed",
+    "cgkn/governance/__init__.py": "786caf61771b61a2f367ead9f0ba072c84d86bfeaeb1e3585cfd6a9f3eddca8a",
+    "cgkn/growth/admission.py": "0b302e2ac3d11309fdfddadcfee39834dfc9b852bf6a6727bb68b86196d2b1cb",
+    "cgkn/growth/candidate.py": "35fac50454ded1034726f86c817f18a764c1c3e5e1e10ff4d5e433c03a72b8a0",
+    "cgkn/growth/discovery.py": "0eaf4882e80665a5eeab61a524ed324b14444db56a3c33be25057c3e2fa7d7f7",
+    "cgkn/growth/gap.py": "6ad3a6f8a523f328742ab9c0c62eed6d7e65c1d3a32fe8affe57657df02f7a11",
+    "cgkn/growth/loop.py": "ca67902afd19128161d4aab9a24b1b4ba3ad934ba22688f65d32318abcb38fc9",
+    "cgkn/growth/sandbox.py": "255ac43bcdfd803fb5eff6c720a213eef66d4dd5430bb68ab6a0d9dcc3770fe2",
+    "cgkn/growth/__init__.py": "cb033e941ac809365f415a93ce2afce270f8a76e09164aba97a0493401ddf1fa",
+    "cgkn/orchestration/capability_tree.py": "3c1513d6e98a9bbe3a1fc986cb9a8475310d5c67365271744e4b365393fc7e58",
+    "cgkn/orchestration/execution_dag.py": "a1dce35ff6c723a17d81a5acb2875c7216fbc9e51fec98ca99f223aa023df46e",
+    "cgkn/orchestration/invalidation.py": "502857ae354c3f35b8a5b0fe3e2b1ddbf279fff4ac08639f0c70f34b3dfeb17a",
+    "cgkn/orchestration/leaf_contract.py": "2c87a22d5f7647f9cdbcbaa95f7b0e909752f03de2f0f79ff207c14f9787ce1f",
+    "cgkn/orchestration/tree_edits.py": "2e1266a167f2d00a101767eaae7e54dc849fc90e97ee87db7c776296b58aef59",
+    "cgkn/orchestration/__init__.py": "06e7b58039992889e25bd614abea6221f8d990e3d7e1b735a135e052a2651596",
+    "cgkn/protocol/adaptive_context.py": "24aff5b3fdc3098c2e040952e02bd7143ccb94e8cb492fc35fb6d4e95d971901",
+    "cgkn/protocol/admission.py": "e998f2f327b525d7c155da3a26391ab193f1e36526b47ba1f2d11ccaa22708ab",
+    "cgkn/protocol/claim_consistency.py": "8286aee12996bcd5f516c80e6a2839caf6810af58a2e1c23df935ebf643d514a",
+    "cgkn/protocol/contract_integrity.py": "3be2f9d8381e3897182d1ac514ccb79a46385f20812d98f32993294ee903f95e",
+    "cgkn/protocol/declaration.py": "5360c3f89d834d84b384d765680a15b7a6b39a95a84789c53d28c3ea87cae716",
+    "cgkn/protocol/normalization.py": "5ea9cf1cd8f3db949218bf3c5e5217478de64a35665373575de16c04ca6d21fc",
+    "cgkn/protocol/repair_compiler.py": "afc18018843d8805014ae79616d05a476c7241de62ae1d318c48a2925b7e3274",
+    "cgkn/protocol/tables.py": "f72eb7cb5f3791f60bf073ae931e6dff05df19b26129c17422a100c95f6f596e",
+    "cgkn/protocol/__init__.py": "bcc83bc5ae15bd818c161a8baedd7336fc951423ef5d21f121147caa1ca4e070",
+    "cgkn/providers/application_network.py": "966c212d7971d7257acdeb2afc1a09826a0b6b6591e723bedb7aa2d43f0a6449",
+    "cgkn/providers/canonical_gateway_adapter.py": "1b46a82ad84623ee7f9d9162956896e8053bb4e5dd9e475fc8feab1a80cfb262",
+    "cgkn/providers/client.py": "d1df6d32d47eb46d8caf1f7fc430068de687e4ee46cd953684572002d29df642",
+    "cgkn/providers/direct_transport.py": "5185a296628c35840fa6be521d8e382a9caa7d5973950b21441c4b37a7b143cd",
+    "cgkn/providers/domestic_gateway.py": "8197a24e8e89882f54e9e0605493e0f3632d3a38fde2b9ff4bfab74a1204fede",
+    "cgkn/providers/domestic_mode.py": "01e87a499f52bfd9694d61265ea93bfdd4035803fe405e34f2f397e7df2f2fa1",
+    "cgkn/providers/evidence_journal.py": "b5307b348a85a415e74dd245b5774d71a89b1d4a3a263d24ef5886a378dbcb25",
+    "cgkn/providers/finish_reason.py": "e2cb87278c73c38dd6985350244fc21ea72c523e456422a77ff7473f60ccd612",
+    "cgkn/providers/gateway_stream.py": "637b80ecc23133982993b26014abb9a99831776be0365cf222ae56feb50564c3",
+    "cgkn/providers/legacy_client.py": "33fd9625b6b52120e5b4c2ae176d6f8f3e962a60ce167d4736f2ef3a9b4ecf76",
+    "cgkn/providers/legacy_transport.py": "a6d297e0a89d586843a4ddb993080c3a4319005831bf8701c3be89479f611c5f",
+    "cgkn/providers/model_binding.py": "13a64c404b7cac52ee6e28e6591c39882f8e5a5ac3f1348a01c5fba44d5e6b37",
+    "cgkn/providers/network_health.py": "3c18aad5933becdb66969e6d9a44ce37b4c59db685455ce3973809dc42e5971a",
+    "cgkn/providers/network_transport.py": "c28e445c7b57fd8fd5d96e72b50dd169cdfac6a3be78fe2692c61a05ad13f679",
+    "cgkn/providers/progress_clock.py": "2c3586b231f8942876a4e572d49492be53465c178565857076c3d34a0e9e5c31",
+    "cgkn/providers/progress_io.py": "f7d89491b13be106dd0757ebdf9649d4cabecd2cda24ae59d1ed24f9b0bfe02b",
+    "cgkn/providers/route_diagnostics.py": "5b642ec58d9dcfe22e964fe601a60b21b4676f210ea8123bb6825b6b25dd9f2a",
+    "cgkn/providers/routing.py": "5ca22c8b538caa965861c8f36721a7326e0f1328a3c88682e93915cbd041e1b1",
+    "cgkn/providers/streaming_bound_adapter.py": "bc1aed673ed63b17863590c5717169d733cdab48d556b80103785415ad2a7930",
+    "cgkn/providers/streaming_sse.py": "9b8783fc6cbd4fcf0fec4569e8b8c7ae180c3c961bff61f9d2737da437579bed",
+    "cgkn/providers/windows_interface.py": "ddbc31ed7a1f7a91c74821b47b5eb11dbd68e4899c96911a336f6cf32f11cbe7",
+    "cgkn/providers/__init__.py": "a5f4bb991b9fd0a129f037f2d92181e42574c98184b6bc3c3c8df2737b206f9f",
+    "cgkn/runtime/cache.py": "ded105bf77fb501c1732fb7650501d971c64d47c98cc35a87869a25ec3f02bbd",
+    "cgkn/runtime/checkpoint.py": "f6e3d49ccafc2340f5f3bdfacb5f745e28f89d09dcfc57c9a8c960e6b2eeab2b",
+    "cgkn/runtime/context.py": "77f9275478c5aa42fb785c08fd8e7e1f4d5987b78c79a151305efc38ea8d4722",
+    "cgkn/runtime/delivery.py": "fc3ab624b5f11ea2834ae2f1b0adfe0cd55b64e61c47187f6110f7b0494737c9",
+    "cgkn/runtime/effects.py": "12d50b111616d69bdbcc3bf75a70a4217b8d285aa2021b7ff83253c9e928c219",
+    "cgkn/runtime/fingerprint.py": "1fd96c143cccb71903f03138ce72856c2bfd61bc936fbf5fb709c3bc8ea6a080",
+    "cgkn/runtime/invalidation.py": "e82349a13f9651b5103058f0a25abecde976c2e67f4605b73625d5e95c5bc5e8",
+    "cgkn/runtime/reference_modules.py": "90a8cb2c58782f8b598ad6c5426e8444a28b6b3ea1d77b913c4e07a7a39c9422",
+    "cgkn/runtime/runner.py": "31125c6ff78f433b38ce7bd6d0e0981ec04f89659d83797e8ef71f3a4225ac40",
+    "cgkn/runtime/__init__.py": "1848370296ebef39aa4f08a51eb45fbd8c4ae71d7e9f4642c7f12e9c3da0fd34",
+    "cgkn/state/capability_ledger.py": "6952f6d546ed4e21a193117ac5c44d503e1141c046a28444b3daeed69ee2a02d",
+    "cgkn/state/models.py": "61d7490032208eca2238af1d97673941f20043221a858fa1a70456e16de09e82",
+    "cgkn/state/repair.py": "35225d7b4f0c4e5ec7d8ee8d3f7faf8327328eeae7e020e631432a9fc438ddd2",
+    "cgkn/state/store.py": "25a7eea3ab698cd37360ac62db45050031b38b2c8f9eb9ebf72625867ba6258e",
+    "cgkn/state/task_feedback.py": "1be8d595b890c8af0881d55cd209cfac8f2fd91006a762ec1f9fe983493c349a",
+    "cgkn/state/__init__.py": "f35610fa1d730dc72891f176f2658b532d0f2d412130eb4ea53eb0c41c67b970",
+    "cgkn/telemetry/effectiveness.py": "a6c06ef4d34f15a7b47b4f6a804d221fc3a3bfd28298e2f748880f15bb59b421",
+    "cgkn/telemetry/lean.py": "12c39ce37fbf2a5087fcbd8d2b790695470b19e2044666b2de93c062487a30e7",
+    "cgkn/telemetry/lean_policy.py": "cc8680e93dd27390eea4da97fb64a62c7ec0d3277d45622b74de31aff0048124",
+    "cgkn/telemetry/summary.py": "52839672dbe528880b7e8b2c8685636c23d287e1ea6bc797dfa431c38ed21b66",
+    "cgkn/telemetry/trusted_samples.py": "e4559a89e1eec853b71d48dc68f24b143a2b6b6a7311bfbeabac413d1e224ccd",
+    "cgkn/telemetry/__init__.py": "45f67479f3f6419adad8b189d5a45d95c9ff4f2fe211cc543392676d8c478f99",
+    "cgkn/application/interfaces/compiler.py": "0b3c9f0cce102088037a4ae3557abac9df6a6f182228f44aac4268ecd907d95a",
+    "cgkn/application/interfaces/contracts.py": "762e9072a5f5598a4792abc04408379a7ceb8442bb4196d883646b2d1ba01060",
+    "cgkn/application/interfaces/evidence.py": "dffa4c0df0dd90762fac336d9d451cc0353412eeafba6236b5422febede4c75f",
+    "cgkn/application/interfaces/extractor.py": "c0b9f1ca6bc4b5bb740bfae5149cc7adf3b370e29fdfb1a2a3817cb854d7ff26",
+    "cgkn/application/interfaces/guard.py": "114c500e2194ce7164088999fb5f40f519040ad20ddbe8144c0db6f3aff8241b",
+    "cgkn/application/interfaces/registry.py": "906191a459399b7bd9e5485d218501cf28b331a66da495e17c64904a2ac2410f",
+    "cgkn/application/interfaces/__init__.py": "125fe04fdae6d5ec567743d51094f6298bcf031184197fb2cd1325434626c0a4",
+    "cgkn/application/requirements/comparison.py": "f3bc03cd7757c394eea890943f2ac1e432a3fa4ae1f052fe550cf5ab261ad382",
+    "cgkn/application/requirements/compiler.py": "bbcf4e0411487e695fd56bf25d7a5d758232bcda3ab12dc87eb04af77f498f09",
+    "cgkn/application/requirements/csv.py": "b28a5977608f4531bdc095b26eb0d58e59bbbb2579aee61b32dafbb6e5786a45",
+    "cgkn/application/requirements/dag.py": "849d6e03c328dfe8fc841b8de260653e552d5f2ffb71012f7ead750bc728a2e4",
+    "cgkn/application/requirements/direct.py": "6e028901bce21bca13751f6a5e647e540788699b4c59ae5c9c22d28bcc7b9057",
+    "cgkn/application/requirements/execution.py": "6eb5d156fc249f8fd4836ec6341d615f29f928cc845c9a89540d96862ba39b54",
+    "cgkn/application/requirements/notes.py": "45d613b45b6d76222d5a9b70c3c5c25e5e54600801a7c22c237cd02fb474d5b5",
+    "cgkn/application/requirements/obligation.py": "8341ae51f7bccb9be6f7a40850a5411e2cb0307995703b1f4b1d7199d81f3294",
+    "cgkn/application/requirements/policy.py": "ddccba543459e6c722727bc8699827fe8830d6125353bf7433fc0e2c413b9200",
+    "cgkn/application/requirements/receipt.py": "04acfef6e2763707f5e0a08a737423a047b77e8d877362a1c34d86b50562e281",
+    "cgkn/application/requirements/strategy.py": "56c1513806edb37b846fefbcef9f281ae9a9b30a07f6b34dbe4d7bf7dd0ab6f8",
+    "cgkn/application/requirements/test_plan.py": "9735c1641de4642f5482db1ad6a72daaf8137acf6b345b6b80b430ad40d4baf5",
+    "cgkn/application/requirements/traceability.py": "9e2074c866993220b35dc165b11eca646b614e39ff64229e17113167f24cddb6",
+    "cgkn/application/requirements/validator.py": "3f872d405059f5b03785193c93a053e029c4271d2155430a251c81abf11c77c5",
+    "cgkn/application/requirements/work_unit.py": "120fbcf221da1abb04055f72bed0367f13620d3c9f8f2fb9bf883be05f0be4b4",
+    "cgkn/application/requirements/__init__.py": "6889ab12c821077153d5d6c5a2341ff74ef8b1ae05a16ef833288edd3894b470",
+    "cgkn/application/software_project/bundle.py": "b1c467a1a00d660ec3da43b2340f38d516d0f79505a385dedb421029c404b829",
+    "cgkn/application/software_project/catalog.py": "239a2f38662e98418dadd0549d0f3e1e855bf0facdfb2e18fb14d5d999f11377",
+    "cgkn/application/software_project/contracts.py": "c01bc049854c78fa583114ce1a7518807ad64a48f6258c0d5fcb7bbece715240",
+    "cgkn/application/software_project/qualification.py": "b63bb261e5aacaa6e38a7a79a5c03d08dcf3891c48976db4fd2d91d6d1fa8f26",
+    "cgkn/application/software_project/receipt.py": "71dd81177bb9a06c0b8393c066203574fa8c2c335ac6c6b7ca5426c8f00594da",
+    "cgkn/application/software_project/scope.py": "0b889ee80836092f0302141cb8741fffd800c6bf5cd4374490225630944227d4",
+    "cgkn/application/software_project/snapshot.py": "647895a60edf56fec02906dccc3e0b221cb8f4291c58b8a71ff8ed0e340e4510",
+    "cgkn/application/software_project/__init__.py": "c59f416ca51c4184b4ab06631601a37cea670562bdf69934248da9bb46e308a4",
+    "cgkn/application/verification/adapter.py": "6d3c1e20f6f7394e032ecec04484fcff9e8710b79bf45c66969c63e0e9ddfa8e",
+    "cgkn/application/verification/compiler.py": "c14c4b3ce29a39e2cd8ef39abdbed4323880ce6b1f3ed5d5efb8ee8eed747582",
+    "cgkn/application/verification/contracts.py": "24a40746792712b59e867751e2ccc930bd0362fa77d9469897cac4df96f6be00",
+    "cgkn/application/verification/contract_test.py": "9b049167d939f45974edcc046b72cad6fa29612200e3f4c4f30a82eea3aea78e",
+    "cgkn/application/verification/contract_test_compiler.py": "f780fc9e8cc78839847c84c1653b2caacca9d9f0d0962e877d6272eb07f47484",
+    "cgkn/application/verification/contract_test_manifest.py": "31cf12e4122ebb99a879abba8f8befcf27e5ae26db853a771b6de57f13d41ea2",
+    "cgkn/application/verification/contract_test_renderer.py": "4ac7d9775874ad3891664ad43fc1adb63f5f554830d77f14f2b4e23deb9424b9",
+    "cgkn/application/verification/contract_test_validator.py": "17926e76e0f8c0b1074cbd4a4d716480421af4dd77232230a0f58552883d5554",
+    "cgkn/application/verification/evaluator.py": "0f7c8621f30f0f9af2ebfce93acc828161a109929a8efaaeb884028911d762ea",
+    "cgkn/application/verification/executor.py": "87428d1c773bba40d5d0fc4a45173f36ce42c0459ed0cb75a59c7441f57d4191",
+    "cgkn/application/verification/registry.py": "7c81dca50e454f99ee9e0eff5060c2cd8c886b60ad41ec9df3d95f9cad26ff2a",
+    "cgkn/application/verification/__init__.py": "bb145435f999ac50fb87943926866c32f9391304e89fc11974d1a1733c6c69ae",
+    "scripts/acceptance_verifier.py": "e1e5dbab2de74b8e1539c8a22bb0f86faedcc27dc35bd9005c64d3aa09e280cd",
+    "scripts/adaptive_delivery.py": "a0aa1cafe1b291c77f846e6922dc8d3377526394a660e8b07873e4354a8905c6",
+    "scripts/adaptive_project_management_context.py": "8a446cf1eb2d731885ae09050970784b041299366684496a433d6287c044fbe9",
+    "scripts/agent_conversation_loop.py": "ab9378c4ce644dc2b7f93990bc8454e6a580ea1c2c6056fb941e174b00897523",
+    "scripts/artifact_integrity.py": "16d3254b5c29eaaaddb4213caff46eed43d4253f0338b924bde229d448fa477f",
+    "scripts/artifact_lineage.py": "983ca24f8cb7683b5827b3333fda3b5c7e13bb58a2f8e928e2a963d8a51e9a4a",
+    "scripts/backend_dialogue_loop.py": "4aa8e3dedc36926e7a6ca18baa6f0b665dc1da8bb4f24d823c09c7e48431b144",
+    "scripts/baseline_ledger.py": "41729f0f73e3c94f6f4b247d2ff9f5e6fbb78728ec24ae1aa0803487c37fee60",
+    "scripts/browser_visual_evidence.py": "9174b01324668f326e8b5d95b1ff0cfd290c0dd860c69420837c4275734bae1e",
+    "scripts/candidate_materializer.py": "8bb1fc7db56d184a9cdf3dc3007e6851bf3d23044ed34b0e25efb1e22009b98c",
+    "scripts/candidate_review_delivery.py": "12aaec299cc9f3f4d42e28fde69f6989e493ffcab5f85045c760db24587d7fe6",
+    "scripts/candidate_sanitizer.py": "aa081cb2587dd0e881af0fba7898f520f8e19a943ac160b3e90a26427a2ee2f6",
+    "scripts/canonical_delivery_manifest.py": "794079dd541d4902f585776faab718591d363d718557181df356f48abe5b9aa1",
+    "scripts/canonical_delivery_receipt.py": "74876ddd1119caf9e8828ad34e89e9febc3be3867a3c566b8a1bb6c100675abb",
+    "scripts/canonical_evidence_hash.py": "25d7eaa68f1d508e9b24c00457cc6753a4c34e4e573e0aa7549219c877f36729",
+    "scripts/canonical_finalization.py": "9feb98eff64b0f938772722e2d7760c101c4b3a25a120a7e83f82f77edbe67be",
+    "scripts/canonical_goal_spec_compiler.py": "2998aaf89de7b2521fe10717c528158345b1245320fee9a6493682d38622f841",
+    "scripts/canonical_media_validation.py": "c426ecb0ecf32e0124d8460c7e64bd977698bd7ea90430660557337b50765709",
+    "scripts/canonical_repo_publish.py": "f5ce3a31121161e5b5997d80d1bb052ed482cd997fc017db7be6173848cd3361",
+    "scripts/canonical_user_review.py": "89263d6a34738b7ad76cc0e02a8b2d19a393c362a0a23064df7b97f592d88d77",
+    "scripts/canonical_version_gate.py": "17a39efd719533ab4f6aa7e75f61c6110fe6b037fbb8aead13f0cf70926625ad",
+    "scripts/capability_execution.py": "dc4853df8be78a9bcced766d66ec89ba9b23416b97a809d74caccc5f5fc7d751",
+    "scripts/capability_strategy.py": "61a19910adba0062c37846ee755d0838f5427f9bc726b24b46397de99dd6b12e",
+    "scripts/cgkn_runtime_supervisor.py": "18ac83e69aa222f4ffaba38bbf8b6ea4355f69bf4cfd0a77f31441405ae3914d",
+    "scripts/cgkn_supervision_protocol.py": "5c731c9ffd402a79a79bddf04fb090167e7dedbd277899a9d364b9a9289bfa84",
+    "scripts/cgkn_supervision_router.py": "03f967ef7bc37ee2efed34a0f14476eaaa1a3b60b3ba3e0e73735e061bc29250",
+    "scripts/cgnk_boundary_guard.py": "0beb38cd4364be80d4471adf0af94e78b7127fdb7c4ad489da0b39695c90a01a",
+    "scripts/cgnk_slim_rule_guard.py": "d14c84a43827c5737ac1d91990215c86de72e952eb7b582f9137056457cbdbe9",
+    "scripts/check_cgkn_naming_consistency.py": "8f926bc564a81c437c3c4f12aebba0672122dc999a95158592d134e597e31f45",
+    "scripts/check_connectivity.py": "9848d6c6f3a04135bc264f405ceca2d3e3359c52ff4d2a4e7e3eff2e823032be",
+    "scripts/check_test_environment.py": "6f6fe46c003ddb4cd97019303b8d4f825452deb71a01aa79683854d1ce947029",
+    "scripts/codex_capability_supervisor.py": "01c141a13cf2d1ec8683458d575142c76e08e1593f35c513e28dcd319faf42c5",
+    "scripts/codex_design_supervision.py": "735e846c60f04f13c4e32948d02c50519ff60bb275b935d1f0db0128d7a184a7",
+    "scripts/collect_kernel_test_metadata.py": "6d41b24ce1d606993125835ddfc324d90db9bc8e4effdb895f66249b078ce1e7",
+    "scripts/complexity_project_contract_check.py": "d5e6c8dd9bcc01dd2d7b3ca204a0f47c76aaed3731a968d418129f7628928060",
+    "scripts/compose_local_pipeline.py": "ea614ad027db4cac974559b57194d6ac5727ab6b0f9ab7b9e81913a77993c7b8",
+    "scripts/compose_test_pipeline.py": "78a6b5d866f8e7fdf4ec2b79a25d8b4a67591c95ea788a41e1e055cb72f905a7",
+    "scripts/consumer_governance.py": "f6b03235733a5dd175c025de300bc2973106cf04de00a39e3607fd24375e8efa",
+    "scripts/context_prompt.py": "8f2df809dc2f5ba189ee32be626c7848608e935bec9fe4dc1f3155c2e7fcd3d0",
+    "scripts/cross_validation_feedforward.py": "2a469177422045248418040835622863bb33edcf9cb5917cee30bf2141bf7eac",
+    "scripts/customer_runtime_runner.py": "15ad21e597f39a355e645177f93cdd6c3ec530dc5cacd8465b494ffa53a1c580",
+    "scripts/customer_status.py": "6cd11f7405fdcf6d18c4e16f40613cbff0c7aab674bb409f5525c58b7a56ad48",
+    "scripts/decomposition_tree.py": "2c33e96d4769172a10d35e1cbeeb16c84110ca95c4f08ac6a3d23b463ca2ba89",
+    "scripts/demo_artifact_recompute.py": "a48eef617577e39bd91ade4154826e0fb3b2b1b8a425b8dc835c271e9f6e3299",
+    "scripts/design_research_agent.py": "2d368b1647a7637cab652237a29857ab4ddc0a61f628175ef5ea4e7852ae6335",
+    "scripts/discovery_selection_lane.py": "cc9b5cad706425eaca776e92b79b5de1056fbbe47849239c02ad6fdf7df3a490",
+    "scripts/domestic_gateway.py": "acf18690faf533225b48140a93744187eb1207e2433598346fce2edae84b92b6",
+    "scripts/domestic_network.py": "92cac31b9080d3c66c57085ee33cb7602f93283c6d04a5635c308357b4e648c4",
+    "scripts/domestic_task_acceptance.py": "efe8e8aa6b4c057b379b4055cdbedad93d731be29537ec3048b12ed4b839db96",
+    "scripts/dynamic_pipeline_runner.py": "32c58fdfa6f6dd43b7161f6d7afadca1f3258c34c6ecbdd334bc254838a6fe5a",
+    "scripts/explain_flow.py": "d80f4b098c41f5d8f10dd634f9e3501c0ffc186349917e403c457e6c5505a11f",
+    "scripts/external_executor_discovery.py": "90e1ae250638d76b58d6bead2b4b4e3b87b2566299085bb584de409c4022cab0",
+    "scripts/external_executor_integration.py": "3abc2dd170509e2734610bfb6a8348aad51796045b3343c56f90d6d38b2e150d",
+    "scripts/final_contract_unification_acceptance.py": "db7f764066c96ea9776580c5162a8f2df75e9aec42c10ddd624a077da0cceafd",
+    "scripts/final_delivery_truth.py": "c29d8a322afe009f06cedb29536a562a057864c41ea571b0021e3ad00d0e6a55",
+    "scripts/final_internal_acceptance.py": "45b0f29e31b17c34e864b50ca73aa4de6bf3afcbb3a5f576d6306a25c2ca2ac2",
+    "scripts/formal_delivery_evidence.py": "74cd0d13c2c4b2531032d9faea78886825ed3888d0ef5f0ed483c6ddab68d786",
+    "scripts/formal_gate_registry.py": "22022eef6f0c11cc619a8c0fe4405764e1985125f13ddc00dfd05f17843be383",
+    "scripts/formal_mainline_acceptance.py": "6e628f07e0fa5b75d7c8fb7cf387436cb611d86ce4270a6f1e86262808b2883a",
+    "scripts/formal_model_contract.py": "d3644a4286c192b21e539d7c66ab2b0f0622df26f18136d986d398202d0b7a48",
+    "scripts/frontdesk_team_lead_agent.py": "039ae32e6747bd6843375803d423b63f4dfa015ad933769ef7d6682bf7ed2544",
+    "scripts/generated_project_architecture_contract.py": "64d012ead80c22f6f46bfdb75cd80c2d7b58051800372a6c92a5c3d52bb41b38",
+    "scripts/generate_kernel_coverage_report.py": "602ff964f48438d4f281bb383fd07dfd722c1b21307cd41d54b5b1950874bb54",
+    "scripts/generate_kernel_test_receipt.py": "11bfaf3d1a71607ee6269bac5d360fee9c4b5173fa55c7b289ffbc6f8157457a",
+    "scripts/generate_test_coverage_manifest.py": "3ee57eef055134f5090c7b6157e410b8cdbe07e9f37c50200c3483fa6f327b01",
+    "scripts/goal_acceptance.py": "6f5d1accf6fef1a8be3330fcafe54a9b7bc9255794dc0aaf4c2e7bd292a2dd64",
+    "scripts/governed_kernel_repair.py": "dfe9fc7cb9de838a687815f9a5a3d3d1ca8b2e921b668bc432a42012f97632a6",
+    "scripts/invalidate_artifact.py": "0e5bf880484c2a29f1c5882ad5d01355e662faded6eceed88088fc271032b917",
+    "scripts/issue_ledger.py": "22fa2b4e88bc8228f5bf8dd1962698719dcc0d7daa4ac92dce5f2a5be4c349a4",
+    "scripts/kernel_architecture_gate.py": "be662509e1137e1eafe169a832e05bc023199fed1fac6495e8ad5a0e88ffe197",
+    "scripts/kernel_completeness_gate.py": "171f9d67baa578b280490992f1c2f44cd65171c41d8993fa6462e36a71791b07",
+    "scripts/kernel_contract_check.py": "c02757a956879965cfa8019961bce15bbed371b688be1e725eeacd2b595884cf",
+    "scripts/kernel_gate_common.py": "d34e933900e13b5f6424ab5f96f59adfa01f084b395ccfc202f3f6c0ff7f2b93",
+    "scripts/kernel_source_identity.py": "ee45b4c4f180c2453a70d339af428f5ce891c1001d1a2df297a06b190c81e988",
+    "scripts/local_agent_actions.py": "2fd4f6ad8ee3500377e79bba13dda032eecab04bc2fccb196120f22268596c30",
+    "scripts/local_agent_skills.py": "e34e9f955b1a30aa4b201af8db636c6560f14d9ec9d87fd74bec2bef31824380",
+    "scripts/local_conversation_manager.py": "f15c2770d862357bc3d7c9e7bf410a42c77e0b397c78b127985379914672d1df",
+    "scripts/local_image_model_discovery.py": "e1a2803213cd5abaddb835e492b6c4de1f87ac93b36551883f17189088e0a657",
+    "scripts/local_intent_router.py": "b009291224450023c947be7f85d1c7eb38db6edf19d236465d7af79882927dc5",
+    "scripts/local_model_router.py": "d22eab3bcc4875c8beaac5a478bfa1d425fefea88fa9c64d2d05952173992ce3",
+    "scripts/local_packager.py": "e34d04002bc8811b71e05360241874aa7ef262e806e148f29d385870f46c0061",
+    "scripts/local_repo_manager.py": "a2133e6715f96c5dacfbe6327831c89eedab6f638be14d0616ef3969d4269510",
+    "scripts/local_studio_cli.py": "84ed9bc4a34cb1e8d5397c06a9a5c8085f64f6bf76d9ead3272d40f2a7de36e8",
+    "scripts/local_usage_planner.py": "255095f5dfe4fad79073694fed093a48685e179b9fd81206a5a3240c98a66440",
+    "scripts/long_context_state.py": "cb3312c6737d7d59a9ded0f5f24102b247904d39174e7b256d41cedd3cf4ec53",
+    "scripts/main_agent_manager.py": "46b3d070e277c35ed7f5061f40cd07c30c37ffa460a3bce650ac4fd75c277e13",
+    "scripts/market_research_agent.py": "54c7649f74d4d0908af9138e811832d23d80cfd8f3fbbb28cf6cca552dc29150",
+    "scripts/model_mode_semantics.py": "0d6378e18fea1b65559063c17ea624b1f2094df2b43ccb7876a497e7626e92a1",
+    "scripts/model_policy.py": "8574896b51d37f840f9323e59828730f9603dcc3a80dd940b443050fdbbe5e71",
+    "scripts/network_proxy_config.py": "f4807d8730481adb1137c27bdb51bd2fdc6638490c459dbeb001a716c536dea3",
+    "scripts/network_watchdog.py": "f4a101d70887c04d43b85138efff4435821e63e6156dbbbd06c9b438398d338b",
+    "scripts/obligation_traceability_gate.py": "0f383e8f742c418d057439a61329b56ae1d990ab0e2643f2b62bb1feaa1f832c",
+    "scripts/online_input_agent.py": "d5823735069b64f094b9ce92101e48c0e608f957c6722a830688e7ef108f9020",
+    "scripts/pipeline_contracts.py": "f945c2e556ca830b6f41c0ad73a300967169e171a6be201f92453818c3053673",
+    "scripts/pipeline_manifest.py": "3f69993ca25b670124039dd4efdec6991fd88b872e091471862c6199712eafca",
+    "scripts/pipeline_planner_agent.py": "329c391effc56ebf99065e429906f24d16b3b4b1480a0f1e0f894e0aab90b428",
+    "scripts/planning_docs_materializer.py": "f61bdcb1e6ba50c33e090e89862a007ec5ec283755d6ffdf933230dfd09bc0a4",
+    "scripts/pmp_agile_quality_manager.py": "870db33d1efc0b4d75e6710955daa9a2b94f6d58b08f2a8b2476726e45c7d01c",
+    "scripts/post_build_finalize.py": "0a3f42f9aee012a6247053eacac2f3c72e1d74feb844cb592f68fd15ff9eff6e",
+    "scripts/post_build_repair.py": "7031b4d27aa47c021bc5ee71a427ea6637340a72db020a32fec6044a85565020",
+    "scripts/process_identity.py": "e32cae94fb291c34e87360574ba880063f21c3d8d4d2bdd85a96886386e706c7",
+    "scripts/production_candidate_provenance.py": "ea2fdd607b8237e5dbcd79119d4d2f3ef9862ef657f8b913d3a9ef0f11c2676a",
+    "scripts/product_acceptance.py": "fa6bb20310e981966a9fa03306497862737cac36f01488bf998b9c2e52cba12c",
+    "scripts/product_design_depth_governance.py": "35e06fb081fe773014a5ec4f68354486d905c29eb095c61abfda6a5743c431ba",
+    "scripts/product_design_depth_rule_guard.py": "1c7afed653708a6376fdae0dfaa709501a036a1f79b1e56a8a7b0c861116fdef",
+    "scripts/product_direction_gate.py": "cf721ec7519118638cea99cb12236b4250652a353d8469ef640e5ee8ee6dffa3",
+    "scripts/product_studio_reply.py": "5aea2f505ed5592f8ae9d7a3bb43ae45be582b83a34f3ce02c9ddb9a501c2260",
+    "scripts/project_memory_md.py": "e22a9efe72cccee11d40ffd0db164ba7e0a8c9346a9504176f4fe005552d9f67",
+    "scripts/project_revision_lane.py": "ac0efe85c04cbd64fcbd3a904ad0542fd35dc6fe61b58eb58aed3afc3d0e9eaf",
+    "scripts/project_version_policy.py": "ca89f44cb9ee9d16266b04dc5f54cd8153a5f1c0b3e1247a643150d62e217d0c",
+    "scripts/promote_evidence.py": "03b3c75982b1d7d7374baca4f944a6650ba06b68b7a1d55fce67a638ee0b47ae",
+    "scripts/provider_api_budget.py": "784059863580a866507f16b89a17b26f148bbc8627a08fb6d01f2c7b39e44578",
+    "scripts/provider_api_smoke.py": "dafb86e4285393c0f5d9c507b6bcfb221a253d814b1a22405ca59ddef9755815",
+    "scripts/provider_causal_trace.py": "e5a56228b9d1fc5196b7a53e356027c7f275df9a7e1bbaa577facd41815fbd7e",
+    "scripts/provider_credentials.py": "810e12c4aa8fa5176371560045372bb96875d51dfd3abf81df8e25077ad1a8fd",
+    "scripts/provider_execution_metrics.py": "5c10af86d0a79fa91295d2489b8c604347794e90a126bd434c54c9113f2c64a4",
+    "scripts/provider_free_partial_acceptance_replay.py": "141edda3f25c3d9bef7474051e8686e0f00166c57c395ca678cc90cd3c4220b9",
+    "scripts/provider_generation.py": "9fbc1fe1a7d240a35ea5e02db16386f6a8427f1b09b37d57798e73885c1fb7a2",
+    "scripts/provider_jobs.py": "c0f9887ea229107e991bb4fb715a8e7803d6b30f6ed5ef02819fb68940ad5d4d",
+    "scripts/provider_resilience.py": "cca88bec140144720da9790a5ea695eb99dba6ec837e84dca6ed883dc9eb4dc0",
+    "scripts/provider_transport.py": "fa07bfc10beb35e645fcb887392f482786f8d41426a1fe2221f0ea6544885c10",
+    "scripts/public_narration.py": "ee9ea1c5038ca4a020987ab5950c73c94b6a858128781006c64c042c0b7ce952",
+    "scripts/receipt_freshness.py": "0b7fd114321b32ed03c1564beaa58277671e66e1e36a7c60ad89d761395cc6ec",
+    "scripts/refresh_local_codex_plugin.py": "42e8801f7e955399f07a04a437f0125b20323b8ac90235c869ac0269a73ea574",
+    "scripts/render_goal_progress.py": "8a9c5e866fdb04e3716bccbadd74650e8b2a93a9e7096b5844fb9e5362fe6edc",
+    "scripts/repair_acceptance.py": "73fde634bc0efe7812540727f11c7aaccaeaafd7da47e2f4d7c923a16fb2519f",
+    "scripts/repair_evidence_contract.py": "3356293b065209855514958a4d3c60c75171cc6da561f30694728ce0ff664c2c",
+    "scripts/repository_cleanup.py": "9a7e928d6f521f6a02339360520edf94f6a705aa9b44f3809335b41352d45f85",
+    "scripts/repository_hygiene.py": "1a4d27bbb70821ebee518283611fddcff22dcd0aa53df82063c7667c554fbc81",
+    "scripts/requirement_acceptance_check.py": "32f10fad386ded3ff87881dc1455938ae762f88795adaa46f16ed1d11cb4d2b8",
+    "scripts/requirement_blueprint.py": "dbd61d3c1e9711989cbbea36ed12a1721cb33978cecbc00c8070bcc147b5f698",
+    "scripts/requirement_decision_lane.py": "362f41b9df2fbb119185a91bde0afe1b373421b7d12d09acd11a9616380edba5",
+    "scripts/runnable_project_contract.py": "87fd35132b9c3c76b70293dae392fe671b6b887a2f080241d8577d8eff91840e",
+    "scripts/runtime_visual_evidence.py": "3964b28eb0e6294be50c521cda2a25d90a1bda1377785b2c0b71ad61947dac14",
+    "scripts/run_agent_mvp.py": "dfdabb0c3d382f06090a395ee67ae5d205f8610fdd598002cba8630af76e97db",
+    "scripts/run_artifact_flow.py": "851bd90388d64ca20ad511588171fef5b971f27d412819e413ccade8fd5517dd",
+    "scripts/run_baseline_regression.py": "23351dfe0ca236d00e70285076788f47f792c988da2e3c41be1a292cf3daa075",
+    "scripts/run_codex_conversation_generation.py": "8a889cee7d79df7255503140ef949d649c866a0ec1aab80f5bcc64c6ddf401c5",
+    "scripts/run_kernel_profiles.py": "1ce6e64d35666b0b6384296b51896fcc345d51b9a5c988806fd21de409ccd312",
+    "scripts/run_local_pipeline.py": "96698019a086368a3ca6d3177c1fb91585163be3e13839ce9042ccac929d6308",
+    "scripts/run_local_pipeline_impl.py": "aabba2738edf0e0b8f202184a1cb5cac2755811ed579b65fac4dbe74e98da56e",
+    "scripts/run_mvp_runtime.py": "052a75f28cf83eac6820b92fb0eaf9c99ee98b9d81c469f0b44850f2f78a7557",
+    "scripts/run_obligation_strategy_comparison.py": "9056ef29d67e4bcaeda6b94993a1c68b477a9d08ed4ac6d5bd9c93f8aadafe5a",
+    "scripts/run_project_generation_tests.py": "2213a72c075ec9ddee62444dffaebef0cd3e69ce3fa243d4a8e3bf790ae84c77",
+    "scripts/run_self_growth_v0.py": "f932e764e5844f3431f9f23f0e7db3b621d1dd0d824f020f14613c255e90d925",
+    "scripts/run_semantic_artifact_experiment.py": "223bb9bef7e77350f7419a9e04eb146da24d3e178a3c5701c62728952a5daa5e",
+    "scripts/run_test_pipeline.py": "a32781c4425d1cf620f923f19d7d3224b118de74ef93b52b2f4dfbd1556b436e",
+    "scripts/sandbox_security.py": "fe86d738a55b8cab4c5a2f65e1553fea291a33ff6d5532e13390ffc3a735af0f",
+    "scripts/shared_gui_cli_core_checker.py": "4c1aa8e757921caeca462275ef4bbb574aacc00231ddd677007805d6854f3e50",
+    "scripts/source_boundaries.py": "1a693b04f07384d541293e915c456b647ab0b4c29047bcbc4698a7ba964b7a56",
+    "scripts/source_identity.py": "b77d30c81920915d5406a9db74686dad31031595dce8a64ddf2e01dbf1922320",
+    "scripts/stage_artifact_schema_checker.py": "f057dcb5679795100156f6fc666842ee33207f54bef8635a65b90ac2b6663b9c",
+    "scripts/surrogate_provider_adapter.py": "5a9976de3763f49db3a726fe1c2171b010fd4de558f814b74b9d532ecec7e0fb",
+    "scripts/task_metrics.py": "d67a9ea9772bbcca23e6681dbbbb8eac5d86c25d112bfde31daf404417c0ed01",
+    "scripts/test_architecture_gate.py": "a1287075ec6833dd1c52791bdd5ada44966dd3432ebb1357ffd5b04e0dc2e4c2",
+    "scripts/test_component_pipeline.py": "2fd2d0ab1a5a84e64aa51bdcc774b3d56b9b8e57ef70f1bc4d9ee3f5fb0aee01",
+    "scripts/test_modular_modules.py": "fc2b0a89d5ab40dae1139fab198ccd6f599196f63ee5564a57a39df2c74e000c",
+    "scripts/ui_semantic_adapter.py": "0db1dfe0091b80f29fc7c1198a19ccad8112b04c513d359958ed5e0f4cf2e2a4",
+    "scripts/usage_beta.py": "61fdb250c2879a0b56fc1ecd169933b6cb4ac57448ed8490ece2ae360b394984",
+    "scripts/validate_bundle.py": "6ece6e40a66a6420d864466fbd3071285a0fb9f402eb04a62ebd8e40076332a3",
+    "scripts/verify_kernel_test_receipt.py": "2e31326a9f56c7a46f6caef60038c76c2e2a944235e3b0bcb16ed9bbcf0ab366",
+    "scripts/visual_evidence.py": "3b6f222eb376359919ca293645a067a079c1138ec8789b1d555638a3f6ea75d2",
+    "scripts/work_nodes.py": "3b2ab2382730f0e3b97f1dd12b68180e5dc6a8d1e1714fbeafd1dfc598b011a4",
+    "scripts/conversation_delivery/candidate_review_sender.py": "74194cc04a2ab00e6b9faa6c94e87aedb3f8d16294dbb2ec29de6c2b4c331f30",
+    "scripts/conversation_delivery/final_delivery_sender.py": "8b86f50132436fea03a4e96dbe78230fd664ed8bc4d58846fb94e08de5467ddf",
+    "scripts/conversation_delivery/retry_recovery.py": "515801626148152985388c18cd43c97dee8e78e30b51fc119c6fc2e333895126",
+    "scripts/conversation_delivery/status_renderer.py": "66633a67f589c069906bf5c8a2b448bffe3d9a8f5326cc214e900d63d68a7275",
+    "scripts/conversation_delivery/__init__.py": "97b01f4867318baa4c50230983d9b2bcf445eeda16b56d68435fbef57ba00699",
+    "contracts/customer_runtime.py": "6c4e8b7a70e81656ff01d05231090cdfb4ca404812acae032e8e3b6008fb18db",
+    "contracts/delivery_manifest.py": "5256c0f9cc322caff23370859e0e942e8b9f06fbd2cf02f2bf8b99b529b75ced",
+    "contracts/delivery_receipt.py": "7fd586548811b7bb79c2ed6e8dadd0dbf9fb673e0fbca4b8b993eb2fa77ce23e",
+    "contracts/envelope.py": "5cc072e76a757c77428f935366b5df6f6c3ecaa7ead8c08eb2f5457a11e2c7e0",
+    "contracts/final_verdict.py": "0446b9b24be28f1d913c0da9985772084f3dd8c990cb905c77f2bf40cf1aa022",
+    "contracts/formal_gate_status.py": "a359459c71b1ecc7212d34d8dd31c56007b28e628c63f029002eb7e2e2f78704",
+    "contracts/production_candidate_provenance.py": "f0fb056fe8c9dad2123581a1f4c9fef092b5bc8e5d17d781aa1d62c8d20b6229",
+    "contracts/product_design_depth_governance.py": "a331aab499ed54036011edee386bebf7ec7671e54f8b35164aea91b65d278018",
+    "contracts/provider_causal_trace.py": "b89dd7798990170226e2c106828ddae00905a09b1b332afec56db22ff7e851b4",
+    "contracts/status.py": "009785bc1b8e3786bda8582be322111c1f09ff7680307385797bd7c9f96eb50b",
+    "contracts/test_execution.py": "807f6cd93babb3bc4fa494b99d0726fe0976c8310fc5e42a2132083dd13250fc",
+    "contracts/user_review.py": "6bb076642f2c47e501fdce5ab5c67f9ef56733405933506f8b69a84c4920b3e8",
+    "contracts/visual_evidence.py": "bd45a02640bd06fec3da47d356fcc7ea4e1ca5c6d171f480476a14c58dc7229e",
+    "contracts/__init__.py": "e43900f969a037105b57924219a50bc673c5e9158b8d7a7a56182cb78a3fff71"
+  },
+  "incomplete_checks": [
+    "host-original-interpreter"
+  ],
+  "repaired_checks": [
+    {
+      "failed_check": "isolated-utf8",
+      "replacement": "isolated-utf8-v2",
+      "failed_receipt_sha256": "b3b203a73ef871f7af5104b543e40ba250c4580dc7f3aeb4464308498bf22cd1",
+      "replacement_receipt_sha256": "aa8dbc27df63b250003cde6d91112d8dd1a30fa06ae62b886cf0dd03805c4df8",
+      "reason": "Initial explicit UTF8 interpreter flag exposed positional pytest detection bug. Detect selected pytest command rather than fixed interpreter argv offsets; original JUnit/temp handling restored. Same full targeted command now33PASS. Both failures retained.",
+      "source_change_receipts": [
+        {
+          "file": "scripts/real_test_execution.py",
+          "authority": "Explicit UTF-8 mode for isolated Python test process; -I ignores PYTHONUTF8 environment",
+          "before_sha256": "3fc6e29dd0f203ebf08bd2baaaddf7d0f9e7ec91f7c0df5272da57d0bed172b2",
+          "after_sha256": "da4e70811fe5ffd1cc7b7c18c66f3527679ddf32538dda69e313f85856001299",
+          "rollback": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\rollback\\step-13\\scripts\\real_test_execution.py",
+          "status": "SWITCHED_PENDING_REGRESSION"
+        },
+        {
+          "file": "scripts/real_test_execution.py",
+          "authority": "Identify selected pytest command semantically; retain JUnit/temp evidence with interpreter flags",
+          "before_sha256": "da4e70811fe5ffd1cc7b7c18c66f3527679ddf32538dda69e313f85856001299",
+          "after_sha256": "e187564223c41462d00c72e3dbb2a891f7929e650d2a921f74ed286418baab7b",
+          "rollback": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\rollback\\step-14\\scripts\\real_test_execution.py",
+          "status": "SWITCHED_PENDING_REGRESSION"
+        }
+      ]
+    },
+    {
+      "failed_check": "m9-generated-tests",
+      "replacement": "m9-generated-tests-v2",
+      "failed_receipt_sha256": "4f577d07fd615b8d7a2e6d0a07bbbd5f24d7805d5c646e2868877f3bdb979396",
+      "replacement_receipt_sha256": "06e6970ba39e1f1506c737d7414f1d5b1f2c05fb7bc12b3e1b662eefb11ba9c8",
+      "reason": "Operator selected a pytest basetemp whose parent did not exist. Created that parent; identical command and unchanged product tests now22PASS. Initial22setup errors retained, not attributed to product.",
+      "source_change_receipts": [],
+      "environment_repair_ref": {
+        "path": "governance/M9_TEST_SETUP_REPAIR.json",
+        "sha256": "34513ec7256f4d3fc1079e03729bdaa8f4938ca67244852d83f59263b85f54dc"
+      }
+    },
+    {
+      "failed_check": "core-no-implicit-install",
+      "replacement": "core-no-implicit-install-v2",
+      "failed_receipt_sha256": "ce086f6802e39a8d213f9bd2b6f20f568f7d95fa40905a8e2c19ef8ce012da6b",
+      "replacement_receipt_sha256": "6b06d5b1cc3da7950df5159d63ed7617d17ca90d9b660b12ab3205406c5627c6",
+      "reason": "Actual core finalizer invoked dependency installer after an assertion failure. Core provenance path now preserves declared environment and requests explicit original ProjectSession repair; legacy non-core path unchanged. Same targeted command passes2tests. No real pip installation occurred in regression reproduction.",
+      "source_change_receipts": [
+        {
+          "file": "scripts/codex_conversation.py",
+          "authority": "Preserve ProjectSession frozen tool environment on failed post-build tests; no implicit dependency installation",
+          "before_sha256": "1021f9e6ff598b7c86a01f1aacd019e1e6ad2b96e6846760cb96bf5b35d8e8bc",
+          "after_sha256": "4d1830e921acb3caca02a36c0a66e76a84897c1b207477c972520bc329d3ed56",
+          "rollback": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\rollback\\step-15\\scripts\\codex_conversation.py",
+          "status": "SWITCHED_PENDING_REGRESSION"
+        }
+      ]
+    },
+    {
+      "failed_check": "dependency-owner-repair",
+      "replacement": "dependency-owner-repair-v2",
+      "failed_receipt_sha256": "c684c28e4df542fa26c88137a0f18828ab953d9c6f65c483d8a25570c0e18f39",
+      "replacement_receipt_sha256": "ec2f982d94776ad82bf39b1ca017b3cd1209d73b684eba493210dedccca6e017",
+      "reason": "Failed integration could not address its original dependency owner; authenticated current subject/owner projection now exposes only explicit repair scopes, without changing predicates, source or acceptance.10targetedPASS plus850protocol/regressionPASS and directiongatePASS.",
+      "source_change_receipts": [
+        {
+          "file": "cgkn/agent/composer.py",
+          "authority": "Expose original dependency owner scopes only for current provenance-authenticated failed integration subjects",
+          "before_sha256": "a486d9140b62196877544e361a32ceb99faca686745e2f1c6cdaea62c17e9365",
+          "after_sha256": "4ad0578e7a452406020e91cdeaf7182850cf2ff83f50a4a83d7bd44294078feb",
+          "rollback": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\rollback\\step-16\\cgkn\\agent\\composer.py",
+          "status": "SWITCHED_PENDING_REGRESSION"
+        }
+      ]
+    },
+    {
+      "failed_check": "scoped-contract-identity",
+      "replacement": "scoped-contract-identity-v2",
+      "failed_receipt_sha256": "b62efc8addf6168a717ac039b8340b80e118090b90290eff8919280c3b7c1680",
+      "replacement_receipt_sha256": "467161abe46dc155931729f933ba35fb352d8498d8281bca164f571ff164e614",
+      "reason": "Unrelated registry owner addition changed container hash while selected entries were exactly equal. Compare immutable entries without treating changed parent registry provenance as contract weakening. Actual definition/version/evidence/nestedfield changes remain rejected. Original failed reproduction1FAIL4PASS retained; same5testsPASS.",
+      "source_change_receipts": [
+        {
+          "file": "cgkn/protocol/repair.py",
+          "authority": "Preserve exact scoped public contract identity across unrelated registry-owner additions; retain changed container provenance",
+          "before_sha256": "a3ce1ffe5ab027782976c2320f482a5a6dd05cd2e90319930a7492fde275dedb",
+          "after_sha256": "efdf1006e39df1c185dd35ff4067a10564c0ae9b4056cb19327b0901ca994fb8",
+          "rollback": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\rollback\\step-17\\cgkn\\protocol\\repair.py",
+          "status": "SWITCHED_PENDING_REGRESSION"
+        }
+      ]
+    },
+    {
+      "failed_check": "explicit-write-operation",
+      "replacement": "explicit-write-operation-v2",
+      "failed_receipt_sha256": "163ec278f1b68f677ba7a9ca086139ed542becde05ebc481ada1fce1c1116308",
+      "replacement_receipt_sha256": "835a918124d465eddb3493666f0dcad4e4afa60ad699c673dc9e9571b613983c",
+      "reason": "An explicitly declared full_file_write=true strategy was not enforced in the Worker table/compiler. Carry that boolean to immutable allowed operations and reject partial patches without transforming product code. Defaults and read/path authority unchanged. Preserved reproduction2FAIL4PASS; identical command6PASS.",
+      "source_change_receipts": [
+        {
+          "file": "cgkn/protocol/adapters.py",
+          "authority": "Carry explicit boolean full_file_write repair strategy to immutable Worker operation table",
+          "before_sha256": "6b97f362b5abf52d3ab132e1b574f53e42994c8a2a824cd124320edc04c6229e",
+          "after_sha256": "763fddcdf5a5f2b4b158b1bc92ad560525042177c7a829ea3d257664e063af55",
+          "rollback": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\rollback\\step-18\\cgkn\\protocol\\adapters.py",
+          "status": "SWITCHED_PENDING_REGRESSION"
+        },
+        {
+          "file": "cgkn/protocol/compiler.py",
+          "authority": "Enforce explicitly narrowed Worker write operations without changing path authority or acceptance",
+          "before_sha256": "7e91a56e8f50ee2887f4a3f1a055d9e336a4440cd39535c3644652a34ff9ccf9",
+          "after_sha256": "aede37c9869e1bfc723c41d3fcdfc66b990c077a5f8c12e76ffc4ba82f993c34",
+          "rollback": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\rollback\\step-19\\cgkn\\protocol\\compiler.py",
+          "status": "SWITCHED_PENDING_REGRESSION"
+        }
+      ]
+    },
+    {
+      "failed_check": "strategy-constraint-feedback",
+      "replacement": "strategy-constraint-feedback-v2",
+      "failed_receipt_sha256": "91b89aa43d9200b8f3ccb48dda5e3798e9338989c8c5a785aeb7bdc333d6f4fd",
+      "replacement_receipt_sha256": "63f33e56524e93126316062c20aebe6204d6a0d7f5d3f344a76cbb23f6ad02e6",
+      "reason": "Missing or mistyped declared strategy dimensions were reported as forbidden fields and forced whole-decision replanning. Exact constraints now accompany a bounded strategy-only correction; falsified families remain R6 and all task/evidence fields remain immutable. Preserved2FAIL1PASS, identical3testsPASS.",
+      "source_change_receipts": [
+        {
+          "file": "cgkn/protocol/progress.py",
+          "authority": "Correct missing/mistyped explicit strategy dimensions through exact strategy-only bounded patch; retain falsified strategy rejection",
+          "before_sha256": "d511e11b8045c5905f3e6266971a72aa7a46f4cf802c7110a76b1f1c2a87c047",
+          "after_sha256": "6f7c4e6f80ca78be41083de7df194592547006528e8b6e96bc28f2845aaead8d",
+          "rollback": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\rollback\\step-20\\cgkn\\protocol\\progress.py",
+          "status": "SWITCHED_PENDING_REGRESSION"
+        }
+      ]
+    },
+    {
+      "failed_check": "metadata-only-refresh",
+      "replacement": "metadata-only-refresh-v3",
+      "failed_receipt_sha256": "51feb7161f8810bf316751172231b29b44b93250fa861411d1160fb17e3cfa98",
+      "replacement_receipt_sha256": "f3ab2c2455c53f2b6866fcfbd12e8b972ad44e4977e52691888e0b4159467b2c",
+      "reason": "Removed unused global verdict views at metadata-only callsites. Initial test guard was overbroad: it also prohibited mandatory save/render views, so first fixed-code run stillfailed. Preserve original test, allow only original render calls, and re-qualify corrected test against original source:3FAIL1PASS vsupdated4PASS. No evidence check removed. Same read-only real subject refresh15.328s before/0.687s after, one sample; not end-to-end claim.",
+      "test_revision_qualification": {
+        "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\metadata-refresh-qualification\\receipt.json",
+        "sha256": "f83571f2b24c4c44f8c8aa56b48c2c65a0d82256bd34321da7679d1b4db596c9"
+      },
+      "source_change_receipts": [
+        {
+          "file": "cgkn/agent/project_loop.py",
+          "authority": "Reload canonical metadata without unused global verdict rebuilds; preserve all actual view/record provenance checks",
+          "before_sha256": "642dd6d9ee3ea6eea9fe8d7704b9812513cf38f27e23d3e3d6de359a603e5a92",
+          "after_sha256": "15e97082b75b5994635793a1b0bdd87709af40dab15500a27d4e815def1d35d4",
+          "rollback": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\rollback\\step-21\\cgkn\\agent\\project_loop.py",
+          "status": "SWITCHED_PENDING_REGRESSION"
+        }
+      ]
+    },
+    {
+      "failed_check": "metadata-only-refresh-v2",
+      "replacement": "metadata-only-refresh-v3",
+      "failed_receipt_sha256": "302427597b1f109c6ae4ff19978b3c432064db3fb041e7c4c676756952e53e2d",
+      "replacement_receipt_sha256": "f3ab2c2455c53f2b6866fcfbd12e8b972ad44e4977e52691888e0b4159467b2c",
+      "reason": "Removed unused global verdict views at metadata-only callsites. Initial test guard was overbroad: it also prohibited mandatory save/render views, so first fixed-code run stillfailed. Preserve original test, allow only original render calls, and re-qualify corrected test against original source:3FAIL1PASS vsupdated4PASS. No evidence check removed. Same read-only real subject refresh15.328s before/0.687s after, one sample; not end-to-end claim.",
+      "test_revision_qualification": {
+        "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\metadata-refresh-qualification\\receipt.json",
+        "sha256": "f83571f2b24c4c44f8c8aa56b48c2c65a0d82256bd34321da7679d1b4db596c9"
+      },
+      "source_change_receipts": [
+        {
+          "file": "cgkn/agent/project_loop.py",
+          "authority": "Reload canonical metadata without unused global verdict rebuilds; preserve all actual view/record provenance checks",
+          "before_sha256": "642dd6d9ee3ea6eea9fe8d7704b9812513cf38f27e23d3e3d6de359a603e5a92",
+          "after_sha256": "15e97082b75b5994635793a1b0bdd87709af40dab15500a27d4e815def1d35d4",
+          "rollback": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\rollback\\step-21\\cgkn\\agent\\project_loop.py",
+          "status": "SWITCHED_PENDING_REGRESSION"
+        }
+      ]
+    },
+    {
+      "failed_check": "block-port-host-regression",
+      "replacement": "block-port-host-regression-v2",
+      "failed_receipt_sha256": "011dd319165959530856d3d83de2926b7b43266396cf12c97e29194e450318a1",
+      "replacement_receipt_sha256": "4fe42b6ac2d6ab54a51aa54279f02797cfc3342401497cd6558b25b9e515d54e",
+      "reason": "New substitution projection initially indexed an absent goal plan during initial session setup. Explicit no-plan path now returns no replacement proofs. Original17 failures retained; identical961-test command passes. No test changes in this repaired run.",
+      "source_change_receipts": [
+        {
+          "file": "cgkn/state/acceptance.py",
+          "authority": "Certified identical dependency substitution; authenticate original receipt and independent replacement; preserve original subjects and failure dominance",
+          "before_sha256": "eae019261c837b4c127a7aac0009a34c8c64a8885bfff8239c465cea4c59b65d",
+          "after_sha256": "2a091e6aa0afa34b5fc2879db855aa80d9fbb48bb30104199d3876ebcb5efa72",
+          "rollback": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\rollback\\step-26\\cgkn\\state\\acceptance.py",
+          "status": "SWITCHED_PENDING_REGRESSION"
+        }
+      ],
+      "new_adapter_fix": {
+        "path": "cgkn/adapters/veriarbor/substitution_adapter.py",
+        "sha256": "444fab0441c7d6cd65da7d7d7bdbdca57b0f23a59dcd2722ffa58e22864697a8"
+      }
+    },
+    {
+      "failed_check": "block-port-novelty-focused",
+      "replacement": "block-port-novelty-focused-v2",
+      "failed_receipt_sha256": "6b1f4b3ed9f7fa9500dac5af80ae027ee1dbbf593bb9b6954f889e785e7736d1",
+      "replacement_receipt_sha256": "cd1fbb53e0374c2acbb8fa93c8683582b845ac34ab069979f663e2319f517724",
+      "reason": "New mandatory novelty gate intentionally rejects same request earlier. Archived original test; assert NO_NOVEL_DELTA and independently assert one-use escalation admission still rejects consumed grant; client calls remain exactly one. 74 tests pass. No runtime relaxation.",
+      "source_change_receipts": [
+        {
+          "file": "cgkn/providers/recording.py",
+          "authority": "Every recorded Provider call binds novelty before dispatch; existing request log and UNKNOWN recovery remain authoritative",
+          "before_sha256": "49c5ad996ea2c9bad7f617b22d09b719ca0427bf9b041fed68da00c94673d41e",
+          "after_sha256": "5f280da9fb0f3432f294296507ba1d4b09d7edde3e10139119991eacd7fdc391",
+          "rollback": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\rollback\\step-31\\cgkn\\providers\\recording.py",
+          "status": "SWITCHED_PENDING_REGRESSION"
+        }
+      ],
+      "test_revision": {
+        "path": "F:\\CGKN-LeanLoop-V1-20261101\\tests\\providers\\test_max_escalation.py",
+        "sha256": "e01e75a89f670126b9ec1b5a7eca6b681878b2086e82e83685a1c1ee623169ce"
+      }
+    },
+    {
+      "failed_check": "scoped-checker-revision",
+      "replacement": "scoped-checker-revision-v2",
+      "failed_receipt_sha256": "e0ba19a5e8b63c9447c602ac61a953189dd4b7bd54d6379bacffccc907b5ce90",
+      "replacement_receipt_sha256": "fcf928b64deab33eca5bbb20aea13d7704ac6e70be8d1eaeaae5d79900fb035b",
+      "reason": "Initial new test incorrectly mutated requirements after immutable acceptance binding; correctly rejected. Fixture now declares two requirements before binding. 24 tests PASS including current-scope selection, unrelated original checker identity and provenance, malformed/tampered qualifications. Runtime was unchanged between runs; original failures retained.",
+      "source_change_receipts": [
+        {
+          "file": "cgkn/state/checker_revision.py",
+          "authority": "Validate optional explicit requirement scope on authenticated checker qualifications",
+          "before_sha256": "66671598286a626fe5f751c53b1a7d7a11a3d0ad6cb3c85580409b6339be2e63",
+          "after_sha256": "1e01aad9f08b6c8f9966bc51b7113ba31f1b9840d8336ed89a7d0cc6e9edefe3",
+          "rollback": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\rollback\\step-35\\cgkn\\state\\checker_revision.py",
+          "status": "SWITCHED_PENDING_REGRESSION"
+        },
+        {
+          "file": "cgkn/application/software_project/acceptance.py",
+          "authority": "Apply qualified observer revision only to its declared requirements; preserve previous checker identity outside scope",
+          "before_sha256": "f47d405aef60fa5d24d0b87a0406b35f15460bc9bc81b7ee54c88475fcb6af8c",
+          "after_sha256": "6d87f20b99c9abef4eae793e28d2eee9f2151f635b6d51e5b28343f569fe9e1e",
+          "rollback": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\rollback\\step-36\\cgkn\\application\\software_project\\acceptance.py",
+          "status": "SWITCHED_PENDING_REGRESSION"
+        }
+      ]
+    },
+    {
+      "failed_check": "bounded-continuation-guidance",
+      "replacement": "bounded-continuation-guidance-v2",
+      "failed_receipt_sha256": "df48e04573b58d61fa3c412903aee3e32f4b9a34102b735d96cbcb10d17f77f0",
+      "replacement_receipt_sha256": "c8d9a3548b81212f3eecaf9b0fec9e1cf4380fb21cbafef0e77d05ef1befc08f",
+      "reason": "Initial command referenced a nonexistent pre-existing context test path, so pytest collected nothing (exit4). Corrected to actual discovered test_agent_context_pack.py. Eight tests PASS; no runtime or assertion relaxation. Original failed invocation retained.",
+      "invocation_correction": {
+        "kind": "MissingTestPathCorrection",
+        "missing_path": "tests/protocol/test_context_pack.py",
+        "existing_path": "tests/test_agent_context_pack.py",
+        "existing_path_sha256": "fdf5d3c7e957f4baf859ef4aa47016f26607fe6cee40d868455a51a822954f7d"
+      },
+      "source_change_receipts": [
+        {
+          "file": "cgkn/protocol/context_pack.py",
+          "authority": "Expire explicitly artifact/evidence-bound operational guidance after state changes; preserve raw history, general user requirements and canonical planner authority",
+          "before_sha256": "09050480e9ba246a986e93aac9bc8882a723094390fb89a9daa81db5836e9d8c",
+          "after_sha256": "49dbd87e226eaf646111242bee9c512c674564a31b6d0e35d8947e6a1da432c9",
+          "rollback": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\rollback\\step-37\\cgkn\\protocol\\context_pack.py",
+          "status": "SWITCHED_PENDING_REGRESSION"
+        }
+      ]
+    },
+    {
+      "failed_check": "current-scoped-checker-coverage",
+      "replacement": "current-scoped-checker-coverage-v2",
+      "failed_receipt_sha256": "0bba6d1ddeb5923e708c5283276c3e3672cb2e0a0ed779d0b087faafde6f99d7",
+      "replacement_receipt_sha256": "dcb6294d1279c4e0bb2bdb1f4b8f5566108a60db29c0f275c63d8a3220980a95",
+      "reason": "First command named nonexistent verification test path and collected no tests (exit4). Discovered real block adapter tests; exact corrected invocation passed23 with no source/assertion changes between invocations.",
+      "invocation_correction": {
+        "kind": "MissingTestPathCorrection",
+        "missing_path": "tests/test_veriarbor_verification.py",
+        "existing_path": "tests/test_veriarbor_block_adapter.py",
+        "existing_path_sha256": "6e4f31d1fd704668f4deb3664f3912af6017cde133cfdbb58b056049757b68a3"
+      },
+      "source_change_receipts": [
+        {
+          "file": "cgkn/state/checker_revision.py",
+          "authority": "Resolve latest applicable scoped checker coverage while preserving historical authenticity and unrelated certificates",
+          "before_sha256": "1e01aad9f08b6c8f9966bc51b7113ba31f1b9840d8336ed89a7d0cc6e9edefe3",
+          "after_sha256": "d30341ab40be833470c4407ec5a70ce5dc6ab1c360a8559ab2c653c22104b867",
+          "rollback": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\rollback\\step-39\\cgkn\\state\\checker_revision.py",
+          "status": "SWITCHED_PENDING_REGRESSION"
+        },
+        {
+          "file": "cgkn/state/acceptance.py",
+          "authority": "Current scoped coverage cannot be satisfied by older PASS; preserve counterexamples and raw history",
+          "before_sha256": "3663c0b0ebc04ee5fa6a01ac90cf63bc5e19738ec59603acdb3b16d9d7a1bbab",
+          "after_sha256": "02d412728d2d0d7af0fb1e5937dba3dfd3acc93380cb8ceea4c802d5ba15399a",
+          "rollback": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\rollback\\step-40\\cgkn\\state\\acceptance.py",
+          "status": "SWITCHED_PENDING_REGRESSION"
+        },
+        {
+          "file": "cgkn/adapters/veriarbor/verification_adapter.py",
+          "authority": "Allow new scoped checker VerificationKey without replaying an unchanged current measurement",
+          "before_sha256": "b0ebe9dfa52a0d93560a5d906821c7a441e909afe70d83aa39022c2d08064eb5",
+          "after_sha256": "954f3b8bf452f23e530c2f7035020be860ac13c8ddc6beb5cb4ebd99d30743f9",
+          "rollback": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\rollback\\step-41\\cgkn\\adapters\\veriarbor\\verification_adapter.py",
+          "status": "SWITCHED_PENDING_REGRESSION"
+        }
+      ]
+    },
+    {
+      "failed_check": "semantic-json-transport42",
+      "replacement": "semantic-json-envelope43-venv-complete",
+      "failed_receipt_sha256": "8c5bcf7a5116036135a5569265b723020b56f86c8dd5456c88ef46a86e98cb96",
+      "replacement_receipt_sha256": "217c5eb71b3947ab51335ae77a2932511c8eb137bd46391a92f664912f50f023",
+      "reason": "Isolated test environment lacked httpx and psutil; local-loopback fixture disconnected before responding. Initial JSON-object wire envelope additionally failed installed gateway admission during read-only inspection. Replaced with supported open object JSON Schema envelope; exact same test argv passes after local .venv dependencies installed.",
+      "environment_repair_ref": {
+        "path": "governance\\semantic-json-transport42-dependency-repair.json",
+        "sha256": "52aa7c3ba003b2ab64bacd98ac927043ad84ebb3724ec3a63d907b88cf34c5d3"
+      }
+    },
+    {
+      "failed_check": "semantic-json-envelope43-venv",
+      "replacement": "semantic-json-envelope43-venv-complete",
+      "failed_receipt_sha256": "aaf95954d1c01a5271e6f676059dbe0c6aff46528f6cfcc44c8eb23fa4b325dc",
+      "replacement_receipt_sha256": "217c5eb71b3947ab51335ae77a2932511c8eb137bd46391a92f664912f50f023",
+      "reason": "109 cases passed; remaining budget clock test required psutil. Installed only in D:/VeriArbor/.venv; same 110-case invocation now passes. No production transport calls or candidate modifications.",
+      "environment_repair_ref": {
+        "path": "governance\\semantic-json-envelope43-venv-dependency-repair.json",
+        "sha256": "cb7b93af85536d89c608ea42e91288fe31a957402451be3c786a4b62dfb4536c"
+      }
+    },
+    {
+      "failed_check": "full-write-inputs45",
+      "replacement": "full-write-inputs45-v3",
+      "failed_receipt_sha256": "25906b46292a5a7613fd3ccc2f90555099f1713c8aade58473d5fddcf34af8e8",
+      "replacement_receipt_sha256": "65164afdb1000bc3be3171dfc32eefa52f42c9cc27b77453dd8008dafebb4791",
+      "reason": "New fixture needed lossless context_ref expansion and initial strategy_semantics dictionary. Runtime implementation unchanged; source inputs/hashes and read-only dependency checks retained.",
+      "source_change_receipts": [
+        {
+          "kind": "NewTestFixtureCorrection",
+          "file": "tests/executors/test_verified_dependency_inputs.py",
+          "after_sha256": "db2c31cf1af4059bbe7b2403c960ff60cb2235c2b68b6d64e9576a8c7f7afaef"
+        },
+        {
+          "kind": "NewTestFixtureCorrection",
+          "file": "tests/protocol/test_worker_repair_dependency_projection.py",
+          "after_sha256": "3bf26eaeee017901a35f23436b03e3821ff63c840cb844f7813d75cab4b6e145"
+        }
+      ]
+    },
+    {
+      "failed_check": "full-write-inputs45-v2",
+      "replacement": "full-write-inputs45-v3",
+      "failed_receipt_sha256": "5aaf989a5ae347042b5d7c8c649c70197ca32f57cb9ec4426b7f6340ea7515ca",
+      "replacement_receipt_sha256": "65164afdb1000bc3be3171dfc32eefa52f42c9cc27b77453dd8008dafebb4791",
+      "reason": "New existing-file fixture needed its nested parent directory before writing the seed file. Runtime implementation unchanged; exact same invocation now38PASS.",
+      "source_change_receipts": [
+        {
+          "kind": "NewTestFixtureCorrection",
+          "file": "tests/executors/test_verified_dependency_inputs.py",
+          "after_sha256": "db2c31cf1af4059bbe7b2403c960ff60cb2235c2b68b6d64e9576a8c7f7afaef"
+        },
+        {
+          "kind": "NewTestFixtureCorrection",
+          "file": "tests/protocol/test_worker_repair_dependency_projection.py",
+          "after_sha256": "3bf26eaeee017901a35f23436b03e3821ff63c840cb844f7813d75cab4b6e145"
+        }
+      ]
+    },
+    {
+      "failed_check": "bounded-patch-batch54-existing",
+      "replacement": "bounded-patch-batch54-existing-fixed",
+      "failed_receipt_sha256": "8bb9928d037e1e3604700ffd8904e5b4bcd4c01320131aa0b21bd735b9e1fe51",
+      "replacement_receipt_sha256": "fd4348ca62a933f0368534dc86b8e08ab5d1459fe49ec58f03d0134c0aee0a98",
+      "reason": "Old test asserted the literal single-patch prompt sentence. Update expected protocol wording to qualified patch-batch instruction; dependency-read behavior unchanged. All84 original checks rerun successfully; historical failure retained.",
+      "source_change_receipts": [
+        {
+          "file": "tests/protocol/test_worker_repair_dependency_projection.py",
+          "change": "Expected prompt sentence now includes patch batch",
+          "after_sha256": "935e5c84b41d6ac43295141953e89b44c425091e8138921e999c66b09e9d3249"
+        }
+      ]
+    }
+  ],
+  "unresolved_out_of_scope_checks": [
+    {
+      "check": "block-port-provider-provenance",
+      "receipt_sha256": "9f16cf4456047f29080516300a3e031f80c088c3e9f5fe0147e3b507b134b3b2",
+      "status": "UNRESOLVED_OUTSIDE_MINIMUM_V1_GATE",
+      "focused_replacement": "block-port-novelty-focused-v2",
+      "failures": [
+        "FAILED tests/providers/test_domestic_final.py::test_prepared_task_runs_through_real_runtime_and_reopens_without_model_calls",
+        "FAILED tests/providers/test_domestic_final.py::test_tampered_fixture_cannot_be_attributed_to_a_future_model_run",
+        "FAILED tests/providers/test_domestic_repair.py::test_unmodified_formal_controller_reaches_budgeted_provider[budgeted]",
+        "FAILED tests/providers/test_domestic_repair.py::test_unmodified_formal_controller_reaches_budgeted_provider[none]",
+        "FAILED tests/providers/test_domestic_repair.py::test_unmodified_formal_controller_reaches_budgeted_provider[exhausted]",
+        "FAILED tests/providers/test_iter117_bounded_acceptance.py::test_cost_and_contract_caps",
+        "FAILED tests/providers/test_iter117_long_acceptance.py::test_long_frozen_payload_and_cost_caps",
+        "FAILED tests/providers/test_iter119_pair.py::test_preflight_shared_budget_and_no_oversized_request",
+        "FAILED tests/providers/test_iter119_pair.py::test_no_authorization_no_generation",
+        "FAILED tests/providers/test_iter119_pair.py::test_exact_pair_through_tls_dag_and_full_input_reservation",
+        "FAILED tests/providers/test_iter119_pair.py::test_mcp_permanent_claim_prevents_second_worker",
+        "FAILED tests/providers/test_iter120_formal_parallel.py::test_formal_installed_parallel_matrix",
+        "FAILED tests/providers/test_max_escalation.py::test_max_requires_exact_checked_receipt_and_cannot_reuse_grant",
+        "FAILED tests/providers/test_streaming_installed_plugin.py::test_installed_mcp_actual_worker_streaming_contract",
+        "FAILED tests/providers/test_streaming_progress_only.py::test_progress_never_overrides_terminal_contract[events1-stream_incomplete_or_tool_finish]",
+        "FAILED tests/providers/test_streaming_progress_only.py::test_progress_never_overrides_terminal_contract[events2-stream_incomplete_or_tool_finish]",
+        "ERROR tests/providers/test_iter117_bounded_acceptance.py::test_three_cases_exact_posts_and_progress",
+        "ERROR tests/providers/test_iter117_bounded_acceptance.py::test_unknown_stops_all_later_cases",
+        "ERROR tests/providers/test_iter117_bounded_acceptance.py::test_no_authorization_no_post",
+        "ERROR tests/providers/test_iter117_long_acceptance.py::test_long_single_call_contract_and_no_replay",
+        "ERROR tests/providers/test_iter117_long_acceptance.py::test_long_unknown_never_resends",
+        "ERROR tests/providers/test_iter117_long_acceptance.py::test_old_authorization_cannot_authorize_new_call",
+        "ERROR tests/providers/test_iter118_acceptance.py::test_no_authorization_zero_posts",
+        "ERROR tests/providers/test_iter118_acceptance.py::test_unknown_never_replayed_or_advanced",
+        "ERROR tests/providers/test_iter118_acceptance.py::test_final_wire_input_limit_rejects_before_provider_post",
+        "ERROR tests/providers/test_iter118_acceptance.py::test_six_slots_real_contract_handoff_and_no_seventh_post",
+        "ERROR tests/providers/test_iter118_acceptance.py::test_dual_long_authorized_caps_and_no_replay",
+        "ERROR tests/providers/test_iter118_acceptance.py::test_explicit_unused_deepseek_resume_preserves_unknown",
+        "ERROR tests/providers/test_iter118_acceptance.py::test_efficient_pair_bound_once",
+        "ERROR tests/providers/test_iter118_acceptance.py::test_duration_pair_caps_and_no_replay"
+      ],
+      "limitations": "Broad historical suite is NOT PASS. Missing archived paid-plan/installed plugin fixtures, retired lifecycle expectations and streaming exception-name expectations remain unresolved. Their failure mechanisms are outside changed V1 paths; no baseline reproduction claimed. One changed novelty-vs-escalation assertion separately qualified with unchanged single-dispatch protection in focused 74-pass gate. Do not use this exclusion as product acceptance.",
+      "provider_ledger_unchanged_against": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\continuations\\veriarbor-40\\accounting-after.json",
+      "ledger_sha256": "75cb15231a3c276cadc426121b3752963b5c6e74e64a7ef07a125142e9bf3f98"
+    }
+  ],
+  "full_repository_suite": "NOT_RUN",
+  "product_acceptance": "NOT_VERIFIED_BY_THESE_CHECKS"
+}

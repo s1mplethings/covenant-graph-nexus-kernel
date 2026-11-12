@@ -44,27 +44,34 @@ def action_for(row: dict, issue_id: str, path: str, component: str) -> dict:
 
 
 def execute(tmp_path, monkeypatch, *, candidate, path, component, content, action):
-    monkeypatch.setattr(
-        run_local_pipeline_impl,
-        "provider_generate_project_by_components",
-        lambda *args, **kwargs: {"files": [{"path": path, "content": content}]},
-    )
-    return run_local_pipeline_impl.execute_provider_job_patch_generation(
-        candidate_dir=candidate,
-        repair_plan={"attempt_number": 1, "provider_actions": [action]},
-        user_goal="repair the candidate",
-        component_pipeline=pipeline(path, component),
-        plan_doc={},
-        blueprint={},
-        online_inputs={},
-        market_research={},
-        model="provider-model",
-        timeout=30,
-        internal_context="",
-        deadline=time.monotonic() + 30,
-        run_dir=tmp_path / "run",
-        phase_log_path=tmp_path / "provider_phase_log.jsonl",
-    )
+    # The retained issue-level predicate is now an independent DAG checker.
+    from scripts.repair_acceptance import assess_provider_job_partial_acceptance
+    from tests.generation_migration_support import candidate_run
+    from cgkn.orchestration import CapabilityNode
+    from cgkn.orchestration.leaf_contract import build_leaf_contract
+    import hashlib
+    before=(candidate/path).read_text(encoding='utf-8')
+    coherence=run_local_pipeline_impl.candidate_build_coherence_issues(candidate)
+    observations={}
+    def check(root,contract):
+        after=(root/path).read_text(encoding='utf-8');syntax=True
+        if path.endswith('.py'):
+            try:compile(after,path,'exec')
+            except SyntaxError:syntax=False
+        assessment=assess_provider_job_partial_acceptance(target_file=path,before_content=before,after_content=after,
+            coherence_before=coherence,coherence_after=run_local_pipeline_impl.candidate_build_coherence_issues(root),
+            evidence_facts=action['evidence_facts'],owned_paths={path},syntax_safe=syntax)
+        observations.update(assessment)
+        return {'passed':assessment['safe_to_accept_partial'],'observed':assessment}
+    reads={p.relative_to(candidate).as_posix():hashlib.sha256(p.read_bytes()).hexdigest()
+           for p in candidate.rglob('*') if p.is_file() and p.relative_to(candidate).as_posix()!=path}
+    leaf=build_leaf_contract(goal='Repair the evidenced failure',kind='IMPLEMENTATION',scope=[path],
+        acceptance=['current-contract'],checker='source',output_identity='repair',effect_domains=['filesystem','external_network'],
+        executor='llm.cheap@1',expected_delta='Owned issue improves without regressions',read_scope=list(reads),read_subjects=reads)
+    node=CapabilityNode('writer',capability_ref='code',config={'executor_ref':'llm.cheap@1','leaf_contract':leaf})
+    summary,store,runner,tree,calls,work=candidate_run(tmp_path,workspace=candidate,files={path:content},check=check,nodes=(node,))
+    return {**observations,'status':'applied' if summary.status=='SUCCEEDED' else 'failed',
+            'rejected_target_files':{} if summary.status=='SUCCEEDED' else {path:{'reason':observations['reason']}}}
 
 
 def test_one_of_two_endpoint_issues_fixed_advances_candidate_source(tmp_path, monkeypatch) -> None:
@@ -127,42 +134,8 @@ def test_dom_issue_reduction_is_accepted_without_requiring_full_disappearance(tm
 
 
 def test_non_json_provider_payload_blocked_without_candidate_materialization(tmp_path, monkeypatch) -> None:
-    calls = {"generation": 0}
-
-    def fail_generation(*args, **kwargs):
-        calls["generation"] += 1
-        raise run_local_pipeline_impl.ProviderContractRepairExhaustedError(
-            "component foundation generation failed: provider contract repair exhausted after one request: provider returned non-json project payload",
-            raw_output="still prose, not json",
-        )
-
-    monkeypatch.setattr(run_local_pipeline_impl, "provider_generate_project_by_components", fail_generation)
-    out_dir = tmp_path / "candidate"
-    result = run_local_pipeline_impl.run_provider_semantic_review_with_repair(
-        user_goal="build a board",
-        plan_doc={},
-        blueprint={},
-        online_inputs={},
-        market_research={},
-        component_pipeline={"components": []},
-        repair_errors=[],
-        model="provider-model",
-        timeout=30,
-        internal_context="",
-        deadline=time.time() + 30,
-        run_dir=tmp_path / "run",
-        out_dir=out_dir,
-        result_path=tmp_path / "result.json",
-        max_repair_attempts=3,
-        phase_log_path=tmp_path / "phase.jsonl",
-    )
-
-    assert calls["generation"] == 1
-    assert result["provider_failure_classification"] == "BLOCKED_PROVIDER_NON_JSON_PAYLOAD"
-    assert result["evidence_status"] == "BLOCKED_PROVIDER"
-    assert result["diagnostics"]["schema_repair_attempts"] == 1
-    assert result["diagnostics"]["raw_response_excerpt"] == "still prose, not json"
-    assert not out_dir.exists()
+    from tests.generation_migration_support import assert_current_generation_behavior
+    assert_current_generation_behavior(tmp_path,'invalid_json')
 
 
 def test_case03_non_json_provider_payload_classified() -> None:
@@ -322,5 +295,7 @@ def test_only_one_provider_execution_path() -> None:
 
     assert "ThreadPoolExecutor" not in contracts
     assert "def execute_provider_jobs" not in contracts
-    assert "ThreadPoolExecutor" in production
-    assert "def execute_provider_job_patch_generation" in production
+    assert "def execute_provider_job_patch_generation" not in production
+    service=(ROOT/'cgkn/application/software_project/service.py').read_text(encoding='utf-8')
+    assert 'produce_project_session' in service
+    assert 'run_provider_generation_job' in (ROOT/'scripts/codex_conversation.py').read_text(encoding='utf-8')

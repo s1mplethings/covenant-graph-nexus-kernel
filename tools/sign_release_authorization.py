@@ -20,6 +20,21 @@ def _sha(path):
     return hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
 
 
+def sign_document(document, *, key, key_id):
+    """Shared signer primitive; key custody stays in the external controller.
+
+    The caller must supply the appropriate purpose-scoped document and key.
+    This does not issue release authorization or node permits by itself.
+    """
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+    from cgkn.state.release_authorization import payload_bytes
+    if not isinstance(key,Ed25519PrivateKey):raise ValueError('private key is not Ed25519')
+    result=dict(document)
+    result['signature']={'algorithm':'ed25519','key_id':key_id,
+        'value_b64':base64.b64encode(key.sign(payload_bytes(document))).decode('ascii')}
+    return result
+
+
 def _read(path):
     return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
 
@@ -139,12 +154,7 @@ def main(argv=None):
         pathlib.Path(args.private_key).read_bytes(), password=None)
     if not isinstance(key, Ed25519PrivateKey):
         raise SystemExit("private key is not Ed25519")
-    signature = key.sign(payload_bytes(document))
-    document["signature"] = {
-        "algorithm": "ed25519",
-        "key_id": args.key_id,
-        "value_b64": base64.b64encode(signature).decode("ascii"),
-    }
+    document=sign_document(document,key=key,key_id=args.key_id)
     public = key.public_key().public_bytes(
         serialization.Encoding.Raw, serialization.PublicFormat.Raw)
     anchor = {

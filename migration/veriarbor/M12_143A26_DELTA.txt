@@ -1,0 +1,20 @@
+--- 143a25
++++ 143a26
+@@ -10,7 +10,7 @@
+ import threading
+ import base64
+ import mimetypes
+-from http.server import BaseHTTPRequestHandler, HTTPServer
++from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+ from urllib.parse import urlparse, parse_qs
+ 
+ # Import milestone modules dynamically or directly if available
+@@ -128,7 +128,7 @@
+         else:
+             raise ValueError(str(e))
+ 
+-class ThreadedHTTPServer(HTTPServer):
++class ThreadedHTTPServer(ThreadingHTTPServer):
+     allow_reuse_address = True
+     daemon_threads = True
+ 

@@ -1,0 +1,7 @@
+{
+  "kind": "VeriArborDogfoodNegativeControl",
+  "status": "PASS",
+  "tampered_certificate_matches": false,
+  "tampered_can_substitute": false,
+  "expected": "both False"
+}

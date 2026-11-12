@@ -1,0 +1,11 @@
+{
+  "kind": "DerivedBlockAcceptanceView",
+  "status": "PASS",
+  "source_sha256": "814bf49eb22b005678aad9ea5ddb580dff06208605279f6eca1efd41065307e5",
+  "canonical_observation": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/bbfdc430e5c9b733894d5bf6447ad534d0349d4a82751fe86730708a66c4b050.json",
+    "sha256": "87c66716c04d8c670d87c045943a97c56f15e6d3d5a46041de296a0a86e83a6b"
+  },
+  "evidence_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\b02-full-20261106-012441\\receipt.json",
+  "checker_qualification": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_FULL_CHECKER_QUALIFICATION_814bf49e\\receipt.json"
+}

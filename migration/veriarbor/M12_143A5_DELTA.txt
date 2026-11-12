@@ -1,0 +1,32 @@
+--- 143a4
+
++++ 143a5
+
+@@ -39,10 +39,10 @@
+
+ 
+ try:
+-    from milestones.milestone_989800776c3d6229e431.api import handle as m7_handle
++    from promotion_publish import handle as m7_handle
+ except ImportError:
+     m7_handle = None
+ 
+ try:
+-    from milestones.milestone_af427946c6dea418047a.api import handle as m8_handle
++    from milestones.milestone_989800776c3d6229e431.api import handle as m8_handle
+ except ImportError:
+     m8_handle = None
+@@ -54,10 +54,10 @@
+
+ 
+ try:
+-    from milestones.milestone_dbb8341c8910593063a8.api import handle as m10_handle
++    from milestones.milestone_af427946c6dea418047a.api import handle as m10_handle
+ except ImportError:
+     m10_handle = None
+ 
+ try:
+-    from promotion_publish import handle as m11_handle
++    from milestones.milestone_dbb8341c8910593063a8.api import handle as m11_handle
+ except ImportError:
+     m11_handle = None

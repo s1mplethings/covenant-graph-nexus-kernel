@@ -1,0 +1,30 @@
+{
+  "kind": "M12FinalAccounting",
+  "created_at": "2026-11-06T00:32:23.166496+00:00",
+  "classification": "Estimated ledger projection; not an invoice or settled provider bill.",
+  "ledger": "F:\\CGKN-ITER-076\\global-provider-budget.json",
+  "ledger_sha256": "e6edf04e2dc93b468cfbbb205b441ac87d754a5372ccbb0db72df50e4ce67c9d",
+  "baseline_checkpoint": "2026-11-04T15:54:55.344079+08:00",
+  "baseline_rows": 3633,
+  "ledger_rows_observed": 3674,
+  "new_rows": 41,
+  "status_counts": {
+    "SUCCEEDED": 41
+  },
+  "model_counts": {
+    "deepseek-flash": 11,
+    "qwen3.8-flash": 30
+  },
+  "numeric_total_tokens": 2202250,
+  "non_numeric_usage_rows": 0,
+  "estimated_cost_sum": 45.17736,
+  "checkpoint_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\accounting-checkpoints\\m12-3674-e6edf04e2dc9.json",
+  "checkpoint_sha256": "cf95c91fc3ea243504aa09b1f81af1d1312a690007f2842a9c5984491051592a",
+  "provider_calls_by_this_delivery_phase": 0,
+  "ledger_writes_by_this_phase": false,
+  "unknown_preserved": "Historical UNKNOWN/FAILED rows remain in the original ledger; no new provider calls were made in this delivery phase.",
+  "limitations": [
+    "Estimated cost uses original row estimates",
+    "No official price re-snapshot or settled invoice reconciliation was performed"
+  ]
+}

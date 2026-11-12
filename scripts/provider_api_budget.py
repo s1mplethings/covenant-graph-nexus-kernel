@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import json
 import os
 import pathlib
@@ -16,6 +17,14 @@ from typing import Any, Iterator
 
 class ProviderBudgetExhausted(RuntimeError):
     """Raised before transport when a configured run-level API budget is exhausted."""
+
+    def __init__(self, message):
+        super().__init__(message)
+        self.provider_dispatched = False
+        # Refusing a replay never resolves the earlier UNKNOWN request.
+        self.outcome_unknown = 'IDENTITY_ALREADY_UNKNOWN' in str(message)
+        self.category = ('provider_outcome_unknown' if self.outcome_unknown
+                         else 'provider_request_rejected_before_send')
 
 
 TERMINAL_CALL_STATES = frozenset(
@@ -113,8 +122,9 @@ def _locked(path: pathlib.Path) -> Iterator[None]:
     lock_path = path.with_suffix(path.suffix + ".lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     handle = lock_path.open("a+b")
+    acquired = False
     try:
-        handle.seek(0)
+        handle.seek(0, 2)
         if handle.tell() == 0:
             handle.write(b"0")
             handle.flush()
@@ -122,20 +132,32 @@ def _locked(path: pathlib.Path) -> Iterator[None]:
         if os.name == "nt":
             import msvcrt
 
-            msvcrt.locking(handle.fileno(), msvcrt.LK_LOCK, 1)
+            # LK_LOCK retries in one-second increments on Windows, amplifying
+            # a millisecond ledger transaction into a provider launch delay.
+            import errno
+            until = time.monotonic() + 10
+            while True:
+                try:
+                    msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+                    break
+                except OSError as exc:
+                    if exc.errno not in (errno.EACCES, errno.EAGAIN, errno.EDEADLK) or time.monotonic() >= until:
+                        raise
+                    time.sleep(.005)
         else:  # pragma: no cover - exercised on POSIX CI
             import fcntl
 
             fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        acquired = True
         yield
     finally:
         try:
             handle.seek(0)
-            if os.name == "nt":
+            if acquired and os.name == "nt":
                 import msvcrt
 
                 msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
-            else:  # pragma: no cover - exercised on POSIX CI
+            elif acquired:  # pragma: no cover - exercised on POSIX CI
                 import fcntl
 
                 fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
@@ -148,16 +170,31 @@ def _read(path: pathlib.Path, limits: dict[str, Any]) -> dict[str, Any]:
         return _empty_ledger(limits)
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        value = {}
-    return value if isinstance(value, dict) and isinstance(value.get("calls"), list) else _empty_ledger(limits)
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError('existing Provider ledger unreadable; preserve and reconcile, never reset') from exc
+    if not isinstance(value,dict) or not isinstance(value.get('calls'),list):
+        raise RuntimeError('existing Provider ledger invalid; preserve and reconcile, never reset')
+    return value
 
 
 def _write(path: pathlib.Path, value: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.{os.getpid()}.{uuid.uuid4().hex}.tmp")
-    temporary.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    temporary.replace(path)
+    with temporary.open('w', encoding='utf-8') as stream:
+        stream.write(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+        stream.flush()
+        os.fsync(stream.fileno())
+    deadline=time.monotonic()+2
+    while True:
+        try:
+            temporary.replace(path)
+            break
+        except PermissionError as exc:
+            # Read-only ledger observers may briefly deny delete sharing on
+            # Windows. Retry the same atomic write, never the Provider request.
+            if os.name!='nt' or getattr(exc,'winerror',None) not in {5,32,33} or time.monotonic()>=deadline:
+                raise
+            time.sleep(.01)
 
 
 def _estimated_cost(input_tokens: int, output_tokens: int, limits: dict[str, Any]) -> float:
@@ -168,18 +205,10 @@ def _estimated_cost(input_tokens: int, output_tokens: int, limits: dict[str, Any
     return round((input_tokens * float(input_rate) + output_tokens * float(output_rate)) / 1_000_000, 8)
 
 
-def _process_alive(pid: int) -> bool:
-    if pid <= 0:
-        return False
-    if pid == os.getpid():
-        return True
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except (PermissionError, OSError):
-        return True
-    return True
+try:
+    from .process_identity import process_is_alive as _process_alive
+except ImportError:  # Existing standalone scripts import path.
+    from process_identity import process_is_alive as _process_alive
 
 
 def _actual_token(value: Any) -> int | None:
@@ -313,20 +342,32 @@ def reserve_call(
     retry_count: int,
     run_id: str | None = None,
     provider: str | None = None,
+    execution_policy: str = "limited",
+    authorization_reference: str | None = None,
+    prior_request_identities: tuple[str, ...] = (),
+    durable_response_required: bool = False,
 ) -> dict[str, Any] | None:
     """Reserve one live transport call before it is sent."""
+    if execution_policy not in {"limited", "accounting_only"}:
+        raise ValueError("unknown execution policy")
+    if execution_policy == "accounting_only" and not authorization_reference:
+        raise ValueError("accounting-only execution requires explicit authorization")
     path = configured_ledger_path()
     if path is None:
         return None
     limits = configured_limits()
-    if not budget_configured():
+    if execution_policy == "limited" and not budget_configured():
         raise ProviderBudgetExhausted("PROVIDER_BUDGET_EXHAUSTED: complete run-level limits are required")
     with _locked(path):
         ledger = _read(path, limits)
+        identities={str(request_identity or ''),*prior_request_identities}
         for existing in ledger.get("calls", []):
+            if (isinstance(existing,dict) and existing.get('request_identity') in identities
+                    and (existing.get('status')=='INTERRUPTED_UNKNOWN' or existing.get('submission_outcome_unknown'))):
+                raise ProviderBudgetExhausted('PROVIDER_CALL_IDENTITY_ALREADY_UNKNOWN: reconcile saved outcome before any new submission')
             if (
                 isinstance(existing, dict)
-                and existing.get("request_identity") == str(request_identity or "")
+                and existing.get("request_identity") in identities
                 and str(existing.get("status", "")) not in TERMINAL_CALL_STATES
             ):
                 raise ProviderBudgetExhausted(
@@ -359,14 +400,19 @@ def reserve_call(
         ) + 1
         checks = (*checks, (family_limit_name, family_calls))
         exceeded = [name for name, value in checks if limits.get(name) is not None and value > limits[name]]
-        if exceeded:
+        if exceeded and execution_policy == "limited":
             ledger["updated_at"] = _now()
             ledger["last_block"] = {"at": _now(), "case_id": case_id, "purpose": purpose, "limits": exceeded}
             _write(path, ledger)
             raise ProviderBudgetExhausted("PROVIDER_BUDGET_EXHAUSTED: " + ",".join(exceeded))
         call = {
+            "execution_policy": execution_policy,
+            "authorization_reference": authorization_reference,
+            "observed_historical_limit_excesses": exceeded,
             "call_id": uuid.uuid4().hex,
             "run_id": str(run_id if run_id is not None else os.environ.get("CGKN_BENCHMARK_RUN_ID", "")),
+            "job_id": str(os.environ.get("CGKN_MODEL_JOB_ID", "")),
+            "attempt_id": str(os.environ.get("CGKN_MODEL_ATTEMPT_ID", "")),
             "case_id": str(case_id or ""),
             "purpose": str(purpose or "provider_call"),
             "provider": str(provider if provider is not None else (os.environ.get("CGKN_PROVIDER_NAME", "qwen") or "qwen")),
@@ -385,6 +431,7 @@ def reserve_call(
             "estimated_cost": _estimated_cost(estimated_input_tokens, requested_output_tokens, limits),
             "request_identity": str(request_identity or ""),
             "call_mode": "LIVE_CALL",
+            "durable_response_required": durable_response_required,
             "status": "RESERVED",
             "owner_pid": os.getpid(),
             "owner_process_instance_id": PROCESS_INSTANCE_ID,
@@ -394,7 +441,9 @@ def reserve_call(
         _recompute_totals(ledger, limits)
         ledger["updated_at"] = _now()
         _write(path, ledger)
-        return {"path": str(path), "call_id": call["call_id"], "started_monotonic": time.monotonic()}
+        return {"path": str(path), "call_id": call["call_id"], "run_id": call["run_id"],
+                "job_id": call["job_id"], "attempt_id": call["attempt_id"],
+                "started_monotonic": time.monotonic()}
 
 
 def mark_request_started(reservation: dict[str, Any] | None) -> None:
@@ -431,6 +480,21 @@ def mark_response_received(
         target = next((item for item in ledger["calls"] if item.get("call_id") == reservation["call_id"]), None)
         if target is None or target.get("status") != "REQUEST_STARTED":
             raise RuntimeError("provider call must be REQUEST_STARTED before RESPONSE_RECEIVED")
+        if target.get('durable_response_required'):
+            if not isinstance(response, dict):
+                raise ValueError('AUTHORITATIVE_RESPONSE_REQUIRED')
+            archive = path.parent / (path.stem + '.responses') / (str(target['call_id']) + '.json')
+            envelope = {'kind': 'ProviderTerminalResponse', 'call_id': target['call_id'],
+                        'request_identity': target['request_identity'], 'response': response}
+            if archive.exists():
+                if json.loads(archive.read_text(encoding='utf-8')) != envelope:
+                    raise ValueError('CONFLICTING_AUTHORITATIVE_RESPONSE')
+            else:
+                _write(archive, envelope)
+            target['authoritative_response_ref'] = str(archive)
+            target['authoritative_response_sha256'] = hashlib.sha256(archive.read_bytes()).hexdigest()
+            target['actual_model'] = str(response.get('model') or 'UNKNOWN')
+            target['terminal_commit_state'] = 'RESPONSE_PENDING_COMMIT'
         target["status"] = "RESPONSE_RECEIVED"
         target["response_received_at"] = _now()
         target["duration_seconds"] = round(time.monotonic() - float(reservation["started_monotonic"]), 6)
@@ -483,6 +547,16 @@ def finalize_call(
         if target is None:
             return
         prior_status = str(target.get("status", ""))
+        if status == 'SUCCEEDED' and target.get('durable_response_required'):
+            archive = pathlib.Path(target.get('authoritative_response_ref', ''))
+            if (not archive.is_file() or hashlib.sha256(archive.read_bytes()).hexdigest()
+                    != target.get('authoritative_response_sha256')):
+                raise ValueError('SUCCEEDED_REQUIRES_DURABLE_RESPONSE')
+            envelope = json.loads(archive.read_text(encoding='utf-8'))
+            if (envelope.get('call_id') != call_id or envelope.get('request_identity') != target['request_identity']
+                    or target.get('actual_model') in (None, '', 'UNKNOWN')):
+                raise ValueError('TERMINAL_RESPONSE_IDENTITY_UNBOUND')
+            target['terminal_commit_state'] = 'COMMITTED'
         if prior_status == "RESERVED":
             target["status"] = "CANCELLED_BEFORE_SEND"
             target["cancelled_at"] = _now()
@@ -496,6 +570,23 @@ def finalize_call(
             _write(path, ledger)
             return
         actual_input, actual_output = _usage_tokens(usage)
+        # Record uncertainty before idempotent late-usage early returns. Reliable
+        # usage settles cost, but does not prove that a lost result was committed.
+        if str(status or '').upper()=='INTERRUPTED_UNKNOWN' or prior_status=='INTERRUPTED_UNKNOWN' or target.get('submission_outcome_unknown'):
+            target['status']='INTERRUPTED_UNKNOWN'
+            target['submission_outcome_unknown']=True
+            target['terminal_reason']='request_submission_outcome_requires_explicit_reconciliation'
+            _recompute_totals(ledger,limits)
+            ledger['updated_at']=_now()
+            _write(path,ledger)
+        # Late reliable usage must survive a racing unknown/failure finalization.
+        # Repeated settlement is idempotent; conflicting usage is not silently applied.
+        if prior_status in TERMINAL_CALL_STATES and isinstance(target.get("input_tokens"), int) and isinstance(target.get("output_tokens"), int):
+            if actual_input is None or actual_output is None:
+                return
+            if (actual_input, actual_output) == (target["input_tokens"], target["output_tokens"]):
+                return
+            raise ValueError("CONFLICTING_PROVIDER_USAGE_SETTLEMENT")
         if actual_input is not None:
             target["input_tokens"] = max(0, actual_input)
         if actual_output is not None:
@@ -511,7 +602,12 @@ def finalize_call(
         target["duration_seconds"] = round(time.monotonic() - float(reservation["started_monotonic"]), 6)
         target["http_status"] = http_status
         requested_status = str(status or "FAILED").upper()
-        target["status"] = "SUCCEEDED" if requested_status in {"PASS", "SUCCEEDED"} else "FAILED"
+        if requested_status=='INTERRUPTED_UNKNOWN' or prior_status=='INTERRUPTED_UNKNOWN' or target.get('submission_outcome_unknown'):
+            target['status']='INTERRUPTED_UNKNOWN'
+            target['submission_outcome_unknown']=True
+            target['terminal_reason']='request_submission_outcome_requires_explicit_reconciliation'
+        else:
+            target["status"] = "SUCCEEDED" if requested_status in {"PASS", "SUCCEEDED"} else "FAILED"
         target["finished_at"] = _now()
         _recompute_totals(ledger, limits)
         ledger["updated_at"] = _now()
@@ -573,4 +669,29 @@ def store_cached_response(request_identity: str, response: dict[str, Any]) -> No
             "response": response,
             "contains_credentials": False,
         })
+
+
+def load_authoritative_response(request_identity: str) -> dict[str, Any] | None:
+    """Read-only exact terminal recovery; never retry or rewrite uncertainty."""
+    path=configured_ledger_path()
+    if path is None or not path.is_file():return None
+    identities={request_identity,request_identity.removeprefix('sha256:'),
+                'sha256:'+request_identity.removeprefix('sha256:')}
+    with _locked(path):
+        rows=_read(path,configured_limits())['calls']
+        for row in reversed(rows):
+            if row.get('request_identity') not in identities or row.get('status') not in {'SUCCEEDED','RESPONSE_RECEIVED'}:
+                continue
+            ref=row.get('authoritative_response_ref')
+            if not ref:continue
+            archive=pathlib.Path(ref)
+            if not archive.is_file():continue
+            raw=archive.read_bytes()
+            if hashlib.sha256(raw).hexdigest()!=row.get('authoritative_response_sha256'):
+                raise ValueError('AUTHORITATIVE_RESPONSE_HASH_MISMATCH')
+            envelope=json.loads(raw)
+            if envelope.get('call_id')!=row['call_id'] or envelope.get('request_identity')!=row['request_identity']:
+                raise ValueError('AUTHORITATIVE_RESPONSE_IDENTITY_MISMATCH')
+            return envelope['response']
+    return None
 

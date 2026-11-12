@@ -1,0 +1,230 @@
+{
+  "kind": "P11FixIsolatedSecurityTests",
+  "created_at": "2026-11-06T04:42:36.213919+00:00",
+  "scope": "isolated copies; no formal source or delivery artifact modified",
+  "fixture_private_key": "C:\\Users\\sunom\\AppData\\Local\\Temp\\opencode\\p11fix_protected\\release-private.pem",
+  "trust_anchor": "C:\\Users\\sunom\\AppData\\Local\\Temp\\opencode\\p11fix_protected\\release-trust-anchor.json",
+  "results": [
+    {
+      "test_id": "P01",
+      "description": "agent source without authorization",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INSUFFICIENT_EVIDENCE: referenced object missing: iter132-promotion-studio/final-validation-01/agent_authorizations/e1727072d379945283dbe2821a75c820ed5a97ffb6396fc7065b9a9cc2ed3410.json",
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p01-f49howev"
+    },
+    {
+      "test_id": "P02",
+      "description": "modify authorized agent source",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INVALID_PROVENANCE: authorized agent artifact mismatch",
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p02-vzefzk0j"
+    },
+    {
+      "test_id": "P03",
+      "description": "agent source impersonates Worker",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INVALID_PROVENANCE: authorized agent source binding mismatch",
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p03-5ylhszrc"
+    },
+    {
+      "test_id": "P04",
+      "description": "B11 independent observation false",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INVALID_PROVENANCE: object hash mismatch: iter132-promotion-studio/final-validation-01/agent_reviews/B11_ACCEPTANCE.json",
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p04-7m8xc1ho"
+    },
+    {
+      "test_id": "P05",
+      "description": "invalid Worker receipt hash",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INVALID_PROVENANCE: object hash mismatch: iter132-promotion-studio/final-validation-01/import_objects/19b815dbc247abac4f894ba135cb067c23b5a068b40fe03bc75ec2259bc82172",
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p05-60pfalbm"
+    },
+    {
+      "test_id": "P06",
+      "description": "delivered file hash mismatch",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INVALID_PROVENANCE: imported current artifact mismatch",
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p06-9j6u6odd"
+    },
+    {
+      "test_id": "P07",
+      "description": "replay old candidate hash",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INSUFFICIENT_EVIDENCE: delivered source lacks bounded Worker or authorized Agent origin: README.md",
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p07-dsw0h_hk"
+    },
+    {
+      "test_id": "P08",
+      "description": "missing B10 evidence",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INSUFFICIENT_EVIDENCE: referenced object missing: iter132-promotion-studio/final-validation-01/agent_reviews/B10_CERTIFICATE.json",
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p08-cb76bcsz"
+    },
+    {
+      "test_id": "P09",
+      "description": "unrelated production_provenance_ref",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": null,
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p09-jr1_o_uw"
+    },
+    {
+      "test_id": "P10",
+      "description": "valid Agent source, authorization, reviews",
+      "expected_result": "ACCEPT",
+      "actual_result": "ACCEPT",
+      "error": null,
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p10-7pfv5wa1"
+    },
+    {
+      "test_id": "P11",
+      "description": "self-registration after changing README",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INVALID_PROVENANCE: release authorization: authorization does not bind the delivered manifest",
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p11-v0dtqsat"
+    },
+    {
+      "test_id": "P12",
+      "description": "rewrite signed authorization bytes",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INVALID_PROVENANCE: release authorization: authorization signature does not match",
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p12-ql8l2r6v"
+    },
+    {
+      "test_id": "P13",
+      "description": "replace public key / policy",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": null,
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p13-_7e5c4eo"
+    },
+    {
+      "test_id": "P14",
+      "description": "change reviewed content with main.py unchanged",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": null,
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p14-kyx15d37"
+    },
+    {
+      "test_id": "P15",
+      "description": "rewrite B11 and recompute ordinary hashes",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": "ProvenanceError: INVALID_PROVENANCE: authorized agent record is not signed",
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p15-sm7fxxu7"
+    },
+    {
+      "test_id": "P16",
+      "description": "replay another candidate's authorization",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": null,
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p16-l881lpid"
+    },
+    {
+      "test_id": "P17",
+      "description": "change ZIP bytes with old manifest",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": null,
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p17-rqjsptel"
+    },
+    {
+      "test_id": "P18",
+      "description": "private key outside agent-writable roots",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": null,
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p18-a5qrd5ag"
+    },
+    {
+      "test_id": "P19",
+      "description": "agent changes policy/anchor/verifier",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": null,
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-p19-evso4ytn"
+    },
+    {
+      "test_id": "N01",
+      "description": "valid signed batch still accepted",
+      "expected_result": "ACCEPT",
+      "actual_result": "ACCEPT",
+      "error": null,
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-n01-lvsze5x6"
+    },
+    {
+      "test_id": "N02",
+      "description": "no trust anchor fails closed",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": null,
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-n02-ss6269ym"
+    },
+    {
+      "test_id": "N03",
+      "description": "missing signed authorization fails closed",
+      "expected_result": "REJECT",
+      "actual_result": "REJECT",
+      "error": null,
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-n03-34o14_2w"
+    },
+    {
+      "test_id": "N04",
+      "description": "worker-only delivery compatibility",
+      "expected_result": "ACCEPT",
+      "actual_result": "ACCEPT",
+      "error": null,
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-n04-_sr8tpcl"
+    },
+    {
+      "test_id": "N05",
+      "description": "formal production provenance path",
+      "expected_result": "ACCEPT",
+      "actual_result": "ACCEPT",
+      "error": null,
+      "verdict": "PASS",
+      "temp_case": "C:\\Users\\sunom\\AppData\\Local\\Temp\\p11fix-n05-sct1lv7f"
+    }
+  ],
+  "passed": 24,
+  "total": 24,
+  "exit_code": 0,
+  "security_status": "IMPLEMENTED_NOT_TRUSTED",
+  "reason": "Fixture key/anchor; no OS-isolated external signer is deployed."
+}

@@ -1,0 +1,47 @@
+{
+  "kind": "FrozenGeneratedTestsDiagnostic",
+  "argv": [
+    "D:\\anaconda\\python.exe",
+    "-I",
+    "-X",
+    "utf8",
+    "-m",
+    "pytest",
+    "tests/test_milestone_af427946c6dea418047a.py",
+    "-q",
+    "-p",
+    "no:cacheprovider",
+    "-o",
+    "pythonpath=F:/CGKN-LeanLoop-V1-20261101/migration/veriarbor/m10-generated-tests/snapshot",
+    "--rootdir=.",
+    "--basetemp=F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\m10-generated-tests-absolute-import-path",
+    "--junitxml=F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m10-generated-tests-absolute-import-path\\junit.xml"
+  ],
+  "cwd": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m10-generated-tests\\snapshot",
+  "seconds": 12.98399999999674,
+  "exit_code": 1,
+  "collected": 7,
+  "failures": [
+    {
+      "id": "tests.test_milestone_af427946c6dea418047a.TestM10Analytics::test_fetch_success",
+      "message": "ValueError: receipt not published: 587dd455052f4db4855f1f1bb0b018d1"
+    },
+    {
+      "id": "tests.test_milestone_af427946c6dea418047a.TestM10Analytics::test_history",
+      "message": "ValueError: receipt not published: a1c9d3a22cd749c18fe9878c1076b128"
+    },
+    {
+      "id": "tests.test_milestone_af427946c6dea418047a.TestM10Analytics::test_recommend_high_confidence",
+      "message": "ValueError: receipt not published: cbb8503388c64f599f853b19af3320a0"
+    },
+    {
+      "id": "tests.test_milestone_af427946c6dea418047a.TestM10Analytics::test_recommend_low_confidence",
+      "message": "ValueError: receipt not published: 7e23f941d3c24a5a87cb11516b5d0c22"
+    }
+  ],
+  "prior_receipt_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m10-generated-tests-import-path\\receipt.json",
+  "prior_receipt_sha256": "b5d4af52aed6740605cb3ea6d307dd0a2ffbe28d83a69b1a5605cb871ffca650",
+  "environment_change": "Use absolute candidate pythonpath: relative pytest pythonpath resolves against inherited host configuration directory",
+  "acceptance_authority": false,
+  "host_business_patches": 0
+}

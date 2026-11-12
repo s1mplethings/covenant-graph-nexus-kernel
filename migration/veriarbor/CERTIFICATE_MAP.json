@@ -1,0 +1,800 @@
+{
+  "kind": "DerivedCertificateMap",
+  "authority": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\goal_acceptance.json",
+  "current_verification_keys": [
+    {
+      "goal_id": "accept-c695c9993e0f11e44719",
+      "key": "1cc6e57503b1ffb1edec071952c1e083ce494982df721497304011e0e1d3559f",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0000",
+      "receipt_hash": "8ae301de7e90e10a3b6ef7268e7288011d98404974f224d2130d642aef843011",
+      "subject_hash": "0227a2c9f0af313db584cd1222355d1b07d3ca36762fa475eaa37bb2e805ce6b",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-a3f8bcc50143d8ae49b4",
+      "key": "60b0b69f0efc8c9b38a345b19a3d0db2f9c470b09017d9aa129813edd1f77299",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0001",
+      "receipt_hash": "1976bb34916ae1b6a18bbccb4d8fbcc46f68fb794c738098e33909316cf2e6c6",
+      "subject_hash": "0227a2c9f0af313db584cd1222355d1b07d3ca36762fa475eaa37bb2e805ce6b",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-ca86f3507652c4d39816",
+      "key": "aa791516655e1c9d55ae2cd29328a0c165aac184b96c3c8c3967f3fcfb8a8ea2",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0002",
+      "receipt_hash": "e151570ae918db3bca1b49716f95e03ad8a0feffa23f5f895b27c3ed77677f2a",
+      "subject_hash": "0227a2c9f0af313db584cd1222355d1b07d3ca36762fa475eaa37bb2e805ce6b",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-9edb004aa0b6dd044101",
+      "key": "fc685356b069db1e1c07199f775943c1a2e4961434c1c56fea2200b83426c0ae",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0003",
+      "receipt_hash": "e02ad103f9886d9ca3303309b84b4f73daa705916bf4b43046a94d8f0402f191",
+      "subject_hash": "0227a2c9f0af313db584cd1222355d1b07d3ca36762fa475eaa37bb2e805ce6b",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-ca684d20740eafff7980",
+      "key": "5cf3490facfff52053b338230701ca8c43ccd2406b32cce3f157953c9f90349a",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0004",
+      "receipt_hash": "1570f8562c051d9da13541cf7456cb5c0330971542ea3a2dabbd9d47e82ff326",
+      "subject_hash": "0227a2c9f0af313db584cd1222355d1b07d3ca36762fa475eaa37bb2e805ce6b",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-fce1e8f657d881f7b835",
+      "key": "eda391a930d60c443b06e6ef19dc9627c0731941748d9cb2cae7d82ecb4676fd",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0005",
+      "receipt_hash": "f63144be1b58185fd7077f29ec7427ee686031f80e8686424ba58b365a50a3da",
+      "subject_hash": "0227a2c9f0af313db584cd1222355d1b07d3ca36762fa475eaa37bb2e805ce6b",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-120d5fa5ea077b934689",
+      "key": "d297aad489edc96275a028aadf3ba15b3c1ca017d1f0e2b5b913992151f0b0cb",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0006",
+      "receipt_hash": "f5ef76d1cd218510c03adb3888108187dd4fa287a7ee60acd26bc995edb9aeb3",
+      "subject_hash": "0227a2c9f0af313db584cd1222355d1b07d3ca36762fa475eaa37bb2e805ce6b",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-0a6060c95aa9bf1301da",
+      "key": "e0ba298cd68a67af2774830868b4bd4c92d7a2f40002028e38c4d127444c5509",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0007",
+      "receipt_hash": "adbc8324cbf7a29a6498ce62efcde40bfc73ce7dd1f7060b960951dfc2d665ac",
+      "subject_hash": "0227a2c9f0af313db584cd1222355d1b07d3ca36762fa475eaa37bb2e805ce6b",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-cb6cd62e5771d9c4533e",
+      "key": "4a7acb17bafad3028301357e0e7e51cc3bbc85ae7bf7c545ca297d07724ca669",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0008",
+      "receipt_hash": "166749e7dc1dac06e74048b5ad7ecb50c27e694a6a489d83e475a23faacbf3f2",
+      "subject_hash": "0227a2c9f0af313db584cd1222355d1b07d3ca36762fa475eaa37bb2e805ce6b",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-2778e4e368049199cb74",
+      "key": "b6f1d2a866f549b33f344c05cc3e7bf46aff7e5ce347e221c1168d282705575d",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0009",
+      "receipt_hash": "bcb1580b81074a2fe5c1264bbe9e10246cdfd9035a4640ff7a119ac1ae1c0164",
+      "subject_hash": "8c28b22494e6d88a397b03f2a1becbe8b35411135b74f4d906d79f0fd9096e36",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-170da45696d31583f0f6",
+      "key": "a5362029d418f72df54c408b87df676ef3d2e8cbc3d0137affe4ca6581e5a94c",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0010",
+      "receipt_hash": "4be66eae8db7bc153bd92132bba6fdc1f597e60bcffe09cd973991eac022685e",
+      "subject_hash": "8c28b22494e6d88a397b03f2a1becbe8b35411135b74f4d906d79f0fd9096e36",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-e19cd5af7799a12e3604",
+      "key": "90ac8cb2f00bb18890b2343fa075a1de875a20d2a7a60b8b195eda35bc44f950",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0011",
+      "receipt_hash": "a357541bc28ebbd7d59f6a944d404d7683c5d09bcac1ef091ff7792a361a9134",
+      "subject_hash": "8c28b22494e6d88a397b03f2a1becbe8b35411135b74f4d906d79f0fd9096e36",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-5469714437e1ef021107",
+      "key": "f290fb11305bb811ec52eafe846d780bfac9f934e3d7b493f36a182a7af24694",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0012",
+      "receipt_hash": "c8eeb56ff38d3c41ec4c996d6216b4d6881147ed7b8a763462796a27d5f6199c",
+      "subject_hash": "8c28b22494e6d88a397b03f2a1becbe8b35411135b74f4d906d79f0fd9096e36",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-104c2f37f5954170f35a",
+      "key": "0720ca0454ac386b04b3f5b34b4bf3d27a6f4a68e15c596e42855e6c3b47f6df",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0013",
+      "receipt_hash": "0d85d2c31974c8b39761641bc633d70cae1aded7a18af191788e1e9919486b8e",
+      "subject_hash": "8c28b22494e6d88a397b03f2a1becbe8b35411135b74f4d906d79f0fd9096e36",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-408a5fd627d63955231f",
+      "key": "37a01418114e6a2beb067e71fa918b531efc74c17157c5c9e7e09112ad5a591d",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0014",
+      "receipt_hash": "8a57774a89ea34139cf1e62f49196d85337ff166c57c42c6914f6f26449412b2",
+      "subject_hash": "8c28b22494e6d88a397b03f2a1becbe8b35411135b74f4d906d79f0fd9096e36",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-5230e7202f8168f61e96",
+      "key": "dfd41692d13181a7767cc300c6ebe2f7856d727dab0c600cd667bda9a76bb944",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0015",
+      "receipt_hash": "179e41f8a56389cc2ba244989f9d626f41dd36fc60d6807f41531083db322bcd",
+      "subject_hash": "8c28b22494e6d88a397b03f2a1becbe8b35411135b74f4d906d79f0fd9096e36",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-18a2bc51a08e02a71d4e",
+      "key": "5ef8e1de6b10d209af737412d6c91989dc5bd484ee5c576acf31e9a01e05e4c6",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0016",
+      "receipt_hash": "28b090dabcc451d7304b12c901033ad28dc3ff61d4fa1a4f4bb3383d8726c5c6",
+      "subject_hash": "8c28b22494e6d88a397b03f2a1becbe8b35411135b74f4d906d79f0fd9096e36",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-9d36c174f46b6d0a6526",
+      "key": "57d6c0789e3afc3972a515ab96494e34377904d5316cb9985ae258166db4d7b7",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0017",
+      "receipt_hash": "abda523fe2783f2adcc653849f594e9048f25404e1cdfd3ca9217b13e6e40fac",
+      "subject_hash": "8c28b22494e6d88a397b03f2a1becbe8b35411135b74f4d906d79f0fd9096e36",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-d40aa5fd80c994f85da7",
+      "key": "7418902db456d66ba8ca688cbdcc26c0aae689ba5f6d3179762f21edde82dd40",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0018",
+      "receipt_hash": "371330bea4a778a0e7c96897020fc4a2ae0a30f97ecc56968de26492751a3c6b",
+      "subject_hash": "8c28b22494e6d88a397b03f2a1becbe8b35411135b74f4d906d79f0fd9096e36",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-b46a41ffebba28173b95",
+      "key": "5769d66eb949219ff199b180070c39c649df39f2b77fd5fe0eb712a982f90153",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0019",
+      "receipt_hash": "9edad984d1d5b2c37af9e05b8b3388b584dcb1ff7edaad64a927ccc7f98c29e7",
+      "subject_hash": "8c28b22494e6d88a397b03f2a1becbe8b35411135b74f4d906d79f0fd9096e36",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-65fc2c2ef4105cd20569",
+      "key": "71aa64db0f6f32b276fd2d276d34d52a27b56a068355c6d1de5c3684d9a4c4f2",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0020",
+      "receipt_hash": "c877467c1362e0235cfb3abcaa97513562863069b2324fa8641090d6fef52900",
+      "subject_hash": "8c28b22494e6d88a397b03f2a1becbe8b35411135b74f4d906d79f0fd9096e36",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-0e4e7ba1429d433f45a0",
+      "key": "232cf22cbb8dbb4185321a65f71a68a5273c4a75f9aec352d594c148c8e9d019",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0021",
+      "receipt_hash": "18783ba9228044238527858b636dd86716b939c208407ba530046cf2393e8803",
+      "subject_hash": "8c28b22494e6d88a397b03f2a1becbe8b35411135b74f4d906d79f0fd9096e36",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-c2ea56c15b5b1c0c5e1f",
+      "key": "2c62f68ea31a483d3d4dbcf68b6c14e31fd7961ae98cbdaa00bc4c1b11fb344e",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0022",
+      "receipt_hash": "8d007191a3c9e95fe1f40641fdb3188249f7160674be2ce5353e77c1bffded26",
+      "subject_hash": "8c28b22494e6d88a397b03f2a1becbe8b35411135b74f4d906d79f0fd9096e36",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-55aaeab9c74620177908",
+      "key": "b97a6e8ef6139d634fef899df4d80c81e95d492c65c27418c2fa2874a720b02c",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0023",
+      "receipt_hash": "8895331b0556873e84c8c6f68f1c577d1e4fa407068217a8f65a0ccfc800b1fc",
+      "subject_hash": "8c28b22494e6d88a397b03f2a1becbe8b35411135b74f4d906d79f0fd9096e36",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-de9906155792c95c4163",
+      "key": "b044e63595d304fbe9a06402d731d21df33237310ea6f602d3fc8c35332998ef",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0024",
+      "receipt_hash": "f69819f6226d2a6a2acdb7810d9149c989b991a0f8822ba28400ce713493b20f",
+      "subject_hash": "8c28b22494e6d88a397b03f2a1becbe8b35411135b74f4d906d79f0fd9096e36",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-0796b15e54ad2b41cb1c",
+      "key": "1b81545beeea0100b1ce203f8d933d2934740a2200798c0fa3f3a38316e859ea",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0025",
+      "receipt_hash": "be0e900de5e29bee6f9cdc966755ba871156fb0921d920994c9e9d0a17f1fd99",
+      "subject_hash": "36aa3534d164cfa1532de138ec5d422bffe378a6cc2d3281d0f04ae50b6d0c91",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-4c1880b1b0efd135df7f",
+      "key": "92bf7cbaa67a3afe2c9b4a0beeef268c72b9fd3be9d2f9077a1bc64bb4328892",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0026",
+      "receipt_hash": "3a9e07a981d03711f2e03338c4d0a90fb59bc887918557233373c4313e8e26cd",
+      "subject_hash": "36aa3534d164cfa1532de138ec5d422bffe378a6cc2d3281d0f04ae50b6d0c91",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-5a87a8e5488d7e8ed31d",
+      "key": "1143f0feb1e99329175ba60e14c134f49ffb3f61b5828b0eafd215982075e62b",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0027",
+      "receipt_hash": "08d32bfd10b9e906a2b744c00dfa4f9ccf49e6e072c973a9df52f08c9d294eea",
+      "subject_hash": "36aa3534d164cfa1532de138ec5d422bffe378a6cc2d3281d0f04ae50b6d0c91",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-3ac4d2fefcd0c4160365",
+      "key": "8a5e37d2ab8340bb60370c0fd106e312283df8db1420a0f834f207cde41eeb7f",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0028",
+      "receipt_hash": "e543ba38245ff467c1bac4b054e5c46273009c362cd640886ec99a14d7c71869",
+      "subject_hash": "36aa3534d164cfa1532de138ec5d422bffe378a6cc2d3281d0f04ae50b6d0c91",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-47f772c69b3a3f503239",
+      "key": "1c32adb12c4f79961c0f78d64b02ff3d57e25a4e4d715f627673e372789cb541",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0029",
+      "receipt_hash": "9369b2e32ff48a05b6585b8a566c5bf5cf9ab1e014cf5e1809c5ad73db67b9ff",
+      "subject_hash": "36aa3534d164cfa1532de138ec5d422bffe378a6cc2d3281d0f04ae50b6d0c91",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-2e887a8c9d5e05ad790b",
+      "key": "997ce0fb048e2815463acfff261888e4a73ff254979909f99628d0b21172e45d",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0030",
+      "receipt_hash": "14d3dea7b745f53a92e1b1806b4448de4742c8226becab315b4467aab63c6257",
+      "subject_hash": "36aa3534d164cfa1532de138ec5d422bffe378a6cc2d3281d0f04ae50b6d0c91",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-8ce6a113720b09577d87",
+      "key": "90c0fc0c35cca474f4b426146137a6424b2fd71e86e2d6ee6f80631cbb848451",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0031",
+      "receipt_hash": "aec110d59d14e031bd0b730195e08de66ff0e110373bedd56adcdc3f2be38658",
+      "subject_hash": "36aa3534d164cfa1532de138ec5d422bffe378a6cc2d3281d0f04ae50b6d0c91",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-2dba8ab3d742fb4c1749",
+      "key": "83fad0d9e12867438719e1fbd128721ad77273143005ac91a701ef3da4cf74a8",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0032",
+      "receipt_hash": "5079cf89186c11266bbee83c9432f1f2b3b4422461c43db8af8e79d7a6540710",
+      "subject_hash": "36aa3534d164cfa1532de138ec5d422bffe378a6cc2d3281d0f04ae50b6d0c91",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-147c9bf02318f9dd984e",
+      "key": "b137e141679acf95238f515db362261a531feff03e923edef217ff330e137964",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0033",
+      "receipt_hash": "e6f96f3a7407c05ad5682a3afbe3412d08ebb6b4ab53a61429a56e3e0ba6823f",
+      "subject_hash": "36aa3534d164cfa1532de138ec5d422bffe378a6cc2d3281d0f04ae50b6d0c91",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-57da32a0b7872bd3da56",
+      "key": "3ddaa781261ed87922a0835a47ec31f186e0da1a701d20aa205db0df78427a55",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0034",
+      "receipt_hash": "cc23530357c8a693cb1e728065cff88c46bec0f0ea0cafbb9c8290b8d74ff8c5",
+      "subject_hash": "36aa3534d164cfa1532de138ec5d422bffe378a6cc2d3281d0f04ae50b6d0c91",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-fa6045ca0129f27db118",
+      "key": "ad34becb8d33e25653ca3592ccd6925bb337c7736e9138b2097d0a9da2ceabd6",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0035",
+      "receipt_hash": "56225f70fa0d660d97809ef754ac2fed5b08066743d183d725433f36decb0131",
+      "subject_hash": "36aa3534d164cfa1532de138ec5d422bffe378a6cc2d3281d0f04ae50b6d0c91",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-9bd0b9fcda705c2002f5",
+      "key": "772716f1483ca8e0f05c3eecbb43d9e7c9a6dcf4b9067ae31f94e7ce8b8e922e",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0036",
+      "receipt_hash": "87cc3a6c5e2a7f1972c0cf4291c26c46bdbf8fc17b99eb0f1fe432748b96b219",
+      "subject_hash": "36aa3534d164cfa1532de138ec5d422bffe378a6cc2d3281d0f04ae50b6d0c91",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-edf8a971245f59c43703",
+      "key": "444c455e6c27732a0ffdd25573c0f3cef1fbf52153bb5edc5489089b31a802dc",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0037",
+      "receipt_hash": "52bb2a321f612940223557992b51848631025588747d5f310abc1c84b092e88d",
+      "subject_hash": "36aa3534d164cfa1532de138ec5d422bffe378a6cc2d3281d0f04ae50b6d0c91",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-4df00a3b77461abde1be",
+      "key": "7f2bc434e14a1d6acd461b218e457298e0bae582651f3fc9130a2da4d6f596a2",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0038",
+      "receipt_hash": "e7ef4dcaeecf12027c07f87657162b927d80ded6d3b171a9e6d1a0e9b13feac3",
+      "subject_hash": "36aa3534d164cfa1532de138ec5d422bffe378a6cc2d3281d0f04ae50b6d0c91",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-dc09e6d613e45c9da154",
+      "key": "75b16c6c1dddb961c0f1a4f39244cd299aaaa45c88fadb18d95649798b20a167",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0039",
+      "receipt_hash": "51a4f0d812d5ac9a069bf7a9254af99fb05864620fda25670dc6a37704e7b881",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-2006d6ded74e3b4b0311",
+      "key": "b6db2cf02755d541e5a0592ff70bde1ccf3798e8d35589f0d87605046bb9db1b",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0041",
+      "receipt_hash": "293e6e456b3ea66cbd0c6bcbc43aaad2b9d657dd62b45494271c11f8d7a613ca",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-1aec03eafd385693a8fc",
+      "key": "a8352bf429f41ea7d9e0fc0d69f1b8e2c1b87705c8a404a6695779aab179da12",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0042",
+      "receipt_hash": "acd3f36ea86419e457345466c4a53ef5d664c6189b48cac76145fb871aed172f",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-ee268f2ab80e04860b92",
+      "key": "7c18c84117f6b4a570ac2f4038dab0fcc0c0b030c3acc1a1e1087260857cac26",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0043",
+      "receipt_hash": "9c71040ce64d7c9dca09afccd813750866d17e38aeea4c8f57623bf66f1de545",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-a494cd221179472f7cae",
+      "key": "ed2679176d91e47cb9e04eec85bbc3d86ea68d254b54287c8f2520c3df75a09e",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0044",
+      "receipt_hash": "7d66f9e46bc296e55441f678cc900d65984dba84b047bf1741754f52e78bcb9f",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-3a7336ad48983463b3a0",
+      "key": "3226d8b421da60a36b1f6fa0c7e7bf6b7659e0d625fd601f1fd63cde0bb7bd30",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0045",
+      "receipt_hash": "15665f69d1ba55ba9f3a0812e75c406b6b76c8db149c841db1535fd8437f6e08",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-a0b026ae0ade9fa71b98",
+      "key": "2a8c7569312bddaba003910a053ccba17ab647156dfe36240d4afce91fcaefb5",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0046",
+      "receipt_hash": "a132df5878d91871614bfbd6b74db2638947f89e9f2c10f5e3c909cf06c456e9",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-984d636e7f8185d72e5e",
+      "key": "5ceddf0a86f7d30008a1c151c73d56c9a44774575659721e50eba1d9f6dc50ba",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0047",
+      "receipt_hash": "d96e7f8a9d395a00165278fa496f8b864f021029e861abfdbe8ab681a6f4b6da",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-b0d9fac18ea14a0e31c9",
+      "key": "a6b1cbabb277d2c720fd14473622acb72289d3976bfe1ac2b220a2a3239f40fe",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0048",
+      "receipt_hash": "db54707ce216def9d6fe0b84c3f9c50fa93cae8c1699b889881c9f9c41e8bf86",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-143a6ad276a11d030a52",
+      "key": "d083dec84a26136dfa77517dd3c633f4271d41fd7ac7a6ce868a79882a5d0085",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0049",
+      "receipt_hash": "17a3b4e01502ddd55d829fb87d249ee9ec6c28cfe4b17f7a7b9e19fe04aa4790",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-cb8ad901b523b86e8df8",
+      "key": "66e9cfc79a2aa2cade14b0334391ecfd8b90c7fddf437424a6b7eb6d4d2f92cc",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0050",
+      "receipt_hash": "9b29344453e8cdd4962c6c9f7e08b611898e97f5c2a1e8145fe518d6d540877e",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-b6e722913c56819a8909",
+      "key": "deaceb6c0d70c509fc39044c17224b5e4f90812c19add80ff48a9fef8ca4c535",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0051",
+      "receipt_hash": "70ab623cff4b3af2b2fabef4ecb5164dba7581b264169f352974172e40a27cb9",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-3016c1f48f2f2dabfbf2",
+      "key": "62c60de7b067ccb8af979f3117412b50317b6abdeea7648f98e1e6eb10ecdac4",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0052",
+      "receipt_hash": "8caf6f0e647fda2d10f02c421d696d31566562736f090eb642aec43b6d1c3f16",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-023b3f5f8992ede481bd",
+      "key": "3c249382e76fc342ccf512189c3ec510e61de8e19d52c7fe7a5319be71057b5c",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0053",
+      "receipt_hash": "22295b8cded54abea2e6f3fd703ad5b96818b2425f5baa0f4d4ff2a9cf3f181b",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-d97fb859427c52aa3f0a",
+      "key": "39737f18a3c49a7b8ab159ee3e80d9d04f4e8f8204d411970a1bca23ad89a846",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0054",
+      "receipt_hash": "ffce1c05972c990418bd1297cd36a2ef65680f7e2196b0fce71d47aabc7d0631",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-8f91d7596f5c7cb0a2e4",
+      "key": "0581eebd36e4022f81f16c2a0a74bd5a20277cd3ef5362e1347ababd1947d783",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0055",
+      "receipt_hash": "17754d06c2b4c78b166a4178763ec8aef94af99dc7345161c5489d1a1e0fabe1",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-7c9da7c4efc892ced88b",
+      "key": "796ba63099f1c43570b27034be9a7b0654220a1a5bf6956a851e356b03a4829a",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0056",
+      "receipt_hash": "d64a79fe59c0220e0c318276a09cda3607e09339bcc772e78252cdb4946233f0",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-2c84e05b2d0bc7a45db9",
+      "key": "f762226b9de195c26271cc840cce7321ac9ca6c4425d58a6012fce3b9f4e3436",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0057",
+      "receipt_hash": "fd305ff529a5bdd2ec14b5eeea9120d214f1658e4e048f4d8d2d250cd6e92c3f",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-3f7c305af9e7ef8ab19a",
+      "key": "50bff9e0bc4905c2ede1c00258605eac4ca9c3de8584bc109016f320cb64c227",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0058",
+      "receipt_hash": "ef38764a30284b5e0121d0d4eb4dd8ec640b9dc0a4491f2995de4bd8458abd6c",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-daee0bed9444c75e32c6",
+      "key": "39c41ef6aa984ca9700b38a3c0a9ebbe91b0a4858ca4d749d3522716308bb4a1",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0059",
+      "receipt_hash": "d4c26f9b840c6ecf4f0b4764ed4ba347094c1827601977d77140309976d82aaf",
+      "subject_hash": "44c57c2b8f9ab4fd6e983e4b6a90c6ffb85686a3d3801a0dec5b9d11640296e6",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-050fc3eb06a25846c30f",
+      "key": "2f95c91a4aca94d1dc7394f7f021af5f8ab3ff4f098df0240c5ff7057969eab2",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0063",
+      "receipt_hash": "97d385540472288e52f2ba4f53c518a50d462ff2d2c1bd1d743fbafaa674b0aa",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-4281e42e579ad968cc2c",
+      "key": "2cf7dc42d97e09a73ad40b0df846dde81e966c6249e129744f65eb83c88fdaa7",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0064",
+      "receipt_hash": "a567cc4bed40629b5ef5bb22919c681608b3c60c28ae75f83b6e4406503b5d9e",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-164aefcfdb3f6ed17fb0",
+      "key": "91706aab86bc14abd8f3445a1bd644020d609289f56bfcd8b5becc834002a511",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0065",
+      "receipt_hash": "c6dd09dfe66fbba6217dbbc6935c86bbfdb84041eabd71fe724ccb59f3b15236",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-4a3058cf70be8dfe5943",
+      "key": "626f677f4492a93524a6347d4e01f0f4edc62d485f67f572a0e291de33294d8b",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0066",
+      "receipt_hash": "26e9fce690b17600bc77bf46757717a40a7c9547b50fb9a2e884089924fd4695",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-794a4046c0eeb1f7a3b8",
+      "key": "7a33959c2b6b3609c10278b0240f666fa2437acc3ce4139e65f414ab483f77b7",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0067",
+      "receipt_hash": "bac0ec975e50b03da5c8e69ea138bdfe2187a8c2665b1002a4e4e1057cdf2261",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-f7a4d6e5012373797f38",
+      "key": "7d1c791140547ec7e67a2156a182eb7dacbe554ae63f2f83ebf143cf28bb72f6",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0068",
+      "receipt_hash": "9fdae9f96656e9a4199425aa4763b5856d4f3b6b96fb6b4b64a71787966c1f99",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-aebc6609f719c89a50b3",
+      "key": "53f7be544466383a31a269a307fdbb57acdeb986e77e9fe325466f9f5b0bb752",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0069",
+      "receipt_hash": "5fcfc4b49b5ba69031fcb28b10642a9183fd926882cf3458f87f79b7333983de",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-ab010e0f893a522c3358",
+      "key": "58896bdb1574781f691c18d784ff450a52015cf31c080001c4f4e6081a243447",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0070",
+      "receipt_hash": "84da33adb9c0b1f066081f313069bf7ba58ce3f1c8878398d20cb1204ec39b86",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-58ec1e0cc9f9276116ec",
+      "key": "10b7d7672babf53b73547521e76ff4ae8d8eb65642cb420d89ea8732b127ccee",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0071",
+      "receipt_hash": "925d0f830040a4cf100fd31b459efc5cd43785257176bfe5b2893bc1dce0c24b",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-aecc303080c119f79d84",
+      "key": "dd4436731b2f355769ec9be91399b6f3256a44e4512bb412e9993046a39ff212",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0072",
+      "receipt_hash": "4b45876c709a4323357bc56ab48b128f776033c1dfe1efc798cc338f80b2ca8f",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-6f006ed3f7b5060fe045",
+      "key": "48c98fb2c9774bc34e8c1626787a8672f97fc5e959aa56d03b9a4142d0c4fcae",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0073",
+      "receipt_hash": "055aa44ef977b79b16612010edda1d3b28fea594d4cf50f445051f24834cc4f4",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-1e67e6ada2945e0d89fb",
+      "key": "90b2c2595668273fb51209d4cf008dc4f8ad512ec5a344cca6b14a10e763ab04",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0074",
+      "receipt_hash": "17e5ee013b2e9cb0957eb7c496833ec0562724941ed04d0adbdcd3229f689e16",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-83814ff69bb325f2ee7a",
+      "key": "5349724c6822d712c23b49976375f781617bcf11d2f44f963ec9257f49bc3bf5",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0075",
+      "receipt_hash": "3cbce3505021ff037802b66d051461800d7d6e47ab075678836fa67ab33144b1",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-2891de53e7edd523b2db",
+      "key": "ea00bed4f0a5012207fa20a0eaa002f1dcac13bcc57c3aca1bdb462e5b76b42f",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0076",
+      "receipt_hash": "b32b7c552f45ffb3855c12602be3cae09d9dad200d5cf135a8a878897df244d3",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-1ce26407c5e24134b880",
+      "key": "71700c38f7bc6294c3f47b42f4e64d3a88de67864e91b6b0f9647ca7d2144e2e",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0077",
+      "receipt_hash": "9ff98c1e9d0aa4ac3ab61b2ecd334152444878705a5a447b58e5a805e13f8ac3",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-282a49e828cea36b6258",
+      "key": "7dbadbd3e00f413c24d1b46bc5e6fb59ccf6c365883937587161038d1312d395",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0078",
+      "receipt_hash": "79cfab94df530854457e95145229fc14a4a5a63c7beb4bba87aa309efc5538fc",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-ab650d2301f516496029",
+      "key": "6279a18a5bc131165357666e833189f1ba0da9a8825337dee5f2c9116076323d",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0079",
+      "receipt_hash": "e108b586accc408f11d1b096ea89a9b094ac38cf7f213ef262728be694682b6f",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-8019168a277a2c078b03",
+      "key": "a1f7c76f6a200bf3f04ed8fea9d0d3002594bbcd45fc3ed5336a1caf08b249fd",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0080",
+      "receipt_hash": "5b806a532bb2d815c4edd417f21708da1ff71fb5209535b4554d451e19fac477",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-d0e7be9f47a5a22706af",
+      "key": "8b1d8a244bc10d81cf9ab66e8a000758f5ff6c7d771011499c98c3b80f43cab6",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0081",
+      "receipt_hash": "f582f197c5f86e171a6ebc48e612f21460cccd55c7f74d903050b5ca359ce68b",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-92b3edb6bc8fa619b773",
+      "key": "2bcdad17ebab6cf379973545470cebf2efbaf21d116b1cc681bee5c0a0c49d28",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0082",
+      "receipt_hash": "7b235ee7844019e3b2226a531257af1ac722970f2cdfdb74d5d128576dad130f",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-8c08aea6077e2396caef",
+      "key": "44b9c2720ebfb3695d25acf0efbc96f7b0482738fdf90ec4abee748aadee56a9",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0083",
+      "receipt_hash": "38a641c0d16fb047a2383eea364154c9fa06934aa18fa1ea43eb5092af9f40e0",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-0dd9541b90ba29019877",
+      "key": "482d8c00c091527aced4cf074647eba7afe4824c2a0b7535145325d37a185ddd",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0084",
+      "receipt_hash": "d7e9ef169a247e2854c4aabce808b9d740c0b95706af1363615ccad46da289df",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-c02587bd57774ea11a0a",
+      "key": "c165287fb60e4c3830d2eba5f3efc14ffb86560bf70467dd14577a015fea0e15",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0085",
+      "receipt_hash": "3b8fbe78b48786f1789bb7dc2e053b23404d9589f32bc2b36b0e7ad107b86561",
+      "subject_hash": "000185100b729b718b3391816472271624a3086c9b734a77492561bbc4d2ee79",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-ba9e0a7f3891ce033865",
+      "key": "1cd9e4a74d2fadff48209511449739dda069c762fd57af9419fbe56d229b46ff",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0088",
+      "receipt_hash": "1a9427aa5dcb7ae4d12a5d97b46ae56ff7402c4179910218c8641d9b6a633893",
+      "subject_hash": "f79d86b62f70a10d16a479cfab7ab700db99e5e280db1a60f2a9b8223026a064",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-d6e339ee9f02be6ab5e1",
+      "key": "2c07fda44006fe5df95a2c5d73dbcb3e1ecd402436fe450803371cc18fa657c9",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0124",
+      "receipt_hash": "3f973c5657395efcd23283e1ec45b27d27d8097147fb3af8799817c8cf1602ef",
+      "subject_hash": "a7be0d9913697f6504f4110ce1c56ca5775bcf0af741ee5c3aad4ac94c13662d",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-e812ecc43e67c1b1f70a",
+      "key": "1d917e6a1bed0eb5b787dc20f2d7a94b0f5cb7c5166ecbe6d772e4cb02fa47f1",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0125",
+      "receipt_hash": "b4e0d76a078b406924513abd0616c134072c8993e71d747dbbf3331fe37df87a",
+      "subject_hash": "1ecd81d34d3a962cc10d753951f5ce4ad16bb98feb16045b3269e4f3847c7bcd",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-f5c7d005f6ae37dd5411",
+      "key": "73d0a508cd1f9334f2aa43f7002c2eae0903b55c967e0917d51619002ae52af6",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0126",
+      "receipt_hash": "58ee6f0168bbceeb48b8f5d37b86d350c39df5f53e3ed919713635dc00df018c",
+      "subject_hash": "33fc1ac1fe9a6aecec7f2efc9ce6853f14431c13fe5f4fbac3ec1587ab587270",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-50facb9f04482acba162",
+      "key": "de9f360e41ee079c5d9bd16683d69ffe5f223658738e7898cc8ef02197671813",
+      "disposition": "REUSE_PASS",
+      "existing_node_id": "sem-node-0127",
+      "receipt_hash": "9768ac619c1142faa5d183224908af1076e0d83d2104ab5ce14e067381d63a80",
+      "subject_hash": "b980a8dbb5941234f117946a4bf3bcfb06970d47355fbe606fd52dfed6245a9b",
+      "authority": "current authenticated acceptance view"
+    },
+    {
+      "goal_id": "accept-e1b521a1e0a607c6f7f6",
+      "key": "0cd4228c74a4e7502a6e10173b21e959e10924c000e8b597631827708e25ad72",
+      "disposition": "NO_NOVEL_DELTA",
+      "existing_node_id": "sem-node-0128",
+      "receipt_hash": "3f57ba1323e7dd3459fc1e71e52947048c4a50492e46b7ce9907d922b027bfa0",
+      "subject_hash": "7e84e6069d3a6dc7bd02e0d9270380b7c0d064f0082b755a0a5d2f563ec03962",
+      "authority": "current authenticated acceptance view"
+    }
+  ],
+  "replacement_certificates": [],
+  "known_limits": "Legacy aggregate predicates remain aggregate, not invented fine-grained Block/Edge checks."
+}

@@ -1,0 +1,60 @@
+{
+  "kind": "P11GitCommitPrecheck",
+  "created_at": "2026-11-06T05:55:00+00:00",
+  "repo": "F:\\CGKN-LeanLoop-V1-20261101",
+  "head": "0bd7134ade87cb6ece13f8f7868860cd2c3ba67c",
+  "branch": "codex/leanloop-v1-20261101",
+  "index_staged_files": [],
+  "git_add_executed": false,
+  "git_commit_executed": false,
+  "git_push_executed": false,
+  "files_to_commit": [
+    "cgkn/state/provenance.py",
+    "cgkn/state/release_authorization.py",
+    "scripts/final_delivery_truth.py",
+    "scripts/production_candidate_provenance.py",
+    "tools/sign_release_authorization.py"
+  ],
+  "target_status": [
+    " M scripts/final_delivery_truth.py",
+    " M scripts/production_candidate_provenance.py",
+    "?? cgkn/state/provenance.py",
+    "?? cgkn/state/release_authorization.py",
+    "?? tools/sign_release_authorization.py"
+  ],
+  "readiness": "CONDITIONAL",
+  "readiness_reason": "The five files match the tested bytes, but provenance.py and the two scripts contain previously untracked M12 provenance code, not only P11 changes.",
+  "tested_copy_match": true,
+  "security_tests": {
+    "evidence": "P11_P19_RESULTS_FORMAL.json",
+    "passed": 24,
+    "total": 24,
+    "exit_code": 0
+  },
+  "regression": {
+    "evidence": "REGRESSION_FORMAL.txt",
+    "result": "112 passed",
+    "exit_code": 0
+  },
+  "m12": {
+    "candidate_main": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+    "bundle": "f6eb10fb8283b250c28796e0ac95308bb6135e8434f6eef742acc58fbb469f8f",
+    "goal_acceptance": "c3d55cfd3cb335948728f1153c7dbb675204760574e46c3ad3fdaf83dbd635aa",
+    "security_hold": "PAUSED"
+  },
+  "untracked_source_risks": {
+    "provenance.py": "Not present in current HEAD; historical versions exist only on other branches (168b537/61f5255, 183 lines). Current file is 617 lines and includes M12 provenance plus P11.",
+    "production_candidate_provenance.py": "Diff includes previously uncommitted project-session provenance functions plus P11 trust context.",
+    "final_delivery_truth.py": "Diff includes earlier production_provenance_ref pass-through plus P11 trust context.",
+    "single_commit_scope": "A single five-file commit is not P11-only."
+  },
+  "recommended_strategy": "Two commits: baseline of pre-P11 untracked provenance state, then P11-only commit; or one explicitly-scoped commit that names both M12 baseline and P11 hardening.",
+  "sensitive_scan": {
+    "private_key": false,
+    "api_key_or_token": false,
+    "debug_code": false,
+    "hardcoded_test_paths": false,
+    "notes": "sign_release_authorization.py contains expected CLI password=None and normal status print only"
+  },
+  "next_approval_required": "Choose commit strategy and approve git add/commit; no push."
+}

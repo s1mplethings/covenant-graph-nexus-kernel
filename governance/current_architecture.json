@@ -10,11 +10,11 @@
     "planning": "cgkn.agent.composer:AgentComposer",
     "execution": "cgkn.runtime.dag_runner:DAGRunner",
     "provider_scheduler": "scripts.provider_jobs:ProviderJob",
-    "evidence": "scripts.test_architecture_gate:check",
-    "acceptance": "scripts.kernel_completeness_gate:check",
+    "evidence": "cgkn.state.store:FileRunStore",
+    "acceptance": "cgkn.state.acceptance:GoalAcceptance",
     "promotion": "scripts.local_packager:main",
     "packaging": "scripts.local_packager:main",
-    "delivery": "scripts.public_delivery_gate:evaluate",
+    "delivery": "scripts.codex_conversation:evaluate_public_delivery_gate",
     "clarification": null
   },
   "implementation_state": {
@@ -23,10 +23,27 @@
     "compatibility_mainline_replacement": "NOT_IMPLEMENTED",
     "agent_cheap_executor_mvp": "REAL_PROVIDER_VALIDATED",
     "software_project_generation_bundle": "PARTIAL",
-    "functional_readiness": "LEVEL_4"
+    "functional_readiness": "LEVEL_4",
+    "default_generation_entry": "PROJECT_SESSION_DELEGATION"
   },
-  "product_authority": ["PRODUCT_GOAL.md", "MVP_SCOPE.md", "governance/product_invariants.json"],
-  "state_authority": ["governance/current_architecture.json", "docs/00_kernel_contract.md", "project_management/current/active_iteration.json"],
+  "current_qualification": {
+    "iteration": "ITER-132",
+    "scope": "PRODUCTION-CORE-CONVERGENCE-AND-COMPLETION-V1",
+    "status": "IN_PROGRESS_NOT_QUALIFIED",
+    "evidence_root": "F:\\CGKN-ITER-132\\production-core-convergence-v1",
+    "prior_iteration_status": "PRODUCT_NOT_READY",
+    "strict_calibration_started": false
+  },
+  "product_authority": [
+    "PRODUCT_GOAL.md",
+    "MVP_SCOPE.md",
+    "governance/product_invariants.json"
+  ],
+  "state_authority": [
+    "governance/current_architecture.json",
+    "docs/00_kernel_contract.md",
+    "project_management/current/active_iteration.json"
+  ],
   "declared_authorities": {
     "composition": "cgkn/orchestration/capability_tree.py:CapabilityTree",
     "execution_graph": "cgkn/orchestration/execution_dag.py:compile_tree",
@@ -52,13 +69,50 @@
     "product_direction_gate": "scripts/product_direction_gate.py:check"
   },
   "target_routes": {
-    "composition": ["high-capability Agent", "CapabilityTree", "compile_tree"],
-    "isolated_execution": ["ComponentSpec/PortSpec", "ExecutorRegistry", "DAGRunner", "BlockExecutionResult", "FileRunStore", "Agent checkpoint"],
-    "failure_recovery": ["failed node", "downstream_closure", "explicit retry", "unaffected PASS reuse"]
+    "composition": [
+      "high-capability Agent",
+      "CapabilityTree",
+      "compile_tree"
+    ],
+    "isolated_execution": [
+      "ComponentSpec/PortSpec",
+      "ExecutorRegistry",
+      "DAGRunner",
+      "BlockExecutionResult",
+      "FileRunStore",
+      "Agent checkpoint"
+    ],
+    "failure_recovery": [
+      "failed node",
+      "downstream_closure",
+      "explicit retry",
+      "unaffected PASS reuse"
+    ]
   },
-  "compatibility_entrypoints": ["scripts/codex_conversation.py", "scripts/run_codex_conversation_generation.py", "scripts/run_local_pipeline.py", "scripts/run_local_pipeline_impl.py"],
-  "compatibility_rule": "Compatibility entrypoints remain callable and are not the MVP planning or composition authority. The isolated MVP runtime has not replaced them.",
-  "next_feature_increment": {"id": "MVP-015", "name": "Stabilize bounded real-provider project generation", "migration_target": "Improve scoped worker proposal fidelity and public-test repair reliability without changing fixed budgets or replacing the compatibility generation mainline."},
+  "compatibility_entrypoints": [
+    "scripts/codex_conversation.py",
+    "scripts/run_codex_conversation_generation.py",
+    "scripts/run_local_pipeline.py",
+    "scripts/run_local_pipeline_impl.py"
+  ],
+  "compatibility_rule": "Compatibility entrypoints are not the MVP planning or composition authority. Normal generation delegates to ProjectSession; unmanaged legacy generation is rejected. Remaining historical helper cleanup is not claimed complete.",
+  "next_feature_increment": {
+    "id": "MVP-015",
+    "name": "Stabilize bounded real-provider project generation",
+    "migration_target": "Improve scoped worker proposal fidelity and public-test repair reliability without changing fixed budgets or replacing the compatibility generation mainline."
+  },
   "forbidden_parallel_authorities": true,
-  "verification": {"github_actions": "NOT_EVALUATED", "product_direction_gate": "PASS", "focused_tests": "PASS", "deterministic_vertical_slice": "PASS", "resume_and_local_repair": "PASS", "self_growth_v0": "PASS", "agent_cheap_executor_fake_integration": "PASS", "agent_cheap_executor_real_provider": "PASS", "decision_efficiency_benchmark": "PASS_WITH_LIMITS", "self_growth_v1": "NOT_EVALUATED", "full_pytest": "NOT_EVALUATED"}
+  "verification": {
+    "github_actions": "NOT_EVALUATED",
+    "product_direction_gate": "PASS",
+    "focused_tests": "PASS",
+    "deterministic_vertical_slice": "PASS",
+    "resume_and_local_repair": "PASS",
+    "self_growth_v0": "PASS",
+    "agent_cheap_executor_fake_integration": "PASS",
+    "agent_cheap_executor_real_provider": "PASS",
+    "decision_efficiency_benchmark": "PASS_WITH_LIMITS",
+    "self_growth_v1": "NOT_EVALUATED",
+    "full_pytest": "NOT_EVALUATED"
+  }
 }

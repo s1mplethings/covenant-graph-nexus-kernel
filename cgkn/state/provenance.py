@@ -12,17 +12,12 @@ import json
 from pathlib import Path
 
 from cgkn.execution.check_evidence import predicate
-from .acceptance import identity
+from cgkn.artifacts.evidence_identity import identity, reference, file_hash
 from . import release_authorization
 
 
-def file_hash(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def reference(root, path):
-    path = Path(path).resolve()
-    return {'path':path.relative_to(Path(root).resolve()).as_posix(), 'sha256':file_hash(path)}
 
 
 def put_evidence(store, project_id, run_id, value):

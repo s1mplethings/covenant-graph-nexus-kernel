@@ -1,0 +1,35 @@
+{
+  "kind": "RepeatedGeneratedPythonSyntaxFailure",
+  "observations": [
+    {
+      "node": "sem-node-0110",
+      "source_ref": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\candidates\\sem-node-0110\\attempt-0001\\tests\\test_milestone_c511a8ebd29978f5ba97.py",
+      "source_sha256": "6f61f02cddef6d7aeb96f2f0ea69f1e5cee2b0248057282c81b8cd7d227a0b55",
+      "attempt_ref": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0110\\attempt-0001.json",
+      "attempt_sha256": "970a1bc14c3563f5661b38459be1f4b82ab0c2d4f1c1ed9ca976d7cba31067bb",
+      "error": "unexpected indent",
+      "line": 154,
+      "context": [
+        "@pytest.fixture()",
+        " def data_dir(tmp_path):",
+        "    return str(tmp_path)"
+      ]
+    },
+    {
+      "node": "sem-node-0111",
+      "source_ref": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\candidates\\sem-node-0111\\attempt-0001\\tests\\test_milestone_c511a8ebd29978f5ba97.py",
+      "source_sha256": "63e94b3d93e28b737d4ea040ee3d1a19d70d6e6cc86be37f003243ad2a9bbc6a",
+      "attempt_ref": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0111\\attempt-0001.json",
+      "attempt_sha256": "06d8a22b2e33fce1d3296e44825a65b795249f0f2f621c94f04112b84a759916",
+      "error": "unexpected indent",
+      "line": 80,
+      "context": [
+        "@pytest.fixture()",
+        " def m9():",
+        "    return _load_m9()"
+      ]
+    }
+  ],
+  "finding": "A leading space before top-level fixture def after decorator produces unexpected indent. Neither generated file was published. Preserve full behavior coverage but use syntactically valid compact tests and distinct cheap-tier Worker route; no parser weakening or host-authored product edits.",
+  "host_business_patches": 0
+}

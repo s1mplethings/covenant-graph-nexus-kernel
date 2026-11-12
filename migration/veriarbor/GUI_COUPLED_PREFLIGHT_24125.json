@@ -1,0 +1,25 @@
+{
+  "kind": "CoupledGuiPreflight",
+  "source_sha256": "24125c21ba61f04cb07b2bf10bb1b7631508f5063e9e48da6c645eaac8a6c1f4",
+  "img_tags": 0,
+  "video_tags": 0,
+  "new_control_occurrences": {
+    "media-view": 1,
+    "import-media": 1,
+    "refresh-media": 1,
+    "media-file": 2,
+    "media-kind": 2
+  },
+  "actual_media_dispatch_now_registered": true,
+  "media_get_call_count": 0,
+  "diagnosis": "Only static hidden media section added. No actual img/video rendering, no event handlers for new controls, no media-serving endpoint. MIME values are not canonical API kind=image/video. A complete coupled GUI implementation is required, not another disconnected control/helper.",
+  "required_atomic_outcome": [
+    "Reachable Content/media attachment controls with actual file/path handling",
+    "M11 API kind normalization and persistent content.media_ids save/edit",
+    "Reachable render on selection/save/reload; actual img/video controls with HTTP media bytes",
+    "Safe project/media-ID asset GET endpoint, visible invalid-media errors",
+    "Preserve existing queued Review/Approve/Publish and real receipt bindings; avoid duplicate DOM IDs"
+  ],
+  "acceptance_authority": false,
+  "host_business_patches": 0
+}

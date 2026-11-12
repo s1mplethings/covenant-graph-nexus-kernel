@@ -1,0 +1,82 @@
+{
+  "status": "PASS",
+  "synthetic_comparisons": 323,
+  "current_goal_count": 84,
+  "current_obligations": {
+    "M1": {
+      "verdict": "VERIFIED",
+      "weight": 1,
+      "must": true
+    },
+    "M10": {
+      "verdict": "INSUFFICIENT_EVIDENCE",
+      "weight": 1,
+      "must": true
+    },
+    "M11": {
+      "verdict": "INSUFFICIENT_EVIDENCE",
+      "weight": 1,
+      "must": true
+    },
+    "M12": {
+      "verdict": "INSUFFICIENT_EVIDENCE",
+      "weight": 1,
+      "must": true
+    },
+    "M2": {
+      "verdict": "VERIFIED",
+      "weight": 1,
+      "must": true
+    },
+    "M3": {
+      "verdict": "VERIFIED",
+      "weight": 1,
+      "must": true
+    },
+    "M4": {
+      "verdict": "VERIFIED",
+      "weight": 1,
+      "must": true
+    },
+    "M5": {
+      "verdict": "VERIFIED",
+      "weight": 1,
+      "must": true
+    },
+    "M6": {
+      "verdict": "VERIFIED",
+      "weight": 1,
+      "must": true
+    },
+    "M7": {
+      "verdict": "FAILED",
+      "weight": 1,
+      "must": true
+    },
+    "M8": {
+      "verdict": "INSUFFICIENT_EVIDENCE",
+      "weight": 1,
+      "must": true
+    },
+    "M9": {
+      "verdict": "INSUFFICIENT_EVIDENCE",
+      "weight": 1,
+      "must": true
+    }
+  },
+  "old_new_differences": 0,
+  "provider_calls": 0,
+  "current_acceptance_sha256": "2a3521b55f4b488228c02637d40bb3122eb2f7fa8d8c930b6f6ad036cc6ab6a0",
+  "scope": [
+    "compatibility obligation rollup",
+    "readiness",
+    "resource compatibility",
+    "strategy fingerprint"
+  ],
+  "limitations": [
+    "New certificate/backtracking/allocation policies have library tests only; not live host authority yet"
+  ],
+  "frontier": [
+    "accept-d6e339ee9f02be6ab5e1"
+  ]
+}

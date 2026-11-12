@@ -1,0 +1,152 @@
+{
+  "kind": "AuthenticatedLocalBlockCertificate",
+  "block_id": "B07",
+  "status": "VERIFIED",
+  "reuse_status": "FROZEN_REUSABLE",
+  "certificate": {
+    "block_id": "B07",
+    "variant_id": "B07-711c0519",
+    "input_contract_hash": "bdf5f9d4395a82c6f4762eff46b7a0c3fcdc4b3c70d9aa9ed0c79ef81318e4ac",
+    "output_contract_hash": "e6a1c44f3488abc859281bbdaa3c4d6505c24c33b45d3db38508747e432132ee",
+    "effect_contract_hash": "726512e078c13b8e5fa7b5790c25f6f83c1bdb1c5f014867b4efd8d4dbd24793",
+    "acceptance_ids": [
+      "B07:approved content scheduled",
+      "B07:schedule visible",
+      "B07:reschedule persisted",
+      "B07:cancel persisted",
+      "B07:canceled schedule not executed by run_due",
+      "B07:schedule persists after restart",
+      "B07:no JavaScript errors"
+    ],
+    "artifact_hashes": [
+      [
+        "main.py#schedule-dom",
+        "b38429777177f0ad358151fe8c684e2b3364980f4128b2f0809fbf42179e5be6"
+      ],
+      [
+        "main.py#schedule-js",
+        "40351ed1e1a8e7c4fcb76a04298b0957c8cdf71e2867c9b58845d4ac7d7606ce"
+      ]
+    ],
+    "checker_hashes": [
+      [
+        "B07.browser",
+        "7c0552a79acf1ac4a6bc2502d390c7deb68ddc1752f36f13983c2cff8dc0b956"
+      ]
+    ],
+    "known_limits": [
+      "Block scope only; full M12 rollup requires B01-B11."
+    ],
+    "evidence_refs": [
+      "iter132-promotion-studio/promotion-05/evidence/b60026c0eb9bccd3c420cf53c1f5f78bf1c9f3e7cbe3ea8e95c51882547329e7.json"
+    ],
+    "created_at": "2026-11-05T18:01:29.079003+00:00",
+    "invalidated": false
+  },
+  "certificate_fingerprint": "ce0b5c234ee78307f1b3a352347941adc43e504d2cc25654a18301085dd7c4c6",
+  "block": {
+    "block_id": "B07",
+    "capability": "SchedulerUIBlock",
+    "input_ports": [
+      {
+        "port_id": "SchedulerUIBlockInput",
+        "version": "1",
+        "direction": "input",
+        "contract": {
+          "schema_json": "{\"additionalProperties\":false,\"properties\":{\"content_id\":{\"type\":\"string\"},\"project_id\":{\"type\":\"string\"},\"when\":{\"type\":\"string\"}},\"required\":[\"project_id\",\"content_id\",\"when\"],\"type\":\"object\"}",
+          "semantic": "Independent browser acceptance for SchedulerUIBlock."
+        },
+        "required": true,
+        "default_json": "null",
+        "compatibility_policy": "structural-v1"
+      }
+    ],
+    "output_ports": [
+      {
+        "port_id": "SchedulerUIBlockOutput",
+        "version": "1",
+        "direction": "output",
+        "contract": {
+          "schema_json": "{\"additionalProperties\":false,\"properties\":{\"schedule_id\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}},\"required\":[\"schedule_id\",\"status\"],\"type\":\"object\"}",
+          "semantic": "Independent browser acceptance for SchedulerUIBlock."
+        },
+        "required": true,
+        "default_json": "null",
+        "compatibility_policy": "structural-v1"
+      }
+    ],
+    "effect_contract": {
+      "reads": [
+        "persisted milestone state",
+        "selected project identity"
+      ],
+      "writes": [
+        "browser UI state",
+        "project-scoped persistence"
+      ],
+      "external_effects": [
+        "loopback HTTP only"
+      ],
+      "persistence": "restart persistence verified",
+      "idempotency": "duplicate idempotency keys preserve one receipt and one platform post",
+      "concurrency": "threaded server; M11 store lock only at media boundary",
+      "ordering": "UI action -> milestone handler -> persistence -> browser refresh",
+      "rollback": "bounded source patches; isolated acceptance data"
+    },
+    "variants": [
+      {
+        "variant_id": "B07-711c0519",
+        "artifacts": [
+          [
+            "main.py#schedule-dom",
+            "b38429777177f0ad358151fe8c684e2b3364980f4128b2f0809fbf42179e5be6"
+          ],
+          [
+            "main.py#schedule-js",
+            "40351ed1e1a8e7c4fcb76a04298b0957c8cdf71e2867c9b58845d4ac7d7606ce"
+          ]
+        ],
+        "status": "VERIFIED"
+      }
+    ],
+    "active_variant": "B07-711c0519",
+    "certificate_ref": null
+  },
+  "source_sha256_at_verification": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+  "relevant_section_hashes": {
+    "main.py#schedule-dom": "b38429777177f0ad358151fe8c684e2b3364980f4128b2f0809fbf42179e5be6",
+    "main.py#schedule-js": "40351ed1e1a8e7c4fcb76a04298b0957c8cdf71e2867c9b58845d4ac7d7606ce"
+  },
+  "neighbor_contract_hashes": {
+    "M1_project_api_source": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+    "M11_media_api_source": "4e3f4f9ec6ad0c30a04566a3c6a51e5d6d7bb55e23371bbae740831f3f866a08"
+  },
+  "evidence_refs": [
+    {
+      "path": "iter132-promotion-studio/promotion-05/evidence/b60026c0eb9bccd3c420cf53c1f5f78bf1c9f3e7cbe3ea8e95c51882547329e7.json",
+      "sha256": "e1d95f04c581acb1e2872cb869d52d9fd91a0cb62acca1855826973bf442d10b"
+    }
+  ],
+  "acceptance_checks": [
+    "approved content scheduled",
+    "schedule visible",
+    "reschedule persisted",
+    "cancel persisted",
+    "canceled schedule not executed by run_due",
+    "schedule persists after restart",
+    "no JavaScript errors"
+  ],
+  "checker": "D:\\VeriArbor\\tools\\m12_b07_acceptance.py",
+  "checker_sha256": "7c0552a79acf1ac4a6bc2502d390c7deb68ddc1752f36f13983c2cff8dc0b956",
+  "invalidation_triggers": [
+    "certified section changes",
+    "checker identity changes",
+    "neighbor contract changes"
+  ],
+  "authority": "Original FileRunStore evidence plus VeriArbor Certificate",
+  "host_business_patches": 0,
+  "canonical_evidence_ref": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/f4da9e786222cee2143b5e8dbabb38b3bde34880f2339099f700e2c77e3734a6.json",
+    "sha256": "353e23f58234e31e76c51e6ea7ea3c6afafc7ff9a452c08fec9426f8dffb56da"
+  }
+}

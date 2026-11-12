@@ -1,0 +1,14 @@
+{
+  "kind": "M12ResumeBaseline",
+  "checkpoint": "2026-11-04T15:54:55.344079+08:00",
+  "observed_at": "2026-11-04T08:37:57.371387+00:00",
+  "source_sha256": "97fac580ddd0b04a91c35f26a91e3554abb82ad86e8e6159864d4e49f4dce478",
+  "instruction": "C:\\Users\\sunom\\Downloads\\CGKN_Veriarbor_M12_block_closure_final_delivery_prompt.txt",
+  "instruction_sha256": "678bda086f3c1235d81e4d95fdc37d2d02aadf93a56a4c167ca80bb94aa4ab07",
+  "run_dir": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05",
+  "business_nodes_running": [],
+  "M1_M11": "FROZEN_REUSABLE_WITH_ORIGINAL_SCOPE",
+  "VeriArbor": "MINIMUM_CORE_USABLE_FULL_V1_PARTIAL_DEFERRED",
+  "host_business_patches": 0,
+  "provider_calls_before": 3633
+}

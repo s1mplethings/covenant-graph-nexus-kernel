@@ -1,0 +1,82 @@
+{
+  "proof": {
+    "kind": "LocalBoundedFileEffectInspection",
+    "disposition": "NOT_APPLIED",
+    "source_receipt_sha256": "85a2111dd142d26437140c4d27eccbac77c5254328857fc84545c544a5046b0f",
+    "target_scope": [
+      "tests/test_milestone_dbb8341c8910593063a8.py"
+    ],
+    "target_hashes_identical_to_stage_and_prior_frozen_test": {
+      "tests/test_milestone_dbb8341c8910593063a8.py": "c80d88c163def69aa6efaba69218454a673b985d82feeb74794221c0c1716981"
+    },
+    "read_dependencies_match_stage": {
+      "early_main.py": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+      "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+      "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+      "milestones/milestone_33270fed0c9054f5ae04/api.py": "78dd17fe6722f4fa573580b6a59d33374e925ccf309641d9241081a53e755cbc",
+      "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+      "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+      "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+      "milestones/milestone_989800776c3d6229e431/api.py": "a613d313a070daefc416eb56ab9f7f0ea4b9ab6c11d6ad745a0d029f67e71b38",
+      "milestones/milestone_af427946c6dea418047a/api.py": "95c470c2bb2e3ad0fed836dfe705f1baa29648b8c954b572629f6eb9940672c3",
+      "milestones/milestone_c511a8ebd29978f5ba97/api.py": "544d890040f5e119f9bb26d797d2a3d2f8669fac93f581bc98811431db651558",
+      "milestones/milestone_dbb8341c8910593063a8/api.py": "e4737c448e03a9fd794b9cc86a34a0ab14a04add0ac24b6cbbe42bb7e85336af",
+      "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+    },
+    "prior_completed_reads": [
+      {
+        "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\provider_calls\\865ad513e4474b099339ef11728795e0\\response.json",
+        "sha256": "0cd27aac1770f96d4cfcd24493613af0f305b2ca3c262fa257c2e5d0e172c1f6",
+        "operation": 0
+      }
+    ],
+    "failed_request": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\provider_calls\\c8869d683458438da406e37c8bf73d8d",
+    "publication_intent_absent": true,
+    "failed_request_complete_response_absent": true,
+    "raw_error_ref": {
+      "path": "iter132-promotion-studio/promotion-05/provider_calls/c8869d683458438da406e37c8bf73d8d/error.json",
+      "sha256": "8fdb03aa93327685a9422b7dab662eb6e83c11389ef49f0684834b7f4259687e"
+    },
+    "scope": "Local bounded file effects only. Upstream outcome/tokens/cost remain UNKNOWN; no original request replay."
+  },
+  "result": {
+    "schema_version": "1.0",
+    "project_id": "iter132-promotion-studio",
+    "run_id": "promotion-05",
+    "attempt_id": "attempt-0007",
+    "node_id": "sem-node-0118",
+    "executor_ref": "verify.local-file-effects@1",
+    "status": "BLOCKED",
+    "outputs": {},
+    "artifact_refs": [],
+    "test_observations": [],
+    "error": {
+      "code": "POLICY_BLOCKED",
+      "message": "VERIFIED_NOT_APPLIED: explicit retry permitted",
+      "details": {}
+    },
+    "started_at": "2026-11-03T15:20:56.614431+00:00",
+    "ended_at": "2026-11-03T15:20:56.614431+00:00",
+    "duration_ms": 0,
+    "usage": {},
+    "retryable": false,
+    "metadata": {
+      "reconciliation": {
+        "source_receipt_hash": "85a2111dd142d26437140c4d27eccbac77c5254328857fc84545c544a5046b0f",
+        "disposition": "NOT_APPLIED",
+        "evidence_refs": [
+          {
+            "path": "iter132-promotion-studio/promotion-05/evidence/fa315c8bbc1e1a79c53939f032b7cf6c0bb557e022acdc279b1421adebedf975.json",
+            "sha256": "9a8a4ba98007be09dfb3e7c9bb5a127f5f50c33fe29c4268bc0718aebe41ed2b"
+          }
+        ]
+      },
+      "original_attempt_id": "attempt-0006",
+      "checker_receipt_hash": "f46b1521ad6e1d107afbe5afc202f22f1c5d74046e42512359c1e759de2b10f2"
+    }
+  },
+  "ledger_unchanged": true,
+  "old_attempts_unchanged": true,
+  "candidate_unchanged": true,
+  "host_business_patches": 0
+}

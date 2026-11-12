@@ -740,6 +740,8 @@ def produce_independent_product_evidence(
 
 
 def build_public_claim_policy(maturity: dict[str, Any], *, delivery_allowed: bool = False) -> dict[str, Any]:
+    from cgkn.protocol.claim_consistency import claim_errors
+    contradictions=claim_errors(maturity)
     level = maturity["maturity_level"]
     target = bool(maturity["target_goal_satisfied"])
     if level == "DEMO":
@@ -752,7 +754,10 @@ def build_public_claim_policy(maturity: dict[str, Any], *, delivery_allowed: boo
     elif level == "FUNCTIONAL_MVP":
         disclosure = "核心能力已真实实现并有实际行为证据，但代表性现实覆盖和独立 holdout 仍有限。"
     elif level == "TARGET_VALIDATED":
-        disclosure = "原始目标已在代表性现实场景和独立 holdout 中验证。"
+        disclosure = ("原始目标已在代表性现实场景和独立 holdout 中验证。"
+                      if maturity.get('real_world_evidence',{}).get('representative') is True
+                      and maturity.get('holdout_status') in {'PASS','VERIFIED'}
+                      else "声明范围内的目标已通过验收；不据此宣称代表性现实场景或独立 holdout 已验证。")
     else:
         disclosure = "目标已现实验证，并完成性能、稳定性、安全、恢复、安装和交付检查。"
     return _seal(
@@ -760,16 +765,17 @@ def build_public_claim_policy(maturity: dict[str, Any], *, delivery_allowed: boo
             "kind": "CGKNPublicClaimPolicyReport",
             "schema_version": contract.SCHEMA_VERSION,
             "delivery_allowed_is_not_target_success": True,
-            "delivery_allowed": bool(delivery_allowed),
+            "delivery_allowed": bool(delivery_allowed) and not contradictions,
+            "claim_consistency_errors": contradictions,
             "pipeline_verdict": "PIPELINE_PASS",
             "artifact_verdict": "ARTIFACT_PASS",
             "maturity_verdict": maturity["maturity_verdict"],
             "target_goal_satisfied": target,
             "real_world_validated": bool(maturity["real_world_validated"]),
             "proxy_detected": bool(maturity["proxy_detected"]),
-            "public_claims_allowed": maturity["public_claims_allowed"],
+            "public_claims_allowed": [] if contradictions else maturity["public_claims_allowed"],
             "public_claims_forbidden": maturity["public_claims_forbidden"],
-            "public_disclosure": disclosure,
+            "public_disclosure": 'CLAIM_CONTRADICTS_EVIDENCE' if contradictions else disclosure,
             "artifact_hash": "",
         },
         "artifact_hash",
@@ -851,7 +857,7 @@ def evaluate_product_maturity(
             "public_claims_allowed": allowed,
             "public_claims_forbidden": forbidden,
             "target_goal_satisfied": target,
-            "real_world_validated": target,
+            "real_world_validated": bool(independent_valid and real_world),
             "proxy_detected": bool(proxy["proxy_detected"]),
             "artifact_hash": "",
         },

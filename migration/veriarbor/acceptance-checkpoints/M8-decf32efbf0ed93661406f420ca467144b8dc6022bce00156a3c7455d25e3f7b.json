@@ -1,0 +1,914 @@
+{
+  "kind": "AuthenticatedAcceptanceCheckpoint",
+  "milestone": "M8",
+  "verdict": "VERIFIED",
+  "timestamp": "2026-11-03T16:45:54.641089+00:00",
+  "authority": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\goal_acceptance.json",
+  "authority_sha256": "80b55e1d419389f5072c6a7a835b8fbe1af5496ca2509e8cb0f68794d22bf022",
+  "obligation": {
+    "verdict": "VERIFIED",
+    "weight": 1,
+    "must": true
+  },
+  "authenticated_goals": [
+    {
+      "acceptance": "The independent suite covers every public behavior below, so no requirement is dropped: the module exposes MILESTONE_ID as the literal 'M8' and handle(data_dir, request); schedule.create(project_id, content_id, platform_url, when, idempotency_key) returns a record with id and status PENDING and the given when, rejecting naive timestamps and unapproved content with ValueError; schedule.list(project_id) returns {items: [...]} of that project's schedules; schedule.cancel(project_id, schedule_id) returns status CANCELLED; schedule.reschedule(project_id, schedule_id, when) keeps the same id and appends history without creating an orphan duplicate job; schedule.run_due(project_id, now) with an explicit timezone-aware ISO8601 now returns {items: [processed schedule records]}, never runs future or cancelled tasks, uses M7 for due tasks, binds receipt_id and preserves the PUBLISHED/RATE_LIMITED/UNKNOWN result; restart and repeated run_due never duplicate a successful publication; UNKNOWN never silently becomes retryable; successful siblings are preserved; invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError with no success-shaped error objects; persistence survives another Python process.",
+      "checker": "independent",
+      "id": "accept-e812ecc43e67c1b1f70a",
+      "milestone_contract": {
+        "compilation": {
+          "artifact_layout": {
+            "source": "milestones/milestone_989800776c3d6229e431/api.py",
+            "support": [],
+            "test": "tests/test_milestone_989800776c3d6229e431.py"
+          },
+          "business_implementation_generated": false,
+          "business_semantics_inferred": false,
+          "checker_ref": "project.acceptance@1",
+          "export_ids": [
+            "874167e1d099ff992f34886c0d76666200a4f0b85ac0e5f6fc67d84d26a3f402",
+            "b6e880aad7e561c6b15f5cd4941e115ba1990726e20b93850d3f2c8d9c449e59"
+          ],
+          "kind": "DeclarationCompilationReceipt",
+          "milestone_id": "milestone-989800776c3d6229e431",
+          "mode": "MILESTONE_MODE",
+          "operation_exception_mapping": {
+            "handle": [
+              "ValueError"
+            ]
+          },
+          "projections": [
+            {
+              "after": {
+                "kind": "function",
+                "name": "handle",
+                "owner": "milestones/milestone_989800776c3d6229e431/api.py",
+                "source_declaration_hash": "22da0026e893b3c73ba747c46985d4c50dfbcadc623bf42d2fd51c7011dc2123",
+                "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:305"
+              },
+              "before": null,
+              "rule": "copy explicit public export name/kind/owner; infer no signature, inheritance or exception policy",
+              "semantics_changed": false,
+              "source_declaration": {
+                "kind": "function",
+                "name": "handle",
+                "owner": "milestones/milestone_989800776c3d6229e431/api.py",
+                "source_declaration_hash": "22da0026e893b3c73ba747c46985d4c50dfbcadc623bf42d2fd51c7011dc2123",
+                "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:305"
+              }
+            },
+            {
+              "after": {
+                "kind": "exception",
+                "name": "ValueError",
+                "owner": "milestones/milestone_989800776c3d6229e431/api.py",
+                "source_declaration_hash": "22da0026e893b3c73ba747c46985d4c50dfbcadc623bf42d2fd51c7011dc2123",
+                "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:305"
+              },
+              "before": null,
+              "rule": "copy explicit public export name/kind/owner; infer no signature, inheritance or exception policy",
+              "semantics_changed": false,
+              "source_declaration": {
+                "kind": "exception",
+                "name": "ValueError",
+                "owner": "milestones/milestone_989800776c3d6229e431/api.py",
+                "source_declaration_hash": "22da0026e893b3c73ba747c46985d4c50dfbcadc623bf42d2fd51c7011dc2123",
+                "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:305"
+              }
+            }
+          ],
+          "registry_hash": "02938273c157f3cbe91261063c8d24a72ae57ba6757309770243468739847dfb",
+          "requirement_refs": [
+            "M8"
+          ],
+          "schema_version": "1.0",
+          "semantic_hash": "144981755ffde2faf9731343bfd2143dabde0318f530d1610cfd526af9c1e976",
+          "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:305",
+          "test_binding_skeleton": [
+            {
+              "acceptance_id": "accept-e812ecc43e67c1b1f70a",
+              "checker_ref": "project.acceptance@1",
+              "contract_id": "milestone-989800776c3d6229e431",
+              "intent": "The independent suite covers every public behavior below, so no requirement is dropped: the module exposes MILESTONE_ID as the literal 'M8' and handle(data_dir, request); schedule.create(project_id, content_id, platform_url, when, idempotency_key) returns a record with id and status PENDING and the given when, rejecting naive timestamps and unapproved content with ValueError; schedule.list(project_id) returns {items: [...]} of that project's schedules; schedule.cancel(project_id, schedule_id) returns status CANCELLED; schedule.reschedule(project_id, schedule_id, when) keeps the same id and appends history without creating an orphan duplicate job; schedule.run_due(project_id, now) with an explicit timezone-aware ISO8601 now returns {items: [processed schedule records]}, never runs future or cancelled tasks, uses M7 for due tasks, binds receipt_id and preserves the PUBLISHED/RATE_LIMITED/UNKNOWN result; restart and repeated run_due never duplicate a successful publication; UNKNOWN never silently becomes retryable; successful siblings are preserved; invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError with no success-shaped error objects; persistence survives another Python process.",
+              "object_ref": "milestones/milestone_989800776c3d6229e431/api.py",
+              "requirement_refs": [
+                "M8"
+              ],
+              "status": "UNIMPLEMENTED_NOT_VERIFIED",
+              "subject_refs": [
+                "milestones/milestone_989800776c3d6229e431/api.py"
+              ],
+              "test_artifact": "tests/test_milestone_989800776c3d6229e431.py",
+              "version": 1
+            }
+          ]
+        },
+        "dependency_artifacts": [
+          "early_main.py",
+          "milestones/milestone_1369a82cde04a7e5887d/api.py",
+          "milestones/milestone_20f2614f6ae8403d4a4e/api.py",
+          "milestones/milestone_33270fed0c9054f5ae04/api.py",
+          "milestones/milestone_4e7c26281cf61a85851e/api.py",
+          "milestones/milestone_90b8868c7203e2958397/api.py",
+          "milestones/milestone_9165a990eed5b9c8801e/api.py",
+          "promotion_publish.py"
+        ],
+        "dependency_goal_ids": [
+          "accept-c695c9993e0f11e44719",
+          "accept-a3f8bcc50143d8ae49b4",
+          "accept-ca86f3507652c4d39816",
+          "accept-9edb004aa0b6dd044101",
+          "accept-ca684d20740eafff7980",
+          "accept-fce1e8f657d881f7b835",
+          "accept-120d5fa5ea077b934689",
+          "accept-0a6060c95aa9bf1301da",
+          "accept-cb6cd62e5771d9c4533e",
+          "accept-2778e4e368049199cb74",
+          "accept-170da45696d31583f0f6",
+          "accept-e19cd5af7799a12e3604",
+          "accept-5469714437e1ef021107",
+          "accept-104c2f37f5954170f35a",
+          "accept-408a5fd627d63955231f",
+          "accept-5230e7202f8168f61e96",
+          "accept-18a2bc51a08e02a71d4e",
+          "accept-9d36c174f46b6d0a6526",
+          "accept-d40aa5fd80c994f85da7",
+          "accept-b46a41ffebba28173b95",
+          "accept-65fc2c2ef4105cd20569",
+          "accept-0e4e7ba1429d433f45a0",
+          "accept-c2ea56c15b5b1c0c5e1f",
+          "accept-55aaeab9c74620177908",
+          "accept-de9906155792c95c4163",
+          "accept-0796b15e54ad2b41cb1c",
+          "accept-4c1880b1b0efd135df7f",
+          "accept-5a87a8e5488d7e8ed31d",
+          "accept-3ac4d2fefcd0c4160365",
+          "accept-47f772c69b3a3f503239",
+          "accept-2e887a8c9d5e05ad790b",
+          "accept-8ce6a113720b09577d87",
+          "accept-2dba8ab3d742fb4c1749",
+          "accept-147c9bf02318f9dd984e",
+          "accept-57da32a0b7872bd3da56",
+          "accept-fa6045ca0129f27db118",
+          "accept-9bd0b9fcda705c2002f5",
+          "accept-edf8a971245f59c43703",
+          "accept-4df00a3b77461abde1be",
+          "accept-dc09e6d613e45c9da154",
+          "accept-2006d6ded74e3b4b0311",
+          "accept-1aec03eafd385693a8fc",
+          "accept-ee268f2ab80e04860b92",
+          "accept-a494cd221179472f7cae",
+          "accept-3a7336ad48983463b3a0",
+          "accept-a0b026ae0ade9fa71b98",
+          "accept-984d636e7f8185d72e5e",
+          "accept-b0d9fac18ea14a0e31c9",
+          "accept-143a6ad276a11d030a52",
+          "accept-cb8ad901b523b86e8df8",
+          "accept-b6e722913c56819a8909",
+          "accept-3016c1f48f2f2dabfbf2",
+          "accept-023b3f5f8992ede481bd",
+          "accept-d97fb859427c52aa3f0a",
+          "accept-8f91d7596f5c7cb0a2e4",
+          "accept-7c9da7c4efc892ced88b",
+          "accept-2c84e05b2d0bc7a45db9",
+          "accept-3f7c305af9e7ef8ab19a",
+          "accept-daee0bed9444c75e32c6",
+          "accept-050fc3eb06a25846c30f",
+          "accept-4281e42e579ad968cc2c",
+          "accept-164aefcfdb3f6ed17fb0",
+          "accept-4a3058cf70be8dfe5943",
+          "accept-794a4046c0eeb1f7a3b8",
+          "accept-f7a4d6e5012373797f38",
+          "accept-aebc6609f719c89a50b3",
+          "accept-ab010e0f893a522c3358",
+          "accept-58ec1e0cc9f9276116ec",
+          "accept-aecc303080c119f79d84",
+          "accept-6f006ed3f7b5060fe045",
+          "accept-1e67e6ada2945e0d89fb",
+          "accept-83814ff69bb325f2ee7a",
+          "accept-2891de53e7edd523b2db",
+          "accept-1ce26407c5e24134b880",
+          "accept-282a49e828cea36b6258",
+          "accept-ab650d2301f516496029",
+          "accept-8019168a277a2c078b03",
+          "accept-d0e7be9f47a5a22706af",
+          "accept-92b3edb6bc8fa619b773",
+          "accept-8c08aea6077e2396caef",
+          "accept-0dd9541b90ba29019877",
+          "accept-c02587bd57774ea11a0a",
+          "accept-ba9e0a7f3891ce033865",
+          "accept-d6e339ee9f02be6ab5e1"
+        ],
+        "design": {
+          "artifacts": [
+            {
+              "interfaces": {
+                "public_exports": [
+                  {
+                    "kind": "function",
+                    "name": "handle"
+                  },
+                  {
+                    "kind": "exception",
+                    "name": "ValueError"
+                  }
+                ]
+              },
+              "path": "milestones/milestone_989800776c3d6229e431/api.py",
+              "purpose": "Implement milestone M8 Scheduler as a persistent, project-isolated scheduling module exposing MILESTONE_ID as the literal 'M8' and handle(data_dir, request), supporting schedule.create, schedule.list, schedule.cancel, schedule.reschedule and schedule.run_due, reusing verified M1-M7 dependencies without overwriting their artifacts."
+            },
+            {
+              "interfaces": {
+                "public_exports": [],
+                "test_for": [
+                  "ValueError"
+                ]
+              },
+              "path": "tests/test_milestone_989800776c3d6229e431.py",
+              "purpose": "Exercise the declared current milestone contract"
+            }
+          ],
+          "public_interface": {
+            "acceptance_bindings": [
+              {
+                "acceptance_id": "accept-e812ecc43e67c1b1f70a",
+                "checker_ref": "project.acceptance@1",
+                "contract_id": "milestone-989800776c3d6229e431",
+                "object_ref": "milestones/milestone_989800776c3d6229e431/api.py",
+                "requirement_refs": [
+                  "M8"
+                ],
+                "version": 1
+              }
+            ],
+            "concurrency": "Single-threaded assumption per data_dir for this milestone. File system operations should use atomic writes where possible to prevent corruption during simple sequential usage; run_due must not duplicate successful publications even when invoked repeatedly or after restart.",
+            "edge_behavior": "The source module exposes MILESTONE_ID as the literal milestone identifier 'M8' and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string; the return value is a JSON-compatible dict. Supported operations: schedule.create(project_id, content_id, platform_url, when, idempotency_key), schedule.list(project_id), schedule.cancel(project_id, schedule_id), schedule.reschedule(project_id, schedule_id, when), schedule.run_due(project_id, now). schedule.create validates that the project exists, the content exists within that project, and the content is approved (unapproved content is rejected), and that when is an ISO8601 timestamp carrying an explicit timezone offset (naive timestamps are rejected); it returns a schedule record {id, status: PENDING, when, ...} including the bound project_id, content_id, platform_url and idempotency_key. schedule.list(project_id) returns {items: [...]} of that project's schedule records. schedule.cancel(project_id, schedule_id) sets the record status to CANCELLED and returns the updated record. schedule.reschedule(project_id, schedule_id, when) keeps the same schedule id, validates when as timezone-aware ISO8601, updates the scheduled time and appends an entry to the record's history, without creating an orphan duplicate job. schedule.run_due(project_id, now) takes an explicit timezone-aware ISO8601 clock input for reproducible execution (the GUI uses current UTC) and returns {items: [processed schedule records]}; it processes only due, non-cancelled schedules, never runs future or cancelled tasks, and for each due task uses M7 publication, binds the resulting receipt_id into the schedule record, and preserves the M7 result status PUBLISHED, RATE_LIMITED or UNKNOWN. Restart and repeated run_due never duplicate a successful publication; an UNKNOWN result never silently becomes retryable; rescheduling never creates an orphan duplicate job; and successful sibling schedules are preserved. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError; no success-shaped error objects are returned. Persistence survives another Python process; storage format and internal design are Agent-owned. Existing modules may be discovered by their literal MILESTONE_ID, not guessed hash filenames; dependencies may be imported normally or via importlib. Standard library only for the application; public tests may use pytest. No public network publication or dependency installation.",
+            "exceptions": {
+              "ValueError": {
+                "base": "",
+                "behavior": "Raised when input validation fails (missing or invalid project/content/schedule IDs, foreign or cross-project references, unapproved content, naive or malformed ISO8601 timestamps, blank or missing required fields, unsupported op)."
+              }
+            },
+            "field_contracts": [
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "op",
+                "owner": "$contract",
+                "required": true,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "project_id",
+                "owner": "$contract",
+                "required": true,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "content_id",
+                "owner": "$contract",
+                "required": false,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "platform_url",
+                "owner": "$contract",
+                "required": false,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "when",
+                "owner": "$contract",
+                "required": false,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "idempotency_key",
+                "owner": "$contract",
+                "required": false,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "schedule_id",
+                "owner": "$contract",
+                "required": false,
+                "type": "str"
+              },
+              {
+                "consumers": [
+                  "handle"
+                ],
+                "name": "now",
+                "owner": "$contract",
+                "required": false,
+                "type": "str"
+              }
+            ],
+            "fields": {
+              "content_id": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": false,
+                "type": "str"
+              },
+              "idempotency_key": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": false,
+                "type": "str"
+              },
+              "now": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": false,
+                "type": "str"
+              },
+              "op": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": true,
+                "type": "str"
+              },
+              "platform_url": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": false,
+                "type": "str"
+              },
+              "project_id": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": true,
+                "type": "str"
+              },
+              "schedule_id": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": false,
+                "type": "str"
+              },
+              "when": {
+                "consumers": [
+                  "handle"
+                ],
+                "required": false,
+                "type": "str"
+              }
+            },
+            "idempotency": {
+              "handle": "Non-idempotent for create, cancel and reschedule; idempotent for list; run_due is safe to repeat because successful publications are never duplicated and UNKNOWN is never silently retried."
+            },
+            "interface": {
+              "handle": {
+                "behavior": "Dispatches on request['op'] to schedule.create, schedule.list, schedule.cancel, schedule.reschedule or schedule.run_due. Validates inputs against M1 project existence, M5 content existence and M6 approval status, and M8 timestamp rules (ISO8601 with timezone offset; naive rejected). For run_due, selects only due non-cancelled schedules relative to the explicit timezone-aware now, invokes M7 publication for each, binds receipt_id and preserves the PUBLISHED/RATE_LIMITED/UNKNOWN result, and never duplicates a successful publication across restarts or repeated calls. Ensures persistence across calls.",
+                "failures": [
+                  "ValueError"
+                ],
+                "idempotency": "Non-idempotent for create, cancel and reschedule; idempotent for list; run_due is safe to repeat because successful publications are never duplicated and UNKNOWN is never silently retried.",
+                "kind": "function",
+                "name": "handle",
+                "ordering": "Sequential execution within a single call; file-level atomicity preferred; run_due processes due schedules in a deterministic order and preserves successful siblings.",
+                "parameters": "data_dir: str (filesystem path), request: dict (JSON-compatible with an 'op' key)",
+                "returns": "dict (JSON-compatible result specific to the operation: a schedule record for create/cancel/reschedule, {items: [...]} for list, {items: [processed schedule records]} for run_due)"
+              }
+            },
+            "ordering": {
+              "handle": "Sequential execution within a single call; file-level atomicity preferred; run_due processes due schedules in a deterministic order and preserves successful siblings."
+            },
+            "persistence": "Filesystem-based storage within the provided data_dir. Format is agent-owned but must ensure durability across separate Python processes. Isolation between different data_dir paths is strict. Schedule records, their status, bound receipt_id values, reschedule history and idempotency keys are retained so that restart and repeated run_due never duplicate a successful publication.",
+            "return_shapes": {
+              "$contract": [
+                "content_id",
+                "idempotency_key",
+                "now",
+                "op",
+                "platform_url",
+                "project_id",
+                "schedule_id",
+                "when"
+              ]
+            },
+            "types": {
+              "declared_fields": {
+                "content_id": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": false,
+                  "type": "str"
+                },
+                "idempotency_key": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": false,
+                  "type": "str"
+                },
+                "now": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": false,
+                  "type": "str"
+                },
+                "op": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": true,
+                  "type": "str"
+                },
+                "platform_url": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": false,
+                  "type": "str"
+                },
+                "project_id": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": true,
+                  "type": "str"
+                },
+                "schedule_id": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": false,
+                  "type": "str"
+                },
+                "when": {
+                  "consumers": [
+                    "handle"
+                  ],
+                  "required": false,
+                  "type": "str"
+                }
+              }
+            }
+          },
+          "reason_summary": "Implement milestone M8 Scheduler as a persistent, project-isolated scheduling module exposing MILESTONE_ID as the literal 'M8' and handle(data_dir, request), supporting schedule.create, schedule.list, schedule.cancel, schedule.reschedule and schedule.run_due, reusing verified M1-M7 dependencies without overwriting their artifacts.",
+          "test_command": [
+            "python",
+            "-m",
+            "pytest",
+            "-q",
+            "tests/test_milestone_989800776c3d6229e431.py"
+          ]
+        },
+        "registry": {
+          "entries": [
+            {
+              "artifact_declarations": [
+                {
+                  "interfaces": {
+                    "public_exports": [
+                      {
+                        "kind": "function",
+                        "name": "handle"
+                      },
+                      {
+                        "kind": "exception",
+                        "name": "ValueError"
+                      }
+                    ]
+                  },
+                  "path": "milestones/milestone_989800776c3d6229e431/api.py",
+                  "purpose": "Implement milestone M8 Scheduler as a persistent, project-isolated scheduling module exposing MILESTONE_ID as the literal 'M8' and handle(data_dir, request), supporting schedule.create, schedule.list, schedule.cancel, schedule.reschedule and schedule.run_due, reusing verified M1-M7 dependencies without overwriting their artifacts."
+                },
+                {
+                  "interfaces": {
+                    "public_exports": [],
+                    "test_for": [
+                      "ValueError"
+                    ]
+                  },
+                  "path": "tests/test_milestone_989800776c3d6229e431.py",
+                  "purpose": "Exercise the declared current milestone contract"
+                }
+              ],
+              "artifact_paths": [
+                "milestones/milestone_989800776c3d6229e431/api.py",
+                "tests/test_milestone_989800776c3d6229e431.py",
+                "milestones/milestone_989800776c3d6229e431/api.py"
+              ],
+              "change_policy": "immutable during witness; implementation must conform",
+              "contract_id": "milestone-989800776c3d6229e431",
+              "definition": {
+                "acceptance_bindings": [
+                  {
+                    "acceptance_id": "accept-e812ecc43e67c1b1f70a",
+                    "checker_ref": "project.acceptance@1",
+                    "contract_id": "milestone-989800776c3d6229e431",
+                    "object_ref": "milestones/milestone_989800776c3d6229e431/api.py",
+                    "requirement_refs": [
+                      "M8"
+                    ],
+                    "version": 1
+                  }
+                ],
+                "concurrency": "Single-threaded assumption per data_dir for this milestone. File system operations should use atomic writes where possible to prevent corruption during simple sequential usage; run_due must not duplicate successful publications even when invoked repeatedly or after restart.",
+                "edge_behavior": "The source module exposes MILESTONE_ID as the literal milestone identifier 'M8' and handle(data_dir, request). data_dir is a filesystem path; request is a JSON-compatible dict with an op string; the return value is a JSON-compatible dict. Supported operations: schedule.create(project_id, content_id, platform_url, when, idempotency_key), schedule.list(project_id), schedule.cancel(project_id, schedule_id), schedule.reschedule(project_id, schedule_id, when), schedule.run_due(project_id, now). schedule.create validates that the project exists, the content exists within that project, and the content is approved (unapproved content is rejected), and that when is an ISO8601 timestamp carrying an explicit timezone offset (naive timestamps are rejected); it returns a schedule record {id, status: PENDING, when, ...} including the bound project_id, content_id, platform_url and idempotency_key. schedule.list(project_id) returns {items: [...]} of that project's schedule records. schedule.cancel(project_id, schedule_id) sets the record status to CANCELLED and returns the updated record. schedule.reschedule(project_id, schedule_id, when) keeps the same schedule id, validates when as timezone-aware ISO8601, updates the scheduled time and appends an entry to the record's history, without creating an orphan duplicate job. schedule.run_due(project_id, now) takes an explicit timezone-aware ISO8601 clock input for reproducible execution (the GUI uses current UTC) and returns {items: [processed schedule records]}; it processes only due, non-cancelled schedules, never runs future or cancelled tasks, and for each due task uses M7 publication, binds the resulting receipt_id into the schedule record, and preserves the M7 result status PUBLISHED, RATE_LIMITED or UNKNOWN. Restart and repeated run_due never duplicate a successful publication; an UNKNOWN result never silently becomes retryable; rescheduling never creates an orphan duplicate job; and successful sibling schedules are preserved. Invalid input, unknown IDs, cross-project access and unsupported operations raise ValueError; no success-shaped error objects are returned. Persistence survives another Python process; storage format and internal design are Agent-owned. Existing modules may be discovered by their literal MILESTONE_ID, not guessed hash filenames; dependencies may be imported normally or via importlib. Standard library only for the application; public tests may use pytest. No public network publication or dependency installation.",
+                "exception_bindings": [
+                  {
+                    "acceptance_refs": [
+                      "accept-e812ecc43e67c1b1f70a"
+                    ],
+                    "implementation_ref": "milestones/milestone_989800776c3d6229e431/api.py",
+                    "name": "ValueError",
+                    "policy": {
+                      "base": "",
+                      "behavior": "Raised when input validation fails (missing or invalid project/content/schedule IDs, foreign or cross-project references, unapproved content, naive or malformed ISO8601 timestamps, blank or missing required fields, unsupported op)."
+                    },
+                    "test_refs": [
+                      "tests/test_milestone_989800776c3d6229e431.py"
+                    ]
+                  }
+                ],
+                "exceptions": {
+                  "ValueError": {
+                    "base": "",
+                    "behavior": "Raised when input validation fails (missing or invalid project/content/schedule IDs, foreign or cross-project references, unapproved content, naive or malformed ISO8601 timestamps, blank or missing required fields, unsupported op)."
+                  }
+                },
+                "exports": [
+                  {
+                    "kind": "function",
+                    "name": "handle",
+                    "owner": "milestones/milestone_989800776c3d6229e431/api.py",
+                    "source_declaration_hash": "22da0026e893b3c73ba747c46985d4c50dfbcadc623bf42d2fd51c7011dc2123",
+                    "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:305"
+                  },
+                  {
+                    "kind": "exception",
+                    "name": "ValueError",
+                    "owner": "milestones/milestone_989800776c3d6229e431/api.py",
+                    "source_declaration_hash": "22da0026e893b3c73ba747c46985d4c50dfbcadc623bf42d2fd51c7011dc2123",
+                    "source_ref": "iter132-promotion-studio:promotion-05:milestone-decision:305"
+                  }
+                ],
+                "field_contracts": [
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "op",
+                    "owner": "$contract",
+                    "required": true,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "project_id",
+                    "owner": "$contract",
+                    "required": true,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "content_id",
+                    "owner": "$contract",
+                    "required": false,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "platform_url",
+                    "owner": "$contract",
+                    "required": false,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "when",
+                    "owner": "$contract",
+                    "required": false,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "idempotency_key",
+                    "owner": "$contract",
+                    "required": false,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "schedule_id",
+                    "owner": "$contract",
+                    "required": false,
+                    "type": "str"
+                  },
+                  {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "name": "now",
+                    "owner": "$contract",
+                    "required": false,
+                    "type": "str"
+                  }
+                ],
+                "fields": {
+                  "content_id": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": false,
+                    "type": "str"
+                  },
+                  "idempotency_key": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": false,
+                    "type": "str"
+                  },
+                  "now": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": false,
+                    "type": "str"
+                  },
+                  "op": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": true,
+                    "type": "str"
+                  },
+                  "platform_url": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": false,
+                    "type": "str"
+                  },
+                  "project_id": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": true,
+                    "type": "str"
+                  },
+                  "schedule_id": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": false,
+                    "type": "str"
+                  },
+                  "when": {
+                    "consumers": [
+                      "handle"
+                    ],
+                    "required": false,
+                    "type": "str"
+                  }
+                },
+                "idempotency": {
+                  "handle": "Non-idempotent for create, cancel and reschedule; idempotent for list; run_due is safe to repeat because successful publications are never duplicated and UNKNOWN is never silently retried."
+                },
+                "interface": {
+                  "handle": {
+                    "behavior": "Dispatches on request['op'] to schedule.create, schedule.list, schedule.cancel, schedule.reschedule or schedule.run_due. Validates inputs against M1 project existence, M5 content existence and M6 approval status, and M8 timestamp rules (ISO8601 with timezone offset; naive rejected). For run_due, selects only due non-cancelled schedules relative to the explicit timezone-aware now, invokes M7 publication for each, binds receipt_id and preserves the PUBLISHED/RATE_LIMITED/UNKNOWN result, and never duplicates a successful publication across restarts or repeated calls. Ensures persistence across calls.",
+                    "failures": [
+                      "ValueError"
+                    ],
+                    "idempotency": "Non-idempotent for create, cancel and reschedule; idempotent for list; run_due is safe to repeat because successful publications are never duplicated and UNKNOWN is never silently retried.",
+                    "kind": "function",
+                    "name": "handle",
+                    "ordering": "Sequential execution within a single call; file-level atomicity preferred; run_due processes due schedules in a deterministic order and preserves successful siblings.",
+                    "parameters": "data_dir: str (filesystem path), request: dict (JSON-compatible with an 'op' key)",
+                    "returns": "dict (JSON-compatible result specific to the operation: a schedule record for create/cancel/reschedule, {items: [...]} for list, {items: [processed schedule records]} for run_due)"
+                  }
+                },
+                "ordering": {
+                  "handle": "Sequential execution within a single call; file-level atomicity preferred; run_due processes due schedules in a deterministic order and preserves successful siblings."
+                },
+                "persistence": "Filesystem-based storage within the provided data_dir. Format is agent-owned but must ensure durability across separate Python processes. Isolation between different data_dir paths is strict. Schedule records, their status, bound receipt_id values, reschedule history and idempotency keys are retained so that restart and repeated run_due never duplicate a successful publication.",
+                "return_shapes": {
+                  "$contract": [
+                    "content_id",
+                    "idempotency_key",
+                    "now",
+                    "op",
+                    "platform_url",
+                    "project_id",
+                    "schedule_id",
+                    "when"
+                  ]
+                },
+                "types": {
+                  "declared_fields": {
+                    "content_id": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": false,
+                      "type": "str"
+                    },
+                    "idempotency_key": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": false,
+                      "type": "str"
+                    },
+                    "now": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": false,
+                      "type": "str"
+                    },
+                    "op": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": true,
+                      "type": "str"
+                    },
+                    "platform_url": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": false,
+                      "type": "str"
+                    },
+                    "project_id": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": true,
+                      "type": "str"
+                    },
+                    "schedule_id": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": false,
+                      "type": "str"
+                    },
+                    "when": {
+                      "consumers": [
+                        "handle"
+                      ],
+                      "required": false,
+                      "type": "str"
+                    }
+                  }
+                }
+              },
+              "evidence_refs": [
+                "iter132-promotion-studio:promotion-05:milestone-decision:305"
+              ],
+              "feature": "Implement milestone M8 Scheduler as a persistent, project-isolated scheduling module exposing MILESTONE_ID as the literal 'M8' and handle(data_dir, request), supporting schedule.create, schedule.list, schedule.cancel, schedule.reschedule and schedule.run_due, reusing verified M1-M7 dependencies without overwriting their artifacts.",
+              "integrity_version": 2,
+              "must_acceptance_ids": [
+                "accept-e812ecc43e67c1b1f70a"
+              ],
+              "required_sections": [
+                "interface",
+                "fields",
+                "types",
+                "exceptions",
+                "idempotency",
+                "persistence",
+                "ordering",
+                "concurrency",
+                "edge_behavior"
+              ],
+              "source_decision": "iter132-promotion-studio:promotion-05:milestone-decision:305",
+              "status": "DECLARED",
+              "version": 1
+            }
+          ],
+          "kind": "PublicContractRegistry"
+        }
+      },
+      "phase_id": "milestone-989800776c3d6229e431",
+      "requirement_refs": [
+        "M8"
+      ],
+      "subject_refs": [
+        "milestones/milestone_989800776c3d6229e431/api.py",
+        "early_main.py",
+        "milestones/milestone_1369a82cde04a7e5887d/api.py",
+        "milestones/milestone_20f2614f6ae8403d4a4e/api.py",
+        "milestones/milestone_33270fed0c9054f5ae04/api.py",
+        "milestones/milestone_4e7c26281cf61a85851e/api.py",
+        "milestones/milestone_90b8868c7203e2958397/api.py",
+        "milestones/milestone_9165a990eed5b9c8801e/api.py",
+        "promotion_publish.py"
+      ],
+      "task_refs": [],
+      "verdict": "VERIFIED",
+      "evidence": {
+        "attempt_id": "attempt-0001",
+        "condition_hash": "5905d129b22c55e23a4579a4815f650804df22c09fc19cdfc572ab6d10b976fd",
+        "goal_id": "accept-e812ecc43e67c1b1f70a",
+        "node_id": "sem-node-0125",
+        "plan_revision": 8,
+        "provenance": {
+          "chain": {
+            "attempt_id": "attempt-0001",
+            "candidate": {
+              "path": "iter132-promotion-studio/promotion-05/evidence/2745c55d5fa23194807533af129c781656419e2ec8d183c19e575615f14f9e0a.json",
+              "sha256": "194bf42105d023098c73cc798ff4856cdec75f92f4f5187553013f16bc2148c2"
+            },
+            "checker": {
+              "hash": "5201a3c5aa6c9e829890787e3a5d6b8f60d3de104b301fb9df5eeb28faeb1007",
+              "ref": "project.acceptance@1",
+              "version": "qualified-revision-1"
+            },
+            "execution_receipt": {
+              "path": "iter132-promotion-studio/promotion-05/attempts/sem-node-0125/attempt-0001.json",
+              "sha256": "f61276ce8bf1a098bbe6b7101c8b5f9f2d8752ba34d7eb69dcc6e27614a6fa8f"
+            },
+            "logical_task_id": "iter132-promotion-studio/promotion-05",
+            "observation": {
+              "path": "iter132-promotion-studio/promotion-05/evidence/05bd9f5680becf325c46cd325e2c525896f40d840cfcd013fa453903a06bc698.json",
+              "sha256": "89bf6738143387687a8193c31329521aa61d0f8e28d2c4ac69e1da40b0e2e7b9"
+            },
+            "requirements": {
+              "M8": "bfe4a0c4652f34cdd4ce5110c6208e7f075074bdfa918fd68ea2637171c088d6"
+            },
+            "verdict": "VERIFIED",
+            "witness": {
+              "path": "iter132-promotion-studio/promotion-05/evidence/7b728aeaaf3551230b16554e9ce5a174fc1331d53bc520976f80218da5f74635.json",
+              "sha256": "1ba7435849a5b531c8d16eb3e455375f5432480f01e30a2aabd17f71a1156b2a"
+            }
+          },
+          "status": "TRUSTED"
+        },
+        "receipt_hash": "b4e0d76a078b406924513abd0616c134072c8993e71d747dbbf3331fe37df87a",
+        "run_id": "promotion-05",
+        "subjects": {
+          "early_main.py": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+          "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+          "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+          "milestones/milestone_33270fed0c9054f5ae04/api.py": "db223502ff57164389978d41cde5d9f850c756a714f9c8b5fd9085ffea27d511",
+          "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+          "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+          "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+          "milestones/milestone_989800776c3d6229e431/api.py": "a613d313a070daefc416eb56ab9f7f0ea4b9ab6c11d6ad745a0d029f67e71b38",
+          "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+        },
+        "supersedes_receipts": [],
+        "verdict": "VERIFIED",
+        "evidence_refs": [
+          {
+            "path": "iter132-promotion-studio/promotion-05/observations/typed/a5a66440a8826ddc1a79d21c5bfdd454a675d80cc72130cc9bf4cabe7e95074f.json",
+            "sha256": "5bf2786e71932f8e1a1ef4c28bb756c66caf953bedcb2971e610b7df23b92aea"
+          }
+        ],
+        "reason": "M8 actual business checks passed"
+      },
+      "must": true
+    }
+  ],
+  "is_new_acceptance_authority": false,
+  "final_product_complete": false
+}

@@ -1,0 +1,152 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "Qwen Flash Agent and DeepSeek Flash Worker only. One bounded B02 patch attempt then controller hold. No Pro/Max, no UNKNOWN replay.",
+    "milestone_completion_request": "B01 has independent current certificate and is FROZEN_REUSABLE. Now B02 only: repair existing authoritative writer143 using current formal FAILED upload-port goal block-observation-B02-upload-port, node156 attempt1 exactreceipt. Narrow oldwriter leaf to B02 BrowserUploadAdapter (move structural parent to m12-b02 if supported; do not create second writer). Source9edfb has base64/path mismatch and guessed preview path; make explicit browser->temporary file->existing M11 adapter, owned image/video preview and media UI refresh. No other blocks, no complete M12 test, no docs or backend rewrites, no FINISH. After patch controller stops for full local B02 acceptance, not mere upload-port PASS.",
+    "fresh_runtime_diagnosis": {
+      "current_block": "B02",
+      "current_source_sha256": "9edfb2e6f74a325c9c6375bff9dcb91c52026d087e5fa4146dd886ee1e23c1a6",
+      "formal_failure_ref": {
+        "path": "attempts/sem-node-0156/attempt-0001.json",
+        "receipt_hash": "fccd77fbc07a0b8deb1cb52416ed185248493c2971b7b4499cf4fd6a97f3aa50"
+      },
+      "checker": "qualified-revision-9",
+      "formal_goal": "block-observation-B02-upload-port",
+      "failure_observation": {
+        "source_sha256": "9edfb2e6f74a325c9c6375bff9dcb91c52026d087e5fa4146dd886ee1e23c1a6",
+        "checks": [
+          "source unchanged"
+        ],
+        "scope": "Browser image upload port only; not B02/M12 completion",
+        "browser": "134.0.3124.51",
+        "upload": {
+          "status": 400,
+          "body": {
+            "error": "path must be a non-empty string"
+          }
+        },
+        "status": "FAIL",
+        "error": "AssertionError: browser image upload HTTP200",
+        "startup": {
+          "command": [
+            "D:\\anaconda\\python.exe",
+            "-X",
+            "utf8",
+            "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\main.py",
+            "--serve",
+            "--port",
+            "31262",
+            "--data",
+            "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\consumer_scratch\\sem-node-0156\\attempt-0001\\upload-port-evidence\\data"
+          ],
+          "url": "http://127.0.0.1:31262"
+        },
+        "cleanup": {
+          "server_stopped": true
+        }
+      },
+      "B01_certificate_ref": {
+        "path": "iter132-promotion-studio/promotion-05/evidence/0ac692555556442774b54feec4cce55f37b920076d5312296e1200a8a50d7934.json",
+        "sha256": "09b0f9b8b5e2c64fd1b4cc4cce4a250195692f2d8c667ce93429672fe034e026"
+      },
+      "actual_contracts": {
+        "M11": "media.import requires nonempty server path,kind(image|video),project_id. media.get requiresproject_id/media_id and returns id,project_id,kind,sha256,absolute path,status(VALID|BROKEN); no MIME field. media.list returns items. PNG/JPEG/MP4/WebM signatures supported; existing M11 copies bytes to durable project-owned media_storage. Do not change backend.",
+        "M1": "Existing B01 correct; all nonmedia operations unchanged.",
+        "source_findings": "main.py handle directly delegates media.import data base64 without path. _serve_media builds guessed media folders and never uses its media_req. importMedia always appends img even for video; loadMedia placeholder. Only four explicitly allowed source ranges can change."
+      }
+    },
+    "gui_writer_policy": "Only existing143 writes main.py; B01 sections and M1-M11 are frozen. Worker exactpatch only; full_file_write false. Return all B02 adapter/media changes within policy ranges. Never manual/sourcewhole replacement.",
+    "admission_correction": "Repair143 must bind falsifying_evidence JSONarray containing exact {\"path\": \"attempts/sem-node-0156/attempt-0001.json\", \"receipt_hash\": \"fccd77fbc07a0b8deb1cb52416ed185248493c2971b7b4499cf4fd6a97f3aa50\"}. No sourcehash substitute. Replace priorB01strategy with actual B02 mechanism. Exact bounded patch op3 only; old full_file_write flags forbidden. Full B02 browser image/video/preview/cleanup/restart/isolation acceptance follows separately.",
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "main.py"
+        ],
+        "required_dimensions": [
+          "problem",
+          "full_file_write",
+          "browser_to_server_path",
+          "owned_media_preview",
+          "temporary_cleanup"
+        ],
+        "dimension_types": {
+          "problem": "string",
+          "full_file_write": "boolean",
+          "browser_to_server_path": "boolean",
+          "owned_media_preview": "boolean",
+          "temporary_cleanup": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": true
+          },
+          {
+            "browser_to_server_path": false
+          },
+          {
+            "owned_media_preview": false
+          },
+          {
+            "temporary_cleanup": false
+          }
+        ],
+        "evidence_refs": [
+          {
+            "path": "attempts/sem-node-0156/attempt-0001.json",
+            "receipt_hash": "fccd77fbc07a0b8deb1cb52416ed185248493c2971b7b4499cf4fd6a97f3aa50"
+          }
+        ]
+      }
+    ],
+    "bounded_patch_policy": {
+      "mode": "patch_only",
+      "block_id": "B02",
+      "writer_node_id": "sem-node-0143",
+      "hold_after_worker_attempt": true,
+      "files": {
+        "main.py": {
+          "source_sha256": "9edfb2e6f74a325c9c6375bff9dcb91c52026d087e5fa4146dd886ee1e23c1a6",
+          "ranges": [
+            [
+              2216,
+              3922
+            ],
+            [
+              11005,
+              14629
+            ],
+            [
+              21435,
+              22164
+            ],
+            [
+              46147,
+              47925
+            ]
+          ],
+          "max_changed_chars": 23000,
+          "allowed_sections": [
+            "handle/media adapter",
+            "owned media serving",
+            "media DOM",
+            "media JS"
+          ]
+        }
+      },
+      "acceptance_requirements": [
+        "B02 only: browser file/base64 -> explicit temporary-file adapter -> existing M11 media.import(path,kind,project_id), safe confined temporary name, cleanup in finally for success/error; durable original M11 copy, no M11 backend edit. Reject missing/empty/malformed/broken media. Preserve all nonmedia dispatch and B01 sections exactly.",
+        "Preview must obtain owned media metadata from existing M11 media.get, verify correct project/status/path containment and serve actual stored bytes with image/video MIME. Do not guess media storage paths. PNG and real MP4 must upload and decode in actual browser img/video elements.",
+        "Media UI uses actual selected currentProjectId and real returned media.id, renders image and video correctly, clear stale previews across project loading and use actual M11 media.list on navigation/refresh. Avoid guessed IDs or modifying shared project/bootstrap/renderer code.",
+        "Only exact semantic patch operation3 within allowed source ranges. No whole-filewrite, no modulemapping/threadserver/stateendpoint/startup edits. Local imports inside adapter allowed. All target bytes outside ranges immutable."
+      ]
+    },
+    "redecision": {
+      "strategy_revision": "6a5d8717d420aeacf1e658b3beb6d9ce9388e91979f226669a00fa1715cbec3e",
+      "reason": "New block B02 and current qualified native failure after frozen B01. Explicit BrowserFilePort->ServerPathPort adapter strategy, exact bounded source ranges and full local B02 requirements. No repeated B01/dead-end/fullfile strategy.",
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0156\\attempt-0001.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_PATCH_POLICY_PREPARED.json"
+      ]
+    }
+  }
+}

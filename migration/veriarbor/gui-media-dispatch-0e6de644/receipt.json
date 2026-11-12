@@ -1,0 +1,23 @@
+{
+  "kind": "ActualGuiMediaDispatchDiagnostic",
+  "gui_source_sha256": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+  "media_api_sha256": "e4737c448e03a9fd794b9cc86a34a0ab14a04add0ac24b6cbbe42bb7e85336af",
+  "snapshot_identity_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\media-publish-edges-attempt40\\receipt.json",
+  "gui_project_create_status": 200,
+  "gui_media_import": {
+    "status": 400,
+    "body": "{\"error\": \"Unknown milestone: M11\"}"
+  },
+  "gui_media_get": {
+    "status": 400,
+    "body": "{\"error\": \"Unknown milestone: M11\"}"
+  },
+  "direct_media_api": {
+    "status": "VALID",
+    "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e",
+    "actual_stored_bytes_match": true
+  },
+  "scope": "GUI request dispatch failure, not media signature/path implementation failure. Original GUI writer91; media API117 stays read-only.",
+  "acceptance_authority": false,
+  "host_business_patches": 0
+}

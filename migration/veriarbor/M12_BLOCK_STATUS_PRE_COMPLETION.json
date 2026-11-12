@@ -1,0 +1,44 @@
+{
+  "authority": "Derived view of canonical evidence; block certificates grant their own scopes only",
+  "blocks": {
+    "B01": "VERIFIED_FROZEN_REUSABLE",
+    "B02": "VERIFIED_FROZEN_REUSABLE",
+    "B03": "READY_NOT_STARTED",
+    "B04": "PENDING",
+    "B05": "PENDING",
+    "B06": "PENDING",
+    "B07": "PENDING",
+    "B08": "PENDING",
+    "B09": "PENDING",
+    "B10": "PENDING",
+    "B11": "PENDING"
+  },
+  "M12": "INSUFFICIENT_CURRENT_EVIDENCE",
+  "active_continuation": "veriarbor-104",
+  "M12_rollup": "REGISTERED_NON_EXECUTABLE",
+  "patch_gate": "QUALIFIED_24_TESTS",
+  "B01_checker": "QUALIFIED_8_CONTROLS",
+  "latest_candidate_measurement": "b02-concurrent-preview-61bebcfe/receipt.json",
+  "B01_certificate_ref": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/0ac692555556442774b54feec4cce55f37b920076d5312296e1200a8a50d7934.json",
+    "sha256": "09b0f9b8b5e2c64fd1b4cc4cce4a250195692f2d8c667ce93429672fe034e026"
+  },
+  "updated_at": "2026-11-04T11:08:30.479835+00:00",
+  "current_source_sha256": "f269c86e84826bcdb09e4422cb480e3cffe9fded7c2788ee2334aabdb9537ea1",
+  "running_nodes": [],
+  "latest_native_observation": {
+    "node": "sem-node-0159",
+    "receipt_hash": "d44cbc7f1a942a909b49d24c6968f346dd7b00db5a1f3885e2a3a7f14f62c80d",
+    "checker": "qualified-revision-11",
+    "verdict": "FAILED",
+    "source_current": true,
+    "observed": {
+      "reason": "Adapter boundary: {\"status\": \"FAIL\", \"explicit_milestone_preserved\": false, \"nonmedia_concurrency_preserved\": false, \"dispatch_calls\": [\"M11\"], \"dispatch_error\": null, \"concurrency\": [{\"milestone\": \"M1\", \"error\": \"ValueError: \"}, {\"milestone\": \"M4\", \"error\": \"ValueError: \"}], \"probe_scope\": \"Current adapter boundary with injected handlers; original backend source unchanged\"}",
+      "value": false
+    }
+  },
+  "B02_certificate_ref": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/0b80f38a5482e311f690e8905656b12b5b00768700683ab7e8d99ab9bb99d956.json",
+    "sha256": "f74eac2a18d25d8f50d4b467cd272c14175fdd0b373c64578736447bb6b837ef"
+  }
+}

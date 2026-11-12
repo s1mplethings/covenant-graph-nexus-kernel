@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 
 import pytest
+from tests.qualification_support import probe_node
 
 from cgkn.orchestration.capability_tree import CapabilityNode, CapabilityTree
 from cgkn.orchestration.execution_dag import compile_tree
@@ -53,7 +54,7 @@ def test_fixed_seed_dag_dependencies_precede_dependents_and_order_is_stable() ->
     for index in range(40):
         candidates = [f"n{prior}" for prior in range(index)]
         dependencies = tuple(sorted(rng.sample(candidates, k=min(len(candidates), rng.randrange(0, 4)))))
-        nodes.append(CapabilityNode(f"n{index}", capability_ref=f"cap.{index}@1", depends_on=dependencies))
+        nodes.append(probe_node(f"n{index}", capability_ref=f"cap.{index}@1", depends_on=dependencies))
     tree = CapabilityTree("property", tuple(nodes))
     first = compile_tree(tree).topological_order(); second = compile_tree(tree).topological_order()
     assert first == second

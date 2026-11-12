@@ -8,6 +8,7 @@ import pytest
 from cgkn.application.software_project.contracts import ProjectResultStatus
 from cgkn.application.software_project.service import SoftwareProjectGenerationService
 from cgkn.providers import ProviderCompletion
+from tests.application.software_project.test_gateway_e2e import execution_authorization
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
@@ -34,6 +35,11 @@ class FakeClient:
             value = {"schema_version": "1.0", "decision_id": "d1", "summary": "compose repair", "reason": "bounded repair", "edits": edits, "request_run": True, "finish": False, "needs_escalation": False, "escalation_reason": ""}
         else:
             value = {"schema_version": "1.0", "decision_id": "d2", "summary": "finish", "reason": "acceptance passed", "edits": [], "request_run": False, "finish": True, "needs_escalation": False, "escalation_reason": ""}
+        value['decision_audit']={'alternatives_considered':['inspect','repair','verify'],
+            'expected_outcome':'Independent arithmetic verification','capability_claim':{
+                'target_capability_id':'project.file.patch@1','target_gap_id':'project.file.patch@1',
+                'strategy_capabilities':['workspace.inspect@1','project.file.patch@1',
+                    'project.python.pytest@1','project.snapshot@1','project.acceptance.external@1']}}
         return ProviderCompletion(json.dumps(value), config.model, f"agent-{self.agent_calls}", {"prompt_tokens": 10, "completion_tokens": 10, "total_tokens": 20})
 
 
@@ -42,7 +48,7 @@ class FakeClient:
 @pytest.mark.generation
 def test_fake_provider_repair_uses_tree_dag_scoped_worker_real_pytest_and_hidden_acceptance(tmp_path):
     client = FakeClient()
-    result = SoftwareProjectGenerationService(ROOT, tmp_path / "artifacts", client=client).run_case("seeded_repair", max_repair_rounds=0)
+    result = SoftwareProjectGenerationService(ROOT, tmp_path / "artifacts", client=client, config={'execution_authorization':execution_authorization()}).run_case("seeded_repair", max_repair_rounds=0)
     assert result.status is ProjectResultStatus.PASS
     assert result.receipt["initial_test"]["returncode"] != 0
     assert result.receipt["internal_test_result"] == "PASS"
@@ -64,7 +70,7 @@ def test_missing_provider_usage_is_not_reported_as_zero(tmp_path):
         return ProviderCompletion(completion.text, completion.model, completion.request_id, {})
 
     client.complete = without_usage
-    result = SoftwareProjectGenerationService(ROOT, tmp_path / "artifacts", client=client).run_case("seeded_repair", max_repair_rounds=0)
+    result = SoftwareProjectGenerationService(ROOT, tmp_path / "artifacts", client=client, config={'execution_authorization':execution_authorization()}).run_case("seeded_repair", max_repair_rounds=0)
     assert result.status is ProjectResultStatus.PASS
     assert result.receipt["agent_input_tokens"] == "TOKEN_USAGE_UNAVAILABLE"
     assert result.receipt["worker_output_tokens"] == "TOKEN_USAGE_UNAVAILABLE"

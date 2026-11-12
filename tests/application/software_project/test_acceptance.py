@@ -2,6 +2,7 @@ import pathlib
 import shutil
 
 import pytest
+from tests.executor_authority_support import invoke_bound_executor
 
 from cgkn.application.software_project.acceptance import ExternalAcceptanceExecutor
 from cgkn.execution import BlockExecutionRequest, TaskContext
@@ -19,7 +20,7 @@ def test_seeded_acceptance_is_external_and_returns_only_sanitized_receipt(tmp_pa
     (workspace / "math_utils.py").write_text("def add(a, b):\n    return a + b\n", encoding="utf-8")
     executor = ExternalAcceptanceExecutor(workspace, ROOT / "benchmarks" / "real_project_generation" / "acceptance")
     request = BlockExecutionRequest(project_id="p", run_id="r", attempt_id="a", node_id="accept", component_ref="project.acceptance.external@1", executor_ref="project.acceptance@1", task_context=TaskContext("accept", {"case_id": "seeded_repair"}, {"snapshot": {"snapshot_hash": "sha256:test"}}), timeout_seconds=30)
-    result = executor.execute(request)
+    result = invoke_bound_executor(executor, request)
     assert result.succeeded
     assert result.outputs["status"] == "PASS"
     assert result.outputs["snapshot_hash"] == "sha256:test"
@@ -32,7 +33,7 @@ def test_seeded_acceptance_is_external_and_returns_only_sanitized_receipt(tmp_pa
 def test_missing_harness_fails_closed(tmp_path):
     executor = ExternalAcceptanceExecutor(tmp_path, tmp_path / "missing")
     request = BlockExecutionRequest(project_id="p", run_id="r", attempt_id="a", node_id="accept", component_ref="project.acceptance.external@1", executor_ref="project.acceptance@1", task_context=TaskContext("accept", {"case_id": "unknown"}))
-    result = executor.execute(request)
+    result = invoke_bound_executor(executor, request)
     assert not result.succeeded and result.outputs["failure_class"] == "HARNESS_FAILURE"
 
 
@@ -44,7 +45,7 @@ def test_failed_acceptance_withholds_harness_diagnostics(tmp_path):
     executor = ExternalAcceptanceExecutor(tmp_path / "project", acceptance)
     (tmp_path / "project").mkdir()
     request = BlockExecutionRequest(project_id="p", run_id="r", attempt_id="a", node_id="accept", component_ref="project.acceptance.external@1", executor_ref="project.acceptance@1", task_context=TaskContext("accept", {"case_id": "demo"}, {"snapshot": {"snapshot_hash": "sha256:test"}}), timeout_seconds=30)
-    result = executor.execute(request)
+    result = invoke_bound_executor(executor, request)
     rendered = str(result.outputs)
     assert not result.succeeded
     assert "hidden-value" not in rendered and "test_secret_contract" not in rendered

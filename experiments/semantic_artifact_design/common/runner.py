@@ -17,7 +17,8 @@ from cgkn.application.software_project.snapshot import ProjectSnapshotExecutor, 
 from cgkn.executors import CommandExecutor, ExecutorRegistry, PythonTestExecutor
 from cgkn.orchestration import CapabilityNode, CapabilityTree, compile_tree
 from cgkn.orchestration.tree_edits import TreeEdit, apply_tree_edits
-from cgkn.providers import CompletionClient, ModelRoleConfig, OpenAICompatibleClient, parse_json_object
+from cgkn.providers import CompletionClient, ModelRoleConfig, parse_json_object
+from cgkn.providers.gateway_client import completion_client_from_environment
 from cgkn.runtime import DAGRunner
 from cgkn.state import FileRunStore
 
@@ -49,7 +50,7 @@ class SemanticExperimentRunner:
     def __init__(self, repository_root: pathlib.Path | str, artifact_root: pathlib.Path | str, *, client: CompletionClient | None = None, config: Mapping[str, Any] | None = None):
         self.root = pathlib.Path(repository_root).resolve()
         self.artifact_root = pathlib.Path(artifact_root).resolve()
-        self.client = client or OpenAICompatibleClient()
+        self.client = client if client is not None else completion_client_from_environment()
         base = json.loads((self.root / "config/software_project_generation.json").read_text(encoding="utf-8"))
         self.config = base | dict(config or {})
         self.acceptance_root = self.root / "benchmarks/real_project_generation/acceptance"

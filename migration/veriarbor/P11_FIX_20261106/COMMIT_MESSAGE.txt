@@ -1,0 +1,18 @@
+security(p11): add M12 provenance baseline and signed release authorization
+
+This commit preserves the previously untracked M12 provenance implementation
+and applies the P11 signed-release authorization hardening in one commit.
+It is not a P11-only change.
+
+P11-specific patch: 3f7caed58227d25685ccd0f1792955f2420260e28020e55f10559b41696f237c
+
+Validation:
+- P01-P19: 24/24 PASS
+- provenance regression: 112 passed
+- Frozen M12 candidate: 711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237
+- Frozen M12 ZIP: f6eb10fb8283b250c28796e0ac95308bb6135e8434f6eef742acc58fbb469f8f
+- Formal delivery remains PAUSED_PENDING_TRUST_ANCHOR
+
+No frozen candidate, ZIP, historical certificate, run store, evidence directory,
+test key or release authorization is included. No push.
+

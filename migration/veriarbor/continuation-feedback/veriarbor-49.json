@@ -1,0 +1,52 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "Qwen3.8 Flash Agent and Worker for the new bounded M12 continuation after DeepSeek stream failure. No Pro/Max. Original attempt141a1/request2327705b and seven upstream UNKNOWNs remain retained with unknown usage/cost; no replay. Same-model critique is not independent acceptance.",
+    "milestone_completion_request": "Complete the original M11/M12 and final delivery. Required M11 GUI functionality is actual M11 API dispatch, safe media serving, attachment/save/load preview with visible imported image/video controls and visible failure messages, continuing review/approval/local publish/receipt. Original91 is the authoritative GUI writer. Native M11 qualified-revision-3 now checks actual GUI media dispatch and preview after backend integrity/positive publication/idempotency. Use each current independent failure to identify its actual file owner; an HTTP failure at early_main.py M11 dispatch is not automatically a media API117 module-path failure. Once M11 passes, finish M12 GUI navigation, startup/config, full local workflow, scheduler, analytics, restart, invalidation, documentation, final packaging and all retained test-owner debts. Do not weaken assertions or declare library tests/product node success as final product PASS. Original acceptance/delivery/ledger/Corpus remain sole authorities. Current native140 M11 qualified-revision3 is now VERIFIED for its measured scope; proceed immediately to M12. Carry the documented GUI upload/edit gaps into the final product GUI implementation and actual browser acceptance. Do not reset/reopen completed M11 backend work. Reuse early_main implementation when building final main.py; one authoritative writer per coupled GUI file. Final GUI upload/save/edit/restart must be actually exercised, not inferred from API-injected media preview.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "early_main.py": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b"
+        }
+      },
+      "M12_source_owner": 141,
+      "local_effect_reconciliation": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_SOURCE_EFFECT_RECONCILIATION.json",
+      "cache_recovery": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\continuations\\veriarbor-48\\cache-recovery-observation.json",
+      "source_state": "main.py absent in stage and candidate; read dependencies unchanged; original runner appended NOT_APPLIED. M12 contract already declared.",
+      "next_scope": "Continue existing M12 source owner141 using a new attempt and existing contract, not another milestone or writer. Produce a coherent compact final main.py by reusing verified module handlers and existing GUI foundations; do not copy/rebuild backends. Include actual reachable upload bridge to path-based M11 import, content.edit for saved identity, media preview, schedule/analytics and all frozen M12 public requirements. Original file upload diagnostic remains relevant to copied GUI code; ensure final GUI fixes it.",
+      "GUI_gap_evidence": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\gui-upload-5c7e0f19-v2\\receipt.json",
+      "upstream_unknown_policy": "Old request stays UNKNOWN; new local-effect evidence is the novelty basis, not merely model replacement."
+    },
+    "admission_correction": "Existing M12 owner141 is canonically reconciled NOT_APPLIED. Continue it with a fresh bounded task/attempt and current exact reconciliation refs. Do not repeat M12 milestone declaration or M1-M11 checks. Read verified dependencies; final source is main.py. Model replacement alone is not novelty; use real local-effect reconciliation and unchanged required product contract. No test assertion weakening.",
+    "gui_writer_policy": "Original91 is sole GUI writer. Cover attachment/save/edit/render/reload/HTTP asset serving/errors and preserve review/approval/publish/receipt in ONE coherent full-file write. Other backend owners remain unchanged unless a new file-specific failure proves otherwise.",
+    "redecision": {
+      "strategy_revision": "83f190b77b752515ddaca29ef76f1f1e723fd311a495fdd7e05724330e13751d",
+      "reason": "Read-only response recovery found no complete response; existing runner verified absent target/no publication and unchanged dependencies, appended NOT_APPLIED. New bounded M12 attempt uses alternative cheap Flash worker; original upstream UNKNOWN/ledger preserved.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_SOURCE_EFFECT_RECONCILIATION.json",
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\continuations\\veriarbor-48\\cache-recovery-observation.json"
+      ]
+    },
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "early_main.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\GUI_COUPLED_PREFLIGHT_24125.json"
+        ]
+      }
+    ]
+  }
+}

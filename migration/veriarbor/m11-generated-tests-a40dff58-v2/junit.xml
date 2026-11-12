@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="28" time="9.838" timestamp="2026-11-03T21:51:53.746833+08:00" hostname="test"><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_get_cross_project_rejected" time="0.056" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_get_marks_broken_when_bytes_missing" time="0.048" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_get_marks_broken_when_bytes_modified" time="0.054" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_get_returns_record_and_verifies_integrity" time="0.054" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_get_unknown_media_id_rejected" time="0.030" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_import_empty_file_rejected" time="0.027" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_import_garbage_rejected" time="0.038" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_import_invalid_kind_rejected" time="0.032" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_import_missing_source_path_rejected" time="0.030" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_import_requires_existing_project" time="0.030" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_import_signature_mismatch_rejected" time="0.042" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_import_valid_jpeg" time="0.043" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_import_valid_mp4" time="0.028" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_import_valid_png" time="0.039" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_import_valid_webm" time="0.044" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_invalid_data_dir_rejected" time="0.018" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_list_is_project_isolated" time="0.050" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_list_reflects_broken_after_modification" time="0.057" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_list_returns_items_with_status" time="0.068" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_m6_approval_allows_valid_media" time="0.107" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_m6_approval_blocks_broken_media" time="0.075"><failure message="AssertionError: ValueError not raised">self = &lt;test_milestone_dbb8341c8910593063a8.M11MediaTest testMethod=test_m6_approval_blocks_broken_media&gt;
+
+    def test_m6_approval_blocks_broken_media(self):
+        from milestones.milestone_33270fed0c9054f5ae04.api import handle as m6_handle
+        src = _write_file(os.path.join(self.src_dir, "appr.png"), PNG_BYTES)
+        rec = self._import(src, "image")
+        content_id = self._content_with_media([rec["id"]])
+        # Move to REVIEW first.
+        m6_handle(self.data_dir, {
+            "op": "approval.review",
+            "project_id": self.project_id,
+            "content_id": content_id,
+        })
+        # Break the stored bytes.
+        stored = self._stored_path(rec)
+        with open(stored, "wb") as f:
+            f.write(b"corrupted")
+        # Approval must be blocked because referenced media is BROKEN.
+&gt;       with self.assertRaises(ValueError):
+E       AssertionError: ValueError not raised
+
+tests\test_milestone_dbb8341c8910593063a8.py:314: AssertionError</failure></testcase><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_m7_publish_blocks_broken_media" time="4.383"><failure message="AssertionError: ValueError not raised">self = &lt;test_milestone_dbb8341c8910593063a8.M11MediaTest testMethod=test_m7_publish_blocks_broken_media&gt;
+
+    def test_m7_publish_blocks_broken_media(self):
+        from milestones.milestone_33270fed0c9054f5ae04.api import handle as m6_handle
+        from promotion_publish import handle as m7_handle
+        src = _write_file(os.path.join(self.src_dir, "pub.png"), PNG_BYTES)
+        rec = self._import(src, "image")
+        content_id = self._content_with_media([rec["id"]])
+        m6_handle(self.data_dir, {
+            "op": "approval.review",
+            "project_id": self.project_id,
+            "content_id": content_id,
+        })
+        m6_handle(self.data_dir, {
+            "op": "approval.approve",
+            "project_id": self.project_id,
+            "content_id": content_id,
+        })
+        # Break the stored bytes after approval.
+        stored = self._stored_path(rec)
+        with open(stored, "wb") as f:
+            f.write(b"corrupted")
+&gt;       with self.assertRaises(ValueError):
+E       AssertionError: ValueError not raised
+
+tests\test_milestone_dbb8341c8910593063a8.py:358: AssertionError</failure></testcase><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_m7_publish_blocks_missing_media" time="4.165"><failure message="AssertionError: ValueError not raised">self = &lt;test_milestone_dbb8341c8910593063a8.M11MediaTest testMethod=test_m7_publish_blocks_missing_media&gt;
+
+    def test_m7_publish_blocks_missing_media(self):
+        from milestones.milestone_33270fed0c9054f5ae04.api import handle as m6_handle
+        from promotion_publish import handle as m7_handle
+        src = _write_file(os.path.join(self.src_dir, "miss.png"), PNG_BYTES)
+        rec = self._import(src, "image")
+        content_id = self._content_with_media([rec["id"]])
+        m6_handle(self.data_dir, {
+            "op": "approval.review",
+            "project_id": self.project_id,
+            "content_id": content_id,
+        })
+        m6_handle(self.data_dir, {
+            "op": "approval.approve",
+            "project_id": self.project_id,
+            "content_id": content_id,
+        })
+        # Remove the stored bytes entirely.
+        stored = self._stored_path(rec)
+        os.remove(stored)
+&gt;       with self.assertRaises(ValueError):
+E       AssertionError: ValueError not raised
+
+tests\test_milestone_dbb8341c8910593063a8.py:386: AssertionError</failure></testcase><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_missing_op_rejected" time="0.015" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_no_success_shaped_error_objects" time="0.025" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_non_dict_request_rejected" time="0.018" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_persistence_survives_process_restart" time="0.058" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.M11MediaTest" name="test_unknown_op_rejected" time="0.030" /></testsuite></testsuites>

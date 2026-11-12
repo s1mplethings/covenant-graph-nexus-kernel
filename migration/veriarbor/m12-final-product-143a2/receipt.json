@@ -1,0 +1,17 @@
+{
+  "kind": "ActualFinalProductDiagnostic",
+  "acceptance_authority": false,
+  "host_business_patches": 0,
+  "source_sha256": "5f4678644367eb19460fdc6ddcca68bba2a43f347dee19be141547d312181ed1",
+  "observations": [
+    {
+      "name": "actual_image_video_upload_and_video_decode",
+      "value": [
+        "d6189b36f7914d9dbdd916d3f70b5338",
+        "2db972ab25e8408a868fa5670086d430"
+      ]
+    }
+  ],
+  "status": "FAIL",
+  "error": "AssertionError: Attachment identity missing"
+}

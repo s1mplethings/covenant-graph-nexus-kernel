@@ -1,0 +1,555 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="3" skipped="0" tests="34" time="3.607" timestamp="2026-11-04T00:07:30.073025+08:00" hostname="test"><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_png_image" time="0.116" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_jpeg_image" time="0.100" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_webm_video" time="0.108" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_mp4_video" time="0.116" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_stores_bytes_under_data_dir" time="0.098" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_rejects_empty_file" time="0.036" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_rejects_signature_mismatch" time="0.073" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_rejects_unsupported_kind" time="0.079" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_rejects_missing_source" time="0.036" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_rejects_unknown_project" time="0.031" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_rejects_empty_path" time="0.037" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_rejects_empty_kind" time="0.077" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_get_returns_valid_record" time="0.140" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_get_marks_broken_when_bytes_modified" time="0.175" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_get_marks_broken_when_bytes_missing" time="0.144" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_get_rejects_unknown_media_id" time="0.038" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_get_rejects_empty_media_id" time="0.043" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_get_rejects_cross_project_access" time="0.147" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_list_empty" time="0.035" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_list_returns_project_items" time="0.217" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_list_isolates_projects" time="0.148" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_list_reports_broken_status" time="0.192" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_list_rejects_unknown_project" time="0.004" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_unknown_op_raises" time="0.037" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_missing_op_raises" time="0.024" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_invalid_data_dir_raises" time="0.001" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_non_dict_request_raises" time="0.003" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_milestone_id_literal" time="0.000" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_persistence_survives_reload" time="0.152" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_approval_blocks_broken_media" time="0.251" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_approval_blocks_missing_media" time="0.217" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_publish_blocks_broken_media" time="0.210"><failure message="ValueError: media missing: e958c2a87641414ab4b5b64eb2964e28">data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\m11-generated-tests-m6-db223502\\test_publish_blocks_broken_med0\\data'
+project_id = '734ba9c7807545a49c1206371679bbe7'
+media_ids = ['e958c2a87641414ab4b5b64eb2964e28']
+
+    def _validate_media_present(data_dir, project_id, media_ids):
+        if not isinstance(media_ids, list):
+            raise ValueError("media_ids must be a list")
+        for mid in media_ids:
+            if not isinstance(mid, str) or not mid:
+                raise ValueError("media_ids must contain non-empty strings")
+        if not media_ids:
+            return
+        media_module = _load_media_module()
+        for mid in media_ids:
+            try:
+&gt;               result = media_module.handle(data_dir, {"op": "media.get", "project_id": project_id, "media_id": mid})
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+milestones\milestone_33270fed0c9054f5ae04\api.py:139: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\m11-generated-tests-m6-db223502\\test_publish_blocks_broken_med0\\data'
+request = {'media_id': 'e958c2a87641414ab4b5b64eb2964e28', 'op': 'media.get', 'project_id': '734ba9c7807545a49c1206371679bbe7'}
+
+    def handle(data_dir, request):
+        if not isinstance(data_dir, str) or not data_dir:
+            raise ValueError("data_dir must be a non-empty string")
+        if not isinstance(request, dict):
+            raise ValueError("request must be a dict")
+    
+        op = request.get("op")
+        if not isinstance(op, str) or not op:
+            raise ValueError("request must contain a non-empty 'op' string")
+    
+        if op == "content.create":
+            project_id = request.get("project_id")
+            _require_project(data_dir, project_id)
+    
+            campaign_id = request.get("campaign_id")
+            campaign = _find_campaign(data_dir, project_id, campaign_id)
+            if campaign.get("status") != "ACTIVE":
+                raise ValueError("campaign is not active: %s" % campaign_id)
+    
+            channel = request.get("channel")
+            _validate_channel(campaign, channel)
+    
+            text = request.get("text")
+            _validate_text(text)
+    
+            claim_ids = request.get("claim_ids")
+            if claim_ids is None:
+                claim_ids = []
+            _validate_claim_ids(data_dir, project_id, claim_ids)
+    
+            media_ids = request.get("media_ids")
+            if media_ids is None:
+                media_ids = []
+            _validate_media_ids(media_ids)
+    
+            content_items = _load_list(data_dir, _CONTENT_FILENAME)
+            content_id = uuid.uuid4().hex
+            revision_record = {
+                "id": content_id,
+                "project_id": project_id,
+                "campaign_id": campaign_id,
+                "channel": channel,
+                "text": text,
+                "claim_ids": list(claim_ids),
+                "media_ids": list(media_ids),
+                "revision": 1,
+                "status": "DRAFT",
+            }
+            record = {
+                "id": content_id,
+                "project_id": project_id,
+                "campaign_id": campaign_id,
+                "channel": channel,
+                "text": text,
+                "claim_ids": list(claim_ids),
+                "media_ids": list(media_ids),
+                "revision": 1,
+                "status": "DRAFT",
+                "revisions": [revision_record],
+            }
+            content_items.append(record)
+            _save_list(data_dir, _CONTENT_FILENAME, content_items)
+            return _public_content(record)
+    
+        if op == "content.get":
+            project_id = request.get("project_id")
+            _require_project(data_dir, project_id)
+            content_id = request.get("content_id")
+            content_items = _load_list(data_dir, _CONTENT_FILENAME)
+            record = _find_content(content_items, project_id, content_id)
+            return _public_content(record)
+    
+        if op == "content.revisions":
+            project_id = request.get("project_id")
+            _require_project(data_dir, project_id)
+            content_id = request.get("content_id")
+            content_items = _load_list(data_dir, _CONTENT_FILENAME)
+            record = _find_content(content_items, project_id, content_id)
+            items = [_public_revision(r) for r in record.get("revisions", [])]
+            return {"items": items}
+    
+        if op == "content.edit":
+            project_id = request.get("project_id")
+            _require_project(data_dir, project_id)
+            content_id = request.get("content_id")
+            content_items = _load_list(data_dir, _CONTENT_FILENAME)
+            record = _find_content(content_items, project_id, content_id)
+    
+            campaign_id = record["campaign_id"]
+            campaign = _find_campaign(data_dir, project_id, campaign_id)
+            if campaign.get("status") != "ACTIVE":
+                raise ValueError("campaign is not active: %s" % campaign_id)
+    
+            channel = record["channel"]
+            _validate_channel(campaign, channel)
+    
+            text = request.get("text")
+            _validate_text(text)
+    
+            if "claim_ids" in request and request.get("claim_ids") is not None:
+                claim_ids = request.get("claim_ids")
+                _validate_claim_ids(data_dir, project_id, claim_ids)
+            else:
+                claim_ids = list(record["claim_ids"])
+    
+            if "media_ids" in request and request.get("media_ids") is not None:
+                media_ids = request.get("media_ids")
+                _validate_media_ids(media_ids)
+            else:
+                media_ids = list(record["media_ids"])
+    
+            new_revision_number = record["revision"] + 1
+            revision_record = {
+                "id": content_id,
+                "project_id": project_id,
+                "campaign_id": campaign_id,
+                "channel": channel,
+                "text": text,
+                "claim_ids": list(claim_ids),
+                "media_ids": list(media_ids),
+                "revision": new_revision_number,
+                "status": "DRAFT",
+            }
+    
+            record["text"] = text
+            record["claim_ids"] = list(claim_ids)
+            record["media_ids"] = list(media_ids)
+            record["revision"] = new_revision_number
+            record["status"] = "DRAFT"
+            if not isinstance(record.get("revisions"), list):
+                record["revisions"] = []
+            record["revisions"].append(revision_record)
+    
+            _save_list(data_dir, _CONTENT_FILENAME, content_items)
+            return _public_content(record)
+    
+        if op == "content.compare":
+            project_id = request.get("project_id")
+            _require_project(data_dir, project_id)
+            content_id = request.get("content_id")
+            content_items = _load_list(data_dir, _CONTENT_FILENAME)
+            record = _find_content(content_items, project_id, content_id)
+    
+            from_revision = request.get("from_revision")
+            to_revision = request.get("to_revision")
+            if not isinstance(from_revision, int) or isinstance(from_revision, bool):
+                raise ValueError("from_revision must be an integer")
+            if not isinstance(to_revision, int) or isinstance(to_revision, bool):
+                raise ValueError("to_revision must be an integer")
+    
+            revisions = record.get("revisions", [])
+            before = None
+            after = None
+            for r in revisions:
+                if r.get("revision") == from_revision:
+                    before = r
+                if r.get("revision") == to_revision:
+                    after = r
+            if before is None:
+                raise ValueError("revision not found: %s" % from_revision)
+            if after is None:
+                raise ValueError("revision not found: %s" % to_revision)
+    
+            return {"before": _public_revision(before), "after": _public_revision(after)}
+    
+        if op == "content.list":
+            project_id = request.get("project_id")
+            _require_project(data_dir, project_id)
+            campaign_id = request.get("campaign_id")
+            content_items = _load_list(data_dir, _CONTENT_FILENAME)
+            items = []
+            for record in content_items:
+                if record.get("project_id") != project_id:
+                    continue
+                if campaign_id is not None and record.get("campaign_id") != campaign_id:
+                    continue
+                items.append(_public_content(record))
+            return {"items": items}
+    
+&gt;       raise ValueError("unknown operation: %s" % op)
+E       ValueError: unknown operation: media.get
+
+milestones\milestone_9165a990eed5b9c8801e\api.py:324: ValueError
+
+During handling of the above exception, another exception occurred:
+
+data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\m11-generated-tests-m6-db223502\\test_publish_blocks_broken_med0\\data'
+tmp_path = WindowsPath('F:/CGKN-LeanLoop-V1-20261101/migration/veriarbor/scratch/m11-generated-tests-m6-db223502/test_publish_blocks_broken_med0')
+
+    def test_publish_blocks_broken_media(data_dir, tmp_path):
+        src = _write_file(tmp_path, "pic.png", PNG_BYTES)
+        proj = _make_project(data_dir)
+        imported = _import_media(data_dir, proj["id"], src, "image")
+    
+        campaign = m4.handle(data_dir, {
+            "op": "campaign.create",
+            "project_id": proj["id"],
+            "name": "c",
+            "audience": "a",
+            "channels": ["email"],
+        })
+        content = m5.handle(data_dir, {
+            "op": "content.create",
+            "project_id": proj["id"],
+            "campaign_id": campaign["id"],
+            "channel": "email",
+            "text": "hello world",
+            "claim_ids": [],
+            "media_ids": [imported["id"]],
+        })
+    
+        # Approve while media is valid.
+        m6.handle(data_dir, {
+            "op": "approval.review",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+&gt;       m6.handle(data_dir, {
+            "op": "approval.approve",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+
+tests\test_milestone_dbb8341c8910593063a8.py:504: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+milestones\milestone_33270fed0c9054f5ae04\api.py:180: in handle
+    _validate_media_present(data_dir, project_id, record.get("media_ids", []))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\m11-generated-tests-m6-db223502\\test_publish_blocks_broken_med0\\data'
+project_id = '734ba9c7807545a49c1206371679bbe7'
+media_ids = ['e958c2a87641414ab4b5b64eb2964e28']
+
+    def _validate_media_present(data_dir, project_id, media_ids):
+        if not isinstance(media_ids, list):
+            raise ValueError("media_ids must be a list")
+        for mid in media_ids:
+            if not isinstance(mid, str) or not mid:
+                raise ValueError("media_ids must contain non-empty strings")
+        if not media_ids:
+            return
+        media_module = _load_media_module()
+        for mid in media_ids:
+            try:
+                result = media_module.handle(data_dir, {"op": "media.get", "project_id": project_id, "media_id": mid})
+            except ValueError:
+&gt;               raise ValueError("media missing: %s" % mid)
+E               ValueError: media missing: e958c2a87641414ab4b5b64eb2964e28
+
+milestones\milestone_33270fed0c9054f5ae04\api.py:141: ValueError</failure></testcase><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_publish_blocks_missing_media" time="0.211"><failure message="ValueError: media missing: 30a16e73203747fb8d70a2e8ce1adc68">data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\m11-generated-tests-m6-db223502\\test_publish_blocks_missing_me0\\data'
+project_id = '7ccdce0b3435484a92d4c79787eac523'
+media_ids = ['30a16e73203747fb8d70a2e8ce1adc68']
+
+    def _validate_media_present(data_dir, project_id, media_ids):
+        if not isinstance(media_ids, list):
+            raise ValueError("media_ids must be a list")
+        for mid in media_ids:
+            if not isinstance(mid, str) or not mid:
+                raise ValueError("media_ids must contain non-empty strings")
+        if not media_ids:
+            return
+        media_module = _load_media_module()
+        for mid in media_ids:
+            try:
+&gt;               result = media_module.handle(data_dir, {"op": "media.get", "project_id": project_id, "media_id": mid})
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+milestones\milestone_33270fed0c9054f5ae04\api.py:139: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\m11-generated-tests-m6-db223502\\test_publish_blocks_missing_me0\\data'
+request = {'media_id': '30a16e73203747fb8d70a2e8ce1adc68', 'op': 'media.get', 'project_id': '7ccdce0b3435484a92d4c79787eac523'}
+
+    def handle(data_dir, request):
+        if not isinstance(data_dir, str) or not data_dir:
+            raise ValueError("data_dir must be a non-empty string")
+        if not isinstance(request, dict):
+            raise ValueError("request must be a dict")
+    
+        op = request.get("op")
+        if not isinstance(op, str) or not op:
+            raise ValueError("request must contain a non-empty 'op' string")
+    
+        if op == "content.create":
+            project_id = request.get("project_id")
+            _require_project(data_dir, project_id)
+    
+            campaign_id = request.get("campaign_id")
+            campaign = _find_campaign(data_dir, project_id, campaign_id)
+            if campaign.get("status") != "ACTIVE":
+                raise ValueError("campaign is not active: %s" % campaign_id)
+    
+            channel = request.get("channel")
+            _validate_channel(campaign, channel)
+    
+            text = request.get("text")
+            _validate_text(text)
+    
+            claim_ids = request.get("claim_ids")
+            if claim_ids is None:
+                claim_ids = []
+            _validate_claim_ids(data_dir, project_id, claim_ids)
+    
+            media_ids = request.get("media_ids")
+            if media_ids is None:
+                media_ids = []
+            _validate_media_ids(media_ids)
+    
+            content_items = _load_list(data_dir, _CONTENT_FILENAME)
+            content_id = uuid.uuid4().hex
+            revision_record = {
+                "id": content_id,
+                "project_id": project_id,
+                "campaign_id": campaign_id,
+                "channel": channel,
+                "text": text,
+                "claim_ids": list(claim_ids),
+                "media_ids": list(media_ids),
+                "revision": 1,
+                "status": "DRAFT",
+            }
+            record = {
+                "id": content_id,
+                "project_id": project_id,
+                "campaign_id": campaign_id,
+                "channel": channel,
+                "text": text,
+                "claim_ids": list(claim_ids),
+                "media_ids": list(media_ids),
+                "revision": 1,
+                "status": "DRAFT",
+                "revisions": [revision_record],
+            }
+            content_items.append(record)
+            _save_list(data_dir, _CONTENT_FILENAME, content_items)
+            return _public_content(record)
+    
+        if op == "content.get":
+            project_id = request.get("project_id")
+            _require_project(data_dir, project_id)
+            content_id = request.get("content_id")
+            content_items = _load_list(data_dir, _CONTENT_FILENAME)
+            record = _find_content(content_items, project_id, content_id)
+            return _public_content(record)
+    
+        if op == "content.revisions":
+            project_id = request.get("project_id")
+            _require_project(data_dir, project_id)
+            content_id = request.get("content_id")
+            content_items = _load_list(data_dir, _CONTENT_FILENAME)
+            record = _find_content(content_items, project_id, content_id)
+            items = [_public_revision(r) for r in record.get("revisions", [])]
+            return {"items": items}
+    
+        if op == "content.edit":
+            project_id = request.get("project_id")
+            _require_project(data_dir, project_id)
+            content_id = request.get("content_id")
+            content_items = _load_list(data_dir, _CONTENT_FILENAME)
+            record = _find_content(content_items, project_id, content_id)
+    
+            campaign_id = record["campaign_id"]
+            campaign = _find_campaign(data_dir, project_id, campaign_id)
+            if campaign.get("status") != "ACTIVE":
+                raise ValueError("campaign is not active: %s" % campaign_id)
+    
+            channel = record["channel"]
+            _validate_channel(campaign, channel)
+    
+            text = request.get("text")
+            _validate_text(text)
+    
+            if "claim_ids" in request and request.get("claim_ids") is not None:
+                claim_ids = request.get("claim_ids")
+                _validate_claim_ids(data_dir, project_id, claim_ids)
+            else:
+                claim_ids = list(record["claim_ids"])
+    
+            if "media_ids" in request and request.get("media_ids") is not None:
+                media_ids = request.get("media_ids")
+                _validate_media_ids(media_ids)
+            else:
+                media_ids = list(record["media_ids"])
+    
+            new_revision_number = record["revision"] + 1
+            revision_record = {
+                "id": content_id,
+                "project_id": project_id,
+                "campaign_id": campaign_id,
+                "channel": channel,
+                "text": text,
+                "claim_ids": list(claim_ids),
+                "media_ids": list(media_ids),
+                "revision": new_revision_number,
+                "status": "DRAFT",
+            }
+    
+            record["text"] = text
+            record["claim_ids"] = list(claim_ids)
+            record["media_ids"] = list(media_ids)
+            record["revision"] = new_revision_number
+            record["status"] = "DRAFT"
+            if not isinstance(record.get("revisions"), list):
+                record["revisions"] = []
+            record["revisions"].append(revision_record)
+    
+            _save_list(data_dir, _CONTENT_FILENAME, content_items)
+            return _public_content(record)
+    
+        if op == "content.compare":
+            project_id = request.get("project_id")
+            _require_project(data_dir, project_id)
+            content_id = request.get("content_id")
+            content_items = _load_list(data_dir, _CONTENT_FILENAME)
+            record = _find_content(content_items, project_id, content_id)
+    
+            from_revision = request.get("from_revision")
+            to_revision = request.get("to_revision")
+            if not isinstance(from_revision, int) or isinstance(from_revision, bool):
+                raise ValueError("from_revision must be an integer")
+            if not isinstance(to_revision, int) or isinstance(to_revision, bool):
+                raise ValueError("to_revision must be an integer")
+    
+            revisions = record.get("revisions", [])
+            before = None
+            after = None
+            for r in revisions:
+                if r.get("revision") == from_revision:
+                    before = r
+                if r.get("revision") == to_revision:
+                    after = r
+            if before is None:
+                raise ValueError("revision not found: %s" % from_revision)
+            if after is None:
+                raise ValueError("revision not found: %s" % to_revision)
+    
+            return {"before": _public_revision(before), "after": _public_revision(after)}
+    
+        if op == "content.list":
+            project_id = request.get("project_id")
+            _require_project(data_dir, project_id)
+            campaign_id = request.get("campaign_id")
+            content_items = _load_list(data_dir, _CONTENT_FILENAME)
+            items = []
+            for record in content_items:
+                if record.get("project_id") != project_id:
+                    continue
+                if campaign_id is not None and record.get("campaign_id") != campaign_id:
+                    continue
+                items.append(_public_content(record))
+            return {"items": items}
+    
+&gt;       raise ValueError("unknown operation: %s" % op)
+E       ValueError: unknown operation: media.get
+
+milestones\milestone_9165a990eed5b9c8801e\api.py:324: ValueError
+
+During handling of the above exception, another exception occurred:
+
+data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\m11-generated-tests-m6-db223502\\test_publish_blocks_missing_me0\\data'
+tmp_path = WindowsPath('F:/CGKN-LeanLoop-V1-20261101/migration/veriarbor/scratch/m11-generated-tests-m6-db223502/test_publish_blocks_missing_me0')
+
+    def test_publish_blocks_missing_media(data_dir, tmp_path):
+        src = _write_file(tmp_path, "pic.png", PNG_BYTES)
+        proj = _make_project(data_dir)
+        imported = _import_media(data_dir, proj["id"], src, "image")
+    
+        campaign = m4.handle(data_dir, {
+            "op": "campaign.create",
+            "project_id": proj["id"],
+            "name": "c",
+            "audience": "a",
+            "channels": ["email"],
+        })
+        content = m5.handle(data_dir, {
+            "op": "content.create",
+            "project_id": proj["id"],
+            "campaign_id": campaign["id"],
+            "channel": "email",
+            "text": "hello world",
+            "claim_ids": [],
+            "media_ids": [imported["id"]],
+        })
+    
+        m6.handle(data_dir, {
+            "op": "approval.review",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+&gt;       m6.handle(data_dir, {
+            "op": "approval.approve",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+
+tests\test_milestone_dbb8341c8910593063a8.py:552: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+milestones\milestone_33270fed0c9054f5ae04\api.py:180: in handle
+    _validate_media_present(data_dir, project_id, record.get("media_ids", []))
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\m11-generated-tests-m6-db223502\\test_publish_blocks_missing_me0\\data'
+project_id = '7ccdce0b3435484a92d4c79787eac523'
+media_ids = ['30a16e73203747fb8d70a2e8ce1adc68']
+
+    def _validate_media_present(data_dir, project_id, media_ids):
+        if not isinstance(media_ids, list):
+            raise ValueError("media_ids must be a list")
+        for mid in media_ids:
+            if not isinstance(mid, str) or not mid:
+                raise ValueError("media_ids must contain non-empty strings")
+        if not media_ids:
+            return
+        media_module = _load_media_module()
+        for mid in media_ids:
+            try:
+                result = media_module.handle(data_dir, {"op": "media.get", "project_id": project_id, "media_id": mid})
+            except ValueError:
+&gt;               raise ValueError("media missing: %s" % mid)
+E               ValueError: media missing: 30a16e73203747fb8d70a2e8ce1adc68
+
+milestones\milestone_33270fed0c9054f5ae04\api.py:141: ValueError</failure></testcase><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_gui_displays_media_controls" time="0.018"><failure message="assert ('&lt;img' in '&lt;!doctype html&gt;\n&lt;html lang=&quot;en&quot;&gt;\n&lt;head&gt;\n&lt;meta charset=&quot;utf-8&quot;&gt;\n&lt;title&gt;promotion studio&lt;/title&gt;\n&lt;style&gt;\n  body {...ment.addeventlistener(\'domcontentloaded\', init);\n  } else {\n    init();\n  }\n})();\n&lt;/script&gt;\n&lt;/body&gt;\n&lt;/html&gt;\n' or '&lt;video' in '&lt;!doctype html&gt;\n&lt;html lang=&quot;en&quot;&gt;\n&lt;head&gt;\n&lt;meta charset=&quot;utf-8&quot;&gt;\n&lt;title&gt;promotion studio&lt;/title&gt;\n&lt;style&gt;\n  body {...ment.addeventlistener(\'domcontentloaded\', init);\n  } else {\n    init();\n  }\n})();\n&lt;/script&gt;\n&lt;/body&gt;\n&lt;/html&gt;\n' or 'image' in '&lt;!doctype html&gt;\n&lt;html lang=&quot;en&quot;&gt;\n&lt;head&gt;\n&lt;meta charset=&quot;utf-8&quot;&gt;\n&lt;title&gt;promotion studio&lt;/title&gt;\n&lt;style&gt;\n  body {...ment.addeventlistener(\'domcontentloaded\', init);\n  } else {\n    init();\n  }\n})();\n&lt;/script&gt;\n&lt;/body&gt;\n&lt;/html&gt;\n')">def test_gui_displays_media_controls():
+        early_main = _load_module("early_main_gui", "early_main.py")
+        html = early_main.INDEX_HTML
+        # The GUI must surface media (image/video) controls or previews.
+        lowered = html.lower()
+        assert "media" in lowered
+&gt;       assert ("&lt;img" in lowered) or ("&lt;video" in lowered) or ("image" in lowered)
+E       assert ('&lt;img' in '&lt;!doctype html&gt;\n&lt;html lang="en"&gt;\n&lt;head&gt;\n&lt;meta charset="utf-8"&gt;\n&lt;title&gt;promotion studio&lt;/title&gt;\n&lt;style&gt;\n  body {...ment.addeventlistener(\'domcontentloaded\', init);\n  } else {\n    init();\n  }\n})();\n&lt;/script&gt;\n&lt;/body&gt;\n&lt;/html&gt;\n' or '&lt;video' in '&lt;!doctype html&gt;\n&lt;html lang="en"&gt;\n&lt;head&gt;\n&lt;meta charset="utf-8"&gt;\n&lt;title&gt;promotion studio&lt;/title&gt;\n&lt;style&gt;\n  body {...ment.addeventlistener(\'domcontentloaded\', init);\n  } else {\n    init();\n  }\n})();\n&lt;/script&gt;\n&lt;/body&gt;\n&lt;/html&gt;\n' or 'image' in '&lt;!doctype html&gt;\n&lt;html lang="en"&gt;\n&lt;head&gt;\n&lt;meta charset="utf-8"&gt;\n&lt;title&gt;promotion studio&lt;/title&gt;\n&lt;style&gt;\n  body {...ment.addeventlistener(\'domcontentloaded\', init);\n  } else {\n    init();\n  }\n})();\n&lt;/script&gt;\n&lt;/body&gt;\n&lt;/html&gt;\n')
+
+tests\test_milestone_dbb8341c8910593063a8.py:581: AssertionError</failure></testcase></testsuite></testsuites>

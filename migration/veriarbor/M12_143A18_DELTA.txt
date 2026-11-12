@@ -1,0 +1,206 @@
+--- 143a14
++++ 143a18
+@@ -90,8 +90,8 @@
+     'content.': 'M5',
+     'approval.': 'M6',
+     'publish.': 'M7',
+-    'schedule.': 'M11',
+-    'analytics.': 'M11',
++    'schedule.': 'M8',
++    'analytics.': 'M10',
+     'media.': 'M11',
+ }
+ 
+@@ -294,6 +294,7 @@
+   <label for="content-media">Media</label>
+   <select id="content-media"></select>
+   <button id="save-content" type="button">Save content</button>
++  <button id="new-content-btn" type="button">New content</button>
+   <button id="review-action" type="button">Review</button>
+   <button id="approve-action" type="button">Approve</button>
+   <label for="content-select">Select content</label>
+@@ -321,7 +322,6 @@
+   <button id="schedule-action" type="button">Schedule</button>
+   <button id="cancel-action" type="button">Cancel</button>
+   <button id="reschedule-action" type="button">Reschedule</button>
+-  <button id="fetch-analytics" type="button">Fetch analytics</button>
+   <ul id="schedule-list"></ul>
+ </section>
+ 
+@@ -330,6 +330,7 @@
+   <button id="refresh-receipts" type="button">Refresh receipts</button>
+   <ul id="receipt-list"></ul>
+   <h2>Analytics</h2>
++  <button id="fetch-analytics" type="button">Fetch analytics</button>
+   <button id="refresh-analytics" type="button">Refresh analytics</button>
+   <ul id="analytics-list"></ul>
+ </section>
+@@ -435,6 +436,9 @@
+     if (el('publish-action')) el('publish-action').disabled = !hasContent || !isApproved;
+     if (el('publish-action-schedule')) el('publish-action-schedule').disabled = !hasContent || !isApproved;
+     if (el('schedule-action')) el('schedule-action').disabled = !hasContent || !isApproved;
++    if (el('cancel-action')) el('cancel-action').disabled = !state.scheduleId;
++    if (el('reschedule-action')) el('reschedule-action').disabled = !state.scheduleId;
++    if (el('fetch-analytics')) el('fetch-analytics').disabled = !state.projectId || !state.receipts.length;
+   }
+ 
+   function loadProjects() {
+@@ -598,6 +602,19 @@
+       });
+     }
+     renderContentMediaPreview(content);
++  }
++
++  function clearContentForm() {
++    if (el('content-text')) el('content-text').value = '';
++    if (el('content-channel')) el('content-channel').selectedIndex = -1;
++    if (el('content-claims')) Array.prototype.forEach.call(el('content-claims').options, function(o){o.selected=false;});
++    if (el('content-media')) Array.prototype.forEach.call(el('content-media').options, function(o){o.selected=false;});
++    if (el('content-select')) el('content-select').selectedIndex = -1;
++    state.contentId = null;
++    state.contentStatus = null;
++    state.approvalStatus = null;
++    renderContentMediaPreview(null);
++    updateReadiness();
+   }
+ 
+   function loadContents() {
+@@ -674,6 +691,7 @@
+         li.textContent = (r.id || '') + ' - ' + (r.status || '') + ' - remote_id: ' + (r.remote_id || 'pending');
+         list.appendChild(li);
+       });
++      updateReadiness();
+       return items;
+     }).catch(function () { return []; });
+   }
+@@ -684,7 +702,7 @@
+       if (el('schedule-list')) el('schedule-list').innerHTML = '';
+       return Promise.resolve([]);
+     }
+-    return action({ milestone: 'M11', op: 'schedule.list', project_id: state.projectId }).then(function (res) {
++    return action({ milestone: 'M8', op: 'schedule.list', project_id: state.projectId }).then(function (res) {
+       var items = itemsOf(res);
+       state.schedules = items;
+       var list = el('schedule-list');
+@@ -696,6 +714,11 @@
+           list.appendChild(li);
+         });
+       }
++      // Auto-select first schedule if none selected
++      if (items.length && !state.scheduleId) {
++         state.scheduleId = items[0].id;
++      }
++      updateReadiness();
+       return items;
+     }).catch(function () { return []; });
+   }
+@@ -705,7 +728,7 @@
+       el('analytics-list').innerHTML = '';
+       return Promise.resolve([]);
+     }
+-    return action({ milestone: 'M11', op: 'analytics.list', project_id: state.projectId }).then(function (res) {
++    return action({ milestone: 'M10', op: 'analytics.history', project_id: state.projectId }).then(function (res) {
+       var items = itemsOf(res);
+       var list = el('analytics-list');
+       list.innerHTML = '';
+@@ -818,16 +841,35 @@
+       var claimIds = claimSel ? Array.prototype.filter.call(claimSel.options, function (o) { return o.selected; }).map(function (o) { return o.value; }) : [];
+       var mediaSel = el('content-media');
+       var mediaIds = mediaSel ? Array.prototype.filter.call(mediaSel.options, function (o) { return o.selected; }).map(function (o) { return o.value; }) : [];
++      
++      var payload = {
++        milestone: 'M5',
++        project_id: state.projectId,
++        campaign_id: state.campaignId,
++        text: el('content-text').value,
++        channel: el('content-channel').value,
++        claim_ids: claimIds,
++        media_ids: mediaIds
++      };
++
++      if (state.contentId) {
++        payload.op = 'content.edit';
++        payload.content_id = state.contentId;
++      } else {
++        payload.op = 'content.create';
++      }
++
+       enqueue(function () {
+-        return action({
+-          milestone: 'M5', op: 'content.create', project_id: state.projectId,
+-          campaign_id: state.campaignId, text: el('content-text').value,
+-          channel: el('content-channel').value, claim_ids: claimIds, media_ids: mediaIds
+-        }).then(function (res) {
++        return action(payload).then(function (res) {
+           setStatus('Saved content: ' + (res.id || ''));
+           return loadContents();
+         });
+       }).catch(function (e) { setAlert(e.message); });
++    });
++
++    bind('new-content-btn', function () {
++       clearContentForm();
++       setStatus('Ready for new content');
+     });
+ 
+     el('content-select').addEventListener('change', function () {
+@@ -867,7 +909,7 @@
+       if (!state.contentId) { setAlert('No content selected'); return; }
+       enqueue(function () {
+         return action({
+-          milestone: 'M11', op: 'schedule.create', project_id: state.projectId,
++          milestone: 'M8', op: 'schedule.create', project_id: state.projectId,
+           content_id: state.contentId, when: el('when-input').value
+         }).then(function () { setStatus('Scheduled'); return loadSchedules(); });
+       }).catch(function (e) { setAlert(e.message); });
+@@ -877,7 +919,7 @@
+       setAlert(''); setStatus('');
+       if (!state.scheduleId) { setAlert('No schedule selected'); return; }
+       enqueue(function () {
+-        return action({ milestone: 'M11', op: 'schedule.cancel', project_id: state.projectId, schedule_id: state.scheduleId })
++        return action({ milestone: 'M8', op: 'schedule.cancel', project_id: state.projectId, schedule_id: state.scheduleId })
+           .then(function () { setStatus('Schedule cancelled'); return loadSchedules(); });
+       }).catch(function (e) { setAlert(e.message); });
+     });
+@@ -886,17 +928,28 @@
+       setAlert(''); setStatus('');
+       if (!state.scheduleId) { setAlert('No schedule selected'); return; }
+       enqueue(function () {
+-        return action({ milestone: 'M11', op: 'schedule.reschedule', project_id: state.projectId, schedule_id: state.scheduleId, when: el('when-input').value })
++        return action({ milestone: 'M8', op: 'schedule.reschedule', project_id: state.projectId, schedule_id: state.scheduleId, when: el('when-input').value })
+           .then(function () { setStatus('Rescheduled'); return loadSchedules(); });
+       }).catch(function (e) { setAlert(e.message); });
+     });
+ 
+     bind('fetch-analytics', function () {
+       setAlert(''); setStatus('');
+-      if (!state.contentId) { setAlert('No content selected'); return; }
++      if (!state.projectId) { setAlert('No project selected'); return; }
++      if (!state.receipts || state.receipts.length === 0) { setAlert('No receipts found to fetch analytics for'); return; }
++      
++      // Fetch analytics for the most recent receipt
++      var receipt = state.receipts[state.receipts.length - 1];
++      var receiptId = receipt.id;
++      var platformUrl = receipt.platform_url || '';
++      
+       enqueue(function () {
+-        return action({ milestone: 'M11', op: 'analytics.fetch', project_id: state.projectId, content_id: state.contentId })
+-          .then(function () { setStatus('Analytics fetched'); return loadAnalytics(); });
++        return action({
++          milestone: 'M10', op: 'analytics.fetch', project_id: state.projectId, receipt_id: receiptId, platform_url: platformUrl
++        }).then(function () { 
++            setStatus('Analytics fetched for receipt ' + receiptId);
++            return loadAnalytics(); 
++        });
+       }).catch(function (e) { setAlert(e.message); });
+     });
+ 
+@@ -1059,7 +1112,7 @@
+         except Exception:
+             pass
+         try:
+-            state['schedules'] = _items(m11_handle(data_dir, {'milestone': 'M11', 'op': 'schedule.list'}))
++            state['schedules'] = _items(m8_handle(data_dir, {'milestone': 'M8', 'op': 'schedule.list'}))
+         except Exception:
+             pass
+         self._send_json(200, state)

@@ -1,0 +1,20 @@
+{
+  "status": "FAIL",
+  "explicit_milestone_preserved": true,
+  "nonmedia_concurrency_preserved": false,
+  "dispatch_calls": [
+    "M1"
+  ],
+  "dispatch_error": "original explicit M1 rejected unsupported media.import",
+  "concurrency": [
+    {
+      "milestone": "M1",
+      "error": "BrokenBarrierError: "
+    },
+    {
+      "milestone": "M4",
+      "error": "BrokenBarrierError: "
+    }
+  ],
+  "probe_scope": "Current adapter boundary with injected handlers; original backend source unchanged"
+}

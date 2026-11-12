@@ -1,0 +1,100 @@
+{
+  "status": "PASS",
+  "checker_hash": "1c6741f91fedd89971e28a14d1c2a79edcfd32c4236d9a0c7743f739aa5977aa",
+  "previous_checker_hash": "b41ec83e317c3623f33be1ec58323e2baac66ae3b0f4849e1947078bcbace1cb",
+  "revision_path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\consumer-revisions\\block-dispatch-boundary-v13.py",
+  "controls": [
+    {
+      "kind": "positive",
+      "name": "independent explicit dispatch contract reference and unrelated operations overlap",
+      "passed": true,
+      "receipt": {
+        "status": "PASS",
+        "explicit_milestone_preserved": true,
+        "nonmedia_concurrency_preserved": true,
+        "dispatch_calls": [
+          "M1"
+        ],
+        "dispatch_error": "original explicit M1 rejected unsupported media.import",
+        "concurrency": [
+          {
+            "milestone": "M1",
+            "result": {
+              "milestone": "M1"
+            }
+          },
+          {
+            "milestone": "M4",
+            "result": {
+              "milestone": "M4"
+            }
+          }
+        ],
+        "probe_scope": "Current adapter boundary with injected handlers; original backend source unchanged"
+      }
+    },
+    {
+      "kind": "negative",
+      "name": "current adapter reroutes M1 and serializes unrelated milestones",
+      "passed": true,
+      "receipt": {
+        "status": "FAIL",
+        "explicit_milestone_preserved": false,
+        "nonmedia_concurrency_preserved": false,
+        "dispatch_calls": [
+          "M11"
+        ],
+        "dispatch_error": null,
+        "concurrency": [
+          {
+            "milestone": "M1",
+            "error": "ValueError: "
+          },
+          {
+            "milestone": "M4",
+            "error": "ValueError: "
+          }
+        ],
+        "probe_scope": "Current adapter boundary with injected handlers; original backend source unchanged"
+      }
+    },
+    {
+      "kind": "mutation",
+      "name": "serialized reference mutation rejected independently",
+      "passed": true,
+      "receipt": {
+        "status": "FAIL",
+        "explicit_milestone_preserved": true,
+        "nonmedia_concurrency_preserved": false,
+        "dispatch_calls": [
+          "M1"
+        ],
+        "dispatch_error": "original explicit M1 rejected unsupported media.import",
+        "concurrency": [
+          {
+            "milestone": "M1",
+            "error": "BrokenBarrierError: "
+          },
+          {
+            "milestone": "M4",
+            "error": "BrokenBarrierError: "
+          }
+        ],
+        "probe_scope": "Current adapter boundary with injected handlers; original backend source unchanged"
+      }
+    },
+    {
+      "kind": "mutation",
+      "name": "object mismatch rejected before browser",
+      "passed": true
+    },
+    {
+      "kind": "positive",
+      "name": "previous browser observer byte source preserved",
+      "passed": true
+    }
+  ],
+  "scope": "B02 adapter must preserve original explicit dispatch and unrelated milestone concurrency; existing browser/concurrent preview observation retained; no full M12",
+  "product_sources_modified": false,
+  "source_sha256": "f269c86e84826bcdb09e4422cb480e3cffe9fded7c2788ee2334aabdb9537ea1"
+}

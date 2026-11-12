@@ -1,0 +1,225 @@
+{
+  "kind": "AuthenticatedLocalBlockCertificate",
+  "block_id": "B02",
+  "status": "VERIFIED",
+  "reuse_status": "FROZEN_REUSABLE",
+  "certificate": {
+    "block_id": "B02",
+    "variant_id": "B02-814bf49e",
+    "input_contract_hash": "b99e5ebfa0d2cd31b17e55fe29761ccfb7195cb70d563d4b632ba7b39970132e",
+    "output_contract_hash": "0b4bf73061b6fce41fe7820bc76d0de95a70e079bfa0a1ae6d4658cbf6bd8618",
+    "effect_contract_hash": "3e83b990d988b3b6006d272f7373f5ec2f1eef6a9ec0cbc71bbaf4c7bed5a45e",
+    "acceptance_ids": [
+      "B02:missing browser file visibly rejected",
+      "B02:image browser import HTTP200",
+      "B02:image real identity/hash/project binding",
+      "B02:image visible preview",
+      "B02:image browser decodes preview",
+      "B02:image served bytes exact",
+      "B02:image correct MIME",
+      "B02:image foreign project cannot read media",
+      "B02:image durable owned copy",
+      "B02:image temporary files cleaned",
+      "B02:image no duplicate temporary media in data",
+      "B02:video browser import HTTP200",
+      "B02:video real identity/hash/project binding",
+      "B02:video visible preview",
+      "B02:video browser decodes preview",
+      "B02:video served bytes exact",
+      "B02:video correct MIME",
+      "B02:video foreign project cannot read media",
+      "B02:video durable owned copy",
+      "B02:video temporary files cleaned",
+      "B02:video no duplicate temporary media in data",
+      "B02:existing server-path import port remains supported",
+      "B02:browser adapter cannot bypass explicit milestone dispatch",
+      "B02:concurrent media previews preserve exact bytes without storage collisions",
+      "B02:empty upload HTTP400",
+      "B02:empty upload cleanup",
+      "B02:broken upload HTTP400",
+      "B02:broken upload cleanup",
+      "B02:malformed upload HTTP400",
+      "B02:malformed upload cleanup",
+      "B02:original fixtures unchanged",
+      "B02:image restart durable identity/bytes",
+      "B02:video restart durable identity/bytes",
+      "B02:image library preview restored after restart",
+      "B02:video library preview restored after restart",
+      "B02:switch to foreign project clears old previews",
+      "B02:no JavaScript errors",
+      "B02:real adapter composition and cleanup on both outcomes",
+      "B02:explicit dispatch and unrelated milestone concurrency preserved"
+    ],
+    "artifact_hashes": [
+      [
+        "main.py#adapter",
+        "742b8b69d2146569c2f6618ffc8da3b2aa2a492b570d6912bfda78cc000cd743"
+      ],
+      [
+        "main.py#media-browser",
+        "301d8321494b834313cdb85a6d073252c4e6a33f3474a5c1d727b5fb98043f08"
+      ],
+      [
+        "main.py#media-dom",
+        "8378ca77eeff8293ed1fcabd82d8bd379e5560f291a650ede5af7d892e09f212"
+      ],
+      [
+        "main.py#media-serving",
+        "d7fe1e1e9370bb2d58d0d936d82d67e34aa3c48046f9da99a9e901f7ffae4b28"
+      ]
+    ],
+    "checker_hashes": [
+      [
+        "B02.browser",
+        "f37ad4a88cf60d9b600dafb37b4e9c40d66e553d0ceb855dfaf6799c5e9eab7b"
+      ]
+    ],
+    "known_limits": [
+      "Explicit effectful product adapter; automatic field-rename adapter is not used.",
+      "Full VeriArbor V1 and M12 remain separate gates."
+    ],
+    "evidence_refs": [
+      "iter132-promotion-studio/promotion-05/evidence/bbfdc430e5c9b733894d5bf6447ad534d0349d4a82751fe86730708a66c4b050.json"
+    ],
+    "created_at": "2026-11-05T17:40:11.576887+00:00",
+    "invalidated": false
+  },
+  "certificate_fingerprint": "cd46816fe4b5ce34c77fcf51bb364d80e53e931f3f9ebaac9484520d0d097d8a",
+  "block": {
+    "block_id": "B02",
+    "capability": "BrowserUploadAdapterBlock",
+    "input_ports": [
+      {
+        "port_id": "BrowserFilePort",
+        "version": "1",
+        "direction": "input",
+        "contract": {
+          "schema_json": "{\"additionalProperties\":false,\"properties\":{\"data\":{\"type\":\"string\"},\"filename\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"project_id\":{\"type\":\"string\"}},\"required\":[\"project_id\",\"kind\",\"filename\",\"data\"],\"type\":\"object\"}",
+          "semantic": "Import exact user-selected media bytes and kind into the selected project through the existing M11 core."
+        },
+        "required": true,
+        "default_json": "null",
+        "compatibility_policy": "structural-v1"
+      }
+    ],
+    "output_ports": [
+      {
+        "port_id": "OwnedMediaPort",
+        "version": "1",
+        "direction": "output",
+        "contract": {
+          "schema_json": "{\"additionalProperties\":false,\"properties\":{\"id\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"path\":{\"type\":\"string\"},\"project_id\":{\"type\":\"string\"},\"sha256\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}},\"required\":[\"id\",\"project_id\",\"kind\",\"sha256\",\"path\",\"status\"],\"type\":\"object\"}",
+          "semantic": "Existing M11 persistent identity and exact bytes; project-owned previews survive process restart."
+        },
+        "required": true,
+        "default_json": "null",
+        "compatibility_policy": "structural-v1"
+      }
+    ],
+    "effect_contract": {
+      "reads": [
+        "M1 project identity",
+        "M11 media metadata",
+        "browser selected file"
+      ],
+      "writes": [
+        "existing M11 durable media copy",
+        "isolated temporary file",
+        "media UI"
+      ],
+      "external_effects": [
+        "loopback HTTP only"
+      ],
+      "persistence": "M11 durable copy survives process restart independently of temporary file",
+      "idempotency": "import creates new media identity; no implicit deduplication promised",
+      "concurrency": "original threaded server retained; shared M11 store coordinated at adapter boundary; 12 simultaneous preview reads preserve exact bytes",
+      "ordering": "decode -> confined temporary path -> original M11 import -> cleanup on success/failure",
+      "rollback": "original bounded patch receipts; temporary files cleaned; backend failure preserved"
+    },
+    "variants": [
+      {
+        "variant_id": "B02-814bf49e",
+        "artifacts": [
+          [
+            "main.py#adapter",
+            "742b8b69d2146569c2f6618ffc8da3b2aa2a492b570d6912bfda78cc000cd743"
+          ],
+          [
+            "main.py#media-browser",
+            "301d8321494b834313cdb85a6d073252c4e6a33f3474a5c1d727b5fb98043f08"
+          ],
+          [
+            "main.py#media-dom",
+            "8378ca77eeff8293ed1fcabd82d8bd379e5560f291a650ede5af7d892e09f212"
+          ],
+          [
+            "main.py#media-serving",
+            "d7fe1e1e9370bb2d58d0d936d82d67e34aa3c48046f9da99a9e901f7ffae4b28"
+          ]
+        ],
+        "status": "VERIFIED"
+      }
+    ],
+    "active_variant": "B02-814bf49e",
+    "certificate_ref": null
+  },
+  "source_sha256_at_verification": "814bf49eb22b005678aad9ea5ddb580dff06208605279f6eca1efd41065307e5",
+  "relevant_section_hashes": {
+    "main.py#adapter": "742b8b69d2146569c2f6618ffc8da3b2aa2a492b570d6912bfda78cc000cd743",
+    "main.py#media-serving": "d7fe1e1e9370bb2d58d0d936d82d67e34aa3c48046f9da99a9e901f7ffae4b28",
+    "main.py#media-dom": "8378ca77eeff8293ed1fcabd82d8bd379e5560f291a650ede5af7d892e09f212",
+    "main.py#media-browser": "301d8321494b834313cdb85a6d073252c4e6a33f3474a5c1d727b5fb98043f08"
+  },
+  "neighbor_contract_hashes": {
+    "M11_api_source": "4e3f4f9ec6ad0c30a04566a3c6a51e5d6d7bb55e23371bbae740831f3f866a08",
+    "B01_certificate": "6ae36bfd54f945889e4d5764d9b6e32934861c845e55539d3ab3e5f69fd919da"
+  },
+  "evidence_refs": [
+    {
+      "path": "iter132-promotion-studio/promotion-05/evidence/bbfdc430e5c9b733894d5bf6447ad534d0349d4a82751fe86730708a66c4b050.json",
+      "sha256": "87c66716c04d8c670d87c045943a97c56f15e6d3d5a46041de296a0a86e83a6b"
+    }
+  ],
+  "compatibility_witness": {
+    "classification": "ADAPTABLE",
+    "source_port": {
+      "port_id": "BrowserFilePort",
+      "version": "1",
+      "direction": "input",
+      "contract": {
+        "schema_json": "{\"additionalProperties\":false,\"properties\":{\"data\":{\"type\":\"string\"},\"filename\":{\"type\":\"string\"},\"kind\":{\"type\":\"string\"},\"project_id\":{\"type\":\"string\"}},\"required\":[\"project_id\",\"kind\",\"filename\",\"data\"],\"type\":\"object\"}",
+        "semantic": "Import exact user-selected media bytes and kind into the selected project through the existing M11 core."
+      },
+      "required": true,
+      "default_json": "null",
+      "compatibility_policy": "structural-v1"
+    },
+    "target_port": {
+      "port_id": "ServerPathPort",
+      "version": "1",
+      "direction": "input",
+      "contract": {
+        "schema_json": "{\"additionalProperties\":false,\"properties\":{\"kind\":{\"type\":\"string\"},\"path\":{\"type\":\"string\"},\"project_id\":{\"type\":\"string\"}},\"required\":[\"project_id\",\"kind\",\"path\"],\"type\":\"object\"}",
+        "semantic": "Import exact user-selected media bytes and kind into the selected project through the existing M11 core."
+      },
+      "required": true,
+      "default_json": "null",
+      "compatibility_policy": "structural-v1"
+    },
+    "implementation": "Worker-authored explicit temporary-file adapter in current product; runtime edge probe observes actual M11 call and cleanup",
+    "automatic_adapter_generated": false,
+    "full_veriarbor_v1_completed": false
+  },
+  "invalidation_triggers": [
+    "Certified source section changes",
+    "M11 contract/implementation changes",
+    "B01 project identity boundary changes",
+    "checker identity/qualification changes"
+  ],
+  "authority": "Original FileRunStore evidence plus VeriArbor Certificate; not full GoalAcceptance",
+  "host_business_patches": 0,
+  "canonical_evidence_ref": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/0b80f38a5482e311f690e8905656b12b5b00768700683ab7e8d99ab9bb99d956.json",
+    "sha256": "f74eac2a18d25d8f50d4b467cd272c14175fdd0b373c64578736447bb6b837ef"
+  }
+}

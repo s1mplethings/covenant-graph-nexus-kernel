@@ -1,0 +1,24 @@
+{
+  "kind": "ReadOnlyFixtureIsolationDiagnostic",
+  "source": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\DOGFOOD_MVP\\application\\tests\\test_publish.py",
+  "source_sha256": "a8ef44b1bee2d089cb76dadb16da1088686855cedda967830915c478fcec4816",
+  "application_sha256": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024",
+  "changed_variable": "Separate client and simulated remote platform storage directories",
+  "assertions": "Unmodified original test functions",
+  "results": [
+    {
+      "test": "test_reconcile_records_absence_on_404",
+      "status": "PASS",
+      "error": null,
+      "elapsed_seconds": 0.10899999999674037
+    },
+    {
+      "test": "test_retry_resends_failed_branch",
+      "status": "PASS",
+      "error": null,
+      "elapsed_seconds": 0.01600000000325963
+    }
+  ],
+  "authority": "Diagnostic only; original failures and GoalAcceptance remain unchanged",
+  "host_business_patches": 0
+}

@@ -1,0 +1,63 @@
+{
+  "checks": [],
+  "network": [
+    {
+      "url": "http://127.0.0.1:24495/",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:24495/api/state",
+      "method": "GET",
+      "status": 400
+    }
+  ],
+  "javascript_errors": [],
+  "console": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+    },
+    {
+      "type": "error",
+      "text": "Error: project_id is required for state retrieval\n    at apiCall (http://127.0.0.1:24495/:403:36)\n    at async loadProjects (http://127.0.0.1:24495/:427:31)"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    }
+  ],
+  "preflight": {
+    "html_parsed": true,
+    "js_parse": true,
+    "duplicate_ids": [],
+    "literal_dom_references_resolved": true
+  },
+  "status": "FAIL",
+  "error": "AssertionError: visible empty state",
+  "kind": "B01ProjectBootstrapAcceptance",
+  "block_id": "B01",
+  "source_sha256": "97fac580ddd0b04a91c35f26a91e3554abb82ad86e8e6159864d4e49f4dce478",
+  "checker_sha256": "b90a255391c9318600f9a544f1226f93a8e1e6f55cf666b9d6da73c23208642d",
+  "browser": "134.0.3124.51",
+  "startup": {
+    "command": [
+      "D:/anaconda/python.exe",
+      "-X",
+      "utf8",
+      "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b01-baseline-97fac580\\snapshot\\main.py",
+      "--serve",
+      "--port",
+      "24495",
+      "--data",
+      "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b01-baseline-97fac580\\data"
+    ],
+    "url": "http://127.0.0.1:24495",
+    "data_dir": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b01-baseline-97fac580\\data"
+  },
+  "cleanup": {
+    "server_stopped": true
+  },
+  "authority": "Independent local block evidence; not full M12 GoalAcceptance",
+  "host_business_patches": 0
+}

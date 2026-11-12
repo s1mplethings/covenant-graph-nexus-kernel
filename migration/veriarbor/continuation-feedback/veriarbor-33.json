@@ -1,0 +1,56 @@
+{
+  "expected_gui_sha256": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+  "feedback": {
+    "cost_policy": "Qwen3.8Flash Agent and DeepSeekFlash Worker, no Pro/Max. Preserve6upstreamUNKNOWNs including test118a6; no replay. Ordinary missing media checks remain cheap-tier work. Current independent consumer, not model identity, grants acceptance.",
+    "milestone_completion_request": "M11 media public path repair is COMPLETE in source117 e4737c44; all3 import/get/list calls pass data_dir. Preserve117, do not repair it again. Next FIRST refresh existing observer122 using action3 target122 (its old source binding is stale); this measures current source without requiring blocked test writer118. The frozen current M11 check still fails missing ValueError, not media path. After current canonical failure, repair ORIGINAL M6 owner86 in its own approval API scope to reject missing or broken referenced media before approval, even without a preceding media.get call. Separate actual M7 owner89 publish validation and original GUIowner91 real media preview work from M6; do not place those changes inside M11 API or monkeypatch dependencies. Preserve each original owner public contract, use exact owner scope IDs now exposed from authenticated integration failure. Read M11 storage behavior through admitted read dependencies if needed; no cyclic graph edits. Re-measure any affected verified dependencies through their original checkers; do not regenerate unrelated old sources. M11 test118 attempt6 failed in transport after one read, original DAG now confirms local effects NOT_APPLIED; old34-case test code unchanged. Never replay that request. Tests still have5 genuine failures:4missing/broken approval/publication plus GUIpreview; keep and rerun those assertions. A later fresh bounded test-owner task may execute once needed; do not rewrite whole test suite just to fix product behavior. Continue all M11 requirements, M12 and final prior test debts, canonical packaging, delivery, accounting/provenance and Corpus.",
+    "admission_correction": "Exact current table IDs only. Refresh122 via only action3,target122 first. Then select original owner86 and only its declared API scope, preserving or explicitly amending its own existing deps without cycles. Do not use target117 for M6/M7 code. Hypothesis evidence must be array of exact current failure refs. Strategy has problem plus meaningful named mechanism dimensions; full_file_write boolean only mandatory for remaining M11 API repair, which is already completed.",
+    "fresh_runtime_diagnosis": {
+      "source_sha256": "e4737c448e03a9fd794b9cc86a34a0ab14a04add0ac24b6cbbe42bb7e85336af",
+      "completed_path_repair": "Worker117a6 literalop2 fullfile write changed exactly two remaining callsites; all3 now connected",
+      "current_failure": "Expected ValueError for invalid or foreign input. Consumer line342 M6 second approval already rejects APPROVED status; next line343 checks M7 broken-media publication. Additional tests independently expose real M6 pre-approval missing/broken validation defects too. Fix real checks, never rely on unrelated status rejection.",
+      "local_effects": "Test118a6 had a completed read plus streaming failure; stage/workspace match prior frozen test hashc80d88c1. Original DAG reconciliation NOT_APPLIED appended; upstream UNKNOWN remains unchanged.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-diagnostic-e4737c44\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-generated-tests-e4737c44\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M11_TEST_EFFECT_RECONCILIATION.json"
+      ],
+      "prior_test_debts": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\ADDITIONAL_TEST_DEBT_TRIAGE.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\TEST_DEBT_CONTRACT_QUALIFICATION.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M10_M11_DIAGNOSTIC_TRIAGE.json"
+      ]
+    },
+    "redecision": {
+      "strategy_revision": "cd044474534bbe624e2a6b6d721f86d0dd307ef2ba8fa92589240b9e7234d73b",
+      "reason": "Actual fullfile Worker completed all public media paths. New current frozen tests and source-bound checker still expose original approval/publication/GUI defects. Original test stream failed, local unchanged effects independently reconciled; preserve upstream UNKNOWN and shift to distinct original owner repair, not repeat117.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-diagnostic-e4737c44\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-generated-tests-e4737c44\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M11_TEST_EFFECT_RECONCILIATION.json"
+      ]
+    },
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "milestones/milestone_dbb8341c8910593063a8/api.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-diagnostic-350e97b9\\receipt.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-generated-tests-350e97b9\\receipt.json"
+        ]
+      }
+    ],
+    "gui_writer_policy": "Preserve successful117 sourcee4737c44; path repair done. Original dependency owners86approval/89publish/91earlyGUI retain separate scopes. Do not regenerate backend89 for GUI-only edits, or change verified unrelated M1-M5 sources. Existing122 measurement can refresh current version independently of118."
+  }
+}

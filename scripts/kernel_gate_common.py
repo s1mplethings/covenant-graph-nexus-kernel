@@ -7,7 +7,7 @@ from typing import Any
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-CORE_PACKAGES = ("agent", "artifacts", "capabilities", "compiler", "component", "execution", "executors", "governance", "growth", "orchestration", "providers", "runtime", "state", "telemetry")
+CORE_PACKAGES = ("agent", "artifacts", "capabilities", "compiler", "component", "execution", "executors", "governance", "growth", "orchestration", "providers", "runtime", "state", "telemetry", "protocol", "adapters")
 VALID_COMPLETENESS = {"MISSING", "PARTIAL", "COMPLETE", "BLOCKED"}
 P0_CLASSES = {"happy_path", "negative", "boundary"}
 
@@ -21,7 +21,7 @@ def source_files() -> set[str]:
     for package in CORE_PACKAGES:
         directory = ROOT / "cgkn" / package
         if directory.exists():
-            values.update(path.relative_to(ROOT).as_posix() for path in directory.glob("*.py") if path.name != "__init__.py")
+            values.update(path.relative_to(ROOT).as_posix() for path in directory.rglob("*.py"))
     return values
 
 
@@ -33,11 +33,20 @@ def module_file(reference: str) -> pathlib.Path:
 def imported_modules(path: pathlib.Path) -> set[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     result: set[str] = set()
+    parts = list(path.parts)
+    package = parts[parts.index('cgkn'):-1] if 'cgkn' in parts else []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             result.update(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            result.add(node.module)
+        elif isinstance(node, ast.ImportFrom):
+            if node.level:
+                prefix = package[:len(package) - node.level + 1]
+                module = '.'.join(prefix + ([node.module] if node.module else []))
+            else:
+                module = node.module or ''
+            if module:
+                result.add(module)
+                result.update(module + '.' + alias.name for alias in node.names if alias.name != '*')
     return result
 
 

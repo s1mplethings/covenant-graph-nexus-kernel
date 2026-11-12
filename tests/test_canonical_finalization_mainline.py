@@ -54,6 +54,25 @@ def test_03_invalid_state_transition_is_rejected(tmp_path: pathlib.Path) -> None
         finalization.transition(tmp_path / "run", "DELIVERED", identity=_identity(), candidate_hash=digest)
 
 
+def test_explicit_reverification_preserves_rejection_and_cannot_reuse_revision(tmp_path):
+    _,digest=_project(tmp_path);root=tmp_path/'run'
+    for state in ('CANDIDATE_MATERIALIZED','WAITING_CANONICAL_VERIFICATION','PROMOTION_REJECTED'):
+        finalization.transition(root,state,identity=_identity(),candidate_hash=digest)
+    original=(root/finalization.STATE_FILE).read_bytes()
+    evidence=tmp_path/'qualification.json';evidence.write_text('{"status":"PASS"}')
+    revision={'revision_id':'a'*64,'reason':'Explicit corrected startup contract qualification',
+        'evidence_ref':str(evidence),'evidence_sha256':hashes.sha256_file(evidence)}
+    result=finalization.transition(root,'CANDIDATE_MATERIALIZED',identity=_identity(),candidate_hash=digest,verification_revision=revision)
+    assert [r['state'] for r in result['history']]==['CANDIDATE_MATERIALIZED','WAITING_CANONICAL_VERIFICATION','PROMOTION_REJECTED','CANDIDATE_MATERIALIZED']
+    assert (root/'verification_history'/('a'*64)/finalization.STATE_FILE).read_bytes()==original
+    for state in ('WAITING_CANONICAL_VERIFICATION','PROMOTION_REJECTED'):
+        finalization.transition(root,state,identity=_identity(),candidate_hash=digest)
+    before=(root/finalization.STATE_FILE).read_bytes()
+    with pytest.raises(ValueError,match='already consumed'):
+        finalization.transition(root,'CANDIDATE_MATERIALIZED',identity=_identity(),candidate_hash=digest,verification_revision=revision)
+    assert (root/finalization.STATE_FILE).read_bytes()==before
+
+
 def test_04_state_identity_cannot_change(tmp_path: pathlib.Path) -> None:
     _, digest = _project(tmp_path)
     finalization.transition(tmp_path / "run", "CANDIDATE_MATERIALIZED", identity=_identity(), candidate_hash=digest)
@@ -102,11 +121,13 @@ def test_09_surrogate_claims_are_not_verifier_inputs() -> None:
     assert "tests_passed" not in source and "release recommendation" not in source
 
 
-def test_10_live_and_surrogate_share_post_build_function() -> None:
-    source = pathlib.Path(codex_conversation.__file__).read_text(encoding="utf-8")
-    body = source.split("def run_provider_generation_job", 1)[1].split("\ndef ", 1)[0]
+def test_10_core_uses_the_existing_post_build_function() -> None:
+    import inspect
+    from cgkn.application.software_project.service import SoftwareProjectGenerationService
+    body = inspect.getsource(SoftwareProjectGenerationService._finalize_core_locked)
     assert body.count("post_build_finalize_provider_project(") == 1
-    assert 'provider_mode = str(prior_generation.get("provider_mode"' in body
+    assert 'core_provenance_ref=' in body
+    assert 'local_packager' not in body and 'evaluate_public_delivery_gate' not in body
 
 
 def test_11_surrogate_has_no_governance_authority() -> None:
@@ -194,14 +215,20 @@ def test_26_nonvisual_review_policy_is_explicit() -> None:
 
 
 def test_27_public_delivery_keeps_target_separate() -> None:
-    source = pathlib.Path(codex_conversation.__file__).read_text(encoding="utf-8")
-    assert '"target_goal_satisfied"' in source and '"delivery_allowed"' in source
+    from cgkn.application.software_project.service import SoftwareProjectGenerationService as Service
+    result=Service._delivery_projection({'status':'GOALS_VERIFIED','target_goal_satisfied':True},
+        {'ok':False,'gate':{'verdict':'NEEDS_REWORK','delivery_allowed':False}})
+    assert result['target_goal_satisfied'] is True
+    assert not result['public_delivery_allowed'] and result['delivery_status']=='BLOCKED'
 
 
-def test_28_nonlive_transport_still_forbids_network() -> None:
-    source = pathlib.Path(codex_conversation.__file__).read_text(encoding="utf-8")
-    assert 'allow_network=provider_mode == "live"' in source
-    assert 'allow_provider=provider_mode == "live"' in source
+@pytest.mark.parametrize('mode',['surrogate','replay','offline'])
+def test_28_nonlive_transport_still_forbids_network(tmp_path,monkeypatch,mode) -> None:
+    from cgkn.application.software_project import service
+    profile=tmp_path/'.cgkn/project-session.json';profile.parent.mkdir();profile.write_text('{}')
+    monkeypatch.setattr(service,'SoftwareProjectGenerationService',lambda *a,**k:pytest.fail('Provider initialized'))
+    with pytest.raises(ValueError,match='recorded provider route'):
+        service.run_formal_generation_once(tmp_path,goal='offline',provider_mode=mode)
 
 
 def test_29_evidence_only_provider_hunk_is_not_reconstructed_as_source() -> None:
@@ -270,13 +297,17 @@ def test_33_delivery_fact_check_accepts_manifest_declared_package_entrypoint(tmp
 
 def test_34_warning_verdict_is_a_canonical_final_delivery_verdict() -> None:
     assert "DELIVER_WITH_WARNINGS" in codex_conversation.adaptive_delivery.FINAL_VERDICTS
-    source = pathlib.Path(codex_conversation.__file__).read_text(encoding="utf-8")
-    assert "final_verdict not in adaptive_delivery.FINAL_VERDICTS" in source
-    assert '"DELIVERED" if public_delivery_succeeded else "DELIVERY_BLOCKED"' in source
+    from cgkn.application.software_project.service import SoftwareProjectGenerationService as Service
+    for verdict in ('PASS_FINAL','DELIVER_WITH_WARNINGS'):
+        result=Service._delivery_projection({}, {'ok':True,'gate':{'verdict':verdict,'delivery_allowed':True}})
+        assert result['public_delivery_allowed'] and result['delivery_status']==verdict
+    assert not Service._delivery_projection({}, {'ok':True,'gate':{'verdict':'MODEL_SAYS_OK','delivery_allowed':True}})['public_delivery_allowed']
 
 
 def test_35_formal_result_maps_delivered_with_warnings_to_pass_with_limits() -> None:
-    source = pathlib.Path(codex_conversation.__file__).read_text(encoding="utf-8")
-    assert 'normalized_status == "DELIVERED_WITH_WARNINGS"' in source
-    assert 'formal_evidence_status = "PASS_WITH_LIMITS"' in source
-    assert 'delivered_generation["canonical_finalization_state"] = delivered_state' in source
+    from cgkn.application.software_project.service import SoftwareProjectGenerationService as Service
+    finalized={'ok':True,'gate':{'verdict':'DELIVER_WITH_WARNINGS','delivery_allowed':True},
+               'canonical_finalization_state':{'state':'READY_FOR_DELIVERY'},'known_limits':['fixture limitation']}
+    result=Service._delivery_projection({},finalized)
+    assert result['formal_evidence_status']=='PASS_WITH_LIMITS'
+    assert result['finalization']==finalized

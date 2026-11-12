@@ -1,14 +1,33 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import json
+import threading
 
 import pytest
 
-from cgkn.providers.client import ModelRoleConfig, OpenAICompatibleClient, parse_json_object
+from cgkn.providers import ModelRoleConfig, completion_client_from_environment, parse_json_object
 
 
 pytestmark = [pytest.mark.happy_path, pytest.mark.boundary]
-CONFIG = ModelRoleConfig("agent", "model")
+CONFIG = ModelRoleConfig("agent", "qwen",model_id='fixture')
+
+
+@pytest.fixture(autouse=True)
+def explicit_legacy_profile(tmp_path, monkeypatch):
+    profile = tmp_path / 'legacy.json'
+    profile.write_text('{"mode":"legacy"}', encoding='utf-8')
+    monkeypatch.setenv('CGKN_APPLICATION_PROFILE', str(profile))
+    monkeypatch.delenv('CGKN_NETWORK_MODE', raising=False)
+    monkeypatch.setenv('CGKN_PROVIDER_GATEWAY_ENABLED','1')
+    monkeypatch.setenv('CGKN_PROVIDER_GATEWAY_TOKEN','synthetic-token')
+    for key,value in {'BUDGET_LEDGER':str(tmp_path/'budget.json'),'MAX_API_CALLS':'4',
+        'MAX_INPUT_TOKENS':'100000','MAX_OUTPUT_TOKENS':'10000','MAX_ESTIMATED_COST':'10',
+        'INPUT_COST_PER_MILLION':'1','OUTPUT_COST_PER_MILLION':'1','CACHE_MODE':'off'}.items():
+        monkeypatch.setenv('CGKN_PROVIDER_'+key,value)
+    from tests.providers.authority_fixtures import authorized_transport
+    with authorized_transport(tmp_path/'authority',calls=4):yield
+
 
 
 @pytest.mark.negative
@@ -43,45 +62,71 @@ def test_parse_json_object_rejects_non_object_and_malformed(text, exception) -> 
     with pytest.raises(exception): parse_json_object(text)
 
 
-def configure(monkeypatch, *, credentials=None, transport=None, text='{"ok":true}'):
-    monkeypatch.setattr("cgkn.providers.client.check_connectivity._resolve_api_credentials", lambda: credentials if credentials is not None else {"api_key": "token", "base_url": "https://provider.invalid/v1"})
-    monkeypatch.setattr("cgkn.providers.client.check_connectivity._build_openai_compatible_payload", lambda base, payload, **kwargs: {"base": base, **payload, **kwargs})
-    monkeypatch.setattr("cgkn.providers.client.check_connectivity._openai_compatible_endpoint", lambda base, **kwargs: base + "/chat")
-    monkeypatch.setattr("cgkn.providers.client.check_connectivity._extract_text", lambda _doc: text)
-    value = transport if transport is not None else SimpleNamespace(doc={"id": "req", "model": "actual", "usage": {"total_tokens": 3}}, error="", attempts=[1, 2])
-    monkeypatch.setattr("cgkn.providers.client.provider_transport.post_json_with_retry", lambda *args, **kwargs: value)
+@pytest.fixture
+def transport(monkeypatch):
+    state={'text':'{"ok":true}','usage':{'input_tokens':2,'output_tokens':1,'total_tokens':3},'requests':[]}
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self,*args):pass
+        def do_POST(self):
+            payload=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+            state['requests'].append(payload)
+            from tests.providers.stream_fixtures import send_gateway
+            send_gateway(self,payload,{'id':'req','model':'fixture','status':'completed',
+                'output_text':state['text'],'usage':state['usage']})
+    server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
+    thread=threading.Thread(target=server.serve_forever,daemon=True);thread.start()
+    monkeypatch.setenv('CGKN_PROVIDER_GATEWAY_BASE_URL',f'http://127.0.0.1:{server.server_port}/v1')
+    try:yield state
+    finally:server.shutdown();server.server_close();thread.join(2)
 
 
 @pytest.mark.negative
 def test_complete_rejects_missing_credentials(monkeypatch) -> None:
     for credentials in ({"api_key": "", "base_url": "x"}, {"api_key": "x", "base_url": ""}):
-        configure(monkeypatch, credentials=credentials)
-        with pytest.raises(RuntimeError, match="unavailable"):
-            OpenAICompatibleClient().complete(system="s", user="u", schema_name="x", schema={}, config=CONFIG)
+        monkeypatch.setenv('CGKN_PROVIDER_GATEWAY_TOKEN',credentials['api_key'])
+        monkeypatch.setenv('CGKN_PROVIDER_GATEWAY_BASE_URL',credentials['base_url'])
+        with pytest.raises(ValueError):
+            completion_client_from_environment().complete(system="s", user="u", schema_name="x", schema={}, config=CONFIG)
 
 
 @pytest.mark.fault_injection
 @pytest.mark.security
-def test_transport_failure_is_redacted(monkeypatch) -> None:
-    configure(monkeypatch, transport=SimpleNamespace(doc=None, error="contains token", attempts=[1]))
-    monkeypatch.setattr("cgkn.providers.client.provider_transport._redact", lambda error, token: "[REDACTED]")
-    with pytest.raises(RuntimeError, match="REDACTED"):
-        OpenAICompatibleClient().complete(system="s", user="u", schema_name="x", schema={}, config=CONFIG)
+def test_transport_failure_is_redacted(monkeypatch,transport) -> None:
+    def fail(*args,**kwargs):raise OSError('contains synthetic-token')
+    monkeypatch.setattr('cgkn.providers.gateway_client._open_loopback',fail)
+    with pytest.raises(RuntimeError, match="REDACTED") as failure:
+        completion_client_from_environment().complete(system="s", user="u", schema_name="x", schema={}, config=CONFIG)
+    assert 'synthetic-token' not in str(failure.value) and not transport['requests']
 
 
 @pytest.mark.negative
-def test_empty_provider_response_is_rejected(monkeypatch) -> None:
-    configure(monkeypatch, text="")
+def test_empty_provider_response_is_rejected(transport) -> None:
+    transport['text']=''
     with pytest.raises(RuntimeError, match="empty"):
-        OpenAICompatibleClient().complete(system="s", user="u", schema_name="x", schema={}, config=CONFIG)
+        completion_client_from_environment().complete(system="s", user="u", schema_name="x", schema={}, config=CONFIG)
 
 
 @pytest.mark.roundtrip
-def test_success_builds_strict_schema_payload_and_normalizes_usage(monkeypatch) -> None:
-    configure(monkeypatch)
-    result = OpenAICompatibleClient().complete(system="s", user="u", schema_name="shape", schema={"type": "object"}, config=CONFIG)
-    assert result.text == '{"ok":true}' and result.model == "actual" and result.request_id == "req"
-    assert result.usage == {"total_tokens": 3} and result.attempts == 2
-    configure(monkeypatch, transport=SimpleNamespace(doc={"id": "", "model": "", "usage": []}, error="", attempts=[1]))
-    fallback = OpenAICompatibleClient().complete(system="s", user="u", schema_name="shape", schema={}, config=CONFIG)
-    assert fallback.model == CONFIG.model and fallback.usage == {}
+@pytest.mark.boundary
+@pytest.mark.happy_path
+def test_success_builds_strict_schema_payload_and_normalizes_usage(transport) -> None:
+    result = completion_client_from_environment().complete(system="s", user="u", schema_name="shape", schema={"type": "object"}, config=CONFIG)
+    assert result.text == '{"ok":true}' and result.model == "fixture" and result.request_id == "req"
+    assert result.usage == {'input_tokens':2,'output_tokens':1,'total_tokens':3,
+                            'prompt_tokens':2,'completion_tokens':1} and result.attempts == 1
+    assert transport['requests'][0]['text']['format']['strict'] is True
+    transport['usage']=[]
+    with pytest.raises(RuntimeError,match='usage'):
+        completion_client_from_environment().complete(system="s", user="different", schema_name="shape", schema={}, config=CONFIG)
+    assert len(transport['requests'])==2
+
+
+@pytest.mark.boundary
+@pytest.mark.negative
+def test_compatibility_cannot_bypass_host_permit(transport):
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        future=pool.submit(completion_client_from_environment().complete,system='s',user='u',
+            schema_name='shape',schema={'type':'object'},config=CONFIG)
+        with pytest.raises(ValueError,match='PERMIT_REQUIRED'):future.result()
+    assert not transport['requests']

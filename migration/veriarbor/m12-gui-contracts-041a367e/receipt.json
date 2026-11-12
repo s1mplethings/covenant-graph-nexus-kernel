@@ -1,0 +1,130 @@
+{
+  "kind": "ActualFinalProductDiagnostic",
+  "acceptance_authority": false,
+  "host_business_patches": 0,
+  "source_sha256": "041a367eaaaf2b318ecd380f26a5227019733457bce918de5d224286dd35e8cb",
+  "observations": [
+    {
+      "name": "actual_image_video_upload",
+      "value": [
+        "38b448acebfb423691206fab21097d45",
+        "d05e616367ae4698a4d8825791ea8eb0"
+      ]
+    },
+    {
+      "name": "actual_schedule_action",
+      "value": {
+        "status": 400,
+        "body": {
+          "error": "platform_url must be a non-empty string"
+        },
+        "request": {
+          "milestone": "M8",
+          "op": "schedule.create",
+          "project_id": "05cbb0c14c3845afbc749fb7ced4e07e",
+          "content_id": "916e3231752c45be8a0c27e286956a50",
+          "when": "2026-11-05T05:35:05.724645+00:00"
+        }
+      }
+    },
+    {
+      "name": "actual_publication",
+      "value": {
+        "receipt": {
+          "id": "1d79407942034244a6dd2b37c5ce4f14",
+          "project_id": "05cbb0c14c3845afbc749fb7ced4e07e",
+          "content_id": "916e3231752c45be8a0c27e286956a50",
+          "revision": 1,
+          "channel": "alpha",
+          "text": "Offline workflows are supported.",
+          "status": "PUBLISHED",
+          "remote_id": "remote-8ebf3a8b445d",
+          "idempotency_key": "gui-1793770505830",
+          "request_ref": "http://127.0.0.1:9749/publish",
+          "response_ref": "{\"remote_id\": \"remote-8ebf3a8b445d\", \"url\": \"http://127.0.0.1:9749/item/gui-1793770505830\"}",
+          "attempts": [
+            {
+              "operation": "POST",
+              "status": "SUCCESS",
+              "started_at": 1793770505.9076738,
+              "ended_at": 1793770506.1506906
+            }
+          ],
+          "url": "http://127.0.0.1:9749/item/gui-1793770505830"
+        },
+        "platform_payload": {
+          "idempotency_key": "gui-1793770505830",
+          "project_id": "05cbb0c14c3845afbc749fb7ced4e07e",
+          "content_id": "916e3231752c45be8a0c27e286956a50",
+          "revision": 1,
+          "channel": "alpha",
+          "text": "Offline workflows are supported."
+        }
+      }
+    },
+    {
+      "name": "actual_analytics_action",
+      "value": {
+        "status": 400,
+        "body": {
+          "error": "platform_url must be a non-empty string"
+        },
+        "request": {
+          "milestone": "M10",
+          "op": "analytics.fetch",
+          "project_id": "05cbb0c14c3845afbc749fb7ced4e07e",
+          "receipt_id": "1d79407942034244a6dd2b37c5ce4f14",
+          "platform_url": ""
+        }
+      }
+    },
+    {
+      "name": "actual_scoped_state",
+      "value": {
+        "status": 200,
+        "body": {
+          "projects": [
+            {
+              "id": "05cbb0c14c3845afbc749fb7ced4e07e",
+              "name": "Final workflow"
+            }
+          ],
+          "campaigns": [],
+          "contents": [],
+          "receipts": [],
+          "schedules": []
+        },
+        "expected_content_id": "916e3231752c45be8a0c27e286956a50"
+      }
+    },
+    {
+      "name": "analytics",
+      "value": ""
+    },
+    {
+      "name": "restart_receipts_media",
+      "value": true
+    },
+    {
+      "name": "edit_invalidates_approval_and_stale_receipt",
+      "value": {
+        "approval": {
+          "content_id": "916e3231752c45be8a0c27e286956a50",
+          "revision": 2,
+          "status": "DRAFT"
+        },
+        "receipt_revision": 1,
+        "current_revision": 2
+      }
+    },
+    {
+      "name": "changed_missing_media_block_before_post",
+      "value": true
+    },
+    {
+      "name": "javascript_errors",
+      "value": []
+    }
+  ],
+  "status": "DIAGNOSTIC_COMPLETE_WITH_OBSERVED_FAILURES"
+}

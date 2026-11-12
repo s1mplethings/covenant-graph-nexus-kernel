@@ -1,0 +1,118 @@
+{
+  "authority": "Derived view of canonical evidence; block certificates grant their own scopes only",
+  "blocks": {
+    "B01": "VERIFIED_FROZEN_REUSABLE",
+    "B02": "VERIFIED_FROZEN_REUSABLE",
+    "B03": "VERIFIED_FROZEN_REUSABLE",
+    "B04": "VERIFIED_FROZEN_REUSABLE",
+    "B05": "VERIFIED_FROZEN_REUSABLE",
+    "B06": "VERIFIED_FROZEN_REUSABLE",
+    "B07": "VERIFIED_FROZEN_REUSABLE",
+    "B08": "VERIFIED_FROZEN_REUSABLE",
+    "B09": "VERIFIED_FROZEN_REUSABLE",
+    "B10": "VERIFIED_FROZEN_REUSABLE",
+    "B11": "PASS"
+  },
+  "M12": "VERIFIED",
+  "active_continuation": "M12_COMPLETE",
+  "M12_rollup": "REGISTERED_NON_EXECUTABLE",
+  "patch_gate": "QUALIFIED_24_TESTS",
+  "B01_checker": "QUALIFIED_8_CONTROLS",
+  "latest_candidate_measurement": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B11_FINAL_VERTICAL_SLICE_ACCEPTANCE.json",
+  "B01_certificate_ref": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/0ac692555556442774b54feec4cce55f37b920076d5312296e1200a8a50d7934.json",
+    "sha256": "09b0f9b8b5e2c64fd1b4cc4cce4a250195692f2d8c667ce93429672fe034e026"
+  },
+  "updated_at": "2026-11-05T18:02:31.929274+00:00",
+  "current_source_sha256": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+  "running_nodes": [],
+  "latest_native_observation": {
+    "node": null,
+    "checker": "final-gui-complete-v10",
+    "verdict": "PASS",
+    "source_current": true,
+    "observed": {
+      "reason": "M12 actual business checks passed",
+      "value": true
+    }
+  },
+  "B02_certificate_ref": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/0b80f38a5482e311f690e8905656b12b5b00768700683ab7e8d99ab9bb99d956.json",
+    "sha256": "f74eac2a18d25d8f50d4b467cd272c14175fdd0b373c64578736447bb6b837ef"
+  },
+  "B03_certificate_ref": {
+    "certificate": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B03_SIGNALS_EVIDENCE_CERTIFICATE.json",
+    "certificate_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/9dcc7463d92ccb44af9fb843e77dc7c6c4ac8995cb3be24a42fb9e9a8d2af1be.json",
+      "sha256": "b342f50c135b5e0481e4b68b86154f93f03e6a1178a240f8866ac1303046ab63"
+    },
+    "checker_sha256": "10203e035f5ce21a0db9b81754cb91d742dc0093dbb6caa5510206bb1f1416b5"
+  },
+  "B04_certificate_ref": {
+    "certificate": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B04_CONTENT_REVISION_CERTIFICATE.json",
+    "certificate_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/132d3dcbe5d12ee4895d21a2d8d41f5d7932fbee882e4a63977d514d652a1078.json",
+      "sha256": "361ad4e6bf7a22e2c7b8258dfd213725f00e34faaf3c477371e0f28d7f1d4299"
+    },
+    "checker_sha256": "b2c345b4812391e1469aff94d17f019e4a8249e5d862f373d39fbcf74f439539"
+  },
+  "B05_certificate_ref": {
+    "certificate": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B05_CHANNEL_VARIANT_CERTIFICATE.json",
+    "certificate_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/8f0b430dd4519a75e5a16deb73d3226d9d61a70d15ef4963845d6f9ef86b4e27.json",
+      "sha256": "144dccaf33fe15ea267154333ccd99e9ac178b9a524a8f447d9af0efc377140f"
+    },
+    "checker_sha256": "152330011f7802036b5f70e5c8198e6dbe0381b2952eb9729dcc1ffe3d460e91"
+  },
+  "B06_certificate_ref": {
+    "certificate": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B06_APPROVAL_UI_CERTIFICATE.json",
+    "certificate_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/a19a623abcbbdf1155e59846e6416264ba21f0143a0d2c9ba194de3ea95c1304.json",
+      "sha256": "7c6a7719673a6810bc7a5a8ac6a40c65671ee2f91dba512096143579a208e5e1"
+    },
+    "checker_sha256": "6e96bf5cb32110babccbaf7d6f89013c5f7ba26567a3772cebec391ae6b9c66c"
+  },
+  "B07_certificate_ref": {
+    "certificate": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B07_SCHEDULER_UI_CERTIFICATE.json",
+    "certificate_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/f4da9e786222cee2143b5e8dbabb38b3bde34880f2339099f700e2c77e3734a6.json",
+      "sha256": "353e23f58234e31e76c51e6ea7ea3c6afafc7ff9a452c08fec9426f8dffb56da"
+    },
+    "checker_sha256": "7c0552a79acf1ac4a6bc2502d390c7deb68ddc1752f36f13983c2cff8dc0b956"
+  },
+  "B08_certificate_ref": {
+    "certificate": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B08_RECEIPT_UNKNOWN_RECONCILE_CERTIFICATE.json",
+    "certificate_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/893b838afc0d683e159761733db8f2db1d9f3005a07d48020dc82753063c4036.json",
+      "sha256": "e946e4b37a3fd2c5e37f9a6a9fa798bc1d64765340cfe388d99222169791ce29"
+    },
+    "checker_sha256": "336fcc0866b54ddc1b7f8a6b90014da06d4300c79be40071d9a87c45ee786308"
+  },
+  "B09_certificate_ref": {
+    "certificate": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B09_ANALYTICS_HISTORY_CERTIFICATE.json",
+    "certificate_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/77ab54ca73b93019a39f02721fae3fb95d39f1b8ed8ea9d3c64fc516775855f8.json",
+      "sha256": "6920d71055bf0f709eb5c9fdf82da2cf43f658fff6f70fc21a279028e64d8c87"
+    },
+    "checker_sha256": "ea61cb776551c7f8605a352b8efb1eb35c225129ab5617d433d88e8062ffa417"
+  },
+  "B10_certificate_ref": {
+    "certificate": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B10_FINAL_NAV_DOCS_CERTIFICATE.json",
+    "certificate_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/dd6251966fe7dd35d61264bf8759ed962ea1f9a23bce0072917fc02a8be3d303.json",
+      "sha256": "ba2797d73ceb08a6d73036b123078e199d221c431d5266099d0f2f7d8a79822f"
+    },
+    "checker_sha256": "83b1734f8e4c8cd7526c117356a4da835e78082eb6c2c045388403d4e6012132"
+  },
+  "B11_certificate_ref": {
+    "certificate": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B11_FINAL_VERTICAL_SLICE_CERTIFICATE.json",
+    "certificate_ref": {
+      "path": "iter132-promotion-studio/promotion-05/evidence/6a6c2a28a123a7505f8ad1377a1487ce6cd223d0ca8aafcb370e31257404aca2.json",
+      "sha256": "1bca7f7c2d45112ee4794b5b0d863aa402c3e67946aac5567b2d907194d2ecf5"
+    },
+    "checker_sha256": "836e4ab1737aaa20cfa2946cea529115c46f5c3b3183117c70848971a0229194"
+  },
+  "B11_acceptance_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B11_FINAL_VERTICAL_SLICE_ACCEPTANCE.json",
+  "B01_reuse_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B01_REUSE_711c0519.json",
+  "B02_reuse_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_REUSE_711c0519.json"
+}

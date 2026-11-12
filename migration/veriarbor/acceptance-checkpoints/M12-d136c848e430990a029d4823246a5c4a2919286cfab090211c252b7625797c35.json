@@ -1,0 +1,16 @@
+{
+  "kind": "AuthenticatedAcceptanceCheckpoint",
+  "milestone": "M12",
+  "verdict": "INSUFFICIENT_EVIDENCE",
+  "timestamp": "2026-11-03T16:45:54.183721+00:00",
+  "authority": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\goal_acceptance.json",
+  "authority_sha256": "80b55e1d419389f5072c6a7a835b8fbe1af5496ca2509e8cb0f68794d22bf022",
+  "obligation": {
+    "verdict": "INSUFFICIENT_EVIDENCE",
+    "weight": 1,
+    "must": true
+  },
+  "authenticated_goals": [],
+  "is_new_acceptance_authority": false,
+  "final_product_complete": false
+}

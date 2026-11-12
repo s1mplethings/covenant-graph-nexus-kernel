@@ -25,6 +25,38 @@ DEFAULT_SKIPPED_MARKERS = (
 
 
 @pytest.fixture(autouse=True)
+def explicit_legacy_regression_policy(request):
+    """Only named historical fixtures may request LEGACY; no mode is changed."""
+    paths={'project_agent/test_capability_gates_skills.py','project_agent/test_project_agent.py',
+           'runtime/test_dag_runner.py','runtime/test_invalidation_and_edits.py',
+           'agent/test_project_loop_boundaries.py'}
+    if not request.path.is_relative_to(ROOT/'tests'):
+        yield
+        return
+    relative=request.path.relative_to(ROOT/'tests').as_posix()
+    allowed=relative in paths or (relative=='runtime/test_node_execution_authority.py' and
+                request.node.name=='test_goal_acceptance_rejects_receiptless_and_legacy_reopen')
+    if not allowed:
+        yield
+        return
+    from veriarbor.governance import LegacyPolicy,legacy_scope
+    events=[]
+    with legacy_scope(LegacyPolicy(True,(relative,)),caller=relative,
+            reason='Explicit historical offline regression fixture; no governed test downgraded',event_sink=events.append):
+        yield
+
+
+@pytest.fixture(autouse=True)
+def core_governance_offline_only(monkeypatch):
+    if os.environ.get('VERI_GOVERNANCE_OFFLINE_ONLY')=='1':
+        import socket
+        def denied(*args,**kwargs):
+            raise AssertionError('Offline governance suite forbids all socket connections')
+        monkeypatch.setattr(socket.socket,'connect',denied)
+        monkeypatch.setattr(socket.socket,'connect_ex',denied)
+
+
+@pytest.fixture(autouse=True)
 def _isolate_process_global_provider_adapter() -> Any:
     """Prevent one non-live Provider test from redirecting later live tests.
 

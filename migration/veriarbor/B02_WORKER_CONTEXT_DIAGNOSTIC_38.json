@@ -1,0 +1,13 @@
+{
+  "kind": "WorkerSourceContextDiagnostic",
+  "rows": [
+    {
+      "context_path": "/context/observations/0/content",
+      "normalized_equals_current_full_source": true,
+      "excerpt": "# Browser payloads (base64 'data') go through the temp-file adapter;\n        # explicit server-path imports (no browser data) reach original M11 directly.\n\n        if isinstance(request.get('data'), s"
+    }
+  ],
+  "request_identity": "58c218e5dd7a4b36ad1297f131eef6df",
+  "source_sha256": "f269c86e84826bcdb09e4422cb480e3cffe9fded7c2788ee2334aabdb9537ea1",
+  "read_only": true
+}

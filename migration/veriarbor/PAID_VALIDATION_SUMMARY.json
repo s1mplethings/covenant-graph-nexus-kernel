@@ -1,0 +1,71 @@
+{
+  "kind": "M12PaidValidationAttempts",
+  "created_at": "2026-11-06T02:00:49.417949+00:00",
+  "gateway_fixed": true,
+  "gateway_models": [
+    "deepseek",
+    "qwen"
+  ],
+  "runs": [
+    {
+      "run": "FINAL_VALIDATION_20261106_RUN2",
+      "status": "PASS",
+      "source_unchanged": true,
+      "incremental_calls": 8,
+      "estimated_cost_delta": 1.0623800000000756,
+      "result_status": "BLOCKED",
+      "error": null
+    },
+    {
+      "run": "FINAL_VALIDATION_20261106_RUN3",
+      "status": "FAIL",
+      "source_unchanged": true,
+      "incremental_calls": 4,
+      "estimated_cost_delta": 0.47255999999993037,
+      "result_status": null,
+      "error": {
+        "error_type": "ProvenanceError",
+        "category": null,
+        "outcome_unknown": null,
+        "message": "INSUFFICIENT_EVIDENCE: delivered source lacks bounded Worker origin: KNOWN_LIMITS.md,README.md,TEST_PLAN.md,early_main.py,main.py,milestones/milestone_1369a82cde04a7e5887d/api.py,milestones/milestone_20f2614f6ae8403d4a4e/api.py,milestones/milestone_33270fed0c9054f5ae04/api.py,milestones/milestone_4e7c26281cf61a85851e/api.py,milestones/milestone_90b8868c7203e2958397/api.py,milestones/milestone_9165a990eed5b9c8801e/api.py,milestones/milestone_989800776c3d6229e431/api.py,milestones/milestone_af427946c6dea418047a/api.py,milestones/milestone_c511a8ebd29978f5ba97/api.py,milestones/milestone_dbb8341c8910593063a8/api.py,promotion_publish.py,pyproject.toml,start.ps1,tests/test_milestone_1369a82cde04a7e5887d.py,tests/test_milestone_20f2614f6ae8403d4a4e.py,tests/test_milestone_33270fed0c9054f5ae04.py,tests/test_milestone_4e7c26281cf61a85851e.py,tests/test_milestone_90b8868c7203e2958397.py,tests/test_milestone_9165a990eed5b9c8801e.py,tests/test_milestone_989800776c3d6229e431.py,tests/test_milestone_af427946c6dea418047a.py,tests/test_milestone_c511a8ebd29978f5ba97.py,tests/test_milestone_dbb8341c8910593063a8.py,tests/test_promotion_gui.py,tests/test_publish.py",
+        "traceback": "Traceback (most recent call last):\n  File \"C:\\Users\\sunom\\AppData\\Local\\Temp\\opencode\\stage6_paid_validation_run3.py\", line 83, in <module>\n    result = service.run_profile(ROOT / \"profile.json\", goal=profile[\"intent\"][\"overall_goal\"])\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"F:\\CGKN-LeanLoop-V1-20261101\\cgkn\\application\\software_project\\service.py\", line 355, in run_profile\n    return self.finalize_core(profile, document)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"F:\\CGKN-LeanLoop-V1-20261101\\cgkn\\application\\software_project\\service.py\", line 412, in finalize_core\n    result=self._finalize_core_locked(profile,core_result,**options)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"F:\\CGKN-LeanLoop-V1-20261101\\cgkn\\application\\software_project\\service.py\", line 427, in _finalize_core_locked\n    provenance=production_candidate_provenance.produce_project_session(\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"F:\\CGKN-LeanLoop-V1-20261101\\scripts\\production_candidate_provenance.py\", line 605, in produce_project_session\n    projection=_project_session_projection(store,project_id,run_id,candidate)\n               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"F:\\CGKN-LeanLoop-V1-20261101\\scripts\\production_candidate_provenance.py\", line 568, in _project_session_projection\n    sources=ProvenanceGate(store,project_id,run_id).delivery_sources(acceptance,candidate,manifest)\n            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"F:\\CGKN-LeanLoop-V1-20261101\\cgkn\\state\\provenance.py\", line 479, in delivery_sources\n    raise ProvenanceError('INSUFFICIENT_EVIDENCE','delivered source lacks bounded Worker origin: '+','.join(sorted(set(manifest)-set(origins))))\ncgkn.state.provenance.ProvenanceError: INSUFFICIENT_EVIDENCE: delivered source lacks bounded Worker origin: KNOWN_LIMITS.md,README.md,TEST_PLAN.md,early_main.py,main.py,milestones/milestone_1369a82cde04a7e5887d/api.py,milestones/milestone_20f2614f6ae8403d4a4e/api.py,milestones/milestone_33270fed0c9054f5ae04/api.py,milestones/milestone_4e7c26281cf61a85851e/api.py,milestones/milestone_90b8868c7203e2958397/api.py,milestones/milestone_9165a990eed5b9c8801e/api.py,milestones/milestone_989800776c3d6229e431/api.py,milestones/milestone_af427946c6dea418047a/api.py,milestones/milestone_c511a8ebd29978f5ba97/api.py,milestones/milestone_dbb8341c8910593063a8/api.py,promotion_publish.py,pyproject.toml,start.ps1,tests/test_milestone_1369a82cde04a7e5887d.py,tests/test_milestone_20f2614f6ae8403d4a4e.py,tests/test_milestone_33270fed0c9054f5ae04.py,tests/test_milestone_4e7c26281cf61a85851e.py,tests/test_milestone_90b8868c7203e2958397.py,tests/test_milestone_9165a990eed5b9c8801e.py,tests/test_milestone_989800776c3d6229e431.py,tests/test_milestone_af427946c6dea418047a.py,tests/test_milestone_c511a8ebd29978f5ba97.py,tests/test_milestone_dbb8341c8910593063a8.py,tests/test_promotion_gui.py,tests/test_publish.py\n"
+      }
+    }
+  ],
+  "total_incremental_calls": 13,
+  "total_estimated_cost_delta": 1.5365,
+  "source_sha256": "711C051954513EAB78261062F46228F7EA757A5857A5624FFD487787697D4237",
+  "source_changed": false,
+  "final_delivery": "BLOCKED",
+  "blocker": "ProjectSession requires bounded Worker origin for every delivered source file; the current final source is agent-authored.",
+  "goal_acceptance_modified": false,
+  "promotion_acceptance_written": false,
+  "connectivity_test": {
+    "kind": "M12PaidConnectivityTest",
+    "status": "PASS",
+    "source": "gateway",
+    "model": "qwen3.8-flash",
+    "request_id": "chatcmpl-d6c0f6de-7325-9428-b9a5-ea23b9446f46",
+    "usage": {
+      "input_tokens": 45,
+      "output_tokens": 11,
+      "total_tokens": 56,
+      "prompt_tokens": 45,
+      "completion_tokens": 11
+    },
+    "response_ok": true,
+    "elapsed_seconds": 4.8,
+    "accounting": {
+      "incremental_calls": 1,
+      "estimated_cost_delta": 0.00156,
+      "status_counts": {
+        "SUCCEEDED": 1
+      }
+    }
+  },
+  "env_key_deleted": true,
+  "gateway_models_after_restart": [
+    "deepseek",
+    "qwen"
+  ]
+}

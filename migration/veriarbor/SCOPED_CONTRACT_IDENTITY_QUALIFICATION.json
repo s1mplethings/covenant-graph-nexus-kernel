@@ -1,0 +1,29 @@
+{
+  "kind": "ScopedContractIdentityQualification",
+  "context_ref": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\agent\\context-355.json",
+  "context_sha256": "ee67ee6f9e12eea34d8e13748d48f117ad7ca78b739a8476fb65c9101c78d44a",
+  "node": "sem-node-0117",
+  "before_registry_hash": "dfa7e762d68df1301a7e7b18dba452f4ebe291cd24837d60228886faa6ab3ff3",
+  "after_registry_hash": "38071889fa86f5f5568b87da47838e2c5624c1a88745abf9697ca19b6da0d20d",
+  "exact_selected_entries_unchanged": true,
+  "entries_identity": "cd672ead39fffe5f21bbd74a5d4750c348574ff49e7c8d397e94deac3e81dfb1",
+  "diff": {
+    "changes": [],
+    "drift_count": 0,
+    "semantic_equivalence": "UNCHANGED",
+    "removed_requirements": [],
+    "added_requirements": [],
+    "possible_weakening": [],
+    "registry_context_change": {
+      "before": "dfa7e762d68df1301a7e7b18dba452f4ebe291cd24837d60228886faa6ab3ff3",
+      "after": "38071889fa86f5f5568b87da47838e2c5624c1a88745abf9697ca19b6da0d20d"
+    }
+  },
+  "source_changes": [
+    "cgkn/agent/composer.py",
+    "cgkn/protocol/repair.py"
+  ],
+  "no_goal_or_public_contract_mutation": true,
+  "provider_calls": 0,
+  "host_business_patches": 0
+}

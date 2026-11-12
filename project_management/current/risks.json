@@ -3,6 +3,42 @@
   "schema_version": "3.0",
   "risks": [
     {
+      "id": "R-PEN131-END-TO-END",
+      "title": "Isolated boundary success does not imply autonomous end-to-end completion",
+      "probability": "high",
+      "impact": "high",
+      "signal": "Promotion result PRODUCT_NOT_READY; historical INVALID_HARNESS and timing assertion failures retained",
+      "response": "Require current candidate independent acceptance and complete failure diagnostics; no host business patches or fixture substitution in real witness.",
+      "owner": "CGKN project Agent"
+    },
+    {
+      "id": "R-ADAPT130-CONTEXT-CONTRACT",
+      "title": "Arbitrary context limits or incomplete export closure can prevent valid implementation repair",
+      "probability": "medium",
+      "impact": "high",
+      "signal": "ITER-129 request blocked at 18021 bytes before Provider; public exception export missing from the shared registry",
+      "response": "Use sourced physical ceilings, adaptive soft packing and explicit scoped expansion; require closed public declarations before Worker dispatch; retain original invalid witness and costs; freeze current-source regression and independent V4 acceptance before Promotion",
+      "owner": "ITER-130 framework qualification"
+    },
+    {
+      "id": "R-SEM127-UNSAFE-REPAIR",
+      "title": "Protocol normalization can conceal semantic invention or stale ID binding",
+      "probability": "medium",
+      "impact": "high",
+      "signal": "Missing acceptance or contradictory dependencies are repaired mechanically, or an obsolete table is accepted",
+      "response": "Keep strict canonical validator; bind immutable tables; preserve raw output and field diffs; R6/R7 fail closed; require real small-project gate before Promotion",
+      "owner": "semantic protocol qualification"
+    },
+    {
+      "id": "R-CLEAN126-ENTRYPOINTS",
+      "title": "Frozen migration subset can miss an executable application or acceptance caller",
+      "probability": "medium",
+      "impact": "high",
+      "signal": "Original 77 failures closed, then application audit exposed 10 related failures and one legacy acceptance caller",
+      "response": "Audit every canonical DAGRunner caller; preserve failed runs; qualify new explicit adapters, action-policy-preserving staging and read-only historical projections before paid witnesses",
+      "owner": "framework migration closure"
+    },
+    {
       "id": "R-MVP-001",
       "title": "Compatibility runtime remains much larger than the new MVP substrate",
       "probability": "high",
@@ -118,6 +154,51 @@
       "signal": "A scoped repair passes action validation but replaces a declared target with code or public tests that no longer match the existing generated interfaces.",
       "response": "Keep fixed budgets and external acceptance; improve public interface context, patch intent, and proposal verification before rerunning Stage 1. Never repair candidate projects manually or widen worker scope.",
       "owner": "L6 software project generation"
+    },
+    {
+      "id": "R-ACV4-001",
+      "title": "Historical unknown receipts and synthetic calibration limits",
+      "probability": "high",
+      "impact": "medium",
+      "signal": "Two historical requests lack provider request ID and usage; metric tests use controlled samples",
+      "response": "Retain conservative charges, do not replay, label provisional statistics; isolate historical audit gap from current independent acceptance",
+      "owner": "acceptance evidence"
+    },
+    {
+      "id": "R-ACV5-001",
+      "title": "Evaluator intervention breaks clean protocol calibration",
+      "probability": "high",
+      "impact": "high",
+      "signal": "Error JSON on stderr was valid but old checker rejected it, inducing an extra call",
+      "response": "Version checker, retain both runs and all costs, label metrics provisional, require a future independently frozen sample before calibration",
+      "owner": "acceptance evidence"
+    },
+    {
+      "id": "R-ACV51-001",
+      "title": "Qualified checker does not imply qualified repair feedback harness",
+      "probability": "high",
+      "impact": "high",
+      "signal": "Actual container results omit argv while local fixtures include it; renderer parsed hex state observations as JSON",
+      "response": "Qualify end-to-end rendering against actual boundary output before any future frozen sample; never repair or rank a polluted sample as clean",
+      "owner": "strict calibration"
+    },
+    {
+      "id": "R-FW124-UNKNOWN",
+      "title": "Historical and new incomplete Provider outcomes retain unknown usage",
+      "probability": "high",
+      "impact": "medium",
+      "signal": "accounting-summary.json contains unresolved request identities",
+      "response": "Retain reservations and evidence; reconcile authoritative receipt before replay; never score as business failure",
+      "owner": "framework accounting"
+    },
+    {
+      "id": "R-EXEC125-MIGRATION",
+      "title": "New leaf contract rejects unmigrated catalogs and legacy positive fixtures",
+      "probability": "high",
+      "impact": "high",
+      "signal": "77 failures in frozen related regression",
+      "response": "Migrate explicit contracts and independent checkers; preserve assertions; do not add legacy execution bypass",
+      "owner": "framework qualification"
     }
   ]
 }

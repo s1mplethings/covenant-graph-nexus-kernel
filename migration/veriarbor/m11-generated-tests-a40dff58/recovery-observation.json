@@ -1,0 +1,10 @@
+{
+  "kind": "DiagnosticHarnessFailureRecoveryObservation",
+  "timestamp": "2026-11-03T13:52:17.779519+00:00",
+  "original_exit_code": "NOT_RECORDED",
+  "junit_exists": false,
+  "observed_failure": "Unrelated auto-loaded pytestqt QtCore DLL import failed during configure; diagnostic harness then failed reading absent JUnit. No product assertions executed.",
+  "output_sha256": "94cba3c99dba8d8fd225e2d04acffb09031a8da017919bc39697efc2ec249eac",
+  "repair": "Disable plugin autoload explicitly in child environment, tolerate absent JUnit as failed/empty evidence. Rerun under distinct label.",
+  "acceptance_authority": false
+}

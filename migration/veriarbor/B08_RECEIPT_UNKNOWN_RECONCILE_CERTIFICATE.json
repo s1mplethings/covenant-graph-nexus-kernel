@@ -1,0 +1,156 @@
+{
+  "kind": "AuthenticatedLocalBlockCertificate",
+  "block_id": "B08",
+  "status": "VERIFIED",
+  "reuse_status": "FROZEN_REUSABLE",
+  "certificate": {
+    "block_id": "B08",
+    "variant_id": "B08-711c0519",
+    "input_contract_hash": "9c38c48db32402fb2bfcb890965966e8307c06715382444bf994eb0e7362df5d",
+    "output_contract_hash": "7a4e137275b51ae9471d7134fe1597d2181f315b7f21fa433c10146a9bad4f4f",
+    "effect_contract_hash": "726512e078c13b8e5fa7b5790c25f6f83c1bdb1c5f014867b4efd8d4dbd24793",
+    "acceptance_ids": [
+      "B08:UNKNOWN receipt visible",
+      "B08:receipt detail visible",
+      "B08:reconcile to ABSENT",
+      "B08:retry after reconcile published",
+      "B08:retry/reconcile lineage retained",
+      "B08:blind UNKNOWN retry blocked",
+      "B08:explicit UNKNOWN retry published",
+      "B08:receipts persist after restart",
+      "B08:no JavaScript errors"
+    ],
+    "artifact_hashes": [
+      [
+        "main.py#receipts-dom",
+        "df10e557dde97ac401725686c3244ea0134a5756adab2532b31fde735bd01c79"
+      ],
+      [
+        "main.py#receipts-js",
+        "4e590730059e1c03c051cf734fb205e36a3d96fa4d770722621ab3813758dc51"
+      ]
+    ],
+    "checker_hashes": [
+      [
+        "B08.browser",
+        "336fcc0866b54ddc1b7f8a6b90014da06d4300c79be40071d9a87c45ee786308"
+      ]
+    ],
+    "known_limits": [
+      "Block scope only; full M12 rollup requires B01-B11."
+    ],
+    "evidence_refs": [
+      "iter132-promotion-studio/promotion-05/evidence/8b677f4404047b53414ddc2e86026cd96e6383f7b5ca0274023a4f264d4ffc72.json"
+    ],
+    "created_at": "2026-11-05T18:01:29.079003+00:00",
+    "invalidated": false
+  },
+  "certificate_fingerprint": "1e814474fd8e2fd3addc6cf289ccf52ba19e4d1b8923ea2b9536679ecbd0ad3a",
+  "block": {
+    "block_id": "B08",
+    "capability": "ReceiptUnknownReconcileBlock",
+    "input_ports": [
+      {
+        "port_id": "ReceiptUnknownReconcileBlockInput",
+        "version": "1",
+        "direction": "input",
+        "contract": {
+          "schema_json": "{\"additionalProperties\":false,\"properties\":{\"platform_url\":{\"type\":\"string\"},\"project_id\":{\"type\":\"string\"},\"receipt_id\":{\"type\":\"string\"}},\"required\":[\"project_id\",\"receipt_id\",\"platform_url\"],\"type\":\"object\"}",
+          "semantic": "Independent browser acceptance for ReceiptUnknownReconcileBlock."
+        },
+        "required": true,
+        "default_json": "null",
+        "compatibility_policy": "structural-v1"
+      }
+    ],
+    "output_ports": [
+      {
+        "port_id": "ReceiptUnknownReconcileBlockOutput",
+        "version": "1",
+        "direction": "output",
+        "contract": {
+          "schema_json": "{\"additionalProperties\":false,\"properties\":{\"attempts\":{\"type\":\"string\"},\"status\":{\"type\":\"string\"}},\"required\":[\"status\",\"attempts\"],\"type\":\"object\"}",
+          "semantic": "Independent browser acceptance for ReceiptUnknownReconcileBlock."
+        },
+        "required": true,
+        "default_json": "null",
+        "compatibility_policy": "structural-v1"
+      }
+    ],
+    "effect_contract": {
+      "reads": [
+        "persisted milestone state",
+        "selected project identity"
+      ],
+      "writes": [
+        "browser UI state",
+        "project-scoped persistence"
+      ],
+      "external_effects": [
+        "loopback HTTP only"
+      ],
+      "persistence": "restart persistence verified",
+      "idempotency": "duplicate idempotency keys preserve one receipt and one platform post",
+      "concurrency": "threaded server; M11 store lock only at media boundary",
+      "ordering": "UI action -> milestone handler -> persistence -> browser refresh",
+      "rollback": "bounded source patches; isolated acceptance data"
+    },
+    "variants": [
+      {
+        "variant_id": "B08-711c0519",
+        "artifacts": [
+          [
+            "main.py#receipts-dom",
+            "df10e557dde97ac401725686c3244ea0134a5756adab2532b31fde735bd01c79"
+          ],
+          [
+            "main.py#receipts-js",
+            "4e590730059e1c03c051cf734fb205e36a3d96fa4d770722621ab3813758dc51"
+          ]
+        ],
+        "status": "VERIFIED"
+      }
+    ],
+    "active_variant": "B08-711c0519",
+    "certificate_ref": null
+  },
+  "source_sha256_at_verification": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+  "relevant_section_hashes": {
+    "main.py#receipts-dom": "df10e557dde97ac401725686c3244ea0134a5756adab2532b31fde735bd01c79",
+    "main.py#receipts-js": "4e590730059e1c03c051cf734fb205e36a3d96fa4d770722621ab3813758dc51"
+  },
+  "neighbor_contract_hashes": {
+    "M1_project_api_source": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+    "M11_media_api_source": "4e3f4f9ec6ad0c30a04566a3c6a51e5d6d7bb55e23371bbae740831f3f866a08"
+  },
+  "evidence_refs": [
+    {
+      "path": "iter132-promotion-studio/promotion-05/evidence/8b677f4404047b53414ddc2e86026cd96e6383f7b5ca0274023a4f264d4ffc72.json",
+      "sha256": "dee6616e1ba11e6a2d85fcc498e8f484404d7b433c68677e99b01fa75c482ab8"
+    }
+  ],
+  "acceptance_checks": [
+    "UNKNOWN receipt visible",
+    "receipt detail visible",
+    "reconcile to ABSENT",
+    "retry after reconcile published",
+    "retry/reconcile lineage retained",
+    "blind UNKNOWN retry blocked",
+    "explicit UNKNOWN retry published",
+    "receipts persist after restart",
+    "no JavaScript errors"
+  ],
+  "checker": "D:\\VeriArbor\\tools\\m12_b08_acceptance.py",
+  "checker_sha256": "336fcc0866b54ddc1b7f8a6b90014da06d4300c79be40071d9a87c45ee786308",
+  "invalidation_triggers": [
+    "certified section changes",
+    "checker identity changes",
+    "neighbor contract changes"
+  ],
+  "authority": "Original FileRunStore evidence plus VeriArbor Certificate",
+  "host_business_patches": 0,
+  "canonical_evidence_ref": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/893b838afc0d683e159761733db8f2db1d9f3005a07d48020dc82753063c4036.json",
+    "sha256": "e946e4b37a3fd2c5e37f9a6a9fa798bc1d64765340cfe388d99222169791ce29"
+  }
+}

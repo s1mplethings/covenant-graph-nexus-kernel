@@ -1,0 +1,185 @@
+{
+  "kind": "RealProductCertifiedSubstitutionWitness",
+  "authority_sha256": "165fd44c09b6a88a31a5b6ed8f9b4426a58390e2651f3721fc534fe323fd54d3",
+  "authority_unchanged": true,
+  "rows": [
+    {
+      "goal": "accept-d6e339ee9f02be6ab5e1",
+      "requirements": [
+        "M7"
+      ],
+      "verdict": "VERIFIED",
+      "original_subjects": {
+        "early_main.py": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+        "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+        "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": "db223502ff57164389978d41cde5d9f850c756a714f9c8b5fd9085ffea27d511",
+        "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+        "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+        "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+        "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+      },
+      "effective_subjects": {
+        "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024",
+        "early_main.py": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+        "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+        "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": "fa6720fa72e5e955987349f999c1314360f448310c1fa52d2e63179df741f950",
+        "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+        "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+        "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2"
+      },
+      "substitutions": {
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": {
+          "old_certificate": "50bd1dba111b5c81471d970f5d52ce363af2263bd97c437d82e1aba4e86f953f",
+          "new_certificate": "a646559b30948dcd9678e73baf827cd2eb59611ae5366983efe91a00d980c137",
+          "old_hash": "db223502ff57164389978d41cde5d9f850c756a714f9c8b5fd9085ffea27d511",
+          "new_hash": "fa6720fa72e5e955987349f999c1314360f448310c1fa52d2e63179df741f950",
+          "evidence_refs": [
+            "sha256:a404a3f9dc416607209ac03fa7c504f7257597ae3eb0e143c54f26c685581d9b"
+          ]
+        }
+      },
+      "original_receipt": "3f973c5657395efcd23283e1ec45b27d27d8097147fb3af8799817c8cf1602ef"
+    },
+    {
+      "goal": "accept-e812ecc43e67c1b1f70a",
+      "requirements": [
+        "M8"
+      ],
+      "verdict": "VERIFIED",
+      "original_subjects": {
+        "early_main.py": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+        "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+        "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": "db223502ff57164389978d41cde5d9f850c756a714f9c8b5fd9085ffea27d511",
+        "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+        "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+        "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+        "milestones/milestone_989800776c3d6229e431/api.py": "a613d313a070daefc416eb56ab9f7f0ea4b9ab6c11d6ad745a0d029f67e71b38",
+        "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+      },
+      "effective_subjects": {
+        "milestones/milestone_989800776c3d6229e431/api.py": "a613d313a070daefc416eb56ab9f7f0ea4b9ab6c11d6ad745a0d029f67e71b38",
+        "early_main.py": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+        "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+        "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": "fa6720fa72e5e955987349f999c1314360f448310c1fa52d2e63179df741f950",
+        "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+        "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+        "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+        "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+      },
+      "substitutions": {
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": {
+          "old_certificate": "50bd1dba111b5c81471d970f5d52ce363af2263bd97c437d82e1aba4e86f953f",
+          "new_certificate": "a646559b30948dcd9678e73baf827cd2eb59611ae5366983efe91a00d980c137",
+          "old_hash": "db223502ff57164389978d41cde5d9f850c756a714f9c8b5fd9085ffea27d511",
+          "new_hash": "fa6720fa72e5e955987349f999c1314360f448310c1fa52d2e63179df741f950",
+          "evidence_refs": [
+            "sha256:a404a3f9dc416607209ac03fa7c504f7257597ae3eb0e143c54f26c685581d9b"
+          ]
+        }
+      },
+      "original_receipt": "b4e0d76a078b406924513abd0616c134072c8993e71d747dbbf3331fe37df87a"
+    },
+    {
+      "goal": "accept-f5c7d005f6ae37dd5411",
+      "requirements": [
+        "M9"
+      ],
+      "verdict": "VERIFIED",
+      "original_subjects": {
+        "early_main.py": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+        "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+        "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": "db223502ff57164389978d41cde5d9f850c756a714f9c8b5fd9085ffea27d511",
+        "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+        "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+        "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+        "milestones/milestone_989800776c3d6229e431/api.py": "a613d313a070daefc416eb56ab9f7f0ea4b9ab6c11d6ad745a0d029f67e71b38",
+        "milestones/milestone_c511a8ebd29978f5ba97/api.py": "544d890040f5e119f9bb26d797d2a3d2f8669fac93f581bc98811431db651558",
+        "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+      },
+      "effective_subjects": {
+        "milestones/milestone_c511a8ebd29978f5ba97/api.py": "544d890040f5e119f9bb26d797d2a3d2f8669fac93f581bc98811431db651558",
+        "early_main.py": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+        "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+        "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": "fa6720fa72e5e955987349f999c1314360f448310c1fa52d2e63179df741f950",
+        "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+        "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+        "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+        "milestones/milestone_989800776c3d6229e431/api.py": "a613d313a070daefc416eb56ab9f7f0ea4b9ab6c11d6ad745a0d029f67e71b38",
+        "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+      },
+      "substitutions": {
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": {
+          "old_certificate": "50bd1dba111b5c81471d970f5d52ce363af2263bd97c437d82e1aba4e86f953f",
+          "new_certificate": "a646559b30948dcd9678e73baf827cd2eb59611ae5366983efe91a00d980c137",
+          "old_hash": "db223502ff57164389978d41cde5d9f850c756a714f9c8b5fd9085ffea27d511",
+          "new_hash": "fa6720fa72e5e955987349f999c1314360f448310c1fa52d2e63179df741f950",
+          "evidence_refs": [
+            "sha256:a404a3f9dc416607209ac03fa7c504f7257597ae3eb0e143c54f26c685581d9b"
+          ]
+        }
+      },
+      "original_receipt": "58ee6f0168bbceeb48b8f5d37b86d350c39df5f53e3ed919713635dc00df018c"
+    },
+    {
+      "goal": "accept-50facb9f04482acba162",
+      "requirements": [
+        "M10"
+      ],
+      "verdict": "VERIFIED",
+      "original_subjects": {
+        "early_main.py": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+        "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+        "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": "db223502ff57164389978d41cde5d9f850c756a714f9c8b5fd9085ffea27d511",
+        "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+        "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+        "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+        "milestones/milestone_989800776c3d6229e431/api.py": "a613d313a070daefc416eb56ab9f7f0ea4b9ab6c11d6ad745a0d029f67e71b38",
+        "milestones/milestone_af427946c6dea418047a/api.py": "95c470c2bb2e3ad0fed836dfe705f1baa29648b8c954b572629f6eb9940672c3",
+        "milestones/milestone_c511a8ebd29978f5ba97/api.py": "544d890040f5e119f9bb26d797d2a3d2f8669fac93f581bc98811431db651558",
+        "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+      },
+      "effective_subjects": {
+        "milestones/milestone_af427946c6dea418047a/api.py": "95c470c2bb2e3ad0fed836dfe705f1baa29648b8c954b572629f6eb9940672c3",
+        "early_main.py": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+        "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+        "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": "fa6720fa72e5e955987349f999c1314360f448310c1fa52d2e63179df741f950",
+        "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+        "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+        "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+        "milestones/milestone_989800776c3d6229e431/api.py": "a613d313a070daefc416eb56ab9f7f0ea4b9ab6c11d6ad745a0d029f67e71b38",
+        "milestones/milestone_c511a8ebd29978f5ba97/api.py": "544d890040f5e119f9bb26d797d2a3d2f8669fac93f581bc98811431db651558",
+        "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024"
+      },
+      "substitutions": {
+        "milestones/milestone_33270fed0c9054f5ae04/api.py": {
+          "old_certificate": "50bd1dba111b5c81471d970f5d52ce363af2263bd97c437d82e1aba4e86f953f",
+          "new_certificate": "a646559b30948dcd9678e73baf827cd2eb59611ae5366983efe91a00d980c137",
+          "old_hash": "db223502ff57164389978d41cde5d9f850c756a714f9c8b5fd9085ffea27d511",
+          "new_hash": "fa6720fa72e5e955987349f999c1314360f448310c1fa52d2e63179df741f950",
+          "evidence_refs": [
+            "sha256:a404a3f9dc416607209ac03fa7c504f7257597ae3eb0e143c54f26c685581d9b"
+          ]
+        }
+      },
+      "original_receipt": "9768ac619c1142faa5d183224908af1076e0d83d2104ab5ce14e067381d63a80"
+    }
+  ],
+  "verdicts": {
+    "M6": "VERIFIED",
+    "M7": "VERIFIED",
+    "M8": "VERIFIED",
+    "M9": "VERIFIED",
+    "M10": "VERIFIED",
+    "M11": "INSUFFICIENT_EVIDENCE"
+  },
+  "no_business_or_acceptance_writes": true,
+  "scope": "Actual original M6 repair and checker129; surrounding receipts retained, not re-executed"
+}

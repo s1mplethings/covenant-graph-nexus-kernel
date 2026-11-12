@@ -1,0 +1,49 @@
+{
+  "checks": [
+    "visible empty state"
+  ],
+  "network": [
+    {
+      "url": "http://127.0.0.1:28484/",
+      "method": "GET",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:28484/api/action",
+      "method": "POST",
+      "status": 200,
+      "request_body": "{\"op\":\"project.list\"}"
+    },
+    {
+      "url": "http://127.0.0.1:28484/api/action",
+      "method": "POST",
+      "status": 400,
+      "request_body": "{\"op\":\"project.create\",\"name\":\"Browser Created Project\"}"
+    },
+    {
+      "url": "http://127.0.0.1:28484/api/action",
+      "method": "POST",
+      "status": 200,
+      "request_body": "{\"op\":\"project.list\"}"
+    }
+  ],
+  "javascript_errors": [],
+  "console": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 400 (Bad Request)"
+    }
+  ],
+  "preflight": {
+    "html_parsed": true,
+    "js_parse": true,
+    "duplicate_ids": [],
+    "literal_dom_references_resolved": true
+  },
+  "status": "FAIL",
+  "error": "AssertionError: project.create HTTP200"
+}

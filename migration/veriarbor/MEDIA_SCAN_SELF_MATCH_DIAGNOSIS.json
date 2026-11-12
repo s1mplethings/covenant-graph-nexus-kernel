@@ -1,0 +1,30 @@
+{
+  "kind": "TextualModuleScanSelfMatchCounterexample",
+  "matches_in_actual_directory_order": [
+    {
+      "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\milestones\\milestone_33270fed0c9054f5ae04\\api.py",
+      "declared_milestone": [
+        "M6"
+      ],
+      "sha256": "59cc8a5f99790064b8b6c70a84c1851cad44bdfe1ea203cb4de38423d80f4b5b"
+    },
+    {
+      "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\milestones\\milestone_dbb8341c8910593063a8\\api.py",
+      "declared_milestone": [
+        "M11"
+      ],
+      "sha256": "e4737c448e03a9fd794b9cc86a34a0ab14a04add0ac24b6cbbe42bb7e85336af"
+    }
+  ],
+  "selected": {
+    "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\milestones\\milestone_33270fed0c9054f5ae04\\api.py",
+    "declared_milestone": [
+      "M6"
+    ],
+    "sha256": "59cc8a5f99790064b8b6c70a84c1851cad44bdfe1ea203cb4de38423d80f4b5b"
+  },
+  "canonical_media": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\milestones\\milestone_dbb8341c8910593063a8\\api.py",
+  "reason": "Text occurrence in loader code is not a module MILESTONE_ID declaration. Current loop chooses first textual match, including its own source. Exact priorfa6720fa canonical path had passed valid-media prerequisite;59scan introduces ambiguity.",
+  "negative_test_limitation": "Two approval-negative tests pass even when every media reference is rejected. They cannot establish valid-media acceptance. Canonical131 has real valid-media counterexample.",
+  "host_business_patches": 0
+}

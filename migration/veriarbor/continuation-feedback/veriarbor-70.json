@@ -1,0 +1,61 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "Use Qwen Flash Agent 7000 and DeepSeek Flash Worker 20000. No Pro/Max. Preserve all historical calls and nine new upstream UNKNOWNs. Do not replay old requests.",
+    "milestone_completion_request": "Finish original M12, generated tests and documentation, actual browser/product validation, then the original packaging/delivery gate, accounting/provenance/Corpus and reports. Reuse verified M1-M11. Never grant product PASS from a successful source write. main.py has one owner: 143. Keep the frozen full M12 contract and all documented test debts. For the next bounded source task, implement the two concrete integration mechanisms below completely in one write. Remaining edit/new-content, project state, schedule/analytics, evidence/claim creation, reconciliation/revision comparison and test/documentation debts remain open after this slice.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "main.py": "8981690ec13e83042dc170ec62f202e67fb12b6ac4378a34a3cb1e0f36fe0afd"
+        }
+      },
+      "current_owner": 143,
+      "attempt": 14,
+      "resolved": "Actual GUI PNG upload nowHTTP200, hash andservedbytesmatch; invalidbase64HTTP400. All11routesPASS. ContentPlatformURL visible; old151failurestrictmode washidden duplicate label matching. New qualifiedrevision7 filtersvisiblePlatformURL only,21controls retained/passed including6newbrowsercontrols. Allbusinessassertions unchanged.",
+      "next": "Run existing151 on newqualifiedrevision7, no source repair before this current measurement. Do not repeatold150 or repairvisiblePlatformURL fromoldstrictlocatorfailure. M1-M11reuse.",
+      "remaining": "No reachableMedia nav/exactMedia file/Import media controls yet (uploadcurrentlyContent Uploadmedia/ImportMedia). Savealwayscreate; scopedstate/schedule/analytics/Signals/compare/reconcile/docs/tests stillopen. Aftercurrentnativefailure repair actualowner143 withfull_file_write true and preserveworkinguploadbridge/currentvisiblecontrols.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_V9_QUALIFICATION.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_V9_ACTIVATION.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-upload-8981690e\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A14_DELTA.txt"
+      ]
+    },
+    "gui_writer_policy": "Only original node 143 writes main.py. Backend files and early_main.py remain unchanged. No parallel GUI writers. Host business patches remain zero.",
+    "admission_correction": "Current main8981690e newqualifiedrevision7 requires current measurement. Action RETRY existing151, not REPAIR143 yet. Qualifiedv9 fixes only hidden duplicate PlatformURL observerambiguity. Uploadbridge actuallyworks, preserveit. After newnativefailure use its exactcurrent receipt inrepairhypothesis; do not usepriorCSSvariantfailure. full_file_write=true required for future143repair. No M1-M11rerun.",
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "main.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0150\\attempt-0002.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A13_DELTA.txt",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-full-write-policy-qualification\\pytest.log",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-upload-8da2b883\\receipt.json"
+        ]
+      }
+    ],
+    "redecision": {
+      "strategy_revision": "c8d3141105c5207de21a362da5d6e6b79bb2ad195a1fce1a8ab582e23a79da0e",
+      "reason": "Newqualifiedchecker delta isolateshiddenlabelambiguity onactual898GUI;21controls pass, allbusinessassertionsretained. Actualupload nowPASS. Needcurrent151measurementbeforefurtherrepair.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_V9_QUALIFICATION.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_V9_ACTIVATION.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-upload-8981690e\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A14_DELTA.txt"
+      ]
+    }
+  }
+}

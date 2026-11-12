@@ -1,0 +1,101 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "QwenFlash Agent7000 / DeepSeekFlash boundedWorker only. NoPro/Max. Preserve10newUNKNOWN. Stop repeatedsameformat failures; route switch supported by two fresh explicit INVALID_OUTPUT receipts, no source effects.",
+    "milestone_completion_request": "Continue original M12 owner143 four-mechanism repair, then current153 independentcheck. Preserve verifiedM1-M11 and all existing workingGUIflows. Follow fullfrozencontract andremainingtest/docs/Signals/compare/reconcile obligations afterthisslice. Do not restart completedmilestones.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "main.py": "041a367eaaaf2b318ecd380f26a5227019733457bce918de5d224286dd35e8cb"
+        }
+      },
+      "current_owner": 143,
+      "attempt": 18,
+      "native_current_failure": {
+        "bound_reference": {
+          "path": "attempts/sem-node-0153/attempt-0001.json",
+          "receipt_hash": "93fb9dcbf07d2a8eee11a27a96e064396b0eeb45c1bf80185a28b76dd06da462"
+        },
+        "reason": "M12_independent_business_suite: TimeoutError: Locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for get_by_role(\"button\", name=\"Media\", exact=True)\n"
+      },
+      "preserve_proven_behaviors": "Actual browser uploadedPNG/video, decodedattachedvideo, publishedoverrealHTTP, verifiedreceipt/mediarevisionbinding andidempotency, restartedprocessandreadreceipt/media, editedSAMEcontentID rev1->2 withapprovalDRAFT, blockedunapprovededit andchanged/missingmedia beforePOST. NoJSerrors. All11serverroutes/staticDOMPASS. Do notrewritebackend, removeedit/Newcontent, breakuploadbridge/publishcontrols/Claimsrefresh/threading.",
+      "remaining_actual_mechanisms": [
+        "Analytics button is now reachable and calls M10, but it reads receipt.platform_url. ACTUAL receipt has NO platform_url: browser request sends emptystring andreturns400. Preserve configured Platform URL from actualinput in state/localStorage, synchronize Content andSchedule inputs onchange, reuse it for analytics. Alternatively parse actual receipt.request_ref which is the original platform /publish URL, not receipt.url (remote item URL). Analytics fetch requires project_id,receipt_id,platform_url; history requires project_id AND receipt_id (currently missing). Use same actual selected/current PUBLISHED receipt for both and render returned metrics. Preserve receipts remoteIDs.",
+        "Schedule usesM8 now, but createpayload contains onlyproject_id/content_id/when. Actualclick400 platform_url required. Add shared configured platform_url AND idempotency_key, then select returned schedule.id soCancel/Reschedule are usable; currentstate.scheduleId neverassigned. loadSchedules must restore/display actualselection. No APIbackendchange.",
+        "_serve_state still ignoresproject_idquery; eachproject-boundlist calledwithoutID anderrorsswallowed. ActualGETwithproject_id returns emptycontents/receipts despitepublishedcontent. Passparsedquery tostatehandler; validate requestedproject viaM1project.get then call M4campaign.list,M5content.list,M9receipt.list,M8schedule.list with project_id. Unknownproject400, foreignprojectonlyownrows. No blank200 maskingerrors. Startupprojectlistwithoutselectedproject mayreturnprojects+emptyprojectboundarrays explicitly.",
+        "Mediauploadworks but remainsonlyContent Uploadmedia/ImportMedia with noMedia nav. Provide reachableMedia nav/section with labelMedia file, labelMedia kind and buttonImport media, connectedtoexistingbase64serverbridge. PreserveContentmedia selectandactuallinkedpreview. UseuniqueDOMIDs and navshowView includesnewsection; no unusedhelper."
+      ],
+      "atomic_protocol": "One original143 full-file write: strategy.full_file_write=true, rawJSONop2 only, no prose/Markdown/XML toolcalls. Include all four concrete mechanisms inleafgoal/expected passedtoWorker. These are missingarguments/state/visiblecontrols, notbackenddefects. Do not change onlymodule tags again; alreadycorrect.",
+      "next": "Repair143deps[] fromcurrent153failure. Afternewsource measurecurrent153key beforeanotherrepair. NoM1-M11checks. Original test/docs debts remain; contentcompare/reconcile/Signals fullworkflow stillrequired forfinalproduct.",
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0153\\attempt-0001.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-gui-contracts-041a367e\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A18_DELTA.txt",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-143a18\\receipt.json"
+      ],
+      "worker_protocol_diagnosis": {
+        "kind": "RepeatedWorkerProtocolFailure",
+        "attempts": [
+          19,
+          20
+        ],
+        "errors": [
+          "INVALID_OR_INCOMPLETE_JSON",
+          "INVALID_OR_INCOMPLETE_JSON"
+        ],
+        "response_forms": [
+          "prose plus XML tool_call",
+          "prose plus JSON read"
+        ],
+        "source_unchanged": true,
+        "source_sha256": "041a367eaaaf2b318ecd380f26a5227019733457bce918de5d224286dd35e8cb",
+        "outcome_unknown": false,
+        "next_executor_route": "qwen-agent-deepseek-worker-gui-route.json",
+        "requirement": "Original bounded repair only. Parse strict JSON normally; do not extract/replay rejected text. First read may be op0/path1 rawJSON only; when currentsourceobserved, one complete op2 fullfile addressingallfourmechanisms. Preservebackend/core, failedhistory, ledger.",
+        "evidence_refs": [
+          "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0143\\attempt-0019.json",
+          "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0143\\attempt-0020.json"
+        ]
+      }
+    },
+    "gui_writer_policy": "Only original node 143 writes main.py. Backend files and early_main.py remain unchanged. No parallel GUI writers. Host business patches remain zero.",
+    "admission_correction": "Current143a18 main041a367e has native153a1failure andrealbrowseranalytics400/schedule400/scopedemptycounterexamples. Repair original143deps[] withstrategy.full_file_write:true andTOP-LEVELhypothesis.falsifying_evidence=[{\"path\": \"attempts/sem-node-0153/attempt-0001.json\", \"receipt_hash\": \"93fb9dcbf07d2a8eee11a27a96e064396b0eeb45c1bf80185a28b76dd06da462\"}]. Pass all four concrete mechanisms above toWorker; preserve all measuredworkingflows. Actualreceipt hasrequest_ref, NOTplatform_url. Newsource thenmeasure153 currentkey; no newduplicatewriter, no oldfailure repair. RawJSONonly.",
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "main.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0150\\attempt-0002.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A13_DELTA.txt",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-full-write-policy-qualification\\pytest.log",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-upload-8da2b883\\receipt.json"
+        ]
+      }
+    ],
+    "redecision": {
+      "strategy_revision": "b9ff5ce608d878b92d984bd13451a023453b1f532f229f3aa50d7821a2265838",
+      "reason": "Two fresh Qwen worker attempts19/20 failed strict JSON before any source effect; native153businessfailure unchanged. Stop same-worker formatting loop. Existing admitted alternate cheap executor must read using rawJSON then perform one complete fullfile write, independently checked. No unknown response replay or parser weakening.",
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0143\\attempt-0019.json",
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0143\\attempt-0020.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\WORKER_PROTOCOL_FAILURES_143A19_A20.json",
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0153\\attempt-0001.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-gui-contracts-041a367e\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A18_DELTA.txt",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-143a18\\receipt.json"
+      ]
+    }
+  }
+}

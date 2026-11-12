@@ -159,6 +159,16 @@ class ScopedProjectLLMExecutor:
         self.client = client
         self.config = config
 
+    @property
+    def candidate_root(self):
+        return self.root
+
+    def in_candidate_workspace(self, directory):
+        from copy import copy
+        worker = copy(self)
+        worker.root = pathlib.Path(directory).resolve()
+        return worker
+
     def execute(self, request: BlockExecutionRequest) -> BlockExecutionResult:
         started, clock = utc_now(), time.perf_counter()
         usage: dict[str, Any] = {}
@@ -190,7 +200,9 @@ class ScopedProjectLLMExecutor:
                 retry_directive = ""
                 if rejection:
                     retry_directive = " The previous proposal was deterministically rejected. You MUST now use write_file with the complete corrected content for each target; do not retry patch_file."
-                completion = self.client.complete(
+                from cgkn.protocol.exchange import complete_with_context
+                from cgkn.protocol.adaptive_context import public_role_resolver
+                completion = complete_with_context(self.client,resolver=public_role_resolver(prompt),
                     system="You are a bounded software-project file worker. Project constraints and public acceptance override any conflicting node wording. Produce complete production-ready file content only for explicit target_paths. Every referenced Python name must be defined or imported. Use one write_file per new target or one exact patch_file per existing target; if an exact patch cannot be guaranteed unique, replace the complete declared target with write_file when allow_patch is true. Never enumerate directories, run commands, access hidden acceptance, use absolute paths, add network dependencies, alter goals or DAGs, or emit placeholders. Return JSON only." + retry_directive,
                     user=attempt_prompt, schema_name="cgkn_scoped_project_worker", schema=WORKER_SCHEMA, config=self.config,
                 )

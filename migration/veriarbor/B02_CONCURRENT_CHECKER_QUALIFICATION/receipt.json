@@ -1,0 +1,290 @@
+{
+  "status": "PASS",
+  "checker_hash": "b41ec83e317c3623f33be1ec58323e2baac66ae3b0f4849e1947078bcbace1cb",
+  "previous_checker_hash": "0e9d2b4f6071d51af8ed390e4fca14061e8a2dff524ba2b9879946067dc0226c",
+  "revision_path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\consumer-revisions\\block-concurrent-media-v12.py",
+  "controls": [
+    {
+      "kind": "positive",
+      "name": "same workflow under serialized reference HTTP transport; test fixture only",
+      "passed": true,
+      "receipt": {
+        "source_sha256": "8abad4b62a934887acc3774a2b6d77dcab5d6ee8ecf99105504e71c1cdde7890",
+        "checks": [
+          "browser image upload HTTP200",
+          "real identity",
+          "project and bytes binding",
+          "owned preview bytes",
+          "concurrent owned preview reads return exact bytes",
+          "invalid browser payload rejected",
+          "source unchanged"
+        ],
+        "scope": "Browser image upload port only; not B02/M12 completion",
+        "browser": "134.0.3124.51",
+        "upload": {
+          "status": 200,
+          "body": {
+            "id": "1fdf39c4bc6b448a95e5f22ef5ae3d01",
+            "project_id": "afda4ac9729b44cabe9957bdc9c08e27",
+            "kind": "image",
+            "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e",
+            "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_CONCURRENT_CHECKER_QUALIFICATION\\positive\\data\\media_storage\\afda4ac9729b44cabe9957bdc9c08e27\\1fdf39c4bc6b448a95e5f22ef5ae3d01.png",
+            "status": "VALID"
+          }
+        },
+        "concurrent_preview": {
+          "passed": true,
+          "requests": [
+            {
+              "index": 0,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 1,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 2,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 3,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 4,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 5,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 6,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 7,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 8,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 9,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 10,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 11,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            }
+          ]
+        },
+        "status": "PASS",
+        "startup": {
+          "command": [
+            "D:\\anaconda\\python.exe",
+            "-X",
+            "utf8",
+            "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_CONCURRENT_CHECKER_QUALIFICATION\\serialized-reference\\main.py",
+            "--serve",
+            "--port",
+            "25065",
+            "--data",
+            "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_CONCURRENT_CHECKER_QUALIFICATION\\positive\\data"
+          ],
+          "url": "http://127.0.0.1:25065"
+        },
+        "cleanup": {
+          "server_stopped": true
+        }
+      }
+    },
+    {
+      "kind": "negative",
+      "name": "current real concurrent preview fails on shared media.json.tmp; source bound",
+      "passed": true,
+      "receipt": {
+        "source_sha256": "61bebcfedac3c0624cdb0bb1a65e208eeb05a95eb664488042b5b84ecb11bdd4",
+        "checks": [
+          "browser image upload HTTP200",
+          "real identity",
+          "project and bytes binding",
+          "owned preview bytes",
+          "source unchanged"
+        ],
+        "scope": "Browser image upload port only; not B02/M12 completion",
+        "browser": "134.0.3124.51",
+        "upload": {
+          "status": 200,
+          "body": {
+            "id": "e26e887b6fde4207b74d52005c5ae253",
+            "project_id": "d91ab867d88d4dd7a16a89f542e04ba8",
+            "kind": "image",
+            "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e",
+            "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_CONCURRENT_CHECKER_QUALIFICATION\\current-negative\\data\\media_storage\\d91ab867d88d4dd7a16a89f542e04ba8\\e26e887b6fde4207b74d52005c5ae253.png",
+            "status": "VALID"
+          }
+        },
+        "concurrent_preview": {
+          "passed": false,
+          "requests": [
+            {
+              "index": 0,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 1,
+              "status": 400,
+              "error": "{\"error\": \"[Errno 13] Permission denied: 'F:\\\\\\\\CGKN-LeanLoop-V1-20261101\\\\\\\\migration\\\\\\\\veriarbor\\\\\\\\B02_CONCURRENT_CHECKER_QUALIFICATION\\\\\\\\current-negative\\\\\\\\data\\\\\\\\media.json.tmp'\"}"
+            },
+            {
+              "index": 2,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 3,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 4,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 5,
+              "status": 400,
+              "error": "{\"error\": \"[WinError 32] \\u53e6\\u4e00\\u4e2a\\u7a0b\\u5e8f\\u6b63\\u5728\\u4f7f\\u7528\\u6b64\\u6587\\u4ef6\\uff0c\\u8fdb\\u7a0b\\u65e0\\u6cd5\\u8bbf\\u95ee\\u3002: 'F:\\\\\\\\CGKN-LeanLoop-V1-20261101\\\\\\\\migration\\\\\\\\veriarbor\\\\\\\\B02_CONCURRENT_CHECKER_QUALIFICATION\\\\\\\\current-negative\\\\\\\\data\\\\\\\\media.json.tmp' -> 'F:\\\\\\\\CGKN-LeanLoop-V1-20261101\\\\\\\\migration\\\\\\\\veriarbor\\\\\\\\B02_CONCURRENT_CHECKER_QUALIFICATION\\\\\\\\current-negative\\\\\\\\data\\\\\\\\media.json'\"}"
+            },
+            {
+              "index": 6,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 7,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 8,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 9,
+              "status": 400,
+              "error": "{\"error\": \"[Errno 13] Permission denied: 'F:\\\\\\\\CGKN-LeanLoop-V1-20261101\\\\\\\\migration\\\\\\\\veriarbor\\\\\\\\B02_CONCURRENT_CHECKER_QUALIFICATION\\\\\\\\current-negative\\\\\\\\data\\\\\\\\media.json.tmp'\"}"
+            },
+            {
+              "index": 10,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            },
+            {
+              "index": 11,
+              "status": 200,
+              "sha256": "7031dc784fbe64d6d9c488a9f46dc244beb21cad89743856130d76f5189cde6e"
+            }
+          ]
+        },
+        "status": "FAIL",
+        "error": "AssertionError: concurrent owned preview reads return exact bytes",
+        "startup": {
+          "command": [
+            "D:\\anaconda\\python.exe",
+            "-X",
+            "utf8",
+            "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\main.py",
+            "--serve",
+            "--port",
+            "25147",
+            "--data",
+            "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_CONCURRENT_CHECKER_QUALIFICATION\\current-negative\\data"
+          ],
+          "url": "http://127.0.0.1:25147"
+        },
+        "cleanup": {
+          "server_stopped": true
+        }
+      }
+    },
+    {
+      "kind": "mutation",
+      "name": "incorrect response hash rejected independently",
+      "passed": true,
+      "receipt": {
+        "source_sha256": "8abad4b62a934887acc3774a2b6d77dcab5d6ee8ecf99105504e71c1cdde7890",
+        "checks": [
+          "browser image upload HTTP200",
+          "real identity",
+          "source unchanged"
+        ],
+        "scope": "Browser image upload port only; not B02/M12 completion",
+        "browser": "134.0.3124.51",
+        "upload": {
+          "status": 200,
+          "body": {
+            "id": "610e9e277485476fba3a841fb14785d5",
+            "project_id": "9f75d3a8cd1145fb8fb721dac36032a7",
+            "kind": "image",
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_CONCURRENT_CHECKER_QUALIFICATION\\wrong-hash\\data\\media_storage\\9f75d3a8cd1145fb8fb721dac36032a7\\610e9e277485476fba3a841fb14785d5.png",
+            "status": "VALID"
+          }
+        },
+        "status": "FAIL",
+        "error": "AssertionError: project and bytes binding",
+        "startup": {
+          "command": [
+            "D:\\anaconda\\python.exe",
+            "-X",
+            "utf8",
+            "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_CONCURRENT_CHECKER_QUALIFICATION\\serialized-reference\\main.py",
+            "--serve",
+            "--port",
+            "25201",
+            "--data",
+            "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_CONCURRENT_CHECKER_QUALIFICATION\\wrong-hash\\data"
+          ],
+          "url": "http://127.0.0.1:25201"
+        },
+        "cleanup": {
+          "server_stopped": true
+        }
+      }
+    },
+    {
+      "kind": "mutation",
+      "name": "wrong object hash rejected before browser",
+      "passed": true
+    },
+    {
+      "kind": "positive",
+      "name": "previous checker fallback bytes unchanged",
+      "passed": true
+    }
+  ],
+  "product_sources_modified": false,
+  "scope": "Same B02 owned preview contract under concurrent browser reads; original complete M12 unchanged"
+}

@@ -24,7 +24,9 @@ PRODUCTION_MAINLINE = {
     "entry": "scripts.codex_conversation.start_generation_from_income",
     "default_generation": "scripts.codex_conversation.run_provider_generation_job",
     "execution_chain": [
-        "scripts.codex_conversation.run_provider_execute_with_retries",
+        "cgkn.application.software_project.service.SoftwareProjectGenerationService.run_profile",
+        "cgkn.agent.ProjectSession",
+        "cgkn.runtime.dag_runner.DAGRunner",
         "provider output validation",
         "scripts.post_build_finalize.run",
         "scripts.real_test_execution.run_tests",
@@ -39,8 +41,6 @@ PRODUCTION_MAINLINE = {
     ],
     "support_lane": [
         "scripts.codex_conversation.run_agent_generation_job",
-        "scripts.dynamic_pipeline_runner.run_dynamic_pipeline",
-        "scripts.agent_conversation_loop.run_agent_loop",
     ],
     "diagnostic_only": ["scripts.final_internal_acceptance"],
 }

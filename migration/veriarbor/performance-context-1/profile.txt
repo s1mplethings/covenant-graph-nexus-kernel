@@ -1,0 +1,28 @@
+         637849 function calls (467510 primitive calls) in 0.356 seconds
+
+   Ordered by: cumulative time
+   List reduced from 322 to 20 due to restriction <20>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.002    0.002    0.357    0.357 F:\CGKN-LeanLoop-V1-20261101\cgkn\agent\composer.py:372(_milestone_snapshot)
+        1    0.008    0.008    0.292    0.292 F:\CGKN-LeanLoop-V1-20261101\cgkn\protocol\tables.py:7(planner_snapshot)
+      123    0.000    0.000    0.166    0.001 F:\CGKN-LeanLoop-V1-20261101\cgkn\orchestration\capability_tree.py:48(as_dict)
+52361/125    0.036    0.000    0.166    0.001 F:\CGKN-LeanLoop-V1-20261101\cgkn\component\spec.py:100(_thaw)
+210884/106162    0.042    0.000    0.132    0.000 {built-in method builtins.isinstance}
+    52361    0.019    0.000    0.101    0.000 D:\anaconda\Lib\typing.py:1194(__instancecheck__)
+    52361    0.024    0.000    0.082    0.000 D:\anaconda\Lib\typing.py:1465(__subclasscheck__)
+       94    0.000    0.000    0.070    0.001 D:\anaconda\Lib\json\__init__.py:299(loads)
+       94    0.000    0.000    0.070    0.001 D:\anaconda\Lib\json\decoder.py:332(decode)
+       93    0.000    0.000    0.069    0.001 F:\CGKN-LeanLoop-V1-20261101\cgkn\protocol\repair.py:68(document)
+       94    0.069    0.001    0.069    0.001 D:\anaconda\Lib\json\decoder.py:343(raw_decode)
+    52385    0.021    0.000    0.045    0.000 {built-in method builtins.issubclass}
+     11/2    0.000    0.000    0.039    0.020 <frozen importlib._bootstrap>:1349(_find_and_load)
+     11/2    0.000    0.000    0.039    0.019 <frozen importlib._bootstrap>:1304(_find_and_load_unlocked)
+     11/2    0.000    0.000    0.038    0.019 <frozen importlib._bootstrap>:911(_load_unlocked)
+     11/2    0.000    0.000    0.038    0.019 <frozen importlib._bootstrap_external>:989(exec_module)
+      130    0.001    0.000    0.038    0.000 D:\anaconda\Lib\json\__init__.py:183(dumps)
+      130    0.000    0.000    0.037    0.000 D:\anaconda\Lib\json\encoder.py:183(encode)
+      130    0.036    0.000    0.036    0.000 D:\anaconda\Lib\json\encoder.py:205(iterencode)
+     26/4    0.000    0.000    0.036    0.009 <frozen importlib._bootstrap>:480(_call_with_frames_removed)
+
+

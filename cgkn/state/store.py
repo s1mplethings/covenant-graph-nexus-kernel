@@ -1,9 +1,15 @@
 from __future__ import annotations
 
 import json
+import errno
 import os
 import pathlib
 import tempfile
+import threading
+import time
+from contextlib import contextmanager
+
+_EVENT_LOCK = threading.RLock()
 from typing import Any, Mapping
 
 from cgkn.execution import BlockExecutionResult
@@ -11,14 +17,54 @@ from cgkn.execution import BlockExecutionResult
 from .models import EventRecord, ProjectState, RunState
 
 
-class StateStoreError(RuntimeError):
-    pass
+from cgkn.artifacts.locking import StateStoreError, exclusive_file
+
+
+def _read_snapshot(path: pathlib.Path):
+    """Read a complete snapshot despite a transient Windows replace/share race.
+
+    Only explicitly identified Windows sharing/access errors are retried. Missing
+    files, malformed JSON and persistent denial still fail closed. No fallback to
+    an older snapshot, state mutation or task replay occurs.
+    """
+    deadline=time.monotonic()+2
+    while True:
+        try:
+            return json.loads(path.read_text(encoding='utf-8'))
+        except PermissionError as exc:
+            # CRT-backed file open may expose EACCES without a winerror value.
+            windows_denial=(getattr(exc,'winerror',None) in {5,32,33}
+                            or (os.name=='nt' and exc.errno==errno.EACCES))
+            if not windows_denial or time.monotonic()>=deadline:
+                raise
+            time.sleep(.01)
 
 
 class FileRunStore:
+    def publish_business_json(self, authority, permit_id, name, value, *, operation='PERSISTENT_ARTIFACT_WRITE'):
+        """Stage declared business effects; receipt commit alone makes them official."""
+        if authority.store is not self:raise ValueError('PERMIT_MISMATCH')
+        allowed={'PERSISTENT_ARTIFACT_WRITE','PERSISTENT_LIBRARY_WRITE','KNOWLEDGE_PROMOTION','PROFILE_PROMOTION','PRODUCT_EXPORT'}
+        if operation not in allowed:raise ValueError('UNAUTHORIZED_EFFECT')
+        directory=authority.staging_dir(permit_id)
+        path=(directory/name).resolve()
+        if not path.is_relative_to(directory.resolve()):raise ValueError('OUTPUT_BINDING_REJECT')
+        authority.perform_effect(permit_id,operation,lambda:self.immutable_json(path,value))
+        return path
+
     def __init__(self, run_root: pathlib.Path | str):
         self.root = pathlib.Path(run_root).resolve()
         self.root.mkdir(parents=True, exist_ok=True)
+
+    @contextmanager
+    def exclusive_run(self, project_id, run_id):
+        """One state coordinator per run, including across OS processes."""
+        path = self.run_dir(project_id, run_id) / 'coordinator.lock'
+        with self.exclusive_file(path):
+            yield
+
+    def exclusive_file(self, path, *, wait_seconds=0):
+        return exclusive_file(self.root, path, wait_seconds=wait_seconds)
 
     def run_dir(self, project_id: str, run_id: str) -> pathlib.Path:
         self._validate_segment(project_id)
@@ -31,7 +77,7 @@ class FileRunStore:
 
     @staticmethod
     def _validate_segment(value: str) -> None:
-        if not value or value in {".", ".."} or pathlib.Path(value).name != value or any(sep in value for sep in ("/", "\\")):
+        if not value or value in {".", ".."} or pathlib.Path(value).name != value or any(sep in value for sep in ("/", "\\", ":", "\x00")) or value.endswith((".", " ")) or pathlib.PureWindowsPath(value).is_reserved():
             raise StateStoreError("invalid state identity path segment")
 
     def atomic_json(self, path: pathlib.Path, value: Mapping[str, Any]) -> None:
@@ -50,10 +96,48 @@ class FileRunStore:
                 handle.write("\n")
                 handle.flush()
                 os.fsync(handle.fileno())
-            os.replace(temporary, path)
+            # Windows readers can briefly deny delete-sharing while reading an
+            # otherwise valid snapshot. Retry only that transient OS condition;
+            # retain atomic replacement and never truncate the live authority.
+            deadline = time.monotonic() + 2
+            while True:
+                try:
+                    os.replace(temporary, path)
+                    break
+                except PermissionError as exc:
+                    if os.name != 'nt' or getattr(exc,'winerror',None) not in {5,32,33} or time.monotonic() >= deadline:
+                        raise
+                    time.sleep(.01)
         finally:
             if os.path.exists(temporary):
                 os.unlink(temporary)
+
+    def immutable_json(self, path: pathlib.Path, value: Mapping[str, Any]) -> None:
+        """Idempotent immutable record with an OS lock, not check-then-overwrite."""
+        path = pathlib.Path(path)
+        with self.exclusive_file(path.with_name(path.name + '.lock'), wait_seconds=10):
+            if path.exists():
+                if json.loads(path.read_text(encoding='utf-8')) != value:
+                    raise ValueError('conflicting immutable record: ' + path.name)
+                return
+            self.atomic_json(path, value)
+
+    def immutable_blob(self, path, content):
+        path=pathlib.Path(path)
+        if not path.resolve().is_relative_to(self.root) or path.is_symlink():
+            raise StateStoreError('evidence path escapes state root')
+        with self.exclusive_file(path.with_name(path.name+'.lock'),wait_seconds=10):
+            if path.exists():
+                if path.read_bytes()!=content:raise StateStoreError('conflicting evidence blob')
+                return
+            path.parent.mkdir(parents=True,exist_ok=True)
+            fd,tmp=tempfile.mkstemp(dir=path.parent)
+            try:
+                with os.fdopen(fd,'wb') as stream:
+                    stream.write(content);stream.flush();os.fsync(stream.fileno())
+                os.replace(tmp,path)
+            finally:
+                if os.path.exists(tmp):os.unlink(tmp)
 
     def save_project(self, value: ProjectState) -> pathlib.Path:
         path = self.run_dir(value.project_id, value.latest_run_id) / "project_state.json"
@@ -68,7 +152,7 @@ class FileRunStore:
     def load_run(self, project_id: str, run_id: str) -> RunState:
         path = self.run_dir(project_id, run_id) / "run_state.json"
         try:
-            return RunState.from_dict(json.loads(path.read_text(encoding="utf-8")))
+            return RunState.from_dict(_read_snapshot(path))
         except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
             raise StateStoreError(f"cannot load run state: {exc}") from exc
 
@@ -85,10 +169,13 @@ class FileRunStore:
         run_dir = self.run_dir(result.project_id, result.run_id)
         attempt_path = run_dir / "attempts" / result.node_id / f"{result.attempt_id}.json"
         latest_path = run_dir / "node_results" / f"{result.node_id}.json"
-        if attempt_path.exists():
-            raise StateStoreError(f"attempt result already exists: {result.attempt_id}")
-        self.atomic_json(attempt_path, result.as_dict())
-        self.atomic_json(latest_path, result.as_dict())
+        with self.exclusive_file(run_dir / 'attempts' / result.node_id / 'record.lock', wait_seconds=10):
+            if attempt_path.exists():
+                raise StateStoreError(f"attempt result already exists: {result.attempt_id}")
+            self.atomic_json(attempt_path, result.as_dict())
+            previous = _read_snapshot(latest_path) if latest_path.exists() else None
+            if previous is None or previous['attempt_id'] < result.attempt_id:
+                self.atomic_json(latest_path, result.as_dict())
         return attempt_path
 
     def save_agent_decision(self, project_id: str, run_id: str, number: int, value: Mapping[str, Any]) -> pathlib.Path:
@@ -109,14 +196,14 @@ class FileRunStore:
         self._validate_segment(node_id)
         path = self.run_dir(project_id, run_id) / "node_results" / f"{node_id}.json"
         try:
-            return BlockExecutionResult.from_dict(json.loads(path.read_text(encoding="utf-8")))
+            return BlockExecutionResult.from_dict(_read_snapshot(path))
         except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
             raise StateStoreError(f"cannot load node result: {exc}") from exc
 
     def append_event(self, event: EventRecord) -> pathlib.Path:
         path = self.run_dir(event.project_id, event.run_id) / "events.jsonl"
         path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("a", encoding="utf-8", newline="\n") as handle:
+        with _EVENT_LOCK, path.open("a", encoding="utf-8", newline="\n") as handle:
             handle.write(json.dumps(event.as_dict(), sort_keys=True, ensure_ascii=False) + "\n")
             handle.flush()
             os.fsync(handle.fileno())

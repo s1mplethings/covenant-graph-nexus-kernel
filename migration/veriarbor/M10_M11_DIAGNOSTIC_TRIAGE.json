@@ -1,0 +1,39 @@
+{
+  "kind": "AdditionalM10M11DiagnosticTriage",
+  "timestamp": "2026-11-03T13:47:59.031398+00:00",
+  "acceptance_authority": false,
+  "evidence": [
+    {
+      "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m10-generated-tests\\receipt.json",
+      "sha256": "524f79443fa1d8afd8fc863718813c0a5e0a40581d87c4b7781d48d3f6cdea43"
+    },
+    {
+      "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m10-generated-tests-import-path\\receipt.json",
+      "sha256": "b5d4af52aed6740605cb3ea6d307dd0a2ffbe28d83a69b1a5605cb871ffca650"
+    },
+    {
+      "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m10-generated-tests-absolute-import-path\\receipt.json",
+      "sha256": "40dd9f8d0b27d77860a39d26355d192d25b146919113200fdbbbd070b15e0aba"
+    },
+    {
+      "path": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-diagnostic-a40dff58\\receipt.json",
+      "sha256": "c8d24400071dde9e72982b04f83796332c72902feadc23f251fe995557d4a425"
+    }
+  ],
+  "M10": {
+    "canonical": "VERIFIED",
+    "selftests": {
+      "collected": 7,
+      "passed": 3,
+      "failed": 4
+    },
+    "finding": "MockPlatformHandler defines GET but no POST. Setup calls real M7 publish.send against that handler, which cannot return PUBLISHED; four tests then fail receipt not published. Some remaining tests contain incomplete placeholder coverage. Provider must repair meaningful tests without weakening assertions.",
+    "environment": "First two diagnostic runs failed collection because isolated Python lacks candidate root and relative pytest pythonpath resolved under inherited host config. Absolute candidate pythonpath executes tests. Canonical host runner already sets absolute candidate roots."
+  },
+  "M11": {
+    "diagnostic": "1/2; Media copy not real",
+    "finding": "Implementation writes actual bytes but exposes path relative to data_dir. Independent consumer uses the returned public path directly. Need usable public path while retaining portable internal storage. Broken-media approval/publication integration also remains unimplemented in current source.",
+    "source_sha256": "a40dff5841955c7cd5cbc0b620da488bf51c6ec516aeb8bde920715ed9a52b5a"
+  },
+  "host_business_patches": 0
+}

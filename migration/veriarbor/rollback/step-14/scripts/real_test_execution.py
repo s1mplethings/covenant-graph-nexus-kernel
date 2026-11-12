@@ -1,0 +1,531 @@
+from __future__ import annotations
+
+import json
+import os
+import pathlib
+import re
+import subprocess
+import sys
+import tempfile
+import tomllib
+import uuid
+from datetime import datetime, timezone
+from typing import Any
+
+from contracts.test_execution import KIND, PRODUCER, SCHEMA_VERSION
+from scripts import canonical_evidence_hash
+
+
+def _now() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _sha256_text(text: str) -> str:
+    return canonical_evidence_hash.sha256_bytes(text.encode("utf-8"))
+
+
+def _sha256_file(path: pathlib.Path) -> str:
+    return canonical_evidence_hash.sha256_file(path)
+
+
+def project_tree_hash(project: pathlib.Path) -> str:
+    return canonical_evidence_hash.candidate_source_hash(project)
+
+
+def current_commit_sha(project: pathlib.Path) -> str:
+    try:
+        proc = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=project,
+            text=True,
+            capture_output=True,
+            timeout=10,
+        )
+    except Exception:
+        return "unknown"
+    return proc.stdout.strip() if proc.returncode == 0 and proc.stdout.strip() else "unknown"
+
+
+def _declared_pytest_paths(project: pathlib.Path) -> list[str]:
+    config = project / "pyproject.toml"
+    if not config.is_file():
+        return []
+    try:
+        document = tomllib.loads(config.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, tomllib.TOMLDecodeError):
+        return []
+    pytest_options = (
+        document.get("tool", {}).get("pytest", {}).get("ini_options", {})
+        if isinstance(document, dict)
+        else {}
+    )
+    declared = pytest_options.get("testpaths", []) if isinstance(pytest_options, dict) else []
+    if isinstance(declared, str):
+        declared = declared.split()
+    if not isinstance(declared, list):
+        return []
+    paths: list[str] = []
+    for item in declared:
+        value = str(item).strip().replace("\\", "/")
+        pure = pathlib.PurePosixPath(value)
+        if (
+            not value
+            or pure.is_absolute()
+            or ".." in pure.parts
+            or not (project / pathlib.Path(*pure.parts)).exists()
+        ):
+            continue
+        paths.append(value)
+    return paths
+
+
+def detect_commands(project_dir: str | pathlib.Path) -> list[list[str]]:
+    project = pathlib.Path(project_dir)
+    declared_testpaths = _declared_pytest_paths(project)
+    if declared_testpaths:
+        return [["python", "-m", "pytest", *declared_testpaths]]
+    if (project / "tests").exists() and any(path.is_file() for path in (project / "tests").rglob("test*.py")):
+        return [["python", "-m", "pytest", "tests"]]
+    if (project / "package.json").exists():
+        return [["npm", "test"]]
+    if (project / "index.html").exists():
+        return [["python", "-c", "from pathlib import Path; assert Path('index.html').read_text(encoding='utf-8').strip()"]]
+    return []
+
+
+def _pytest_counts(stdout: str, stderr: str, exit_code: int) -> dict[str, int]:
+    text = "\n".join([stdout or "", stderr or ""])
+    collected = 0
+    match = re.search(r"collected\s+(\d+)\s+items?", text)
+    if match:
+        collected = int(match.group(1))
+    passed = sum(int(n) for n in re.findall(r"(\d+)\s+passed", text))
+    failed = sum(int(n) for n in re.findall(r"(\d+)\s+failed", text))
+    skipped = sum(int(n) for n in re.findall(r"(\d+)\s+skipped", text))
+    if collected == 0:
+        collected = passed + failed + skipped
+    return {"collected": collected, "passed": passed, "failed": failed, "skipped": skipped}
+
+
+def _skip_reasons(stdout: str, stderr: str) -> dict[str, int]:
+    text = "\n".join([stdout or "", stderr or ""])
+    reasons: dict[str, int] = {}
+    for reason in re.findall(r"SKIPPED\s+\[[^\]]+\]\s+(.+)", text):
+        key = reason.strip()[:160] or "uncategorized"
+        reasons[key] = reasons.get(key, 0) + 1
+    return reasons
+
+
+def _pytest_config(project: pathlib.Path) -> str | None:
+    for name in ("pytest.ini", ".pytest.ini", "tox.ini", "setup.cfg"):
+        path = project / name
+        if path.is_file():
+            return str(path.resolve())
+    pyproject = project / "pyproject.toml"
+    if pyproject.is_file() and "[tool.pytest.ini_options]" in pyproject.read_text(
+        encoding="utf-8", errors="replace"
+    ):
+        return str(pyproject.resolve())
+    return None
+
+
+def _normalize_command(
+    command: list[str],
+    python_executable: str | pathlib.Path | None,
+    project: pathlib.Path | None = None,
+    isolated_config: pathlib.Path | None = None,
+) -> list[str]:
+    if command[:3] == ["python", "-m", "pytest"]:
+        pytest_args: list[str] = []
+        if project is not None:
+            candidate_python_roots = [project.resolve(), (project / "src").resolve()]
+            pythonpath_override = " ".join(
+                f'"{path.as_posix()}"' for path in candidate_python_roots
+            )
+            pytest_args = [
+                "--rootdir",
+                str(project.resolve()),
+                "-c",
+                _pytest_config(project) or str(pathlib.Path(isolated_config).resolve()),
+                "-o",
+                f"pythonpath={pythonpath_override}",
+            ]
+        return [
+            str(python_executable or sys.executable),
+            "-I",
+            "-X",
+            "utf8",
+            "-m",
+            "pytest",
+            *pytest_args,
+            *command[3:],
+        ]
+    return [str(item) for item in command]
+
+
+def run_tests(
+    project_dir: str | pathlib.Path,
+    *,
+    timeout: int = 60,
+    python_executable: str | pathlib.Path | None = None,
+    run_id: str | None = None,
+    candidate_id: str | None = None,
+    candidate_hash: str | None = None,
+    commit_sha: str | None = None,
+    production_provenance_ref: str | pathlib.Path | None = None,
+    production_provenance_hash: str = "",
+    test_profile: str = "repo_default",
+    minimum_collected: int = 1,
+) -> dict[str, Any]:
+    project = pathlib.Path(project_dir).resolve()
+    project.mkdir(parents=True, exist_ok=True)
+    run_id = run_id or f"test-run-{uuid.uuid4().hex}"
+    candidate_id = candidate_id or project.name or "candidate"
+    candidate_manifest_before = canonical_evidence_hash.candidate_source_manifest(project)
+    candidate_hash_before = project_tree_hash(project)
+    candidate_hash = candidate_hash or candidate_hash_before
+    commit_sha = commit_sha or current_commit_sha(project)
+    started = _now()
+    commands = detect_commands(project)
+    isolated_pytest_config: pathlib.Path | None = None
+    if commands and commands[0][:3] == ["python", "-m", "pytest"] and _pytest_config(project) is None:
+        descriptor, isolated_name = tempfile.mkstemp(prefix="cgkn_pytest_", suffix=".ini")
+        os.close(descriptor)
+        isolated_pytest_config = pathlib.Path(isolated_name)
+        isolated_pytest_config.write_text("[pytest]\n", encoding="utf-8")
+    argv = (
+        _normalize_command(
+            commands[0], python_executable, project, isolated_pytest_config
+        )
+        if commands
+        else []
+    )
+    stdout = ""
+    stderr = ""
+    exit_code: int | None = None
+    timed_out = False
+    structured_test_observation = None
+
+    env_classification = "isolated_minimal_env"
+    if not argv:
+        status = "FAIL"
+        stderr = "tests directory missing or no executable test command detected"
+        counts = {"collected": 0, "passed": 0, "failed": 0, "skipped": 0}
+    else:
+        allowed_parent_environment = {
+            "APPDATA",
+            "COMSPEC",
+            "HOMEDRIVE",
+            "HOMEPATH",
+            "LOCALAPPDATA",
+            "NUMBER_OF_PROCESSORS",
+            "OS",
+            "PATH",
+            "PATHEXT",
+            "PROCESSOR_ARCHITECTURE",
+            "PROGRAMDATA",
+            "PROGRAMFILES",
+            "PROGRAMFILES(X86)",
+            "SYSTEMDRIVE",
+            "SYSTEMROOT",
+            "USERPROFILE",
+            "WINDIR",
+        }
+        env = {
+            key: value
+            for key, value in os.environ.items()
+            if key.upper() in allowed_parent_environment
+        }
+        # A candidate pytest invocation is an independent test process, not a
+        # child phase of the repository's own pytest session.  Inheriting the
+        # outer runner's plugin/options/current-node controls makes collection
+        # order dependent and can redirect candidate events into the parent
+        # evidence stream.
+        for inherited_pytest_control in (
+            "PYTEST_ADDOPTS",
+            "PYTEST_PLUGINS",
+            "PYTEST_CURRENT_TEST",
+            "CGKN_PYTEST_EVENT_LOG",
+        ):
+            env.pop(inherited_pytest_control, None)
+        python_paths = [str(project)]
+        src_path = project / "src"
+        if src_path.exists():
+            python_paths.append(str(src_path))
+        # Candidate tests are a separate trust boundary.  Even an inherited
+        # path that exists at this instant can name a parent test's temporary
+        # directory and disappear (or inject sitecustomize) before the child
+        # interpreter collects.  Candidate-local roots are the only required
+        # import roots; installed dependencies remain available via site-packages.
+        env["PYTHONPATH"] = os.pathsep.join(dict.fromkeys(python_paths))
+        env["PYTHONUTF8"] = "1"
+        env["PYTHONIOENCODING"] = "utf-8"
+        env["PYTEST_DISABLE_PLUGIN_AUTOLOAD"] = "1"
+        try:
+            with tempfile.TemporaryDirectory(prefix="cgkn_test_outputs_") as test_output_dir:
+                env["CGKN_TEST_OUTPUT_DIR"] = test_output_dir
+                env["TEMP"] = test_output_dir
+                env["TMP"] = test_output_dir
+                if len(argv) >= 4 and argv[1:4] == ["-I", "-m", "pytest"]:
+                    # Bind pytest's own temporary tree to the execution-owned
+                    # directory as well.  A parent suite (or candidate config)
+                    # can otherwise leave a now-deleted basetemp behind, making
+                    # an otherwise isolated candidate fail only in some orders.
+                    target_count = max(0, len(commands[0]) - 3)
+                    insert_at = len(argv) - target_count
+                    report_path=pathlib.Path(test_output_dir)/'current-tests.xml'
+                    argv = [
+                        *argv[:insert_at],
+                        "--basetemp",
+                        str(pathlib.Path(test_output_dir) / "pytest"),
+                        '-o','junit_family=xunit1','--junitxml',str(report_path),
+                        *argv[insert_at:],
+                    ]
+                try:
+                    proc = subprocess.run(argv, cwd=project, capture_output=True, text=True, timeout=timeout, env=env)
+                    stdout = proc.stdout or ""
+                    stderr = proc.stderr or ""
+                    exit_code = int(proc.returncode)
+                except subprocess.TimeoutExpired as exc:
+                    stdout = str(exc.stdout or "")
+                    stderr = str(exc.stderr or "test command timed out")
+                    exit_code = 124
+                    timed_out = True
+                if len(argv)>=4 and argv[1:4]==['-I','-m','pytest']:
+                    from cgkn.execution.test_results import read_pytest_report
+                    structured_test_observation=read_pytest_report(report_path,project,exit_code)
+        finally:
+            if isolated_pytest_config is not None:
+                isolated_pytest_config.unlink(missing_ok=True)
+        counts = _pytest_counts(stdout, stderr, int(exit_code))
+        is_pytest = len(argv) >= 4 and argv[1:4] == ["-I", "-m", "pytest"]
+        if is_pytest:
+            observed=structured_test_observation or {}
+            counts={k:observed.get(k,0) for k in ('collected','passed','failed','skipped')}
+            counts['failed']+=observed.get('errors',0)
+        if not is_pytest and exit_code == 0 and counts["collected"] == 0:
+            counts = {**counts, "collected": 1, "passed": 1}
+        minimum_collected = max(1, int(minimum_collected or 1))
+        status = (
+            "PASS"
+            if exit_code == 0
+            and counts["failed"] == 0
+            and counts["collected"] >= minimum_collected
+            and (not is_pytest or (structured_test_observation or {}).get('status')=='PASS')
+            else "FAIL"
+        )
+
+    stdout_path = project / "test_stdout.txt"
+    stderr_path = project / "test_stderr.txt"
+    stdout_path.write_text(stdout, encoding="utf-8")
+    stderr_path.write_text(stderr, encoding="utf-8")
+    candidate_manifest_after = canonical_evidence_hash.candidate_source_manifest(project)
+    candidate_hash_after = project_tree_hash(project)
+    candidate_mutated = candidate_hash_after != candidate_hash_before
+    if candidate_mutated:
+        status = "FAIL"
+    finished = _now()
+    evidence: dict[str, Any] = {
+        "kind": KIND,
+        "schema_version": SCHEMA_VERSION,
+        "run_id": run_id,
+        "candidate_id": candidate_id,
+        "candidate_hash": candidate_hash,
+        "candidate_hash_before": candidate_hash_before,
+        "candidate_hash_after": candidate_hash_after,
+        "candidate_mutated_during_test": candidate_mutated,
+        "candidate_source_diff": canonical_evidence_hash.candidate_source_manifest_diff(candidate_manifest_before, candidate_manifest_after),
+        "commit_sha": commit_sha,
+        "production_provenance_ref": str(
+            pathlib.Path(production_provenance_ref).resolve()
+        )
+        if production_provenance_ref
+        else "",
+        "production_provenance_hash": production_provenance_hash,
+        "producer": PRODUCER,
+        "created_at": finished,
+        "status": status,
+        "artifact_hash": "",
+        "argv": argv,
+        "cwd": str(project),
+        "environment": env_classification,
+        "started_at": started,
+        "finished_at": finished,
+        "exit_code": exit_code if exit_code is not None else -1,
+        "timeout": timed_out,
+        "collected": counts["collected"],
+        "passed": counts["passed"],
+        "failed": counts["failed"],
+        "skipped": counts["skipped"],
+        "minimum_collected_required": max(1, int(minimum_collected or 1)),
+        "minimum_collected_met": counts["collected"] >= max(1, int(minimum_collected or 1)),
+        "skip_reasons": _skip_reasons(stdout, stderr),
+        "stdout_artifact": str(stdout_path),
+        "stdout_hash": _sha256_file(stdout_path),
+        "stderr_artifact": str(stderr_path),
+        "stderr_hash": _sha256_file(stderr_path),
+        "result_artifact_hash": "",
+        "test_profile": test_profile,
+        "test_observation": structured_test_observation,
+        "ok": status == "PASS",
+        "commands_run": [" ".join(argv)] if argv else [],
+        "verdict": status,
+        "executions": [
+            {
+                "argv": argv,
+                "exit_code": exit_code,
+                "stdout_hash": _sha256_file(stdout_path),
+                "stderr_hash": _sha256_file(stderr_path),
+                "started_at": started,
+                "finished_at": finished,
+            }
+        ]
+        if argv
+        else [],
+    }
+    artifact_hash = canonical_evidence_hash.canonical_json_hash(evidence, ("artifact_hash", "result_artifact_hash"))
+    evidence["artifact_hash"] = artifact_hash
+    evidence["result_artifact_hash"] = artifact_hash
+    execution_path = project / "test_execution.json"
+    execution_path.write_text(json.dumps(evidence, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    evidence["result_file"] = str(execution_path)
+    write_test_report(project, evidence)
+    return evidence
+
+
+def write_test_report(project: pathlib.Path, evidence: dict[str, Any]) -> pathlib.Path:
+    path = project / "TEST_REPORT.md"
+    lines = [
+        "# Test Report",
+        "",
+        f"kind: {evidence.get('kind', '')}",
+        f"schema_version: {evidence.get('schema_version', '')}",
+        f"run_id: {evidence.get('run_id', '')}",
+        f"candidate_hash: {evidence.get('candidate_hash', '')}",
+        f"commit_sha: {evidence.get('commit_sha', '')}",
+        f"result_artifact_hash: {evidence.get('result_artifact_hash', '')}",
+        "",
+        "commands_run:",
+    ]
+    argv = evidence.get("argv", []) if isinstance(evidence.get("argv"), list) else []
+    if argv:
+        lines.append("- " + " ".join(str(item) for item in argv))
+    else:
+        lines.append("- none")
+    lines.extend(
+        [
+            "",
+        "argv:",
+        ]
+    )
+    lines.extend(f"- {item}" for item in argv)
+    lines.extend(
+        [
+            "",
+            f"cwd: {evidence.get('cwd', '')}",
+            f"exit_code: {evidence.get('exit_code', '')}",
+            f"timeout: {str(evidence.get('timeout', False)).lower()}",
+            f"collected: {evidence.get('collected', 0)}",
+            f"passed: {evidence.get('passed', 0)}",
+            f"failed: {evidence.get('failed', 0)}",
+            f"skipped: {evidence.get('skipped', 0)}",
+            f"status: {evidence.get('status', 'FAIL')}",
+        ]
+    )
+    if not argv:
+        lines.append("NO REAL TEST EXECUTION")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
+def inspect_test_report(
+    project_dir: str | pathlib.Path,
+    *,
+    run_id: str | None = None,
+    candidate_id: str | None = None,
+    candidate_hash: str | None = None,
+    commit_sha: str | None = None,
+    production_provenance_ref: str | pathlib.Path | None = None,
+    production_provenance_hash: str | None = None,
+) -> dict[str, Any]:
+    project = pathlib.Path(project_dir)
+    execution = project / "test_execution.json"
+    report = project / "TEST_REPORT.md"
+    if not execution.exists():
+        return {"verdict": "FAIL", "status": "FAIL", "source": "", "missing": ["test_execution.json"]}
+    if not report.exists():
+        return {"verdict": "FAIL", "status": "FAIL", "source": "test_execution.json", "missing": ["TEST_REPORT.md"]}
+    try:
+        doc = json.loads(execution.read_text(encoding="utf-8", errors="replace"))
+    except Exception as exc:
+        return {"verdict": "FAIL", "status": "FAIL", "source": "test_execution.json", "missing": ["valid_json"], "error": str(exc)}
+    missing: list[str] = []
+    if doc.get("kind") != KIND:
+        missing.append("canonical_kind")
+    if doc.get("schema_version") != SCHEMA_VERSION:
+        missing.append("schema_version")
+    if not doc.get("argv"):
+        missing.append("argv")
+    for field in ("stdout_artifact", "stderr_artifact", "stdout_hash", "stderr_hash", "artifact_hash", "result_artifact_hash"):
+        if not doc.get(field):
+            missing.append(field)
+    for artifact_field, hash_field in (("stdout_artifact", "stdout_hash"), ("stderr_artifact", "stderr_hash")):
+        artifact = pathlib.Path(str(doc.get(artifact_field, "")))
+        try:
+            valid_artifact = artifact.is_file() and not artifact.is_symlink() and _sha256_file(artifact) == doc.get(hash_field)
+        except (OSError, ValueError):
+            valid_artifact = False
+        if not valid_artifact:
+            missing.append(f"{hash_field}_mismatch")
+    expected_hash = canonical_evidence_hash.canonical_json_hash(doc, ("artifact_hash", "result_artifact_hash"))
+    if doc.get("artifact_hash") != expected_hash:
+        missing.append("artifact_hash_mismatch")
+    if doc.get("result_artifact_hash") != expected_hash:
+        missing.append("result_artifact_hash")
+    current_candidate_hash = project_tree_hash(project)
+    if doc.get("candidate_hash") != current_candidate_hash:
+        missing.append("candidate_hash_current")
+    if doc.get("candidate_hash_before") and doc.get("candidate_hash_before") != doc.get("candidate_hash"):
+        missing.append("candidate_hash_before")
+    if doc.get("candidate_hash_after") and doc.get("candidate_hash_after") != doc.get("candidate_hash"):
+        missing.append("candidate_hash_after")
+    if doc.get("candidate_mutated_during_test"):
+        missing.append("candidate_mutated_during_test")
+    text = report.read_text(encoding="utf-8", errors="replace")
+    for token in (str(doc.get("run_id", "")), str(doc.get("candidate_hash", "")), str(doc.get("commit_sha", "")), str(doc.get("result_artifact_hash", ""))):
+        if token and token not in text:
+            missing.append("report_artifact_reference")
+            break
+    if run_id is not None and doc.get("run_id") != run_id:
+        missing.append("run_id")
+    if candidate_id is not None and doc.get("candidate_id") != candidate_id:
+        missing.append("candidate_id")
+    if candidate_hash is not None and doc.get("candidate_hash") != candidate_hash:
+        missing.append("candidate_hash")
+    if commit_sha is not None and doc.get("commit_sha") != commit_sha:
+        missing.append("commit_sha")
+    if production_provenance_ref is not None:
+        expected_provenance = pathlib.Path(production_provenance_ref).resolve()
+        actual_ref_value = str(doc.get("production_provenance_ref", "")).strip()
+        actual_ref = pathlib.Path(actual_ref_value).resolve() if actual_ref_value else pathlib.Path()
+        if actual_ref != expected_provenance:
+            missing.append("production_provenance_ref")
+        expected_file_hash = (
+            canonical_evidence_hash.sha256_file(expected_provenance)
+            if expected_provenance.is_file() and not expected_provenance.is_symlink()
+            else ""
+        )
+        if (
+            not expected_file_hash
+            or doc.get("production_provenance_hash") != expected_file_hash
+            or (
+                production_provenance_hash is not None
+                and doc.get("production_provenance_hash")
+                != production_provenance_hash
+            )
+        ):
+            missing.append("production_provenance_hash")
+    if int(doc.get("collected", 0) or 0) <= 0:
+        missing.append("collected")
+    status = "PASS" if not missing and doc.get("status") == "PASS" else "FAIL"
+    return {"verdict": status, "status": status, "source": "test_execution.json", "missing": missing, "details": doc}

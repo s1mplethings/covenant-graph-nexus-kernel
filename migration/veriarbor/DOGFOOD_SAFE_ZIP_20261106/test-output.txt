@@ -1,0 +1,13 @@
+test_absolute_paths_are_rejected (test_safe_zip_path.SafeZipPathTests.test_absolute_paths_are_rejected) ... ok
+test_backslash_is_separator (test_safe_zip_path.SafeZipPathTests.test_backslash_is_separator) ... ok
+test_dot_leading_segment_is_rejected (test_safe_zip_path.SafeZipPathTests.test_dot_leading_segment_is_rejected) ... ok
+test_empty_and_dot_are_rejected (test_safe_zip_path.SafeZipPathTests.test_empty_and_dot_are_rejected) ... ok
+test_non_string_is_rejected (test_safe_zip_path.SafeZipPathTests.test_non_string_is_rejected) ... ok
+test_nul_is_rejected (test_safe_zip_path.SafeZipPathTests.test_nul_is_rejected) ... ok
+test_parent_traversal_is_rejected (test_safe_zip_path.SafeZipPathTests.test_parent_traversal_is_rejected) ... ok
+test_plain_path (test_safe_zip_path.SafeZipPathTests.test_plain_path) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.001s
+
+OK

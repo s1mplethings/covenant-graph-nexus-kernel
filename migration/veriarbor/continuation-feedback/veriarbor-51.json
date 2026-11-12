@@ -1,0 +1,104 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "Qwen Flash Agent/Worker only, Worker bounded24000 after observed12000 output truncation; no Pro/Max. Eight old upstreamUNKNOWNs remain; no replay or ledger reset. Independent checkers, not same-model critique, grant acceptance.",
+    "milestone_completion_request": "Complete original M12 and final delivery without restarting M1-M11 or redefining the declared M12 milestone. main.py now exists, writer143 succeeded; retain it and repair only demonstrated gaps. Finish README.md, TEST_PLAN.md, tests/test_promotion_gui.py via bounded original Provider tasks. M12 final GUI must implement actual reachable file upload with server-side adaptation to unchanged path-based M11 API, same-content edit/approval invalidation, correct project-scoped /api/state, all navigation/config/review/publish/receipt/scheduler/analytics/restart/error behaviors in frozen public contract. Original independent measurement and generated meaningful tests must pass. Preserve previous test debts and fix their original test-owner fixtures against qualified evidence, no assertion deletion/waiver. Finish canonical packaging/delivery/accounting/provenance/Corpus and reports. Existing M1-M11 certificates remain reusable except real boundary impact.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "main.py": "650460ffd2f7de9b13154a1b4bfa3221d72417ed24cfb0a463a34db8b8cfdc5f"
+        }
+      },
+      "current_final_gui_owner": 143,
+      "current_source_exists": true,
+      "native_source_receipt": "attempts/sem-node-0143/attempt-0001.json",
+      "observed": {
+        "kind": "ActualM12GuiDiagnostic",
+        "source_sha256": "650460ffd2f7de9b13154a1b4bfa3221d72417ed24cfb0a463a34db8b8cfdc5f",
+        "acceptance_authority": false,
+        "host_business_patches": 0,
+        "actual_file_input_upload": {
+          "status": 400,
+          "body": {
+            "error": "path must be a non-empty string"
+          },
+          "alert": "path must be a non-empty string"
+        },
+        "initial_review_approval": {
+          "review": 200,
+          "approve": 200
+        },
+        "save_existing_content": {
+          "http_status": 200,
+          "before_count": 1,
+          "after_count": 2,
+          "original_id": "18ef917605da43ffb206b4bfb23d6b25",
+          "ids": [
+            "18ef917605da43ffb206b4bfb23d6b25",
+            "61972b57282047448128a2f66535e62d"
+          ],
+          "original_approval": {
+            "content_id": "18ef917605da43ffb206b4bfb23d6b25",
+            "revision": 1,
+            "status": "APPROVED"
+          }
+        },
+        "project_scoped_state": {
+          "http_status": 200,
+          "body": {
+            "projects": [
+              {
+                "id": "cdc2a423a563469498442a0f41c77d58",
+                "name": "Final GUI diagnostic"
+              }
+            ],
+            "campaigns": [],
+            "contents": [],
+            "receipts": [],
+            "schedules": []
+          },
+          "actual_campaign_count": 1,
+          "actual_content_count": 2
+        },
+        "javascript_errors": []
+      },
+      "repair_scope": "main.py only for three real GUI integration defects: actual file input sends base64 to path-only API, so GUI server must bridge bounded validated upload to owned local temp and canonical media.import (no backend API edits). Save selected existing content must use content.edit/preserve identity, populate edit controls, and refresh current revision/approval/receipt binding; explicit new-content action creates. GET /api/state?project_id returns actual scoped campaigns/contents/receipts/schedules and rejects invalid project. Preserve working initial project/campaign/content/review/approve and preview routing. Existing source comments knowingly assume mocks or label media secondary are not acceptable implementation. Remove such fallback assumptions by real integration.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-gui-650460ff\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_PREFLIGHT_650460ff.json"
+      ],
+      "scope": "Diagnosis expires when main.py changes. No absent-file or UNKNOWN recovery instruction remains applicable; old records retained."
+    },
+    "admission_correction": "main.py source143 is SUCCEEDED and exists. Do not ADD another source writer or recreate file from scratch on absent-file premise. Continue missing M12 artifacts and existing independent measurements; repair current143 only for actual current failures. Scope0 may be main.py but tests/docs have their own scopes; use exact current IDs. Preserve current public contract. Supply exact current evidence refs and meaningful strategy/hypothesis. Prior blocked141/142 are reconciled NOT_APPLIED history, not missing current artifact.",
+    "gui_writer_policy": "Final main.py writer143 is the sole current GUI owner. Only143 may repair that file; inspections/tests read completed snapshot. Original early_main91 and backend sources unchanged unless independent new failure proves actual boundary need.",
+    "redecision": {
+      "strategy_revision": "a9cbc1539a093c1d8d79029644dba8250eb2caefa9288dfa56cb82a6b4b62c79",
+      "reason": "FinalGUI650460ff now exists and passes source syntax/staticDOM. Actual browser confirms upload400, save createsduplicate instead ofediting, and stateendpoint returnsfalseemptylists. New source-bound diagnosis replaces obsolete absent-file task, preserves writer143 and M1-M11.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-gui-650460ff\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_PREFLIGHT_650460ff.json"
+      ]
+    },
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "early_main.py"
+        ],
+        "required_dimensions": [
+          "full_file_write"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": false
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\GUI_COUPLED_PREFLIGHT_24125.json"
+        ]
+      }
+    ]
+  }
+}

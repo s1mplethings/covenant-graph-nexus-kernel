@@ -1,0 +1,146 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "Deterministic first. QwenFlash Agent, DeepSeekFlash boundedpatch Worker. NoPro/Max. Source-bound patch-only gate qualified24tests. All priorUNKNOWN preserved.",
+    "milestone_completion_request": "Execute only B01 ProjectBootstrapBlock. User-defined M12 rollup andB01-B11 alreadyimported intooriginalCapabilityTree; executableDAGunchanged. Original143 isB01writer. All otherblocks pending until B01verified. No fullM12check now. No media, publish,scheduler,analytics,backendedits. ChangeStrategy/Repair143 to B01only, exactpatch only. After oneWorkerattempt controllerholds forlocalB01browseracceptance; do notFINISH.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "main.py": "97fac580ddd0b04a91c35f26a91e3554abb82ad86e8e6159864d4e49f4dce478"
+        }
+      },
+      "current_block": "B01",
+      "current_failure_context": {
+        "kind": "M12CurrentFailureContext",
+        "target_block": "B01",
+        "target": "main.py",
+        "source_sha256": "97fac580ddd0b04a91c35f26a91e3554abb82ad86e8e6159864d4e49f4dce478",
+        "checker_identity": "qualified-revision-8",
+        "failure_evidence": [
+          {
+            "path": "attempts/sem-node-0155/attempt-0001.json",
+            "receipt_hash": "2bacd6f95001d31493aeffc1813e8de2bb54f94fb4b3c5e5b51832954d74dc1f"
+          }
+        ],
+        "observed_failure": {
+          "passed_count": 1,
+          "reason": "M12_independent_business_suite: TimeoutError: Locator.wait_for: Timeout 5000ms exceeded.\nCall log:\n  - waiting for get_by_text(\"Browser Created Project\").filter(visible=True).or_(get_by_role(\"combobox\").filter(has=get_by_role(\"option\", name=\"Browser Created Project\", exact=True, selected=True, include_hidden=True))).first to be visible\n",
+          "total_count": 2,
+          "value": false
+        },
+        "actual_cause": "loadProjects calls /api/state without project_id;400 aborts beforeproject.list. project.create200 butnameinvisible.",
+        "resolved_not_targets": [
+          "all11handleridentitiescorrect",
+          "project.createworks",
+          "ThreadingHTTPServerfixed"
+        ],
+        "historical_invalid_strategies": [
+          "10 wrong module bindings",
+          "M7.publish.send op example",
+          "whole-file rewrite",
+          "attempt28/29 unchanged output"
+        ],
+        "binding": "Original GoalAcceptance; this file is derived execution guidance, not acceptance authority",
+        "next": "B01 only, project.list first, state only after validselection; patchonly; no media/backendchanges"
+      },
+      "historical_invalidated": "10wrongbindings,wrongM7.publish.send op,concurrencybug andwhole-filewrite rationale are NOT currentfacts. attempt28/29 copiedoldfile and areNOTreusable implementations. Do notretain these innewstrategy/hypothesis.",
+      "observed": "CurrentHTML/JS parseandliteralDOMclosurePASS. Real cleanbrowser hasnoemptyprojectstate. Existing155currentfailure also creation200persistedbutnameinvisible. loadProjects awaits/api/state withoutproject_id->400 abortsbeforeproject.list. populateProjectSelects empty.",
+      "B01_contract": [
+        "Applicationstart calls actual M1 project.list first. Ifempty,visiblehumanempty state. Never GET/api/state untilnonemptyvalidselectedprojectID. List/state errors handledseparately.",
+        "Creation consumesactualresponse.id, refreshesrealproject.list, selectscreatedID, fetchescorrectstate andrendersactualname. Reload restoresvalidselection or deterministic actualdefault, namevisible andstateaccessible. NoJSerrors.",
+        "Only four current functions loadProjects/selectProject/createProject/populateProjectSelects andtheircontainedcomments maychange. Use exactpatch overthese contiguousfunctions ifneeded. No Pythonserverchanges, no otherGUIfunctions, no outsideglobals. Existing currentProjectId andDOMcontainers areavailable. Preserve restbyteforbyte."
+      ],
+      "patch_policy": {
+        "mode": "patch_only",
+        "block_id": "B01",
+        "writer_node_id": "sem-node-0143",
+        "hold_after_worker_attempt": true,
+        "files": {
+          "main.py": {
+            "source_sha256": "97fac580ddd0b04a91c35f26a91e3554abb82ad86e8e6159864d4e49f4dce478",
+            "ranges": [
+              [
+                23931,
+                26250
+              ]
+            ],
+            "max_changed_chars": 14000,
+            "allowed_sections": [
+              "loadProjects",
+              "selectProject",
+              "createProject",
+              "populateProjectSelects"
+            ]
+          }
+        }
+      },
+      "qualification_evidence": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_CURRENT_FAILURE_CONTEXT.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B01_CHECKER_QUALIFICATION\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b01-baseline-97fac580\\receipt.json"
+      ]
+    },
+    "gui_writer_policy": "One original143 authoritative writer, now boundedB01only; main.pyfullwrite forbidden. M1-M11/early_main read-only. Hostbusinesspatches0.",
+    "admission_correction": "Use original143 action4or5 task_kind3 deps[]. Set new goal/expected/strategy/hypothesis exclusivelyB01. strategy full_file_write:false, problem actualbootstrap400, bootstrap_mechanism concreteprojectlist/selection/reload/localpatch. Exactfalsifying_evidenceARRAY [{\"path\":\"attempts/sem-node-0155/attempt-0001.json\",\"receipt_hash\":\"2bacd6f95001d31493aeffc1813e8de2bb54f94fb4b3c5e5b51832954d74dc1f\"}]. DoNOTuse rawfile sha256bbfe8e. Callerpatchpolicy nowprovides currenttargetinlineandsemantic allowed_write_operations=[3] regardlessstale fullfileflag. No read oldwholefile asnewimplementation; produceactualbounded patch. Current publicM12contract remainsunchanged; boundedB01expected doesnotclaimM12complete.",
+    "strategy_constraints": [
+      {
+        "scope_paths": [
+          "main.py"
+        ],
+        "required_dimensions": [
+          "full_file_write",
+          "problem",
+          "bootstrap_mechanism"
+        ],
+        "dimension_types": {
+          "full_file_write": "boolean",
+          "problem": "string",
+          "bootstrap_mechanism": "string"
+        },
+        "forbidden_patterns": [
+          {
+            "full_file_write": true
+          }
+        ],
+        "evidence_refs": [
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_CURRENT_FAILURE_CONTEXT.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B01_CHECKER_QUALIFICATION\\receipt.json",
+          "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b01-baseline-97fac580\\receipt.json"
+        ]
+      }
+    ],
+    "bounded_patch_policy": {
+      "mode": "patch_only",
+      "block_id": "B01",
+      "writer_node_id": "sem-node-0143",
+      "hold_after_worker_attempt": true,
+      "files": {
+        "main.py": {
+          "source_sha256": "97fac580ddd0b04a91c35f26a91e3554abb82ad86e8e6159864d4e49f4dce478",
+          "ranges": [
+            [
+              23931,
+              26250
+            ]
+          ],
+          "max_changed_chars": 14000,
+          "allowed_sections": [
+            "loadProjects",
+            "selectProject",
+            "createProject",
+            "populateProjectSelects"
+          ]
+        }
+      }
+    },
+    "redecision": {
+      "strategy_revision": "abd0239815d00ed9309a43739bdf15c6cf294c300d2874aa0043c9c18b7fc48e",
+      "reason": "New explicituserBlockcontract, qualifiedpatchonlyhardgate andcurrentB01browserbaseline. Originalfullfile deadend retired; onlysource-boundfourfunctionpatch admitted.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_CURRENT_FAILURE_CONTEXT.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B01_CHECKER_QUALIFICATION\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b01-baseline-97fac580\\receipt.json"
+      ]
+    }
+  }
+}

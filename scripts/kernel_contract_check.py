@@ -109,10 +109,10 @@ def check_codex(results: list[CheckResult]) -> None:
     )
 
     income_start = function_body(text, "start_generation_from_income")
-    ok, missing = contains_all(income_start, ["start_agent_generation", "run_simulator_preflight"])
+    ok, missing = contains_all(income_start, ["start_agent_generation", "PROJECT_SESSION_PROFILE_REQUIRED", "legacy simulator/replay lifecycle is offline-only"])
     add(
         results,
-        "generation starter routes api to provider and simulator to preflight only",
+        "generation starter requires frozen session and rejects legacy simulator",
         ok,
         ", ".join(missing),
     )
@@ -122,7 +122,7 @@ def check_codex(results: list[CheckResult]) -> None:
     add(results, "soft/blocking questions are not hard generation gates", bool(generation_branch) and gate is None, "return under question branch" if gate else "")
 
     start = function_body(text, "start_agent_generation")
-    ok, missing = contains_all(start, ['driver": "api_provider_project_generation"', "target=run_provider_generation_job"])
+    ok, missing = contains_all(start, ['project_session', 'target=run_provider_generation_job'])
     agent_default_forbidden = [item for item in ['driver": "agent_generated_pipeline"', "target=run_agent_generation_job"] if item in start]
     add(
         results,
@@ -131,27 +131,12 @@ def check_codex(results: list[CheckResult]) -> None:
         ", ".join(missing + agent_default_forbidden),
     )
 
-    provider_job = (
-        function_body(text, "run_provider_generation_job")
-        + function_body(text, "run_provider_execute_with_retries")
-        + function_body(text, "execute_validated_provider_round")
-    )
-    ok, missing = contains_all(
-        provider_job,
-        [
-            "provider_project_pipeline.execute",
-            "api-provider-project-generated",
-            "provider-output-validated",
-            "provider-project-files-written",
-            "runtime-artifacts-written",
-            "local_packager.package_project",
-            "evaluate_public_delivery_gate",
-            "provider_success_artifact_audit",
-            "mark_public_delivery_rework",
-            "finish_agent_loop_delivery",
-        ],
-    )
-    add(results, "provider generation route is wrapped by packager and adaptive delivery judgment", ok, ", ".join(missing))
+    provider_job = function_body(text, "run_provider_generation_job")
+    service = read_rel("cgkn/application/software_project/service.py")
+    ok, missing = contains_all(provider_job, ["SoftwareProjectGenerationService", "service.run_profile", "PRIOR_OUTCOME_UNKNOWN"])
+    chain, chain_missing = contains_all(service, ["ProjectSession", "produce_project_session", "post_build_finalize_provider_project"])
+    forbidden = [name for name in ["run_provider_execute_with_retries", "execute_validated_provider_round", "run_simulator_preflight"] if function_body(text,name)]
+    add(results, "generation delegates to single session and existing finalization", ok and chain and not forbidden, ", ".join(missing+chain_missing+forbidden))
     adaptive_ok, adaptive_missing = contains_all(
         text,
         ["def delivery_fact_check", "def agent_delivery_judgment", "adaptive_delivery.delivery_fact_check", "adaptive_delivery.agent_delivery_judgment"],
@@ -159,30 +144,7 @@ def check_codex(results: list[CheckResult]) -> None:
     add(results, "adaptive delivery fact and judgment layers are implemented", adaptive_ok, ", ".join(adaptive_missing))
 
     job = function_body(text, "run_agent_generation_job")
-    planner_index = job.find("pipeline_planner_agent.plan_pipeline")
-    runner_index = job.find("dynamic_pipeline_runner.run_dynamic_pipeline")
-    manifest_index = job.find("pipeline_manifest_module.write_pipeline_manifest")
-    fallback_index = job.find('"pipeline_fallback"')
-    finish_index = job.find("finish_agent_loop_delivery")
-    ok, missing = contains_all(
-        job,
-        [
-            "pipeline_planner_agent.plan_pipeline",
-            "pipeline_manifest_module.write_pipeline_manifest",
-            "dynamic_pipeline_runner.run_dynamic_pipeline",
-            '"pipeline_fallback"',
-            "finish_agent_loop_delivery",
-        ],
-    )
-    add(results, "support agent pipeline contains consolidated pipeline landmarks", ok, ", ".join(missing))
-    add(
-        results,
-        "support agent pipeline plans manifest before dynamic runner",
-        planner_index >= 0 and runner_index > planner_index and manifest_index > planner_index and manifest_index < runner_index,
-        "planner/write/runner order missing",
-    )
-    add(results, "pipeline fallback is explicitly recorded", fallback_index >= 0, "pipeline_fallback missing")
-    add(results, "finish_agent_loop_delivery remains final handoff", finish_index > runner_index, "finish_agent_loop_delivery not after runner")
+    add(results, "compatibility Agent entry delegates without alternate planner", "return run_provider_generation_job(" in job and "plan_pipeline(" not in job, "canonical delegation missing")
 
 
 def check_planner(results: list[CheckResult]) -> None:
@@ -223,12 +185,13 @@ def check_runner(results: list[CheckResult]) -> None:
         [
             "run_dynamic_pipeline",
             "pipeline_manifest",
-            "pipeline_step_result",
+            "SoftwareProjectGenerationService",
+            "PROJECT_SESSION_PROFILE_REQUIRED",
             "package_project",
             "local_agent_actions.LocalAgentActionExecutor",
         ],
     )
-    add(results, "dynamic runner interprets manifest through local actions", ok, ", ".join(missing))
+    add(results, "dynamic entry delegates to canonical session", ok, ", ".join(missing))
     forbidden = [item for item in ["exec(", "eval(", "compile(", "subprocess.run("] if item in text]
     add(results, "dynamic runner does not expose arbitrary Python execution", not forbidden, ", ".join(forbidden))
 

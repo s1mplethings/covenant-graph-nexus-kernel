@@ -1,0 +1,13 @@
+{
+  "kind": "BlockPortV1Shadow",
+  "authority_sha256": "80b55e1d419389f5072c6a7a835b8fbe1af5496ca2509e8cb0f68794d22bf022",
+  "authority_unchanged": true,
+  "goal_rows": 88,
+  "verdict_differences": {},
+  "mapped_blocks": 88,
+  "unqualified": [],
+  "certified_identical_replacement_pairs": 0,
+  "no_business_source_writes": true,
+  "no_provider_calls": true,
+  "production_runtime_scope": "GoalAcceptance identical dependency carry and compiler check dedup; DAG historical retry validation remains conservative until its own certified boundary integration."
+}

@@ -1,0 +1,79 @@
+{
+  "policy": {
+    "mode": "patch_only",
+    "block_id": "B02",
+    "writer_node_id": "sem-node-0143",
+    "hold_after_worker_attempt": true,
+    "files": {
+      "main.py": {
+        "source_sha256": "9edfb2e6f74a325c9c6375bff9dcb91c52026d087e5fa4146dd886ee1e23c1a6",
+        "ranges": [
+          [
+            2216,
+            3922
+          ],
+          [
+            11005,
+            14629
+          ],
+          [
+            21435,
+            22164
+          ],
+          [
+            46147,
+            47925
+          ]
+        ],
+        "max_changed_chars": 23000,
+        "allowed_sections": [
+          "handle/media adapter",
+          "owned media serving",
+          "media DOM",
+          "media JS"
+        ]
+      }
+    },
+    "acceptance_requirements": [
+      "B02 only: browser file/base64 -> explicit temporary-file adapter -> existing M11 media.import(path,kind,project_id), safe confined temporary name, cleanup in finally for success/error; durable original M11 copy, no M11 backend edit. Reject missing/empty/malformed/broken media. Preserve all nonmedia dispatch and B01 sections exactly.",
+      "Preview must obtain owned media metadata from existing M11 media.get, verify correct project/status/path containment and serve actual stored bytes with image/video MIME. Do not guess media storage paths. PNG and real MP4 must upload and decode in actual browser img/video elements.",
+      "Media UI uses actual selected currentProjectId and real returned media.id, renders image and video correctly, clear stale previews across project loading and use actual M11 media.list on navigation/refresh. Avoid guessed IDs or modifying shared project/bootstrap/renderer code.",
+      "Only exact semantic patch operation3 within allowed source ranges. No whole-filewrite, no modulemapping/threadserver/stateendpoint/startup edits. Local imports inside adapter allowed. All target bytes outside ranges immutable."
+    ]
+  },
+  "sections": [
+    {
+      "name": "handle/media adapter",
+      "range": [
+        2216,
+        3922
+      ],
+      "source_section_sha256": "36abbe885a4389594c1863804d72a09423f2cccf8d5b5e8a25a3027b79b0c8dc"
+    },
+    {
+      "name": "owned media serving",
+      "range": [
+        11005,
+        14629
+      ],
+      "source_section_sha256": "07c85a63c879269be966de2c8f9f74fa4899a4d2dd0f0dcad6e5142b2657fa41"
+    },
+    {
+      "name": "media DOM",
+      "range": [
+        21435,
+        22164
+      ],
+      "source_section_sha256": "8378ca77eeff8293ed1fcabd82d8bd379e5560f291a650ede5af7d892e09f212"
+    },
+    {
+      "name": "media JS",
+      "range": [
+        46147,
+        47925
+      ],
+      "source_section_sha256": "fa5282923695d42bc97be0b9090035d9bb70b59519f6cdb4b0ef2ca02fd0ac53"
+    }
+  ],
+  "status": "PREPARED_AWAIT_NATIVE_FAILURE_RECEIPT"
+}

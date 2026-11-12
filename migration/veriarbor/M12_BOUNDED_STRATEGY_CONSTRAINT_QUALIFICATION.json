@@ -1,0 +1,145 @@
+{
+  "kind": "ExistingConstraintConfigurationQualification",
+  "old": [
+    {
+      "scope_paths": [
+        "early_main.py"
+      ],
+      "required_dimensions": [
+        "full_file_write"
+      ],
+      "dimension_types": {
+        "full_file_write": "boolean"
+      },
+      "forbidden_patterns": [
+        {
+          "full_file_write": false
+        }
+      ],
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\GUI_COUPLED_PREFLIGHT_24125.json"
+      ]
+    },
+    {
+      "scope_paths": [
+        "main.py"
+      ],
+      "required_dimensions": [
+        "module_bindings",
+        "gui_contract_preservation",
+        "preserve_existing_features",
+        "restore_media_upload",
+        "gui_operation_bindings",
+        "gui_event_paths"
+      ],
+      "dimension_types": {
+        "gui_contract_preservation": "string",
+        "preserve_existing_features": "boolean",
+        "restore_media_upload": "boolean",
+        "gui_event_paths": "string"
+      },
+      "forbidden_patterns": [
+        {
+          "preserve_existing_features": false
+        },
+        {
+          "restore_media_upload": false
+        },
+        {
+          "module_bindings": {}
+        },
+        {
+          "module_bindings": null
+        }
+      ],
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\provider_calls\\f410393316a64efaaf4eb33f38215e86\\response.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-572685e6\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A5_DELTA.txt",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-09283ff6\\receipt.json"
+      ]
+    }
+  ],
+  "new": [
+    {
+      "scope_paths": [
+        "early_main.py"
+      ],
+      "required_dimensions": [
+        "full_file_write"
+      ],
+      "dimension_types": {
+        "full_file_write": "boolean"
+      },
+      "forbidden_patterns": [
+        {
+          "full_file_write": false
+        }
+      ],
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\GUI_COUPLED_PREFLIGHT_24125.json"
+      ]
+    },
+    {
+      "scope_paths": [
+        "main.py"
+      ],
+      "required_dimensions": [
+        "module_bindings",
+        "gui_event_paths",
+        "preserve_existing_features",
+        "restore_media_upload"
+      ],
+      "dimension_types": {
+        "preserve_existing_features": "boolean",
+        "restore_media_upload": "boolean",
+        "gui_event_paths": "string"
+      },
+      "forbidden_patterns": [
+        {
+          "preserve_existing_features": false
+        },
+        {
+          "restore_media_upload": false
+        },
+        {
+          "module_bindings": {}
+        },
+        {
+          "module_bindings": null
+        }
+      ],
+      "evidence_refs": [
+        "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\provider_calls\\f410393316a64efaaf4eb33f38215e86\\response.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-572685e6\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A5_DELTA.txt",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-09283ff6\\receipt.json"
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "name": "bounded_proposal",
+      "admitted": true,
+      "expected": true
+    },
+    {
+      "name": "preserve_false",
+      "admitted": false,
+      "expected": false
+    },
+    {
+      "name": "empty_bindings",
+      "admitted": false,
+      "expected": false
+    },
+    {
+      "name": "missing_eventpath",
+      "admitted": false,
+      "expected": false
+    }
+  ],
+  "scope": "Remove redundant whole-GUI strategy fields for two-gap leaf. No product checker/assertion/gate/source change. Preserve flags/event paths remain.",
+  "initial_invocation": "ModuleNotFoundError before tests because isolated dependency bootstrap omitted; corrected environment, no source change",
+  "host_business_patches": 0
+}

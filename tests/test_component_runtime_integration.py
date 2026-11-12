@@ -7,6 +7,7 @@ from cgkn.artifacts import ArtifactInstance, ArtifactRef, ArtifactStore, Artifac
 from cgkn.component import ComponentExecutionStatus
 from cgkn.runtime import ArtifactModuleRunner, ModuleExecutionError
 from cgkn.runtime.effects import EffectCounter
+from tests.artifact_authority_support import artifact_runner as ArtifactModuleRunner
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -15,7 +16,7 @@ PROJECT = json.loads((ROOT / "examples/artifact-driven/todo-refactor/todo_projec
 
 
 def _seed(store, artifact_type, content, port):
-    return store.write_artifact(ArtifactInstance(store.allocate_id(artifact_type), artifact_type, store.run_dir.name, Producer("flow_input", "module.test@1", port), content, Provenance()))
+    return store.write_artifact(ArtifactInstance(store.allocate_id(artifact_type), artifact_type, store.run_dir.name, Producer("flow_input", "module.test@1", port), content, Provenance()),execution_mode='IMPORTED_UNMANAGED')
 
 
 def _runner(tmp_path):
@@ -95,5 +96,9 @@ def test_effect_violation_records_failed_execution(tmp_path) -> None:
     runner.effects = EffectCounter([{"effect":"fs_read", "scope":"run", "max":0}])
     with pytest.raises(ModuleExecutionError):
         runner.run(inputs)
-    assert runner.component_executions[-1].node_id == "n_project_snapshot"
-    assert runner.component_executions[-1].status is ComponentExecutionStatus.FAIL
+    by_node = {item.node_id: item for item in runner.component_executions}
+    assert by_node["n_project_snapshot"].status is ComponentExecutionStatus.FAIL
+    assert by_node["n_project_snapshot"].diagnostics
+    # Canonical DAG failure isolation keeps this independent branch running.
+    assert by_node["n_requirement_interpretation"].status is ComponentExecutionStatus.PASS
+    assert "n_problem_analysis" not in by_node

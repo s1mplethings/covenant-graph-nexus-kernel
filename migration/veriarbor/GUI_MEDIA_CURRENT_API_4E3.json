@@ -1,0 +1,11 @@
+{
+  "kind": "CurrentApiAfterUnnecessaryRewriteDiagnostic",
+  "media_api_sha256": "4e3f4f9ec6ad0c30a04566a3c6a51e5d6d7bb55e23371bbae740831f3f866a08",
+  "gui_sha256": "0e6de644c30c68407ca3c6990002319ba624c678029f746f04c1ec287cb9ace0",
+  "current_api_status": "VALID",
+  "stored_bytes_match": true,
+  "gui_http_diagnosis_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\gui-media-dispatch-0e6de644\\receipt.json",
+  "scope": "Unnecessary117a7 rewrite removed unused variables/whitespace; public media behavior remains valid in this probe. GUI remains same source0e6 with noM11route. Do not restore/rewrite API without new API-specific failure; repair91GUI.",
+  "acceptance_authority": false,
+  "host_business_patches": 0
+}

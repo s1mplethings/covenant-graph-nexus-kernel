@@ -1,5 +1,11 @@
 # CGKN Agent Contract
 
+Boundary maintenance uses the single project Skill at
+`D:/VeriArbor/.agents/skills/veriarbor-boundary-closure/SKILL.md`.
+For entry/client/store/recovery changes, verify common authority delegation and
+architecture regressions; register new entries, retain dynamic request management,
+validate successful artifact identities and never silently fall back to LEGACY.
+
 ## Product authority
 
 Before non-trivial architecture work read PRODUCT_GOAL.md, MVP_SCOPE.md, governance/product_invariants.json, and governance/current_architecture.json. These outrank historical design notes, benchmark reports, and project-management summaries.

@@ -1,0 +1,27 @@
+{
+  "kind": "ReadOnlyContextProjectionProfile",
+  "source_context": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\agent\\context-369.json",
+  "source_sha256": "0a770ac7e5321b8e082a5fa17cc23f1583a2e4addaacec99a3f9e7e69da8abdd",
+  "seconds": 0.35899999999674037,
+  "scopes": [
+    "milestones/milestone_dbb8341c8910593063a8/api.py",
+    "tests/test_milestone_dbb8341c8910593063a8.py",
+    "milestones/milestone_20f2614f6ae8403d4a4e/api.py",
+    "milestones/milestone_4e7c26281cf61a85851e/api.py",
+    "milestones/milestone_1369a82cde04a7e5887d/api.py",
+    "milestones/milestone_90b8868c7203e2958397/api.py",
+    "milestones/milestone_9165a990eed5b9c8801e/api.py",
+    "milestones/milestone_33270fed0c9054f5ae04/api.py",
+    "promotion_publish.py",
+    "early_main.py",
+    "milestones/milestone_989800776c3d6229e431/api.py",
+    "milestones/milestone_c511a8ebd29978f5ba97/api.py",
+    "milestones/milestone_af427946c6dea418047a/api.py"
+  ],
+  "snapshot_sha256": "ab55889891ed6a1782f33fbb68941a5332b115fc76566eb053c6d95dccb62c1e",
+  "snapshot_bytes": 282159,
+  "owner_binding_count": 88,
+  "provider_calls": 0,
+  "state_mutations": 0,
+  "acceptance_authority": false
+}

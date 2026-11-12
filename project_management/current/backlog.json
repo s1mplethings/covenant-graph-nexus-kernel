@@ -2,9 +2,9 @@
   "kind": "CGKNCurrentBacklog",
   "schemaVersion": "3",
   "project": "CGKN",
-  "current_item_id": "PB-021",
+  "current_item_id": "PB-029",
   "cleanup_boundary": "governance/mvp_cleanup_boundary.json",
-  "verification_status": "NEEDS_REWORK",
+  "verification_status": "PASS_WITH_LIMITS",
   "product_authority": [
     "PRODUCT_GOAL.md",
     "MVP_SCOPE.md",
@@ -203,8 +203,22 @@
       "priority": 14,
       "state": "done",
       "value": "Make every current kernel layer fail-closed, tested, mapped, and governed before adding leaves.",
-      "acceptance": ["single authorities", "complete source-to-test mapping", "static, unit, boundary, and local-functional profiles", "foundation vertical slice", "independent kernel completeness status"],
-      "blocked_successors": ["MVP-014B", "Research", "PM", "Marketing", "Publishing", "Self-Growth V1", "LEVEL 5"],
+      "acceptance": [
+        "single authorities",
+        "complete source-to-test mapping",
+        "static, unit, boundary, and local-functional profiles",
+        "foundation vertical slice",
+        "independent kernel completeness status"
+      ],
+      "blocked_successors": [
+        "MVP-014B",
+        "Research",
+        "PM",
+        "Marketing",
+        "Publishing",
+        "Self-Growth V1",
+        "LEVEL 5"
+      ],
       "evidence_status": "PASS"
     },
     {
@@ -219,7 +233,17 @@
         "the CLI repeats 3/3 before Web, API, and seeded repair authorize higher generation readiness",
         "no generated candidate is manually edited"
       ],
-      "blocked_successors": ["repeatability", "multitype generation", "real repair", "PM", "Research", "Marketing", "Publishing", "Self-Growth V1", "LEVEL 5"],
+      "blocked_successors": [
+        "repeatability",
+        "multitype generation",
+        "real repair",
+        "PM",
+        "Research",
+        "Marketing",
+        "Publishing",
+        "Self-Growth V1",
+        "LEVEL 5"
+      ],
       "evidence_status": "NEEDS_REWORK"
     },
     {
@@ -235,7 +259,16 @@
         "only a qualified winner may change production L6 semantics",
         "Kernel foundation remains COMPLETE and candidate projects receive zero manual edits"
       ],
-      "blocked_successors": ["Web generation", "API generation", "PM", "Research", "Marketing", "Publishing", "Self-Growth V1", "LEVEL 5"],
+      "blocked_successors": [
+        "Web generation",
+        "API generation",
+        "PM",
+        "Research",
+        "Marketing",
+        "Publishing",
+        "Self-Growth V1",
+        "LEVEL 5"
+      ],
       "evidence_status": "NEEDS_REWORK"
     },
     {
@@ -251,7 +284,12 @@
         "direct Agent and composed DAG routes are compared under equal facts and budgets",
         "semantic A/B/C comparison resumes only after the obligation layer meets the CLI threshold"
       ],
-      "blocked_successors": ["semantic artifact production winner", "Web generation", "API generation", "LEVEL 5"],
+      "blocked_successors": [
+        "semantic artifact production winner",
+        "Web generation",
+        "API generation",
+        "LEVEL 5"
+      ],
       "evidence_status": "NOT_EVALUATED"
     },
     {
@@ -268,6 +306,123 @@
         "Grok can replace either role by configuration without CapabilityTree or DAG changes"
       ],
       "evidence_status": "PASS_WITH_LIMITS"
+    },
+    {
+      "id": "PB-022",
+      "title": "ACV4 independent acceptance and metrics",
+      "priority": 1,
+      "state": "done",
+      "value": "Auditable hard acceptance and read-only effectiveness",
+      "acceptance": [
+        "I0-I7 independent feasibility and correctness pass",
+        "Retain previous work and unknown accounting; no replays",
+        "No automatic routing, knowledge promotion or new joint experiment"
+      ],
+      "evidence_status": "PASS_WITH_LIMITS"
+    },
+    {
+      "id": "PB-023",
+      "title": "V5 evidence provenance and real sample validation",
+      "priority": 1,
+      "state": "done_with_limits",
+      "value": "Trace current acceptance to actual checker and Worker evidence",
+      "acceptance": [
+        "I0-I18 independently validated on frozen code",
+        "Retain candidate and receipt history, unknown charges and one logical task",
+        "Real candidate and repair evaluated with immutable provenance; evaluator deviation disclosed"
+      ],
+      "evidence_status": "PASS_WITH_LIMITS"
+    },
+    {
+      "id": "PB-024",
+      "title": "V5.1 strict real calibration closure",
+      "priority": 1,
+      "state": "pending",
+      "value": "One admissible fixed-harness real model sample",
+      "acceptance": [
+        "Qualify and freeze checker before one new real task",
+        "At most one generation and one genuine business repair, with no hidden oracle exposure",
+        "Strict sample requires unchanged qualified harness and complete trusted evidence"
+      ],
+      "evidence_status": "FAIL"
+    },
+    {
+      "id": "PB-025",
+      "title": "Framework qualification V3.1",
+      "priority": 1,
+      "state": "done",
+      "value": "Qualify feedback, learning, evaluation, routing and true DAG parallelism",
+      "acceptance": [
+        "P0 historical preservation",
+        "P1-P5 offline framework qualification before paid calls",
+        "P6 real Provider overlap and concrete model bindings",
+        "P7 fresh integrated witness without host business patches",
+        "P8 related regression and readonly archive rebuild"
+      ],
+      "evidence_status": "PASS"
+    },
+    {
+      "id": "PB-026",
+      "title": "Execution continuity and deliverable hardening",
+      "priority": 1,
+      "state": "pending",
+      "value": "Reject oversized leaves and prevent execution success from masquerading as product progress",
+      "acceptance": [
+        "bounded leaf admission",
+        "independent deliverable verification",
+        "progress feedback and partial continuation",
+        "distribution controls and focused provider smoke"
+      ],
+      "evidence_status": "FAIL"
+    },
+    {
+      "id": "PB-027",
+      "title": "Cleanup migration closure",
+      "priority": 1,
+      "state": "active",
+      "value": "Close contract and deliverable migrations before new witnesses",
+      "acceptance": [
+        "Close original 77 failures",
+        "Sequential L1-L8",
+        "No history rewrite or host business patches"
+      ],
+      "evidence_status": "NOT_EVALUATED"
+    },
+    {
+      "id": "PB-028",
+      "title": "Semantic IR protocol simplification and gated real projects",
+      "state": "active",
+      "priority": 1,
+      "acceptance": [
+        "No unsafe normalization",
+        "573 prior migration tests retained",
+        "New small project PASS before Promotion V2"
+      ],
+      "evidence_refs": [
+        "F:\\CGKN-ITER-131\\full-penetration-closure-v1\\END_TO_END_V5_RESULT.json",
+        "F:\\CGKN-ITER-131\\full-penetration-closure-v1\\FINAL_REPORT.md",
+        "F:\\CGKN-ITER-131\\full-penetration-closure-v1\\FULL_SYSTEM_COVERAGE.json",
+        "F:\\CGKN-ITER-131\\full-penetration-closure-v1\\PROMOTION_RESULT.json"
+      ],
+      "evidence_status": "FAIL",
+      "latest_iteration": "ITER-131",
+      "latest_result": "SMALL_PROJECT_FAIL_STOPPED_BEFORE_PROMOTION"
+    },
+    {
+      "id": "PB-029",
+      "title": "Single production session, cheap-first milestone build and usable Promotion Studio",
+      "state": "active",
+      "priority": 1,
+      "acceptance_criteria": [
+        "Single canonical lifecycle over existing Tree/DAG/state/acceptance/delivery",
+        "No default Max or experimental optimization",
+        "Mechanical milestone contracts and bounded patches",
+        "New real small dogfood then Promotion milestones through independent acceptance",
+        "No host business patches; preserve failures and UNKNOWN"
+      ],
+      "quality_metric_ids": [
+        "QM-132"
+      ]
     }
   ]
 }

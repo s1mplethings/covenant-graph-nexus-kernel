@@ -1,0 +1,33 @@
+{
+  "kind": "M12CurrentFailureContext",
+  "target_block": "B01",
+  "target": "main.py",
+  "source_sha256": "97fac580ddd0b04a91c35f26a91e3554abb82ad86e8e6159864d4e49f4dce478",
+  "checker_identity": "qualified-revision-8",
+  "failure_evidence": [
+    {
+      "path": "attempts/sem-node-0155/attempt-0001.json",
+      "receipt_hash": "2bacd6f95001d31493aeffc1813e8de2bb54f94fb4b3c5e5b51832954d74dc1f"
+    }
+  ],
+  "observed_failure": {
+    "passed_count": 1,
+    "reason": "M12_independent_business_suite: TimeoutError: Locator.wait_for: Timeout 5000ms exceeded.\nCall log:\n  - waiting for get_by_text(\"Browser Created Project\").filter(visible=True).or_(get_by_role(\"combobox\").filter(has=get_by_role(\"option\", name=\"Browser Created Project\", exact=True, selected=True, include_hidden=True))).first to be visible\n",
+    "total_count": 2,
+    "value": false
+  },
+  "actual_cause": "loadProjects calls /api/state without project_id;400 aborts beforeproject.list. project.create200 butnameinvisible.",
+  "resolved_not_targets": [
+    "all11handleridentitiescorrect",
+    "project.createworks",
+    "ThreadingHTTPServerfixed"
+  ],
+  "historical_invalid_strategies": [
+    "10 wrong module bindings",
+    "M7.publish.send op example",
+    "whole-file rewrite",
+    "attempt28/29 unchanged output"
+  ],
+  "binding": "Original GoalAcceptance; this file is derived execution guidance, not acceptance authority",
+  "next": "B01 only, project.list first, state only after validselection; patchonly; no media/backendchanges"
+}

@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="5" skipped="0" tests="34" time="10.742" timestamp="2026-11-03T22:47:40.290279+08:00" hostname="test"><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_png_image" time="0.238" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_jpeg_image" time="0.309" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_webm_video" time="0.197" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_mp4_video" time="0.183" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_stores_bytes_under_data_dir" time="0.174" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_rejects_empty_file" time="0.043" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_rejects_signature_mismatch" time="0.094" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_rejects_unsupported_kind" time="0.081" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_rejects_missing_source" time="0.047" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_rejects_unknown_project" time="0.028" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_rejects_empty_path" time="0.067" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_import_rejects_empty_kind" time="0.084" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_get_returns_valid_record" time="0.215" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_get_marks_broken_when_bytes_modified" time="0.191" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_get_marks_broken_when_bytes_missing" time="0.167" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_get_rejects_unknown_media_id" time="0.042" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_get_rejects_empty_media_id" time="0.039" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_get_rejects_cross_project_access" time="0.177" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_list_empty" time="0.048" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_list_returns_project_items" time="0.284" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_list_isolates_projects" time="0.291" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_list_reports_broken_status" time="0.280" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_list_rejects_unknown_project" time="0.008" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_unknown_op_raises" time="0.074" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_missing_op_raises" time="0.030" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_invalid_data_dir_raises" time="0.001" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_non_dict_request_raises" time="0.017" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_milestone_id_literal" time="0.001" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_persistence_survives_reload" time="0.253" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_approval_blocks_broken_media" time="0.473"><failure message="Failed: DID NOT RAISE &lt;class 'ValueError'&gt;">data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\m11-generated-tests-350e97b9\\test_approval_blocks_broken_me0\\data'
+tmp_path = WindowsPath('F:/CGKN-LeanLoop-V1-20261101/migration/veriarbor/scratch/m11-generated-tests-350e97b9/test_approval_blocks_broken_me0')
+
+    def test_approval_blocks_broken_media(data_dir, tmp_path):
+        src = _write_file(tmp_path, "pic.png", PNG_BYTES)
+        proj = _make_project(data_dir)
+        imported = _import_media(data_dir, proj["id"], src, "image")
+    
+        campaign = m4.handle(data_dir, {
+            "op": "campaign.create",
+            "project_id": proj["id"],
+            "name": "c",
+            "audience": "a",
+            "channels": ["email"],
+        })
+        content = m5.handle(data_dir, {
+            "op": "content.create",
+            "project_id": proj["id"],
+            "campaign_id": campaign["id"],
+            "channel": "email",
+            "text": "hello world",
+            "claim_ids": [],
+            "media_ids": [imported["id"]],
+        })
+    
+        # Corrupt the stored media bytes so it becomes BROKEN.
+        stored = os.path.join(data_dir, imported["path"])
+        with open(stored, "wb") as f:
+            f.write(b"corrupted")
+    
+        m6.handle(data_dir, {
+            "op": "approval.review",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+&gt;       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE &lt;class 'ValueError'&gt;
+
+tests\test_milestone_dbb8341c8910593063a8.py:426: Failed</failure></testcase><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_approval_blocks_missing_media" time="0.422"><failure message="Failed: DID NOT RAISE &lt;class 'ValueError'&gt;">data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\m11-generated-tests-350e97b9\\test_approval_blocks_missing_m0\\data'
+tmp_path = WindowsPath('F:/CGKN-LeanLoop-V1-20261101/migration/veriarbor/scratch/m11-generated-tests-350e97b9/test_approval_blocks_missing_m0')
+
+    def test_approval_blocks_missing_media(data_dir, tmp_path):
+        src = _write_file(tmp_path, "pic.png", PNG_BYTES)
+        proj = _make_project(data_dir)
+        imported = _import_media(data_dir, proj["id"], src, "image")
+    
+        campaign = m4.handle(data_dir, {
+            "op": "campaign.create",
+            "project_id": proj["id"],
+            "name": "c",
+            "audience": "a",
+            "channels": ["email"],
+        })
+        content = m5.handle(data_dir, {
+            "op": "content.create",
+            "project_id": proj["id"],
+            "campaign_id": campaign["id"],
+            "channel": "email",
+            "text": "hello world",
+            "claim_ids": [],
+            "media_ids": [imported["id"]],
+        })
+    
+        stored = os.path.join(data_dir, imported["path"])
+        os.remove(stored)
+    
+        m6.handle(data_dir, {
+            "op": "approval.review",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+&gt;       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE &lt;class 'ValueError'&gt;
+
+tests\test_milestone_dbb8341c8910593063a8.py:464: Failed</failure></testcase><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_publish_blocks_broken_media" time="2.895"><failure message="Failed: DID NOT RAISE &lt;class 'ValueError'&gt;">data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\m11-generated-tests-350e97b9\\test_publish_blocks_broken_med0\\data'
+tmp_path = WindowsPath('F:/CGKN-LeanLoop-V1-20261101/migration/veriarbor/scratch/m11-generated-tests-350e97b9/test_publish_blocks_broken_med0')
+
+    def test_publish_blocks_broken_media(data_dir, tmp_path):
+        src = _write_file(tmp_path, "pic.png", PNG_BYTES)
+        proj = _make_project(data_dir)
+        imported = _import_media(data_dir, proj["id"], src, "image")
+    
+        campaign = m4.handle(data_dir, {
+            "op": "campaign.create",
+            "project_id": proj["id"],
+            "name": "c",
+            "audience": "a",
+            "channels": ["email"],
+        })
+        content = m5.handle(data_dir, {
+            "op": "content.create",
+            "project_id": proj["id"],
+            "campaign_id": campaign["id"],
+            "channel": "email",
+            "text": "hello world",
+            "claim_ids": [],
+            "media_ids": [imported["id"]],
+        })
+    
+        # Approve while media is valid.
+        m6.handle(data_dir, {
+            "op": "approval.review",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+        m6.handle(data_dir, {
+            "op": "approval.approve",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+    
+        # Now corrupt the media bytes.
+        stored = os.path.join(data_dir, imported["path"])
+        with open(stored, "wb") as f:
+            f.write(b"corrupted")
+    
+&gt;       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE &lt;class 'ValueError'&gt;
+
+tests\test_milestone_dbb8341c8910593063a8.py:515: Failed</failure></testcase><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_publish_blocks_missing_media" time="2.677"><failure message="Failed: DID NOT RAISE &lt;class 'ValueError'&gt;">data_dir = 'F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\scratch\\m11-generated-tests-350e97b9\\test_publish_blocks_missing_me0\\data'
+tmp_path = WindowsPath('F:/CGKN-LeanLoop-V1-20261101/migration/veriarbor/scratch/m11-generated-tests-350e97b9/test_publish_blocks_missing_me0')
+
+    def test_publish_blocks_missing_media(data_dir, tmp_path):
+        src = _write_file(tmp_path, "pic.png", PNG_BYTES)
+        proj = _make_project(data_dir)
+        imported = _import_media(data_dir, proj["id"], src, "image")
+    
+        campaign = m4.handle(data_dir, {
+            "op": "campaign.create",
+            "project_id": proj["id"],
+            "name": "c",
+            "audience": "a",
+            "channels": ["email"],
+        })
+        content = m5.handle(data_dir, {
+            "op": "content.create",
+            "project_id": proj["id"],
+            "campaign_id": campaign["id"],
+            "channel": "email",
+            "text": "hello world",
+            "claim_ids": [],
+            "media_ids": [imported["id"]],
+        })
+    
+        m6.handle(data_dir, {
+            "op": "approval.review",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+        m6.handle(data_dir, {
+            "op": "approval.approve",
+            "project_id": proj["id"],
+            "content_id": content["id"],
+        })
+    
+        stored = os.path.join(data_dir, imported["path"])
+        os.remove(stored)
+    
+&gt;       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE &lt;class 'ValueError'&gt;
+
+tests\test_milestone_dbb8341c8910593063a8.py:561: Failed</failure></testcase><testcase classname="tests.test_milestone_dbb8341c8910593063a8" name="test_gui_displays_media_controls" time="0.055"><failure message="assert ('&lt;img' in '&lt;!doctype html&gt;\n&lt;html lang=&quot;en&quot;&gt;\n&lt;head&gt;\n&lt;meta charset=&quot;utf-8&quot;&gt;\n&lt;title&gt;promotion studio&lt;/title&gt;\n&lt;style&gt;\n  body {...ment.addeventlistener(\'domcontentloaded\', init);\n  } else {\n    init();\n  }\n})();\n&lt;/script&gt;\n&lt;/body&gt;\n&lt;/html&gt;\n' or '&lt;video' in '&lt;!doctype html&gt;\n&lt;html lang=&quot;en&quot;&gt;\n&lt;head&gt;\n&lt;meta charset=&quot;utf-8&quot;&gt;\n&lt;title&gt;promotion studio&lt;/title&gt;\n&lt;style&gt;\n  body {...ment.addeventlistener(\'domcontentloaded\', init);\n  } else {\n    init();\n  }\n})();\n&lt;/script&gt;\n&lt;/body&gt;\n&lt;/html&gt;\n' or 'image' in '&lt;!doctype html&gt;\n&lt;html lang=&quot;en&quot;&gt;\n&lt;head&gt;\n&lt;meta charset=&quot;utf-8&quot;&gt;\n&lt;title&gt;promotion studio&lt;/title&gt;\n&lt;style&gt;\n  body {...ment.addeventlistener(\'domcontentloaded\', init);\n  } else {\n    init();\n  }\n})();\n&lt;/script&gt;\n&lt;/body&gt;\n&lt;/html&gt;\n')">def test_gui_displays_media_controls():
+        early_main = _load_module("early_main_gui", "early_main.py")
+        html = early_main.INDEX_HTML
+        # The GUI must surface media (image/video) controls or previews.
+        lowered = html.lower()
+        assert "media" in lowered
+&gt;       assert ("&lt;img" in lowered) or ("&lt;video" in lowered) or ("image" in lowered)
+E       assert ('&lt;img' in '&lt;!doctype html&gt;\n&lt;html lang="en"&gt;\n&lt;head&gt;\n&lt;meta charset="utf-8"&gt;\n&lt;title&gt;promotion studio&lt;/title&gt;\n&lt;style&gt;\n  body {...ment.addeventlistener(\'domcontentloaded\', init);\n  } else {\n    init();\n  }\n})();\n&lt;/script&gt;\n&lt;/body&gt;\n&lt;/html&gt;\n' or '&lt;video' in '&lt;!doctype html&gt;\n&lt;html lang="en"&gt;\n&lt;head&gt;\n&lt;meta charset="utf-8"&gt;\n&lt;title&gt;promotion studio&lt;/title&gt;\n&lt;style&gt;\n  body {...ment.addeventlistener(\'domcontentloaded\', init);\n  } else {\n    init();\n  }\n})();\n&lt;/script&gt;\n&lt;/body&gt;\n&lt;/html&gt;\n' or 'image' in '&lt;!doctype html&gt;\n&lt;html lang="en"&gt;\n&lt;head&gt;\n&lt;meta charset="utf-8"&gt;\n&lt;title&gt;promotion studio&lt;/title&gt;\n&lt;style&gt;\n  body {...ment.addeventlistener(\'domcontentloaded\', init);\n  } else {\n    init();\n  }\n})();\n&lt;/script&gt;\n&lt;/body&gt;\n&lt;/html&gt;\n')
+
+tests\test_milestone_dbb8341c8910593063a8.py:581: AssertionError</failure></testcase></testsuite></testsuites>

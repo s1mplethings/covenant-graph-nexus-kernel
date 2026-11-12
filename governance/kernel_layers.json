@@ -3,22 +3,113 @@
   "schema_version": "1.0",
   "direction": "higher layers may depend on the same or lower layers only",
   "layers": [
-    {"id": "L0", "packages": [], "description": "product contracts and common identity"},
-    {"id": "L1", "packages": ["cgkn.artifacts"], "description": "artifact identity and storage"},
-    {"id": "L2", "packages": ["cgkn.component", "cgkn.compiler"], "description": "component and compilation contracts"},
-    {"id": "L3", "packages": ["cgkn.capabilities", "cgkn.orchestration", "cgkn.execution", "cgkn.state", "cgkn.providers"], "description": "composition metadata, envelopes, state and provider transport"},
-    {"id": "L4", "packages": ["cgkn.executors", "cgkn.runtime"], "description": "bounded execution, coordination and recovery"},
-    {"id": "L5", "packages": ["cgkn.agent", "cgkn.growth", "cgkn.governance", "cgkn.telemetry"], "description": "agent, governed growth and telemetry"},
-    {"id": "L6", "packages": ["cgkn.application"], "description": "application and optional team capabilities; excluded from the frozen L0-L5 core-source identity"}
+    {
+      "id": "L0",
+      "packages": [],
+      "description": "product contracts and common identity"
+    },
+    {
+      "id": "L1",
+      "packages": [
+        "cgkn.artifacts"
+      ],
+      "description": "artifact identity and storage"
+    },
+    {
+      "id": "L2",
+      "packages": [
+        "cgkn.component",
+        "cgkn.compiler",
+        "cgkn.protocol.normalization",
+        "cgkn.protocol.adaptive_context",
+        "cgkn.protocol.review_policy",
+        "cgkn.protocol.contract_integrity",
+        "cgkn.protocol.claim_consistency",
+        "cgkn.protocol.declaration"
+      ],
+      "description": "component and compilation contracts"
+    },
+    {
+      "id": "L3",
+      "packages": [
+        "cgkn.capabilities",
+        "cgkn.orchestration",
+        "cgkn.execution",
+        "cgkn.state",
+        "cgkn.providers",
+        "cgkn.telemetry",
+        "cgkn.adapters",
+        "cgkn.runtime.node_authority"
+      ],
+      "description": "composition metadata, envelopes, state and provider transport"
+    },
+    {
+      "id": "L4",
+      "packages": [
+        "cgkn.executors",
+        "cgkn.runtime",
+        "cgkn.protocol",
+        "cgkn.state.repair",
+        "cgkn.adapters.veriarbor.capability_adapter",
+        "cgkn.adapters.veriarbor.skill_authority"
+      ],
+      "description": "bounded execution, coordination and recovery"
+    },
+    {
+      "id": "L5",
+      "packages": [
+        "cgkn.agent",
+        "cgkn.growth",
+        "cgkn.governance",
+        "cgkn.telemetry.trusted_samples"
+      ],
+      "description": "agent, governed growth and telemetry"
+    },
+    {
+      "id": "L6",
+      "packages": [
+        "cgkn.application"
+      ],
+      "description": "application and optional team capabilities; excluded from the frozen L0-L5 core-source identity"
+    }
   ],
   "exceptions": [
-    {"from": "cgkn.providers", "to": "scripts.check_connectivity", "reason": "reviewed compatibility Provider transport adapter"},
-    {"from": "cgkn.providers", "to": "scripts.provider_transport", "reason": "reviewed compatibility Provider transport adapter"}
+    {
+      "from": "cgkn.providers",
+      "to": "scripts.check_connectivity",
+      "reason": "reviewed compatibility Provider transport adapter"
+    },
+    {
+      "from": "cgkn.providers",
+      "to": "scripts.provider_transport",
+      "reason": "reviewed compatibility Provider transport adapter"
+    }
   ],
   "forbidden": [
-    {"from": "cgkn.component", "to": "cgkn.agent"},
-    {"from": "cgkn.state", "to": "cgkn.agent"},
-    {"from": "cgkn.orchestration", "to": "cgkn.providers"},
-    {"from": "cgkn.runtime", "to": "project_roles"}
-  ]
+    {
+      "from": "cgkn.component",
+      "to": "cgkn.agent"
+    },
+    {
+      "from": "cgkn.state",
+      "to": "cgkn.agent"
+    },
+    {
+      "from": "cgkn.orchestration",
+      "to": "cgkn.providers"
+    },
+    {
+      "from": "cgkn.runtime",
+      "to": "project_roles"
+    }
+  ],
+  "resolution": "Longest matching declared module/package prefix applies to both source and imports; child ownership cannot exempt reverse imports or same-layer cycles.",
+  "module_boundary_rationale": {
+    "cgkn.runtime.node_authority": "Permit/receipt authority depends on contracts and persisted facts, not scheduler execution. GraphEditRejected now belongs to tree edit contracts.",
+    "cgkn.telemetry": "Runtime observation and read-only projections depend on stored facts; application Oracle qualification has moved out.",
+    "cgkn.telemetry.trusted_samples": "High-level receipt-qualified samples use the runtime acceptance assembly.",
+    "cgkn.state.repair": "Repair advisory projection consumes compiled protocol; no state ownership is moved.",
+    "cgkn.protocol": "Compiler/exchange orchestration, with explicit low-level lexical/context contracts for Provider use.",
+    "cgkn.adapters": "Core projection adapters; capability/Skill mutation adapters are higher-level composition."
+  }
 }

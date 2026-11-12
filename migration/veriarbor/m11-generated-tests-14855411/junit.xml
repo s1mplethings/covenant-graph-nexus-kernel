@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="18" time="5.098" timestamp="2026-11-03T22:01:58.164765+08:00" hostname="test"><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestM11Media" name="test_approval_allows_valid_media" time="0.087" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestM11Media" name="test_approval_blocks_broken_media" time="0.070"><failure message="AssertionError: ValueError not raised">self = &lt;test_milestone_dbb8341c8910593063a8.TestM11Media testMethod=test_approval_blocks_broken_media&gt;
+
+    def test_approval_blocks_broken_media(self):
+        """Test that M6 approval fails if referenced media is BROKEN."""
+        _, media_id, content_id = self._setup_content_with_media(media_status="BROKEN")
+        if content_id is None:
+            return
+    
+        # Review first
+        m6_handle(self.data_dir, {
+            "op": "approval.review",
+            "project_id": self.project_id,
+            "content_id": content_id
+        })
+    
+        # Approve should fail due to broken media
+&gt;       with self.assertRaises(ValueError):
+E       AssertionError: ValueError not raised
+
+tests\test_milestone_dbb8341c8910593063a8.py:482: AssertionError</failure></testcase><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestM11Media" name="test_media_cross_project_access" time="0.057" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestM11Media" name="test_media_get" time="0.033" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestM11Media" name="test_media_get_unknown_id" time="0.014" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestM11Media" name="test_media_import_empty_file" time="0.017" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestM11Media" name="test_media_import_image_jpeg" time="0.029" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestM11Media" name="test_media_import_image_png" time="0.022" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestM11Media" name="test_media_import_invalid_kind" time="0.016" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestM11Media" name="test_media_import_mismatched_signature_image" time="0.021" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestM11Media" name="test_media_import_mismatched_signature_video" time="0.013" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestM11Media" name="test_media_import_missing_file" time="0.014" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestM11Media" name="test_media_import_video_mp4" time="0.035" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestM11Media" name="test_media_import_video_webm" time="0.028" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestM11Media" name="test_media_integrity_broken_on_deletion" time="0.033" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestM11Media" name="test_media_integrity_broken_on_modification" time="0.047" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestM11Media" name="test_media_list" time="0.053" /><testcase classname="tests.test_milestone_dbb8341c8910593063a8.TestM11Media" name="test_publish_blocks_broken_media" time="4.294" /></testsuite></testsuites>

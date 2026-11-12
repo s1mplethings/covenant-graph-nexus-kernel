@@ -1,0 +1,224 @@
+{
+  "status": "GATE_QUALIFIED",
+  "tests": "D:/VeriArbor/governance/checks/bounded-patch-gate50/receipt.json",
+  "full_file_write": "REJECT",
+  "no_delta": "REJECT_BEFORE_WRITE_OR_BROWSER",
+  "business_attempt": "B02_ATTEMPT35_REJECTED_NO_MEASUREMENT",
+  "attempts": [
+    {
+      "node": "sem-node-0143",
+      "attempt": "attempt-0030",
+      "verdict": "PATCH_SCOPE_EXCEEDED",
+      "applied": false,
+      "browser_executed": false,
+      "source_unchanged": true,
+      "reason": "Projects comment before allowedfunctionrange"
+    },
+    {
+      "node": "sem-node-0143",
+      "attempt": "attempt-0031",
+      "verdict": "BOUNDED_PATCH_APPLIED",
+      "applied": true,
+      "patch_receipts": [
+        {
+          "after_sha256": "9edfb2e6f74a325c9c6375bff9dcb91c52026d087e5fa4146dd886ee1e23c1a6",
+          "before_sha256": "97fac580ddd0b04a91c35f26a91e3554abb82ad86e8e6159864d4e49f4dce478",
+          "changed_ranges": [
+            {
+              "end_char": 26246,
+              "end_line": 1283,
+              "replacement_sha256": "317c4685307132fe066ccbcc3b5e4b03b3b4cd60fdb99840bd231340966fd301",
+              "start_char": 23902,
+              "start_line": 1195
+            }
+          ],
+          "path": "main.py",
+          "policy_source_sha256": "97fac580ddd0b04a91c35f26a91e3554abb82ad86e8e6159864d4e49f4dce478",
+          "verdict": "BOUNDED_PATCH_WITH_SOURCE_DELTA"
+        }
+      ],
+      "browser_evidence": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\b01-current-9edfb2e6\\receipt.json",
+      "block_status": "B01 VERIFIED_FROZEN_REUSABLE"
+    },
+    {
+      "node": "sem-node-0143",
+      "attempt": "attempt-0032",
+      "execution_status": "SUCCEEDED",
+      "error": null,
+      "bounded_patch_receipts": [
+        {
+          "after_sha256": "60d5e9d3fcdf45f7134576b77aedc42fb4ec6bbd0cdfbb5a5e12f17fdb7eb97d",
+          "before_sha256": "9edfb2e6f74a325c9c6375bff9dcb91c52026d087e5fa4146dd886ee1e23c1a6",
+          "changed_ranges": [
+            {
+              "end_char": 14625,
+              "end_line": 759,
+              "replacement_sha256": "8971181bf9c942666c42884aaec136001fac5049ea0b4a8a90eb9fab3121fefa",
+              "start_char": 11005,
+              "start_line": 603
+            }
+          ],
+          "path": "main.py",
+          "policy_source_sha256": "9edfb2e6f74a325c9c6375bff9dcb91c52026d087e5fa4146dd886ee1e23c1a6",
+          "verdict": "BOUNDED_PATCH_WITH_SOURCE_DELTA"
+        }
+      ],
+      "block_verified": false,
+      "browser_executed": true,
+      "note": "Only media serving changed, fullB02stillFAIL"
+    },
+    {
+      "node": "sem-node-0143",
+      "attempt": "attempt-0033",
+      "execution_status": "FAILED",
+      "error": {
+        "code": "INVALID_OUTPUT",
+        "details": {},
+        "message": "PATCH_SCOPE_EXCEEDED: patch outside authorized region"
+      },
+      "bounded_patch_receipts": [],
+      "block_verified": false,
+      "browser_executed": false,
+      "note": "Entire two-region batch rejected due8indentationbytes; unchangedsource means no browser rerun"
+    },
+    {
+      "node": "sem-node-0143",
+      "attempt": "attempt-0034",
+      "status": "SUCCEEDED",
+      "error": null,
+      "applied": true,
+      "patch_receipts": [
+        {
+          "after_sha256": "61bebcfedac3c0624cdb0bb1a65e208eeb05a95eb664488042b5b84ecb11bdd4",
+          "before_sha256": "60d5e9d3fcdf45f7134576b77aedc42fb4ec6bbd0cdfbb5a5e12f17fdb7eb97d",
+          "changed_ranges": [
+            {
+              "end_char": 3918,
+              "end_line": 257,
+              "replacement_sha256": "ae0f4d00d4cab35b9b432a612a207507e72b23991f849674b3d85e5e6a8b2c1c",
+              "start_char": 3479,
+              "start_line": 239
+            },
+            {
+              "end_char": 47617,
+              "end_line": 2159,
+              "replacement_sha256": "e6c54a9850ddc7cf2cb7a2860abc566cb4a1010bcb96925752595bc5cdf55222",
+              "start_char": 45843,
+              "start_line": 2081
+            }
+          ],
+          "path": "main.py",
+          "policy_source_sha256": "60d5e9d3fcdf45f7134576b77aedc42fb4ec6bbd0cdfbb5a5e12f17fdb7eb97d",
+          "verdict": "BOUNDED_PATCH_WITH_SOURCE_DELTA"
+        }
+      ],
+      "acceptance": "NOT_INFERRED_FROM_EXECUTION"
+    },
+    {
+      "attempt": "attempt-0035",
+      "node": "sem-node-0143",
+      "verdict": "PATCH_SCOPE_EXCEEDED",
+      "source_sha256": "61bebcfedac3c0624cdb0bb1a65e208eeb05a95eb664488042b5b84ecb11bdd4",
+      "applied": false,
+      "source_unchanged": true,
+      "browser_executed": false,
+      "new_failure_evidence": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\attempts\\sem-node-0143\\attempt-0035.json",
+      "reason": "Third patch targeted _serve_media outside authorized adapter region; entire batch rejected atomically. Existing _serve_media already calls handle; its implementation remains read-only."
+    },
+    {
+      "node": "sem-node-0143",
+      "attempt": "attempt-0036",
+      "status": "SUCCEEDED",
+      "error": null,
+      "applied": true,
+      "patch_receipts": [
+        {
+          "after_sha256": "f269c86e84826bcdb09e4422cb480e3cffe9fded7c2788ee2334aabdb9537ea1",
+          "before_sha256": "61bebcfedac3c0624cdb0bb1a65e208eeb05a95eb664488042b5b84ecb11bdd4",
+          "changed_ranges": [
+            {
+              "end_char": 3619,
+              "end_line": 247,
+              "replacement_sha256": "8f42aa9cf447952481ac3512ae6133fefe90640a5df4fd0c9aac732c0ae09589",
+              "start_char": 3479,
+              "start_line": 239
+            },
+            {
+              "end_char": 4058,
+              "end_line": 269,
+              "replacement_sha256": "79566faa61f85d88b0d3d76cad331d898cd5542cdb4c341349e88e3052ca0e31",
+              "start_char": 4013,
+              "start_line": 269
+            },
+            {
+              "end_char": 6197,
+              "end_line": 391,
+              "replacement_sha256": "48a9747c8108acb064506c095d78d2dcf5aeb5d51c0c218c1c0026b23daa09e4",
+              "start_char": 5954,
+              "start_line": 377
+            }
+          ],
+          "path": "main.py",
+          "policy_source_sha256": "61bebcfedac3c0624cdb0bb1a65e208eeb05a95eb664488042b5b84ecb11bdd4",
+          "verdict": "BOUNDED_PATCH_WITH_SOURCE_DELTA"
+        }
+      ],
+      "acceptance": "NOT_INFERRED_FROM_EXECUTION"
+    },
+    {
+      "node": "sem-node-0143",
+      "attempt": "attempt-0037",
+      "status": "FAILED",
+      "error": {
+        "code": "INVALID_OUTPUT",
+        "details": {},
+        "message": "PATCH_SCOPE_EXCEEDED: ambiguous patch anchor"
+      },
+      "applied": false,
+      "patch_receipts": [],
+      "acceptance": "NOT_INFERRED_FROM_EXECUTION"
+    },
+    {
+      "node": "sem-node-0143",
+      "attempt": "attempt-0038",
+      "status": "FAILED",
+      "error": {
+        "code": "INVALID_OUTPUT",
+        "details": {},
+        "message": "PATCH_SCOPE_EXCEEDED: ambiguous patch anchor"
+      },
+      "applied": false,
+      "patch_receipts": [],
+      "acceptance": "NOT_INFERRED_FROM_EXECUTION"
+    },
+    {
+      "node": "sem-node-0143",
+      "attempt": "attempt-0039",
+      "status": "FAILED",
+      "error": {
+        "code": "INVALID_OUTPUT",
+        "details": {},
+        "message": "PATCH_SCOPE_EXCEEDED: ambiguous patch anchor"
+      },
+      "applied": false,
+      "patch_receipts": [],
+      "acceptance": "NOT_INFERRED_FROM_EXECUTION"
+    },
+    {
+      "node": "sem-node-0143",
+      "attempt": "attempt-0040",
+      "status": "FAILED",
+      "error": {
+        "code": "INVALID_OUTPUT",
+        "details": {},
+        "message": "PATCH_SCOPE_EXCEEDED: anchor length budget exceeded"
+      },
+      "applied": false,
+      "patch_receipts": [],
+      "acceptance": "NOT_INFERRED_FROM_EXECUTION"
+    }
+  ],
+  "atomic_patch_batch_qualification": "D:/VeriArbor/governance/checks/bounded-patch-batch54/receipt.json",
+  "scope_correction_qualification": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\B02_PATCH_SCOPE_CORRECTION_QUALIFICATION.json",
+  "updated_at": "2026-11-04T11:08:30.479835+00:00"
+}

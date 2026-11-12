@@ -1,0 +1,13 @@
+{
+  "kind": "DerivedBlockAcceptanceView",
+  "block_id": "B03",
+  "status": "PASS",
+  "source_sha256": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+  "canonical_observation": {
+    "path": "iter132-promotion-studio/promotion-05/evidence/c35735c36d8785e1c05efccf69a2f6d528162d1ce5dc7777a6f792c267e0bcd8.json",
+    "sha256": "9ba3ccf2bb5bf389a9307a7930b61f766e5ae1c33c8236827694ae1435cad5b6"
+  },
+  "evidence_path": "C:\\Users\\sunom\\AppData\\Local\\Temp\\m12-b03-5za67bzu\\receipt.json",
+  "checker": "D:\\VeriArbor\\tools\\m12_b03_acceptance.py",
+  "checker_sha256": "10203e035f5ce21a0db9b81754cb91d742dc0093dbb6caa5510206bb1f1416b5"
+}

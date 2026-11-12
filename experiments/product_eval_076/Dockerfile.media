@@ -1,0 +1,7 @@
+FROM cgkn-eval076:v2
+USER 0
+RUN apk add --no-cache whisper.cpp \
+    && mkdir -p /opt/asr \
+    && curl --fail --location --max-time 180 --output /opt/asr/ggml-tiny.en.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin \
+    && sha256sum /opt/asr/ggml-tiny.en.bin > /opt/asr/model.sha256
+USER 65534:65534

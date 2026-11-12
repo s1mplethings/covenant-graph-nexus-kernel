@@ -1,0 +1,34 @@
+{
+  "kind": "CurrentDependencyModuleIdentityDiagnosis",
+  "timestamp": "2026-11-03T16:06:10.274973+00:00",
+  "source": {
+    "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\milestones\\milestone_33270fed0c9054f5ae04\\api.py",
+    "sha256": "db223502ff57164389978d41cde5d9f850c756a714f9c8b5fd9085ffea27d511"
+  },
+  "loader_literals": [
+    "milestone_9165a990eed5b9c8801e",
+    "api.py",
+    "m11_media_api"
+  ],
+  "loaded_module": {
+    "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\milestones\\milestone_9165a990eed5b9c8801e\\api.py",
+    "sha256": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2",
+    "declared_milestone": "M5"
+  },
+  "actual_media_module": {
+    "path": "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\candidate\\milestones\\milestone_dbb8341c8910593063a8\\api.py",
+    "sha256": "e4737c448e03a9fd794b9cc86a34a0ab14a04add0ac24b6cbbe42bb7e85336af",
+    "declared_milestone": "M11"
+  },
+  "observed_current_failure": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-diagnostic-e4737c44-m6-db223502\\receipt.json",
+  "finding": "Approval now passes all3validator arguments, but loader still selects a different milestone. Its handle rejects media.get and error is translated into media missing even for a valid M11 import. Actual M11 module remains present and unchanged; repair original approval owner, never relax media-validity tests.",
+  "test_coverage": {
+    "current_test_count": 10,
+    "original_test_count": 12,
+    "original_on_current_failed": 0,
+    "missing_current_case": "Original distinct STALE claim rejection. Current combined invalid-claims test only exercises UNSUPPORTED and CONFLICT.",
+    "original_suite_receipt": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m6-original-tests-db223502\\receipt.json"
+  },
+  "authority": "Read-only diagnosis; original GoalAcceptance and Provider-owned repair remain required",
+  "host_business_patches": 0
+}

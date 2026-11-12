@@ -1,0 +1,27 @@
+{
+  "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\run_state.json": {
+    "sha256": "644521808365a8f9cde80b5ef60a9a04bf44a465669fba955aadb0eb47620029",
+    "bytes": 3011757
+  },
+  "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\agent_checkpoint.json": {
+    "sha256": "9928c70794e3de0a9b17c30eb4381424e872e884c29769d0ed0bca473782cd34",
+    "bytes": 3289973
+  },
+  "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\goal_acceptance.json": {
+    "sha256": "2a3521b55f4b488228c02637d40bb3122eb2f7fa8d8c930b6f6ad036cc6ab6a0",
+    "bytes": 20746516
+  },
+  "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\fixture-freeze.json": {
+    "sha256": "d3475406e8d7ce5de78e5e475ad64beeb28e6c2f1ac90bc6c2ac1d71fd5d7a30",
+    "bytes": 765
+  },
+  "F:\\CGKN-ITER-076\\global-provider-budget.json": {
+    "sha256": "32df4f6a57373cc6dfe50b5bff9be0040e2432c35c4b3627e466f0d11dd559cb",
+    "bytes": 4134112
+  },
+  "state": {
+    "status": "FAILED",
+    "next_decision": 270,
+    "unresolved_nodes": {}
+  }
+}

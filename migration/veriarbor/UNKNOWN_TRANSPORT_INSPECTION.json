@@ -1,0 +1,78 @@
+{
+  "identities": [
+    "sha256:1894e73031f2493253630bb4e22d27a6b4940f355b52d7a8424dbc47c9bf69e1"
+  ],
+  "event_count": 7371,
+  "phase_counts": {
+    "gateway_request_start": 1,
+    "provider_slot_acquired": 1,
+    "transport_begin": 1,
+    "direct_interface_validation_started": 1,
+    "direct_interface_validated": 1,
+    "direct_dns_started": 1,
+    "direct_dns": 1,
+    "connection.connect_tcp.started": 1,
+    "direct_socket": 1,
+    "connection.connect_tcp.complete": 1,
+    "connection.start_tls.started": 1,
+    "connection.start_tls.complete": 1,
+    "provider_submitted": 1,
+    "http11.send_request_headers.started": 1,
+    "http11.send_request_headers.complete": 1,
+    "http11.send_request_body.started": 1,
+    "http11.send_request_body.complete": 1,
+    "http11.receive_response_headers.started": 1,
+    "http11.receive_response_headers.complete": 1,
+    "upstream_headers": 1,
+    "http11.receive_response_body.started": 1,
+    "model_progress": 7340,
+    "http11.receive_response_body.failed": 1,
+    "http11.response_closed.started": 1,
+    "http11.response_closed.complete": 1,
+    "transport_failure": 1,
+    "progress_final": 1,
+    "attempt_end": 1,
+    "stream_failed": 1,
+    "application_error": 1,
+    "gateway_error": 1,
+    "gateway_request_end": 1
+  },
+  "terminal_events": [
+    {
+      "phase": "gateway_request_start",
+      "client_request_identity": "sha256:1894e73031f2493253630bb4e22d27a6b4940f355b52d7a8424dbc47c9bf69e1",
+      "client_call_key": "e749aafd846145bbaac6aced05ada2a3"
+    },
+    {
+      "phase": "transport_failure",
+      "client_request_identity": "sha256:1894e73031f2493253630bb4e22d27a6b4940f355b52d7a8424dbc47c9bf69e1",
+      "client_call_key": "e749aafd846145bbaac6aced05ada2a3",
+      "submitted": true,
+      "partial": true,
+      "kind": "ReadError"
+    },
+    {
+      "phase": "progress_final",
+      "client_request_identity": "sha256:1894e73031f2493253630bb4e22d27a6b4940f355b52d7a8424dbc47c9bf69e1",
+      "client_call_key": "e749aafd846145bbaac6aced05ada2a3",
+      "submitted": true,
+      "meaningful_events": 6770,
+      "stall_reason": null
+    },
+    {
+      "phase": "attempt_end",
+      "client_request_identity": "sha256:1894e73031f2493253630bb4e22d27a6b4940f355b52d7a8424dbc47c9bf69e1",
+      "client_call_key": "e749aafd846145bbaac6aced05ada2a3",
+      "submitted": true,
+      "partial": true,
+      "upstream_http_status": 200
+    },
+    {
+      "phase": "stream_failed",
+      "client_request_identity": "sha256:1894e73031f2493253630bb4e22d27a6b4940f355b52d7a8424dbc47c9bf69e1",
+      "client_call_key": "e749aafd846145bbaac6aced05ada2a3",
+      "submitted": true,
+      "error_type": "ReadError"
+    }
+  ]
+}

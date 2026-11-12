@@ -1,0 +1,12 @@
+{
+  "kind": "IncompleteRepairCallsiteDiagnostic",
+  "timestamp": "2026-11-03T14:35:49.640168+00:00",
+  "source_sha256": "1317f2d3b966c667a84410070721b4e36ca89b14eeaa28dcbc1e342c38979c82",
+  "diagnostic_ref": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m11-diagnostic-1317f2d3\\receipt.json",
+  "diagnostic_sha256": "fa760e9d2a106b0508aa96ea23f40395494689ac8b36bfa4de3bb5c4f404209e",
+  "result": "M11same1/2MediaCopyNotReal",
+  "actual_change": "117attempt4 changed _public_media(record,data_dir=None) so it projects an absolute path only when data_dir is provided. All3callers still omit data_dir: import returns _public_media(record); get returns _public_media(target_record); list appends _public_media(r). Therefore new branch is never used.",
+  "required_behavior": "Existing real input data_dir must reach the helper from import,get,list. All3caller paths must be completed atomically, not merely another helper definition. Preserve relative persisted metadata and original exception/isolation/integrity semantics.",
+  "implementation_authorship": "Provider owns next concrete source edit; diagnostic is not a patch or acceptance",
+  "host_business_patches": 0
+}

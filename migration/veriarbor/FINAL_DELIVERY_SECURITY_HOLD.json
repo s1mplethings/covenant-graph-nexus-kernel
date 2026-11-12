@@ -1,0 +1,12 @@
+{
+  "kind": "FinalDeliverySecurityHold",
+  "created_at": "2026-11-06T04:09:10.740157+00:00",
+  "status": "PAUSED",
+  "reason": "P11: AuthorizedAgentSource self-authorization accepted by delivery_sources.",
+  "existing_delivery_status_preserved": "DELIVER_WITH_WARNINGS",
+  "delivery_recognition": "PAUSED_PENDING_SECURITY_FIX",
+  "source_hash": "711c051954513eab78261062f46228f7ea757a5857a5624ffd487787697d4237",
+  "p11_evidence": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\P11_SELF_AUTHORIZATION_RESULT.json",
+  "new_paid_provider_calls": 0,
+  "new_provider_cost": 0
+}

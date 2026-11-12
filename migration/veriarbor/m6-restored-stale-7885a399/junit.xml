@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="2" skipped="0" tests="21" time="3.494" timestamp="2026-11-04T01:34:34.670204+08:00" hostname="test"><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_module_exposes_handle_and_milestone_id" time="0.001" /><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_review_transitions_draft_to_review" time="0.183" /><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_status_reports_draft_initially" time="0.199" /><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_approve_after_review_with_supported_claims" time="0.295" /><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_approve_with_no_claims_and_no_media" time="0.293" /><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_approve_without_review_raises" time="0.138" /><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_approve_with_invalid_claim_raises[UNSUPPORTED]" time="0.231"><failure message="Failed: DID NOT RAISE &lt;class 'ValueError'&gt;">tmp_path = WindowsPath('F:/CGKN-LeanLoop-V1-20261101/migration/veriarbor/scratch/m6-restored-stale-7885a399/test_approve_with_invalid_clai0')
+claim_status = 'UNSUPPORTED'
+
+    @pytest.mark.parametrize("claim_status", ["UNSUPPORTED", "STALE", "CONFLICT"])
+    def test_approve_with_invalid_claim_raises(tmp_path, claim_status):
+        data_dir, project_id, content_id = _setup_basic(tmp_path, claim_status=claim_status)
+        handle(
+            data_dir,
+            {"op": "approval.review", "project_id": project_id, "content_id": content_id},
+        )
+&gt;       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE &lt;class 'ValueError'&gt;
+
+tests\test_milestone_33270fed0c9054f5ae04.py:287: Failed</failure></testcase><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_approve_with_invalid_claim_raises[STALE]" time="0.189"><failure message="Failed: DID NOT RAISE &lt;class 'ValueError'&gt;">tmp_path = WindowsPath('F:/CGKN-LeanLoop-V1-20261101/migration/veriarbor/scratch/m6-restored-stale-7885a399/test_approve_with_invalid_clai1')
+claim_status = 'STALE'
+
+    @pytest.mark.parametrize("claim_status", ["UNSUPPORTED", "STALE", "CONFLICT"])
+    def test_approve_with_invalid_claim_raises(tmp_path, claim_status):
+        data_dir, project_id, content_id = _setup_basic(tmp_path, claim_status=claim_status)
+        handle(
+            data_dir,
+            {"op": "approval.review", "project_id": project_id, "content_id": content_id},
+        )
+&gt;       with pytest.raises(ValueError):
+E       Failed: DID NOT RAISE &lt;class 'ValueError'&gt;
+
+tests\test_milestone_33270fed0c9054f5ae04.py:287: Failed</failure></testcase><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_approve_with_invalid_claim_raises[CONFLICT]" time="0.178" /><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_approve_with_missing_media_raises" time="0.230" /><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_edit_resets_approval_to_draft" time="0.223" /><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_cross_project_access_raises" time="0.165" /><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_approval_persists_across_processes" time="0.320" /><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_invalid_data_dir_raises" time="0.000" /><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_non_dict_request_raises" time="0.011" /><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_missing_op_raises" time="0.003" /><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_unknown_op_raises" time="0.119" /><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_unknown_project_raises" time="0.134" /><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_unknown_content_raises" time="0.134" /><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_missing_content_id_raises" time="0.154" /><testcase classname="tests.test_milestone_33270fed0c9054f5ae04" name="test_missing_project_id_raises" time="0.150" /></testsuite></testsuites>

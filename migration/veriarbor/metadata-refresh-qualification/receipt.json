@@ -1,0 +1,25 @@
+{
+  "kind": "MetadataRefreshQualification",
+  "fixed_test_sha256": "1acdc0270a99942e0b51dd27f9fc2f302f98f0a16a213dd21246c34538a2794e",
+  "baseline_source_sha256": "642dd6d9ee3ea6eea9fe8d7704b9812513cf38f27e23d3e3d6de359a603e5a92",
+  "original_overbroad_test_refs": [
+    "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\tool-revisions\\test_metadata_refresh_without_verdict-53e8a2bb8a04b45c06b822fd0dea89b86c5dad57c7466c632f62f609e52b4761.py"
+  ],
+  "test_correction": "Only unused pre-read views are prohibited. Mandatory save/render and per-receipt authentication remain active.",
+  "fixed_test_on_original_source": {
+    "exit_code": 1,
+    "failed": 3,
+    "passed": 1,
+    "output_sha256": "5fc9b4cb3dd27c2f434687bff74361ff0cb2d65afaa19ba1e6e85471ef51f8db"
+  },
+  "fixed_test_on_updated_source": "D:\\VeriArbor\\governance\\checks\\metadata-only-refresh-v3\\receipt.json",
+  "no_op_subject_refresh_seconds": {
+    "before": 15.327999999979511,
+    "after": 0.6869999999762513
+  },
+  "benchmark_samples": 1,
+  "scope": "Read-only unchanged subject metadata operation; no end-to-end performance claim",
+  "authority_unchanged": true,
+  "provider_calls": 0,
+  "host_business_patches": 0
+}

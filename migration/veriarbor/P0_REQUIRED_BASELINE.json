@@ -1,0 +1,80 @@
+{
+  "status": "P0_REQUIRED_BASELINE_CAPTURED",
+  "captured_at": "2026-11-03T10:08:04.719510+00:00",
+  "current_files": {
+    "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\run_state.json": {
+      "sha256": "644521808365a8f9cde80b5ef60a9a04bf44a465669fba955aadb0eb47620029",
+      "snapshot": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\p0-current-run\\run_state.json"
+    },
+    "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\agent_checkpoint.json": {
+      "sha256": "9928c70794e3de0a9b17c30eb4381424e872e884c29769d0ed0bca473782cd34",
+      "snapshot": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\p0-current-run\\agent_checkpoint.json"
+    },
+    "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\goal_acceptance.json": {
+      "sha256": "2a3521b55f4b488228c02637d40bb3122eb2f7fa8d8c930b6f6ad036cc6ab6a0",
+      "snapshot": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\p0-current-run\\goal_acceptance.json"
+    },
+    "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\capability_tree.json": {
+      "sha256": "bf9f3a888b122d634c500ebe285b0bbf7090d4afb2aba509f3a9ece25e7e0b4b",
+      "snapshot": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\p0-current-run\\capability_tree.json"
+    },
+    "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\execution_dag.json": {
+      "sha256": "c1ec62164b3d706c3f3424ccec8bca6d68d76f879971bd83654b954fcc77abf1",
+      "snapshot": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\p0-current-run\\execution_dag.json"
+    },
+    "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\provenance_contract.json": {
+      "sha256": "2ba0fa60ba9403cb0cd7373f8a8f643263012b4dfdb312931d98d3961bc75038",
+      "snapshot": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\p0-current-run\\provenance_contract.json"
+    },
+    "F:\\CGKN-ITER-132\\production-core-convergence-v1\\promotion\\run-05\\state\\iter132-promotion-studio\\promotion-05\\model_routing_snapshot.json": {
+      "sha256": "369d791433d71509f2d25f34617273bc72140ea15a01abb7265886becaef8ed8",
+      "snapshot": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\p0-current-run\\model_routing_snapshot.json"
+    },
+    "F:\\CGKN-ITER-076\\global-provider-budget.json": {
+      "sha256": "32df4f6a57373cc6dfe50b5bff9be0040e2432c35c4b3627e466f0d11dd559cb",
+      "snapshot": "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\p0-current-run\\accounting.json"
+    }
+  },
+  "candidate_sources": {
+    "early_main.py": "8d729251aeb20827e75d16e9e3e4d09a2f3cf85bc9c65060f66817e89ce3d492",
+    "promotion_publish.py": "985acf7474d7df35b8e7934462b99d45355dffa518097e5494b6cca04eb35024",
+    "tests/test_milestone_1369a82cde04a7e5887d.py": "b58b1d68cd3c30952b9423b1af77b2b01b7dee1b92f8f6935b872e09ced8094a",
+    "tests/test_milestone_20f2614f6ae8403d4a4e.py": "9875257ec758364ee22b6b7d8385f4d84f55ea52cbd9d7db370cda09cc7f58d5",
+    "tests/test_milestone_33270fed0c9054f5ae04.py": "20df669dcf4fbf7b30cbd249f991f75d9889321e427818ce2f86649abfd0d311",
+    "tests/test_milestone_4e7c26281cf61a85851e.py": "12f5c08baefe86adbe67054affc114d219f3b3f4c6240a0e30cd05efc0674d23",
+    "tests/test_milestone_90b8868c7203e2958397.py": "204ac15825cee40c0a85b1c454a5b90d2e13ef816be890a4adb7ac9820031c61",
+    "tests/test_milestone_9165a990eed5b9c8801e.py": "fde4c6a18670b17fbeef65d2e0dfaaab575e84399350f1ffcf72994e63f0fcd7",
+    "tests/test_publish.py": "a8ef44b1bee2d089cb76dadb16da1088686855cedda967830915c478fcec4816",
+    "milestones/milestone_1369a82cde04a7e5887d/api.py": "871574d64ce2cd114ed1a4da0bb5fb8481bbda5e22456a7280766f9fb5f2b48f",
+    "milestones/milestone_20f2614f6ae8403d4a4e/api.py": "60444dddf0cc90e9f14acb8fa2e7dd16bc5e55e612530553f2c25b66f252110e",
+    "milestones/milestone_33270fed0c9054f5ae04/api.py": "78dd17fe6722f4fa573580b6a59d33374e925ccf309641d9241081a53e755cbc",
+    "milestones/milestone_4e7c26281cf61a85851e/api.py": "7a962c9319e18005c0532020bd1761b22c9753e36c681e4192b3a63320ba50de",
+    "milestones/milestone_90b8868c7203e2958397/api.py": "eb3484c4708829f22b3ccd1648a6412254573fbe37e5b31d7793d40b7474e33c",
+    "milestones/milestone_9165a990eed5b9c8801e/api.py": "5ed51deb9e743f04ded84e7de7ef9d51aab6eb664e69570450ed687ccb787fd2"
+  },
+  "next_decision": 270,
+  "run_status": "FAILED",
+  "historical_unresolved_provider_requests": [
+    "0b12e1313b7046d895b96bfed2212e87",
+    "280070118a3244f1bb192601e363f64d",
+    "30f784be31154e63b95c591d57d4670b",
+    "32c992f05e9c4b938df14174ce65ed3d",
+    "3699e242d4654c68a10b9a7168373b8c",
+    "3f55668e46e3429593ca08f220d157bb",
+    "c8ffc58c5b284f748b372554c0c510d8",
+    "e2a84617609940b0a31e6efdedfa100b",
+    "e59f300bb335443ca4a77abb494c57c8",
+    "e749aafd846145bbaac6aced05ada2a3"
+  ],
+  "unknown_policy": "Retained; no automatic resend. Current run state has no running/unknown nodes. Canonical request admission remains enforced.",
+  "corpus_root": "F:/CGKN-ITER-060/project-corpus",
+  "corpus_preservation_receipts": {
+    "F:\\CGKN-ITER-132\\production-core-convergence-v1\\corpus\\preservation-checkpoint02\\receipt.json": "e52d4cae6bba223abdef03d9a25cbe459096b6e229897972f28e36579192c161",
+    "F:\\CGKN-ITER-132\\production-core-convergence-v1\\corpus\\preservation-checkpoint03\\receipt.json": "dd3fe088835f13d7f832e0b81da0fac274ab7bdbd80665fa5b5d02d541e847dd",
+    "F:\\CGKN-ITER-132\\production-core-convergence-v1\\corpus\\preservation-checkpoint04\\receipt.json": "86911cd2fd6a5c55444fcd2b4e4db5f9b2644a1e9a5bd4a4c2f20ac59bc935af"
+  },
+  "source_manifest": "D:/VeriArbor/governance/SOURCE_MANIFEST.json",
+  "git_identity": "CGNK_BASELINE.json",
+  "additional_full_history_hash_scan": "IN_PROGRESS; supplementary inventory, not a prerequisite for altering current run after these exact baseline snapshots are sealed",
+  "snapshot_is_authority": false
+}

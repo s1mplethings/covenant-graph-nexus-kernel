@@ -1,0 +1,32 @@
+{
+  "expected_gui_sha256": "5c7e0f19981eb939cc7430b05ac5cd5ace03c2747dbdf9cbb7cf5c9e66e2e19b",
+  "feedback": {
+    "cost_policy": "QwenFlash Agent only to select existing deterministicTEST; noWorker generation orPro/Max needed for this measurement. Preserve11newUNKNOWNs.",
+    "milestone_completion_request": "CURRENT M12 MEASUREMENT ONLY. The last143a26write changed main.py to9e549755 and fixedserverconcurrency; prior154a1failure isboundtoold1aecsource. Execute existing M12 independenttest154 withdeps[] againstcurrentcandidate andactivequalifiedrevision8. Do notrepairmain.py beforethis currentmeasurement. ReuseM1-M11. Do not FINISH orpackage.",
+    "fresh_runtime_diagnosis": {
+      "applicability": {
+        "artifact_hashes": {
+          "main.py": "9e5497551960c82760e0e8a7c1d3d7897de3a68e0805f659f1e30d2101c957b1"
+        }
+      },
+      "phase": "current_measurement_only",
+      "next": "Retryexisting154 currentqualifiedrevision8 VerificationKey, deps[]; nonewGUIwriter. Theexpectedresultmayfailprojectcreation becauseactualdispatchstill10/11wrong; recordactualnativecounterexamplebeforeanyfurtherrepair. NoM1-M11tests.",
+      "observed_delta": "143a26onlyHTTPServer->ThreadingHTTPServer. StaticDOMPASS butactualproject.createfails;sourcehashchangedthusold154serialcounterexamplenolongerdescribescurrentartifact.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A26_DELTA.txt",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-143a26\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_V10_ACTIVATION.json"
+      ]
+    },
+    "admission_correction": "Select deterministic M12 TEST for current main9e549755. Existing154 hasindependentchecker/fullunchangedM12contract; dependencies[] toavoidunrelatedtest/docsfailedwriters. Do notChangeStrategy143 now; firstmeasurecurrentartifact. NeverrepeatoldunchangedVerificationKey; thiskeyhasnewsourcehash andactivequalifiedrevision8.",
+    "redecision": {
+      "strategy_revision": "d899362efb53de7340d8a184330e516973626fceb8579606763c0dbe4fc0face",
+      "reason": "New143a26source fixesold154serialfailurebutactualdispatchstillfails. Currentnativecounterexamplerequired; bounded deterministicmeasurementonly, notmoreWorkerrepairagainstoldartifact.",
+      "evidence_refs": [
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_143A26_DELTA.txt",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\m12-dispatch-143a26\\receipt.json",
+        "F:\\CGKN-LeanLoop-V1-20261101\\migration\\veriarbor\\M12_GUI_V10_ACTIVATION.json"
+      ]
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "kind": "DerivedAdapterMap",
+  "production_generated_adapters": [],
+  "adapter_chains": [],
+  "reason": "No incompatible port change has yet been admitted; identity migration needs no transform adapter."
+}

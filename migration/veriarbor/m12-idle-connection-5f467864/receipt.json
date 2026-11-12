@@ -1,0 +1,33 @@
+{
+  "kind": "BrowserIdleConnectionDiagnostic",
+  "source_sha256": "5f4678644367eb19460fdc6ddcca68bba2a43f347dee19be141547d312181ed1",
+  "acceptance_authority": false,
+  "host_business_patches": 0,
+  "observations": [
+    {
+      "mode": "actual candidate server class",
+      "result": {
+        "responded": false,
+        "error": "TimeoutError: timed out"
+      },
+      "seconds": 2.0929999999934807,
+      "after_idle_close": {
+        "status": "ok"
+      }
+    },
+    {
+      "mode": "independent threaded control",
+      "result": {
+        "responded": true,
+        "body": {
+          "status": "ok"
+        }
+      },
+      "seconds": 0.0,
+      "after_idle_close": {
+        "status": "ok"
+      }
+    }
+  ],
+  "scope": "Normal idle preconnection plus concurrent /health, not load or performance stress. Control uses standard library threaded server with same handler outside candidate."
+}

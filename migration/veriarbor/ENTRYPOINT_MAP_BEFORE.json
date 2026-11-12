@@ -1,0 +1,32 @@
+{
+  "declared": {
+    "composition": "cgkn/orchestration/capability_tree.py:CapabilityTree",
+    "execution_graph": "cgkn/orchestration/execution_dag.py:compile_tree",
+    "component_contract": "cgkn/component/spec.py:ComponentSpec",
+    "port_contract": "cgkn/component/ports.py:PortSpec",
+    "component_execution_record": "cgkn/component/execution.py:ComponentExecution",
+    "block_execution_envelope": "cgkn/execution/contracts.py:BlockExecutionRequest",
+    "executor_resolution": "cgkn/executors/registry.py:ExecutorRegistry",
+    "project_run_state": "cgkn/state/store.py:FileRunStore",
+    "dag_runtime": "cgkn/runtime/dag_runner.py:DAGRunner",
+    "capability_registry": "cgkn/capabilities/registry.py:CapabilityRegistry",
+    "growth_admission": "cgkn/growth/admission.py:CapabilityAdmissionReceipt",
+    "growth_loop": "cgkn/growth/loop.py:GrowthLoop",
+    "agent_decision": "cgkn/agent/composer.py:AgentDecision",
+    "agent_project_loop": "cgkn/agent/project_loop.py:AgentProjectLoop",
+    "bounded_llm_executor": "cgkn/executors/llm.py:LLMExecutor",
+    "executor_factory": "cgkn/executors/factory.py:ExecutorFactoryRegistry",
+    "artifact_runtime": "cgkn/runtime/runner.py:ArtifactModuleRunner",
+    "provider_executor_adapter": "scripts/provider_jobs.py:ProviderJob",
+    "deterministic_action_adapter": "scripts/local_agent_actions.py:LocalAgentActionExecutor",
+    "real_test_support": "scripts/real_test_execution.py",
+    "repository_publish": "scripts/canonical_repo_publish.py:publish",
+    "product_direction_gate": "scripts/product_direction_gate.py:check"
+  },
+  "compatibility": [
+    "scripts/codex_conversation.py",
+    "scripts/run_codex_conversation_generation.py",
+    "scripts/run_local_pipeline.py",
+    "scripts/run_local_pipeline_impl.py"
+  ]
+}
